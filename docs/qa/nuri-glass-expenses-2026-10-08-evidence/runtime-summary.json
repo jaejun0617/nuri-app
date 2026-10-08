@@ -1,0 +1,11 @@
+{
+  "method": "Read-only logcat retained main/system/crash buffers; epoch format; no reset; raw lines not persisted.",
+  "requestedSinceDeviceLocal": "2026-10-08 19:49:17",
+  "checkedAt": "2026-10-08T11:17:43.097Z",
+  "scope": "Final-candidate bounded QA only; retained-buffer evidence, not lifetime crash proof.",
+  "appPid": 22957,
+  "inspectedAppLineCount": 32561,
+  "fatal": 0,
+  "anr": 0,
+  "rnFatal": 0
+}

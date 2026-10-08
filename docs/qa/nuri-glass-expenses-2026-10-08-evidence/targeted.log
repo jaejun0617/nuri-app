@@ -1,0 +1,14 @@
+PASS __tests__/communityKeyboardInteraction.test.tsx
+PASS __tests__/homeSectionPresentation.test.tsx
+PASS __tests__/inputFooterKeyboardContracts.test.tsx
+PASS __tests__/scheduleAlarmForm.test.tsx
+PASS __tests__/communityCommentCorrective.test.tsx
+PASS __tests__/recordCreateKeyboard.test.tsx
+PASS __tests__/scheduleListPresentation.test.ts
+PASS __tests__/monthlyExpenses.test.ts
+PASS __tests__/glassExpenseSourceContracts.test.ts
+
+Test Suites: 9 passed, 9 total
+Tests:       123 passed, 123 total
+Snapshots:   0 total
+Time:        3.67 s, estimated 4 s

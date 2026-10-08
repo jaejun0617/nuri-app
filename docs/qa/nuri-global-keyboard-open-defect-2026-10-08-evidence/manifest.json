@@ -1,0 +1,59 @@
+{
+  "recordedAt": "2026-10-08T08:37:31.216Z",
+  "canonicalRoot": "/private/tmp/nuri-keyboard-open-corrective-20261008-163925",
+  "previousRoot": "/private/tmp/nuri-global-keyboard-final-20261007-212757",
+  "report": "docs/qa/nuri-global-keyboard-open-defect-final-corrective-2026-10-08.md",
+  "reportSha256": "b198dd35a1ef787adca0692d6be4e14cbdd0b1536b4fe886538fe409dbc7d2e9",
+  "artifactCopiesCreated": 0,
+  "sourceAfterFinalCandidateChange": 0,
+  "metadata": [
+    {
+      "file": "k-id-ledger-final.json",
+      "bytes": 45070,
+      "sha256": "2f056870375f68a0d3a68770dfbe52feece93dad13e9486cd2f25bae0008f038"
+    },
+    {
+      "file": "installed-apk.json",
+      "bytes": 641,
+      "sha256": "f027b6eaa4974bfcf018efe6420257fd077630ae63447214ad6a576710ad162b"
+    },
+    {
+      "file": "validation-final.json",
+      "bytes": 1702,
+      "sha256": "00062c2e79bb83e95b2aa8408a2140034dbbf65c11d6f525af393f7861aa5c34"
+    },
+    {
+      "file": "runtime-summary.json",
+      "bytes": 574,
+      "sha256": "64c6b2dc9ed9ee0495f136c21a209fc70cacbcc09505d5f2892536731e730645"
+    },
+    {
+      "file": "device-release.json",
+      "bytes": 538,
+      "sha256": "ff5d83ebc5dc541f7095195f3536bbf9944b6e7140493756207da02c4a4cb91c"
+    },
+    {
+      "file": "candidate-source-after-qa.json",
+      "bytes": 141,
+      "sha256": "110919b770f680d5fd110dcdeaf17c685d6ce0db6f9e419110e88fa52232d440"
+    },
+    {
+      "file": "preservation.json",
+      "bytes": 3676,
+      "sha256": "1db7bf394627a06593ef2fd9d6f42cb5c67b1ddbe87173c42f1d92d9621699a4"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/nuri-keyboard-open-corrective-release.apk",
+      "sha256": "7f24f510a4fc2a3f3b3a9aebf2974918b635483fd72051b425a801f18af8783b",
+      "preserved": true
+    },
+    {
+      "path": "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/nuri-keyboard-open-corrective-release.aab",
+      "sha256": "207e39d975c172b529eb9730a5ec4f79a9bff6d9c4a46110cdb49bdd14b32d63",
+      "preserved": true
+    }
+  ],
+  "finalStatus": "COMPLETE_WITH_EXACT_GATES_AND_OPEN_DEFECTS"
+}

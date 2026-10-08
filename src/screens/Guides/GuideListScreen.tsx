@@ -203,9 +203,7 @@ export default function GuideListScreen() {
     if (searchVisible) return;
     if (!searchQuery) return;
 
-    startTransition(() => {
-      setSearchQuery('');
-    });
+    setSearchQuery('');
   }, [searchQuery, searchVisible]);
 
   useEffect(() => {
@@ -231,10 +229,8 @@ export default function GuideListScreen() {
       if (!normalized) return;
 
       recentSearchState.save(normalized).catch(() => {});
-      startTransition(() => {
-        setSearchVisible(true);
-        setSearchQuery(normalized);
-      });
+      setSearchVisible(true);
+      setSearchQuery(normalized);
     },
     [recentSearchState],
   );
@@ -344,6 +340,8 @@ export default function GuideListScreen() {
 
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
           <Pressable
+            accessibilityRole="button"
+            accessibilityLabel={searchVisible ? '가이드 검색 닫기' : '가이드 검색 열기'}
             style={[
               styles.searchToggleButton,
               { backgroundColor: petTheme.tint },
@@ -365,11 +363,9 @@ export default function GuideListScreen() {
             <Feather name="search" size={16} color="#98A1B2" />
             <AppTextInput
               value={searchQuery}
-              onChangeText={value => {
-                startTransition(() => {
-                  setSearchQuery(value);
-                });
-              }}
+              // Native composition needs an immediate controlled value;
+              // deferredSearchQuery owns the slower search work instead.
+              onChangeText={setSearchQuery}
               onSubmitEditing={() => {
                 rememberSearchQuery(searchQuery).catch(() => {});
               }}
@@ -382,11 +378,11 @@ export default function GuideListScreen() {
             />
             {searchQuery ? (
               <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="가이드 검색어 지우기"
                 style={styles.searchClearButton}
                 onPress={() => {
-                  startTransition(() => {
-                    setSearchQuery('');
-                  });
+                  setSearchQuery('');
                 }}
               >
                 <Feather name="x" size={15} color="#98A1B2" />
@@ -636,9 +632,7 @@ export default function GuideListScreen() {
                 { backgroundColor: petTheme.tint },
               ]}
               onPress={() => {
-                startTransition(() => {
-                  setSearchQuery('');
-                });
+                setSearchQuery('');
               }}
             >
               <AppText

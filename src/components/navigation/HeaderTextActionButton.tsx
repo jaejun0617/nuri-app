@@ -114,9 +114,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   compactButton: {
-    minWidth: 54,
-    minHeight: 40,
-    paddingHorizontal: 10,
+    minWidth: 50,
+    minHeight: 44,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   text: {
     fontWeight: '900',

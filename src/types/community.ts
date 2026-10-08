@@ -26,11 +26,7 @@ export type CommunityCategory = 'all' | CommunityPostCategory;
 export type CommunityListFilter = 'all' | 'popular' | 'notice';
 export type CommunityPageSize = 30 | 50 | 100 | 150 | 200;
 export const COMMUNITY_PAGE_SIZE_OPTIONS: readonly CommunityPageSize[] = [
-  30,
-  50,
-  100,
-  150,
-  200,
+  30, 50, 100, 150, 200,
 ];
 export const DEFAULT_COMMUNITY_PAGE_SIZE: CommunityPageSize = 30;
 export const COMMUNITY_LIST_CURSOR_VERSION = 4 as const;
@@ -251,6 +247,7 @@ export type CommunityDetailStatus =
   | 'moderated';
 
 export type FetchCommunityPostsParams = {
+  query?: string;
   filter?: CommunityListFilter;
   category?: CommunityCategory;
   cursor?: string | null;

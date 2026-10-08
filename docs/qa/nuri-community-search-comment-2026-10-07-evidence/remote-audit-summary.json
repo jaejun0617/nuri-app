@@ -1,0 +1,51 @@
+{
+  "projectId": "grmekesqoydylqmyvfke",
+  "approvedMigration": "20261007074134_community_search_and_write_error_contract",
+  "originalListAndCommentWriteContracts": "definition hashes unchanged",
+  "nullHintErrorPropagation": "PASS",
+  "cursorQueryBinding": "PASS",
+  "search100Rows": {
+    "pages": 4,
+    "rows": 100,
+    "distinct": 100,
+    "expected": 100
+  },
+  "advisory": {
+    "before": 211,
+    "after": 213,
+    "added": [
+      {
+        "lint": "anon_security_definer_function_executable",
+        "level": "WARN",
+        "function": "community_search_posts_v1"
+      },
+      {
+        "lint": "authenticated_security_definer_function_executable",
+        "level": "WARN",
+        "function": "community_search_posts_v1"
+      }
+    ],
+    "boundary": "Intentional public read-only SECURITY DEFINER RPC matching canonical public feed; warnings are not claimed cleared"
+  },
+  "authAudit": [
+    {
+      "auth_rows": 56,
+      "auth_created_since_start": 0,
+      "auth_updated_since_start": 1,
+      "updated_qa_account_rows": 1,
+      "recent_sign_ins": 0
+    }
+  ],
+  "authWholeRowDigest": "CHANGED_IN_ONE_QA_ACCOUNT_ROW_EXACT_COLUMNS_NOT_CAPTURED",
+  "protectedDigestBoundary": {
+    "postsExcludedColumns": [
+      "view_count",
+      "comment_count",
+      "updated_at"
+    ],
+    "normalServerCounters": "not frozen",
+    "qaPosts100": "PRESERVED",
+    "commentsDelta": 3,
+    "authAdminMutations": 0
+  }
+}

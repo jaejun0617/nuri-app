@@ -1,0 +1,43 @@
+{
+  "reportDateKst": "2026-10-08",
+  "scope": "DOCUMENTATION_ONLY_NO_NEW_QA",
+  "baselineFileCount": 1714,
+  "missing": [],
+  "unexpectedChanged": [],
+  "changedDocumentation": [
+    "docs/project-memory/최근-작업-로그.md",
+    "docs/project-memory/현재-프로젝트-상태.md"
+  ],
+  "sourceCodeDelta": 0,
+  "testCodeDelta": 0,
+  "branch": "codex/task6-community-content-policy",
+  "head": "26891aaed1fbee37141ecbd89e4d4c18970b4a1d",
+  "origin": "26891aaed1fbee37141ecbd89e4d4c18970b4a1d",
+  "staged": "",
+  "originalBodies": [
+    {
+      "file": "docs/project-memory/최근-작업-로그.md",
+      "preserved": true
+    },
+    {
+      "file": "docs/project-memory/현재-프로젝트-상태.md",
+      "preserved": true
+    }
+  ],
+  "ledgerCount": 38,
+  "ledgerUniqueCount": 38,
+  "reportRowCount": 38,
+  "markdownIssues": [],
+  "internalBrokenLinks": [],
+  "internalLinksChecked": 18,
+  "gitDiffCheck": "PASS",
+  "deviceControl": 0,
+  "build": 0,
+  "install": 0,
+  "appTestExecution": 0,
+  "dbSupabaseAccess": 0,
+  "cleanup": 0,
+  "commit": false,
+  "push": false,
+  "sourceStatus": "UNCHANGED_THIS_REPORT_TURN"
+}

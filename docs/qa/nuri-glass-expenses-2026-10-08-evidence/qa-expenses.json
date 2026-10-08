@@ -1,0 +1,29 @@
+{
+  "authority": "PO approved exactly two synthetic expense records via app UI, one edit, preservation; remote read-only values checked during QA.",
+  "records": [
+    {
+      "title": "QA 20261008 EXPENSE SHOPPING",
+      "id": "c08522ed-037b-4f7d-bb22-ec1c3de6201a",
+      "petDisplay": "누리테스트",
+      "category": "other/shopping",
+      "initialPrice": 100,
+      "initialDate": "2026-10-08",
+      "finalPrice": 150,
+      "finalDate": "2026-09-08"
+    },
+    {
+      "title": "QA 20261008 EXPENSE MEDICAL",
+      "id": "05662f9d-5b16-4710-846c-e9207fe730ad",
+      "petDisplay": "누리",
+      "category": "health",
+      "finalPrice": 200,
+      "finalDate": "2026-10-08"
+    }
+  ],
+  "observedCombinedBeforeEdit": 300,
+  "observedOctoberAfterEdit": 200,
+  "observedSeptemberAfterEdit": 150,
+  "preserved": true,
+  "deleted": 0,
+  "profileSameValueSaves": 1
+}

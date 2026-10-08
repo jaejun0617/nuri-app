@@ -1,4 +1,4 @@
-import CtaButton, { CtaText, CtaIcon } from '../../app/ui/CtaButton';
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // 파일: src/screens/Schedules/ScheduleCreateScreen.tsx
 // 역할:
 // - 반려동물 일정 생성 폼과 날짜/시간/반복/알림 선택 UI를 담당
@@ -29,6 +29,8 @@ import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 
 import AppText from '../../app/ui/AppText';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import { SeasonalFormBackground, SeasonalFormPanel } from '../../components/common/SeasonalFormSurface';
+import ScheduleReminderNotice from '../../components/common/ScheduleReminderNotice';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -101,6 +103,8 @@ export default function ScheduleCreateScreen() {
     [navigation, petId, queryClient, resolvedReturnTo],
   );
   const {
+    reminderNoticeVisible,
+    setReminderNoticeVisible,
     title,
     setTitle,
     note,
@@ -186,7 +190,7 @@ export default function ScheduleCreateScreen() {
 
   const headerTopInset = Math.max(insets.top, 12);
   const scrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
-  const scrollBottomInset = keyboardVisible ? 12 : insets.bottom + 32;
+  const scrollBottomInset = 16;
 
   const handleFocusNote = useCallback(() => {
     requestAnimationFrame(() => {
@@ -199,6 +203,7 @@ export default function ScheduleCreateScreen() {
       style={styles.screen}
       edges={keyboardVisible ? ['left', 'right'] : ['left', 'right', 'bottom']}
     >
+      <SeasonalFormBackground />
       <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
@@ -225,6 +230,7 @@ export default function ScheduleCreateScreen() {
             loading={saving}
             accessibilityLabel={saving ? '일정 저장 중' : '일정 저장 완료'}
             borderRadius={8}
+            compact
             disabled={saving}
             label="완료"
             onPress={onSubmit}
@@ -243,7 +249,7 @@ export default function ScheduleCreateScreen() {
         keyboardDismissMode="none"
         showsVerticalScrollIndicator={false}
       >
-        <View
+        <SeasonalFormPanel
           style={styles.card}
           pointerEvents={saving || persisted ? 'none' : 'auto'}
         >
@@ -584,7 +590,7 @@ export default function ScheduleCreateScreen() {
             style={[styles.input, styles.textarea]}
             multiline
           />
-        </View>
+        </SeasonalFormPanel>
         <CtaButton
           role="primary"
           loading={saving}
@@ -599,12 +605,12 @@ export default function ScheduleCreateScreen() {
           onPress={onSubmit}
           disabled={saving}
         >
-          <CtaIcon name="plus" size={16} />
           <CtaText preset="unifiedBody" style={styles.primaryBtnText}>
             일정 저장하기
           </CtaText>
         </CtaButton>
       </KeyboardAwareScrollView>
+      <ScheduleReminderNotice visible={reminderNoticeVisible} onClose={() => setReminderNoticeVisible(false)} />
 
       <DatePickerModal
         visible={dateModalVisible}

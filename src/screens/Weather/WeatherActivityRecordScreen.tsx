@@ -3,7 +3,7 @@
 // - 실내 활동 완료 후 빠르게 감정/메모/태그를 남기는 전용 기록 화면
 // - 저장 성공 시 완료 팝업을 보여주고 타임라인으로 이어짐
 
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
   StyleSheet,
@@ -17,7 +17,7 @@ import {
   useKeyboardState,
   type KeyboardAwareScrollViewRef,
 } from 'react-native-keyboard-controller';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from '../../components/icons/NuriFeatherIcon';
@@ -26,6 +26,7 @@ import { NURI_MOOD_ICONS } from '../../components/icons/nuriIconNames';
 import MaterialCommunityIcons from '../../components/icons/NuriMaterialIcon';
 
 import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
+import { SeasonalFormBackground, SeasonalFormPanel } from '../../components/common/SeasonalFormSurface';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import PhotoAddCard from '../../components/media/PhotoAddCard';
 import RecordTagModal from '../Records/components/RecordTagModal';
@@ -72,7 +73,6 @@ const EMOTION_MAP = {
 export default function WeatherActivityRecordScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const insets = useSafeAreaInsets();
   const keyboardVisible = useKeyboardState(state => state.isVisible);
 
   const userId = useAuthStore(s => s.session?.user?.id ?? null);
@@ -95,8 +95,10 @@ export default function WeatherActivityRecordScreen() {
     () => buildPetThemePalette(selectedPet?.themeColor),
     [selectedPet?.themeColor],
   );
+  const [tagModalVisible, setTagModalVisible] = useState(false);
   const onPressBack = useEntryAwareBackAction({
-    entrySource: route.params?.entrySource,
+    // One back owner closes the embedded dialog before applying route history.
+    entrySource: tagModalVisible ? undefined : route.params?.entrySource,
     onHome: () => {
       navigation.reset({
         index: 0,
@@ -110,7 +112,8 @@ export default function WeatherActivityRecordScreen() {
       });
     },
     onFallback: () => {
-      navigation.goBack();
+      if (tagModalVisible) setTagModalVisible(false);
+      else navigation.goBack();
     },
   });
 
@@ -124,10 +127,36 @@ export default function WeatherActivityRecordScreen() {
     guide.recordDraft.suggestedTags,
   );
   const [tagDraft, setTagDraft] = useState('');
-  const [tagModalVisible, setTagModalVisible] = useState(false);
   const [saving, setSaving] = useState(false);
   const [doneVisible, setDoneVisible] = useState(false);
   const scrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
+  const titleInputRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
+  const noteInputRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
+  const tagReturnInputRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
+
+  const onOpenTagModal = useCallback(() => {
+    const focusedInput = [titleInputRef.current, noteInputRef.current].find(
+      input => input?.isFocused(),
+    );
+    tagReturnInputRef.current = focusedInput ?? null;
+    // A dialog can restore native focus without a new parent onFocus event.
+    // Release it explicitly so the keyboard-aware owner receives that event.
+    focusedInput?.blur();
+    setTagModalVisible(true);
+  }, []);
+
+  useEffect(() => {
+    if (tagModalVisible || !tagReturnInputRef.current) return;
+    const input = tagReturnInputRef.current;
+    const frame = requestAnimationFrame(() => {
+      tagReturnInputRef.current = null;
+      input.focus();
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [tagModalVisible]);
+  const onCloseTags = useCallback(() => {
+    setTagModalVisible(false);
+  }, []);
 
   const toggleTag = useCallback((tag: string) => {
     setSelectedTags(prev =>
@@ -284,6 +313,7 @@ export default function WeatherActivityRecordScreen() {
 
   return (
     <SafeAreaView testID="weather-activity-record-screen" style={styles.safe} edges={keyboardVisible ? ['top', 'left', 'right'] : ['top', 'left', 'right', 'bottom']}>
+      <SeasonalFormBackground />
       <View style={styles.keyboardContent}>
         <View style={styles.header}>
           <View style={styles.headerSideSlot}>
@@ -305,12 +335,14 @@ export default function WeatherActivityRecordScreen() {
           style={styles.scroll}
           contentContainerStyle={[
             styles.content,
-            { paddingBottom: keyboardVisible ? 12 : Math.max(insets.bottom + 28, 40) },
+            { paddingBottom: 16 },
           ]}
           keyboardDismissMode="none"
+          disableScrollOnKeyboardHide
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          <SeasonalFormPanel>
           <View style={styles.summaryCard}>
             <View style={styles.summaryTextWrap}>
               <Text style={styles.summaryTitle}>{guide.title} 완료!</Text>
@@ -396,6 +428,8 @@ export default function WeatherActivityRecordScreen() {
           <View style={styles.section}>
             <Text style={styles.label}>제목</Text>
             <TextInput
+              ref={titleInputRef}
+              testID="weather-record-title"
               value={title}
               onChangeText={setTitle}
               onFocus={handleFocusField}
@@ -408,6 +442,8 @@ export default function WeatherActivityRecordScreen() {
           <View style={styles.section}>
             <Text style={styles.label}>메모</Text>
             <TextInput
+              ref={noteInputRef}
+              testID="weather-record-note"
               value={note}
               onChangeText={setNote}
               onFocus={handleFocusField}
@@ -422,8 +458,9 @@ export default function WeatherActivityRecordScreen() {
             <View style={styles.tagHeader}>
               <Text style={styles.label}>태그</Text>
               <TouchableOpacity
+                testID="weather-record-tag-open"
                 activeOpacity={0.85}
-                onPress={() => setTagModalVisible(true)}
+                onPress={onOpenTagModal}
               >
                 <Text style={[styles.tagAdd, { color: petTheme.primary }]}>
                   + 추가
@@ -469,15 +506,11 @@ export default function WeatherActivityRecordScreen() {
             onPress={onSubmit}
             disabled={saving}
           >
-            <MaterialCommunityIcons
-              name="content-save-outline"
-              size={18}
-              color="#FFFFFF"
-            />
             <Text style={styles.primaryButtonText}>
-              {saving ? '저장 중...' : '기록 저장하기'}
+              기록 저장하기
             </Text>
           </TouchableOpacity>
+          </SeasonalFormPanel>
         </KeyboardAwareScrollView>
       </View>
 
@@ -493,13 +526,11 @@ export default function WeatherActivityRecordScreen() {
       />
 
       <RecordTagModal
+        embedded
         visible={tagModalVisible}
         tagDraft={tagDraft}
         selectedTags={selectedTags}
-        onClose={() => {
-          setTagDraft('');
-          setTagModalVisible(false);
-        }}
+        onClose={onCloseTags}
         onChangeTagDraft={onChangeTagDraft}
         onSubmitDraftTag={onSubmitDraftTag}
         onRemoveTag={toggleTag}
@@ -519,7 +550,7 @@ const styles = StyleSheet.create({
   },
   keyboardContent: {
     flex: 1,
-    backgroundColor: '#FBFAFD',
+    backgroundColor: 'transparent',
   },
   header: {
     minHeight: 56,

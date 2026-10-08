@@ -1,4 +1,4 @@
-import CtaButton, { CtaText, CtaIcon } from '../../app/ui/CtaButton';
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import type { CtaRole } from '../../app/theme/ctaPalette';
 import React, {
   useCallback,
@@ -6,6 +6,7 @@ import React, {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from 'react';
 import {
   ActivityIndicator,
@@ -26,10 +27,12 @@ import Animated from 'react-native-reanimated';
 import { useKeyboardBottomPadding } from '../../hooks/useKeyboardBottomPadding';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '../../components/icons/NuriFeatherIcon';
-import MaterialCommunityIcons from '../../components/icons/NuriMaterialIcon';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
+import { TIMELINE_SEASON_COLORS } from '../../theme/seasonal/timeline';
 import PostImageSlider from '../../components/community/PostImageSlider';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
@@ -51,14 +54,13 @@ import type { CommunityReportReasonCategory } from '../../types/community';
 import { getKstDateParts } from '../../utils/date';
 import { scheduleIdleTask } from '../../utils/scheduleIdleTask';
 import CommentThreadItem from './components/CommentThreadItem';
+import CommunityCommentComposer from './components/CommunityCommentComposer';
 import { getCommunityCategoryLabel } from './communityListPresentation';
 import {
   COMMUNITY_COMMENT_SORT_OPTIONS,
   getCommunityCommentSortLabel,
   getCommunityReplyCreateTarget,
-  getCommunityReplyMode,
   getCommunityReplyThreadRootId,
-  getCommunityReplyTargetMention,
   areCommunityRepliesExpanded,
   resolveCommunityCommentNavigationTarget,
   sortCommunityCommentIds,
@@ -72,9 +74,6 @@ import {
 import { DETAIL_DIVIDER_COLOR, styles } from './CommunityDetailScreen.styles';
 const COMMENT_PAGE_SIZE = 10;
 const TARGET_COMMENT_HIGHLIGHT_MS = 2600;
-const INLINE_REVEAL_INITIAL_DELAY_MS = 180;
-const INLINE_REVEAL_RETRY_DELAY_MS = 160;
-const INLINE_REVEAL_MAX_ATTEMPTS = 4;
 const INLINE_REVEAL_BOTTOM_MARGIN = 24;
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'CommunityDetail'>;
@@ -136,10 +135,20 @@ export default function CommunityDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
+  const safeContentRef = useRef<React.ComponentRef<typeof View> | null>(null);
+  const [contentWindowY, setContentWindowY] = useState(0);
+  const measureContentWindow = useCallback(() => {
+    safeContentRef.current?.measureInWindow((_x, y) => {
+      if (Number.isFinite(y) && y >= 0) setContentWindowY(y);
+    });
+  }, []);
   const reportBottomPaddingStyle = useKeyboardBottomPadding(
     Math.max(insets.bottom, 16) + 8,
   );
   const theme = useTheme();
+  const season = useEffectiveSeason();
+  const moreAccent = TIMELINE_SEASON_COLORS[season].selectedCategory;
+  const commentSubmitInFlightRef = useRef(false);
   const flatListRef = useRef<FlatList<string> | null>(null);
   const commentInputRef = useRef<React.ComponentRef<typeof TextInput> | null>(
     null,
@@ -157,20 +166,63 @@ export default function CommunityDetailScreen() {
   const targetHighlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
-  const inlineRevealTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
-    null,
-  );
   const inlineKeyboardShowSubscriptionRef = useRef<{
     remove: () => void;
   } | null>(null);
+  const inlineRevealTargetRef = useRef<string | null>(null);
+  const inlineInteractionGenerationRef = useRef(0);
+  const inlineFocusRequestRef = useRef<{
+    targetId: string;
+    generation: number;
+    forceRefocus: boolean;
+  } | null>(null);
+  const inlineFocusIntentRef = useRef<{
+    targetId: string;
+    instanceId: number;
+    generation: number;
+  } | null>(null);
+  const inlineMountedComposerRef = useRef<{
+    targetId: string;
+    instanceId: number;
+  } | null>(null);
+  const focusedInlineInteractionGenerationRef = useRef<number | null>(null);
+  const inlineLayoutReadyTargetRef = useRef<string | null>(null);
+  const isCommentListDraggingRef = useRef(false);
+  const keyboardVisibleRef = useRef(false);
   const keyboardInsetRef = useRef(0);
   const { height: windowHeight } = useWindowDimensions();
   const keyboardInset = useKeyboardInset();
+  const closedBottomInset = insets.bottom;
   keyboardInsetRef.current = keyboardInset;
   const viewRecordAttemptedPostIdsRef = useRef<Record<string, boolean>>({});
   const commentLikeDebounceTimersRef = useRef<
     Record<string, ReturnType<typeof setTimeout>>
   >({});
+
+  const cancelPendingNavigationScroll = useCallback(() => {
+    if (targetScrollTimerRef.current) {
+      clearTimeout(targetScrollTimerRef.current);
+      targetScrollTimerRef.current = null;
+    }
+  }, []);
+
+  const cancelPendingInlineReveal = useCallback(
+    (preserveMountedLayout = false) => {
+      inlineInteractionGenerationRef.current += 1;
+      inlineFocusRequestRef.current = null;
+      inlineFocusIntentRef.current = null;
+      focusedInlineInteractionGenerationRef.current = null;
+      if (!preserveMountedLayout) {
+        inlineMountedComposerRef.current = null;
+        inlineLayoutReadyTargetRef.current = null;
+      }
+      inlineKeyboardShowSubscriptionRef.current?.remove();
+      inlineKeyboardShowSubscriptionRef.current = null;
+      inlineRevealTargetRef.current = null;
+      return inlineInteractionGenerationRef.current;
+    },
+    [],
+  );
 
   const { currentUserId, requireLogin } = useCommunityAuth();
   const pets = usePetStore(s => s.pets);
@@ -229,8 +281,9 @@ export default function CommunityDetailScreen() {
   const [deleting, setDeleting] = React.useState(false);
   const [blockConfirmVisible, setBlockConfirmVisible] = React.useState(false);
   const [blocking, setBlocking] = React.useState(false);
-  const [commentDraft, setCommentDraft] = React.useState('');
+  const commentDraftRef = useRef('');
   const [commentSubmitting, setCommentSubmitting] = React.useState(false);
+  const [commentDraftResetKey, setCommentDraftResetKey] = React.useState(0);
   const [visibleCommentCount, setVisibleCommentCount] =
     React.useState(COMMENT_PAGE_SIZE);
   const [commentSort, setCommentSort] =
@@ -241,14 +294,8 @@ export default function CommunityDetailScreen() {
     string | null
   >(null);
   const [replyTargetId, setReplyTargetId] = React.useState<string | null>(null);
-  const [replyKeyboardInset, setReplyKeyboardInset] = React.useState(0);
   const [expandedRepliesByCommentId, setExpandedRepliesByCommentId] =
     React.useState<Record<string, boolean>>({});
-  useEffect(() => {
-    if (keyboardInset === 0 && replyKeyboardInset !== 0) {
-      setReplyKeyboardInset(0);
-    }
-  }, [keyboardInset, replyKeyboardInset]);
   const [commentDeleteTargetId, setCommentDeleteTargetId] = React.useState<
     string | null
   >(null);
@@ -272,6 +319,20 @@ export default function CommunityDetailScreen() {
       [replyTargetId],
     ),
   );
+
+  useEffect(() => {
+    const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
+      keyboardVisibleRef.current = true;
+    });
+    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+      keyboardVisibleRef.current = false;
+    });
+
+    return () => {
+      showSubscription.remove();
+      hideSubscription.remove();
+    };
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -324,12 +385,19 @@ export default function CommunityDetailScreen() {
     setCommentSort('registered');
     setCommentSortModalVisible(false);
     setExpandedRepliesByCommentId({});
+    cancelPendingInlineReveal();
+    cancelPendingNavigationScroll();
     setReplyTargetId(null);
     setHighlightedCommentId(null);
     preparedNavigationTargetKeyRef.current = null;
     measuredNavigationTargetKeyRef.current = null;
     missingNavigationTargetKeyRef.current = null;
-  }, [notificationCommentId, postId]);
+  }, [
+    cancelPendingInlineReveal,
+    cancelPendingNavigationScroll,
+    notificationCommentId,
+    postId,
+  ]);
 
   const sortedTopLevelCommentIds = useMemo(
     () =>
@@ -455,36 +523,53 @@ export default function CommunityDetailScreen() {
       });
       if (targetScrollTimerRef.current) {
         clearTimeout(targetScrollTimerRef.current);
+        targetScrollTimerRef.current = null;
       }
       if (targetHighlightTimerRef.current) {
         clearTimeout(targetHighlightTimerRef.current);
       }
-      if (inlineRevealTimerRef.current) {
-        clearTimeout(inlineRevealTimerRef.current);
-      }
+      inlineInteractionGenerationRef.current += 1;
+      inlineFocusRequestRef.current = null;
+      inlineFocusIntentRef.current = null;
+      focusedInlineInteractionGenerationRef.current = null;
+      inlineMountedComposerRef.current = null;
+      inlineLayoutReadyTargetRef.current = null;
       inlineKeyboardShowSubscriptionRef.current?.remove();
       inlineKeyboardShowSubscriptionRef.current = null;
+      inlineRevealTargetRef.current = null;
       commentLikeDebounceTimersRef.current = {};
     },
     [],
   );
 
+  useEffect(() => {
+    if (typeof navigation.addListener !== 'function') return undefined;
+    const unsubscribe = navigation.addListener('blur', () => {
+      // A navigation blur can leave the screen mounted. Keep the selected
+      // inline composer mounted/layout-ready so returning to the same target
+      // can refocus it without rebuilding the interaction state.
+      cancelPendingInlineReveal(true);
+      cancelPendingNavigationScroll();
+    });
+    return unsubscribe;
+  }, [
+    cancelPendingInlineReveal,
+    cancelPendingNavigationScroll,
+    navigation,
+  ]);
+
   const handleBack = useCallback(() => {
+    cancelPendingInlineReveal();
+    cancelPendingNavigationScroll();
     navigation.goBack();
-  }, [navigation]);
+  }, [cancelPendingInlineReveal, cancelPendingNavigationScroll, navigation]);
 
   const isMyPost = !!post && !!currentUserId && post.authorId === currentUserId;
-  const detailBottomInset = insets.bottom + 156;
-  const detailKeyboardBottomInset =
-    replyTargetId !== null ? Math.max(keyboardInset, replyKeyboardInset) : 0;
   const canShowCommentComposer =
     !!post &&
     detailStatus !== 'deleted' &&
     detailStatus !== 'moderated' &&
     detailStatus !== 'not_found';
-  const canSubmitComment =
-    !!currentUserId && !commentSubmitting && commentDraft.trim().length > 0;
-
   const postMetaDate = useMemo(() => {
     if (!post) return '';
     return formatDetailMetaDate(post.createdAt);
@@ -506,18 +591,33 @@ export default function CommunityDetailScreen() {
     () =>
       post ? (
         <TouchableOpacity
+          testID="community-detail-more"
+          accessibilityRole="button"
+          accessibilityLabel="게시글 더보기"
           activeOpacity={0.88}
-          style={[styles.moreButton, { borderColor: theme.colors.border }]}
-          onPress={() => setMenuVisible(true)}
+          style={styles.moreButton}
+          onPress={() => {
+            cancelPendingInlineReveal(true);
+            cancelPendingNavigationScroll();
+            Keyboard.dismiss();
+            setMenuVisible(true);
+          }}
         >
-          <Feather
-            name="more-vertical"
-            size={18}
-            color={theme.colors.textPrimary}
+          <NuriSemanticIcon
+            family="feather"
+            preserveOriginal
+            name="more-horizontal"
+            size={22}
+            color={moreAccent}
           />
         </TouchableOpacity>
       ) : null,
-    [post, theme.colors.border, theme.colors.textPrimary],
+    [
+      cancelPendingInlineReveal,
+      cancelPendingNavigationScroll,
+      moreAccent,
+      post,
+    ],
   );
 
   useLayoutEffect(() => {
@@ -575,15 +675,17 @@ export default function CommunityDetailScreen() {
     post,
   ]);
 
-  const handleSubmitComment = useCallback(() => {
+  const handleSubmitComment = useCallback((draft: string) => {
     requireLogin(() => {
-      if (!currentUserId || commentSubmitting) return;
-      const trimmed = commentDraft.trim();
+      if (!currentUserId || commentSubmitInFlightRef.current) return;
+      const trimmed = draft.trim();
       if (!trimmed) {
         showToast({ tone: 'warning', message: '댓글 내용을 입력해 주세요.' });
         return;
       }
 
+      // Lock synchronously: two taps before React renders must not issue two writes.
+      commentSubmitInFlightRef.current = true;
       setCommentSubmitting(true);
       const replyCreateTarget = getCommunityReplyCreateTarget(replyTarget);
       submitComment(
@@ -593,7 +695,10 @@ export default function CommunityDetailScreen() {
         replyCreateTarget.replyToCommentId,
       )
         .then(() => {
-          setCommentDraft('');
+          cancelPendingInlineReveal();
+          Keyboard.dismiss();
+          commentDraftRef.current = '';
+          setCommentDraftResetKey(previous => previous + 1);
           const parentCommentId = replyCreateTarget.parentCommentId;
           if (parentCommentId) {
             setExpandedRepliesByCommentId(previous => ({
@@ -612,13 +717,13 @@ export default function CommunityDetailScreen() {
           });
         })
         .finally(() => {
+          commentSubmitInFlightRef.current = false;
           setCommentSubmitting(false);
         });
     });
   }, [
-    commentDraft,
-    commentSubmitting,
     currentUserId,
+    cancelPendingInlineReveal,
     postId,
     replyTarget,
     requireLogin,
@@ -626,105 +731,282 @@ export default function CommunityDetailScreen() {
   ]);
 
   const revealInlineComposer = useCallback(
-    (targetId: string | null) => {
-      if (targetId === null) return;
-      if (inlineRevealTimerRef.current) {
-        clearTimeout(inlineRevealTimerRef.current);
+    (targetId: string | null, interactionGeneration: number) => {
+      if (
+        targetId === null ||
+        isCommentListDraggingRef.current ||
+        inlineRevealTargetRef.current === targetId ||
+        inlineInteractionGenerationRef.current !== interactionGeneration ||
+        inlineLayoutReadyTargetRef.current !== targetId
+      ) {
+        return;
       }
-      inlineKeyboardShowSubscriptionRef.current?.remove();
-      inlineKeyboardShowSubscriptionRef.current = null;
 
-      // The keyboard can finish opening after the input receives focus. Keep
-      // the retry bounded and measure only the obscured delta; selecting a
-      // reply must never jump the conversation to its bottom.
+      inlineRevealTargetRef.current = targetId;
+      let hasMeasuredForInteraction = false;
+
+      // Reveal only the obscured delta for the selected row. There is no
+      // delayed retry loop: a drag cancels this pending reveal, and a target
+      // receives at most one keyboard-driven adjustment.
       const measureAndReveal = (
-        attempt: number,
         reportedKeyboardHeight = 0,
         reportedKeyboardTop = 0,
       ) => {
+        if (
+          isCommentListDraggingRef.current ||
+          inlineRevealTargetRef.current !== targetId ||
+          inlineInteractionGenerationRef.current !== interactionGeneration ||
+          inlineLayoutReadyTargetRef.current !== targetId
+        ) {
+          return;
+        }
+        if (hasMeasuredForInteraction) return;
+
         const keyboardHeight = Math.max(
           reportedKeyboardHeight,
           Keyboard.metrics()?.height ?? 0,
           keyboardInsetRef.current,
         );
-        if (keyboardHeight <= 0 && attempt < INLINE_REVEAL_MAX_ATTEMPTS) {
-          inlineRevealTimerRef.current = setTimeout(
-            () => measureAndReveal(attempt + 1),
-            INLINE_REVEAL_RETRY_DELAY_MS,
-          );
-          return;
-        }
+        if (keyboardHeight <= 0) return;
+        hasMeasuredForInteraction = true;
+
         inlineKeyboardShowSubscriptionRef.current?.remove();
         inlineKeyboardShowSubscriptionRef.current = null;
 
-        const visibleBottom =
+        const keyboardMetrics = Keyboard.metrics();
+        const keyboardTop =
           reportedKeyboardTop > 0
-            ? reportedKeyboardTop - INLINE_REVEAL_BOTTOM_MARGIN
+            ? reportedKeyboardTop
+            : keyboardMetrics?.screenY ?? 0;
+        const visibleBottom =
+          keyboardTop > 0
+            ? keyboardTop - INLINE_REVEAL_BOTTOM_MARGIN
             : windowHeight - keyboardHeight - INLINE_REVEAL_BOTTOM_MARGIN;
         inlineComposerRef.current?.measureInWindow((_x, y, _width, height) => {
+          if (
+            isCommentListDraggingRef.current ||
+            inlineRevealTargetRef.current !== targetId ||
+            inlineInteractionGenerationRef.current !== interactionGeneration ||
+            inlineLayoutReadyTargetRef.current !== targetId
+          ) {
+            return;
+          }
           const obscuredDelta = y + height - visibleBottom;
           if (Number.isFinite(obscuredDelta) && obscuredDelta > 0) {
             const nextOffset = Math.max(
               currentScrollOffsetRef.current + obscuredDelta,
               0,
             );
-            currentScrollOffsetRef.current = nextOffset;
             flatListRef.current?.scrollToOffset({
               offset: nextOffset,
               animated: false,
             });
-            if (attempt < INLINE_REVEAL_MAX_ATTEMPTS) {
-              inlineRevealTimerRef.current = setTimeout(
-                () => measureAndReveal(attempt + 1, keyboardHeight),
-                INLINE_REVEAL_RETRY_DELAY_MS,
-              );
-              return;
-            }
           }
-          inlineRevealTimerRef.current = null;
         });
       };
 
-      const keyboardShowSubscription = Keyboard.addListener(
+      inlineKeyboardShowSubscriptionRef.current = Keyboard.addListener(
         'keyboardDidShow',
         event => {
-          setReplyKeyboardInset(event.endCoordinates.height);
-          if (inlineRevealTimerRef.current) {
-            clearTimeout(inlineRevealTimerRef.current);
-          }
-          inlineRevealTimerRef.current = setTimeout(
-            () =>
-              measureAndReveal(
-                0,
-                event.endCoordinates.height,
-                event.endCoordinates.screenY,
-              ),
-            50,
+          measureAndReveal(
+            event.endCoordinates.height,
+            event.endCoordinates.screenY,
           );
         },
       );
-      inlineKeyboardShowSubscriptionRef.current = keyboardShowSubscription;
-
-      inlineRevealTimerRef.current = setTimeout(
-        () => measureAndReveal(0),
-        INLINE_REVEAL_INITIAL_DELAY_MS,
-      );
+      measureAndReveal();
     },
     [windowHeight],
   );
 
-  const focusCommentComposer = useCallback(
-    (targetId: string) => {
-      requestAnimationFrame(() => {
-        commentInputRef.current?.focus();
-        revealInlineComposer(targetId);
-      });
+  const focusMountedComposer = useCallback(
+    (
+      targetId: string,
+      interactionGeneration: number,
+      forceRefocus = false,
+    ) => {
+      if (
+        isCommentListDraggingRef.current ||
+        inlineInteractionGenerationRef.current !== interactionGeneration ||
+        inlineLayoutReadyTargetRef.current !== targetId ||
+        focusedInlineInteractionGenerationRef.current ===
+          interactionGeneration
+      ) {
+        return;
+      }
+
+      inlineFocusRequestRef.current = null;
+      focusedInlineInteractionGenerationRef.current = interactionGeneration;
+      const mountedComposer = inlineMountedComposerRef.current;
+      if (
+        mountedComposer?.targetId !== targetId ||
+        inlineLayoutReadyTargetRef.current !== targetId
+      ) {
+        return;
+      }
+      inlineFocusIntentRef.current = {
+        targetId,
+        instanceId: mountedComposer.instanceId,
+        generation: interactionGeneration,
+      };
+
+      // Android can keep the TextInput marked as focused after Back hides the
+      // IME. React Native intentionally no-ops focus() for that same native
+      // field, so explicitly blur once before the single refocus attempt.
+      if (forceRefocus) {
+        commentInputRef.current?.blur();
+        requestAnimationFrame(() => {
+          if (
+            isCommentListDraggingRef.current ||
+            inlineInteractionGenerationRef.current !== interactionGeneration ||
+            inlineLayoutReadyTargetRef.current !== targetId
+          ) {
+            return;
+          }
+          commentInputRef.current?.focus();
+          revealInlineComposer(targetId, interactionGeneration);
+        });
+        return;
+      }
+
+      commentInputRef.current?.focus();
+      revealInlineComposer(targetId, interactionGeneration);
     },
     [revealInlineComposer],
   );
 
+  const handleInlineComposerMounted = useCallback(
+    (targetId: string, instanceId: number) => {
+      const previous = inlineMountedComposerRef.current;
+      if (previous?.instanceId === instanceId) return;
+
+      inlineMountedComposerRef.current = { targetId, instanceId };
+      inlineLayoutReadyTargetRef.current = null;
+    },
+    [],
+  );
+
+  const handleInlineInputFocus = useCallback(
+    (targetId: string, instanceId: number) => {
+      const focusIntent = inlineFocusIntentRef.current;
+      if (
+        isCommentListDraggingRef.current ||
+        inlineLayoutReadyTargetRef.current !== targetId ||
+        inlineMountedComposerRef.current?.targetId !== targetId ||
+        inlineMountedComposerRef.current.instanceId !== instanceId ||
+        focusIntent?.targetId !== targetId ||
+        focusIntent.instanceId !== instanceId ||
+        focusIntent.generation !== inlineInteractionGenerationRef.current
+      ) {
+        return;
+      }
+      inlineFocusIntentRef.current = null;
+      revealInlineComposer(targetId, inlineInteractionGenerationRef.current);
+    },
+    [revealInlineComposer],
+  );
+
+  const focusCommentComposer = useCallback(
+    (targetId: string, forceRefocus = false) => {
+      if (isCommentListDraggingRef.current) return;
+      const preserveMountedLayout =
+        inlineMountedComposerRef.current?.targetId === targetId;
+      const interactionGeneration = cancelPendingInlineReveal(
+        preserveMountedLayout,
+      );
+      inlineFocusRequestRef.current = {
+        targetId,
+        generation: interactionGeneration,
+        forceRefocus,
+      };
+      requestAnimationFrame(() => {
+        if (
+          isCommentListDraggingRef.current ||
+          inlineInteractionGenerationRef.current !== interactionGeneration ||
+          inlineLayoutReadyTargetRef.current !== targetId
+        ) {
+          return;
+        }
+        focusMountedComposer(targetId, interactionGeneration, forceRefocus);
+      });
+    },
+    [cancelPendingInlineReveal, focusMountedComposer],
+  );
+
+  const handleInlineInputPressIn = useCallback(
+    (targetId: string, instanceId: number) => {
+      if (
+        isCommentListDraggingRef.current ||
+        inlineMountedComposerRef.current?.targetId !== targetId ||
+        inlineMountedComposerRef.current.instanceId !== instanceId ||
+        inlineLayoutReadyTargetRef.current !== targetId
+      ) {
+        return;
+      }
+
+      const keyboardIsVisible =
+        keyboardVisibleRef.current ||
+        keyboardInsetRef.current > 0 ||
+        (Keyboard.metrics()?.height ?? 0) > 0;
+      if (keyboardIsVisible) return;
+
+      const inputIsFocused = commentInputRef.current?.isFocused?.() ?? false;
+      if (inputIsFocused) {
+        focusCommentComposer(targetId, true);
+        return;
+      }
+
+      inlineFocusIntentRef.current = {
+        targetId,
+        instanceId,
+        generation: inlineInteractionGenerationRef.current,
+      };
+    },
+    [focusCommentComposer],
+  );
+
+  const handleInlineLayoutReady = useCallback(
+    (targetId: string, instanceId: number) => {
+      if (
+        inlineMountedComposerRef.current?.targetId !== targetId ||
+        inlineMountedComposerRef.current.instanceId !== instanceId
+      ) {
+        return;
+      }
+      inlineLayoutReadyTargetRef.current = targetId;
+      const request = inlineFocusRequestRef.current;
+      if (
+        request?.targetId === targetId &&
+        request.generation === inlineInteractionGenerationRef.current
+      ) {
+        focusMountedComposer(
+          targetId,
+          request.generation,
+          request.forceRefocus,
+        );
+      }
+    },
+    [focusMountedComposer],
+  );
+
   const handlePressComment = useCallback(
     (commentId: string) => {
+      const keyboardIsVisible =
+        keyboardVisibleRef.current ||
+        keyboardInsetRef.current > 0 ||
+        (Keyboard.metrics()?.height ?? 0) > 0;
+      const inputIsFocused = commentInputRef.current?.isFocused?.() ?? false;
+      if (
+        replyTargetId === commentId &&
+        inputIsFocused &&
+        keyboardIsVisible
+      ) {
+        return;
+      }
+      const forceRefocus =
+        replyTargetId === commentId && inputIsFocused && !keyboardIsVisible;
+      cancelPendingNavigationScroll();
+      isCommentListDraggingRef.current = false;
       const selectedComment = commentEntitiesById[commentId] ?? null;
       const threadRootId = getCommunityReplyThreadRootId(selectedComment);
       if (
@@ -737,16 +1019,23 @@ export default function CommunityDetailScreen() {
         }));
       }
       setReplyTargetId(commentId);
-      focusCommentComposer(commentId);
+      focusCommentComposer(commentId, forceRefocus);
     },
-    [commentEntitiesById, expandedRepliesByCommentId, focusCommentComposer],
+    [
+      cancelPendingNavigationScroll,
+      commentEntitiesById,
+      expandedRepliesByCommentId,
+      focusCommentComposer,
+      keyboardInsetRef,
+      replyTargetId,
+    ],
   );
 
   const handleCancelReply = useCallback(() => {
+    cancelPendingInlineReveal();
     Keyboard.dismiss();
-    setReplyKeyboardInset(0);
     setReplyTargetId(null);
-  }, []);
+  }, [cancelPendingInlineReveal]);
 
   const handleToggleCommentLike = useCallback(
     (commentId: string) => {
@@ -767,18 +1056,35 @@ export default function CommunityDetailScreen() {
     [currentUserId, postId, requireLogin, toggleCommentLike],
   );
 
-  const handleRequestDeleteComment = useCallback((commentId: string) => {
-    setCommentDeleteTargetId(commentId);
-  }, []);
+  const handleRequestDeleteComment = useCallback(
+    (commentId: string) => {
+      // The delete confirmation overlays the active composer. Keep the
+      // mounted target/layout registration so cancelling the modal can
+      // refocus the same row without requiring a remount.
+      cancelPendingInlineReveal(true);
+      cancelPendingNavigationScroll();
+      Keyboard.dismiss();
+      setCommentDeleteTargetId(commentId);
+    },
+    [cancelPendingInlineReveal, cancelPendingNavigationScroll],
+  );
 
-  const handleRequestReportComment = useCallback((commentId: string) => {
-    setReportTarget({
-      targetType: 'comment',
-      targetId: commentId,
-    });
-    setReportReason('');
-    setReportReasonCategory('spam');
-  }, []);
+  const handleRequestReportComment = useCallback(
+    (commentId: string) => {
+      // Reporting is also an overlay-only transition. Preserve the active
+      // inline composer readiness until the report sheet is cancelled.
+      cancelPendingInlineReveal(true);
+      cancelPendingNavigationScroll();
+      Keyboard.dismiss();
+      setReportTarget({
+        targetType: 'comment',
+        targetId: commentId,
+      });
+      setReportReason('');
+      setReportReasonCategory('spam');
+    },
+    [cancelPendingInlineReveal, cancelPendingNavigationScroll],
+  );
 
   const closeReportModal = useCallback(() => {
     if (reportSubmitting) return;
@@ -808,11 +1114,16 @@ export default function CommunityDetailScreen() {
   );
 
   const handlePressCommentSort = useCallback(() => {
+    cancelPendingInlineReveal(true);
+    cancelPendingNavigationScroll();
+    Keyboard.dismiss();
     setCommentSortModalVisible(true);
-  }, []);
+  }, [cancelPendingInlineReveal, cancelPendingNavigationScroll]);
 
   const handleSelectCommentSort = useCallback(
     (nextSort: CommunityCommentSort) => {
+      cancelPendingInlineReveal();
+      cancelPendingNavigationScroll();
       // The service returns one RLS-filtered comment snapshot, so sorting only
       // resets the local root-comment window instead of issuing a new query.
       setCommentSort(nextSort);
@@ -825,7 +1136,7 @@ export default function CommunityDetailScreen() {
       measuredNavigationTargetKeyRef.current = null;
       flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
     },
-    [],
+    [cancelPendingInlineReveal, cancelPendingNavigationScroll],
   );
 
   const handleSubmitReport = () => {
@@ -1027,11 +1338,6 @@ export default function CommunityDetailScreen() {
                   setReportReasonCategory('spam');
                 }}
               >
-                <MaterialCommunityIcons
-                  name="alarm-light-outline"
-                  size={16}
-                  color={theme.colors.textMuted}
-                />
                 <AppText
                   preset="caption"
                   style={[
@@ -1180,178 +1486,88 @@ export default function CommunityDetailScreen() {
     sortedTopLevelCommentIds.length,
   ]);
 
+  const handleCommentDraftChange = useCallback((draft: string) => {
+    commentDraftRef.current = draft;
+  }, []);
+  const handleNavigateToSignIn = useCallback(() => {
+    navigation.navigate('SignIn');
+  }, [navigation]);
   const renderCommentComposer = useCallback(
     (placement: 'inline' | 'bottom') => {
       const isInline = placement === 'inline';
-      const isDirectReply =
-        replyTarget !== null && getCommunityReplyMode(replyTarget) === 'direct';
-      const inlineBackground = replyTarget?.parentCommentId
-        ? theme.colors.surface
-        : theme.colors.background;
+      const composerPaddingStyle = {
+        paddingBottom: isInline ? 8 : 6,
+      };
 
       return (
-        <View
-          ref={isInline ? inlineComposerRef : undefined}
-          style={[
-            isInline
-              ? styles.inlineCommentComposerWrap
-              : styles.commentComposerWrap,
-            {
-              backgroundColor: isInline
-                ? inlineBackground
-                : theme.colors.background,
-              borderTopColor: theme.colors.border,
-              paddingHorizontal: isInline
-                ? replyTarget?.parentCommentId
-                  ? 16
-                  : 0
-                : 20,
-              paddingBottom: isInline
-                ? 8
-                : keyboardInset > 0
-                ? 6
-                : insets.bottom + 6,
-              marginBottom: isInline ? 0 : keyboardInset,
-            },
-          ]}
-        >
-          {replyTargetId !== null ? (
-            <View
-              style={[
-                styles.replyComposerBanner,
-                { backgroundColor: theme.colors.surface },
-              ]}
-            >
-              <AppText
-                preset="caption"
-                style={[
-                  styles.replyComposerText,
-                  { color: theme.colors.textPrimary },
-                ]}
-              >
-                {isDirectReply && replyTarget ? (
-                  <>
-                    <AppText
-                      preset="caption"
-                      style={[
-                        styles.replyComposerMention,
-                        { color: petTheme.primary },
-                      ]}
-                    >
-                      {getCommunityReplyTargetMention(
-                        replyTarget.authorNickname,
-                      )}
-                    </AppText>
-                    {'님에게 답글 남기는 중'}
-                  </>
-                ) : (
-                  '답글 남기는 중'
-                )}
-              </AppText>
-              <CtaButton
-                role="neutral"
-                compact
-                activeOpacity={0.88}
-                onPress={handleCancelReply}
-                hitSlop={8}
-              >
-                <CtaText
-                  preset="caption"
-                  style={[
-                    styles.replyComposerCancel,
-                    { color: theme.colors.textMuted },
-                  ]}
-                >
-                  취소
-                </CtaText>
-              </CtaButton>
-            </View>
-          ) : null}
-          <View
-            style={[
-              styles.commentComposer,
-              {
-                backgroundColor: theme.colors.surfaceElevated,
-                borderColor: theme.colors.border,
-              },
-            ]}
-          >
-            <TextInput
-              ref={commentInputRef}
-              value={commentDraft}
-              onChangeText={setCommentDraft}
-              placeholder={
-                currentUserId
-                  ? replyTargetId !== null
-                    ? '답글을 입력해 주세요'
-                    : '댓글을 입력해 주세요'
-                  : '로그인 후 댓글을 남길 수 있어요'
-              }
-              placeholderTextColor={theme.colors.textMuted}
-              editable={!!currentUserId && !commentSubmitting}
-              autoFocus={isInline}
-              style={[styles.commentInput, { color: theme.colors.textPrimary }]}
-              multiline
-              maxLength={500}
-              onFocus={() => {
-                if (!currentUserId) {
-                  navigation.navigate('SignIn');
-                  return;
-                }
-                if (isInline) revealInlineComposer(replyTargetId);
-              }}
-            />
-            <CtaButton
-              role="primary"
-              loading={commentSubmitting}
-              accessibilityLabel={
-                commentSubmitting ? '댓글 전송 중' : '댓글 전송'
-              }
-              compact
-              activeOpacity={0.88}
-              hitSlop={4}
-              style={[styles.commentSubmitButton, {}]}
-              disabled={!canSubmitComment}
-              onPress={handleSubmitComment}
-            >
-              <CtaIcon name="send" size={17} />
-            </CtaButton>
-          </View>
-        </View>
+        <CommunityCommentComposer
+        key={
+          placement === 'inline'
+            ? `community-inline-composer-${replyTargetId ?? 'none'}`
+            : 'community-root-composer'
+        }
+        placement={placement}
+        replyTargetId={replyTargetId}
+        replyTarget={replyTarget}
+        currentUserId={currentUserId}
+        commentSubmitting={commentSubmitting}
+        initialDraft={commentDraftRef.current}
+        resetKey={commentDraftResetKey}
+        paddingBottom={composerPaddingStyle.paddingBottom}
+        accentColor={petTheme.primary}
+        inputRef={commentInputRef}
+        inlineComposerRef={inlineComposerRef}
+        onDraftChange={handleCommentDraftChange}
+        onSubmit={handleSubmitComment}
+        onCancelReply={handleCancelReply}
+        onInlinePressIn={handleInlineInputPressIn}
+        onInlineFocus={handleInlineInputFocus}
+        onInlineComposerMounted={handleInlineComposerMounted}
+        onInlineLayoutReady={handleInlineLayoutReady}
+        onNavigateToSignIn={handleNavigateToSignIn}
+        />
       );
     },
     [
-      canSubmitComment,
-      commentDraft,
+      commentDraftResetKey,
       commentSubmitting,
       currentUserId,
       handleCancelReply,
+      handleCommentDraftChange,
+      handleInlineInputFocus,
+      handleInlineInputPressIn,
+      handleInlineComposerMounted,
+      handleInlineLayoutReady,
+      handleNavigateToSignIn,
       handleSubmitComment,
-      insets.bottom,
-      keyboardInset,
-      navigation,
       petTheme.primary,
-      revealInlineComposer,
       replyTarget,
       replyTargetId,
-      theme.colors.background,
-      theme.colors.border,
-      theme.colors.surface,
-      theme.colors.surfaceElevated,
-      theme.colors.textMuted,
-      theme.colors.textPrimary,
     ],
   );
 
-  const inlineCommentComposer =
-    replyTargetId !== null ? renderCommentComposer('inline') : null;
+  const inlineCommentComposer = useMemo(
+    () =>
+      replyTargetId !== null ? renderCommentComposer('inline') : null,
+    [renderCommentComposer, replyTargetId],
+  );
+  const bottomCommentComposer = useMemo(
+    () =>
+      canShowCommentComposer && replyTargetId === null
+        ? renderCommentComposer('bottom')
+        : null,
+    [canShowCommentComposer, renderCommentComposer, replyTargetId],
+  );
+  const activeReplyThreadRootId = getCommunityReplyThreadRootId(replyTarget);
 
   const renderCommentThread = useCallback(
     ({ item: commentId }: { item: string }) => (
       <CommentThreadItem
         commentId={commentId}
         activeReplyTargetId={replyTargetId}
-        inlineComposer={inlineCommentComposer}
+        inlineComposer={
+          activeReplyThreadRootId === commentId ? inlineCommentComposer : null
+        }
         repliesExpanded={areCommunityRepliesExpanded(
           expandedRepliesByCommentId,
           commentId,
@@ -1380,6 +1596,7 @@ export default function CommunityDetailScreen() {
       handleTargetCommentReady,
       highlightedCommentId,
       inlineCommentComposer,
+      activeReplyThreadRootId,
       petTheme.primary,
       post?.authorId,
       replyTargetId,
@@ -1464,53 +1681,85 @@ export default function CommunityDetailScreen() {
   if (!post) return null;
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
-      <FlatList
-        ref={flatListRef}
-        data={visibleTopLevelCommentIds}
-        keyExtractor={item => item}
+    <View
+      ref={safeContentRef}
+      collapsable={false}
+      onLayout={measureContentWindow}
+      testID="community-detail-safe-content"
+      style={[
+        styles.screen,
+        {
+          backgroundColor: theme.colors.background,
+          paddingBottom: closedBottomInset,
+        },
+      ]}
+    >
+      {/* Stable safe-area frame; one measured controller owns the IME overlap. */}
+      {/* The local frame starts below the custom header; IME coordinates are window-relative. */}
+      <KeyboardControllerAvoidingView
+        testID="community-comment-keyboard-owner"
+        behavior="height"
+        keyboardVerticalOffset={contentWindowY}
         style={styles.contentArea}
-        contentContainerStyle={{
-          paddingBottom: detailBottomInset + detailKeyboardBottomInset,
-        }}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
-        automaticallyAdjustKeyboardInsets={true}
-        showsVerticalScrollIndicator={false}
-        onScrollBeginDrag={Keyboard.dismiss}
-        onScroll={event => {
-          currentScrollOffsetRef.current = event.nativeEvent.contentOffset.y;
-        }}
-        scrollEventThrottle={16}
-        onScrollToIndexFailed={({ averageItemLength, index }) => {
-          flatListRef.current?.scrollToOffset({
-            offset: Math.max(averageItemLength * index, 0),
-            animated: false,
-          });
-          if (targetScrollTimerRef.current) {
-            clearTimeout(targetScrollTimerRef.current);
-          }
-          targetScrollTimerRef.current = setTimeout(() => {
-            flatListRef.current?.scrollToIndex({
-              index,
-              animated: true,
-              viewPosition: 0.2,
+      >
+        <FlatList
+          ref={flatListRef}
+          data={visibleTopLevelCommentIds}
+          keyExtractor={item => item}
+          style={styles.contentArea}
+          contentContainerStyle={{ paddingBottom: 12 }}
+          keyboardShouldPersistTaps="always"
+          keyboardDismissMode="none"
+          automaticallyAdjustKeyboardInsets={false}
+          showsVerticalScrollIndicator={false}
+          onScrollBeginDrag={() => {
+            isCommentListDraggingRef.current = true;
+            cancelPendingNavigationScroll();
+            cancelPendingInlineReveal(true);
+          }}
+          onScrollEndDrag={() => {
+            isCommentListDraggingRef.current = false;
+          }}
+          onMomentumScrollBegin={() => {
+            isCommentListDraggingRef.current = true;
+          }}
+          onMomentumScrollEnd={() => {
+            isCommentListDraggingRef.current = false;
+          }}
+          onScroll={event => {
+            currentScrollOffsetRef.current = event.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={16}
+          onScrollToIndexFailed={({ averageItemLength, index }) => {
+            flatListRef.current?.scrollToOffset({
+              offset: Math.max(averageItemLength * index, 0),
+              animated: false,
             });
-          }, 180);
-        }}
-        initialNumToRender={8}
-        maxToRenderPerBatch={8}
-        windowSize={7}
-        updateCellsBatchingPeriod={50}
-        removeClippedSubviews={Platform.OS === 'android'}
-        ListHeaderComponent={listHeader ?? undefined}
-        ListFooterComponent={listFooter ?? undefined}
-        renderItem={renderCommentThread}
-      />
+            if (targetScrollTimerRef.current) {
+              clearTimeout(targetScrollTimerRef.current);
+            }
+            targetScrollTimerRef.current = setTimeout(() => {
+              flatListRef.current?.scrollToIndex({
+                index,
+                animated: true,
+                viewPosition: 0.2,
+              });
+            }, 180);
+          }}
+          initialNumToRender={8}
+          maxToRenderPerBatch={8}
+          windowSize={7}
+          updateCellsBatchingPeriod={50}
+          // Keep inline inputs attached from the start, before a reply changes
+          // the cell height. Virtualized render-window limits still apply.
+          removeClippedSubviews={false}
+          ListHeaderComponent={listHeader ?? undefined}
+          ListFooterComponent={listFooter ?? undefined}
+          renderItem={renderCommentThread}
+        />
 
-      {canShowCommentComposer && replyTargetId === null
-        ? renderCommentComposer('bottom')
-        : null}
+        {bottomCommentComposer}
+      </KeyboardControllerAvoidingView>
 
       <Modal
         visible={menuVisible}
@@ -1540,6 +1789,7 @@ export default function CommunityDetailScreen() {
             {isMyPost ? (
               <CtaButton
                 role="secondary"
+                compact
                 activeOpacity={0.9}
                 style={styles.menuAction}
                 onPress={() => {
@@ -1547,9 +1797,8 @@ export default function CommunityDetailScreen() {
                   navigation.navigate('CommunityEdit', { postId });
                 }}
               >
-                <CtaIcon name="edit-3" size={16} />
                 <CtaText preset="body" style={[styles.menuActionText, {}]}>
-                  수정
+                  수정하기
                 </CtaText>
               </CtaButton>
             ) : null}
@@ -1557,6 +1806,7 @@ export default function CommunityDetailScreen() {
             {canShowCommunityBlockAction(post.authorId, currentUserId) ? (
               <CtaButton
                 role="secondary"
+                compact
                 activeOpacity={0.9}
                 style={styles.menuAction}
                 onPress={() => {
@@ -1564,7 +1814,6 @@ export default function CommunityDetailScreen() {
                   setBlockConfirmVisible(true);
                 }}
               >
-                <CtaIcon name="slash" size={16} />
                 <CtaText preset="body" style={[styles.menuActionText, {}]}>
                   사용자 차단
                 </CtaText>
@@ -1572,9 +1821,10 @@ export default function CommunityDetailScreen() {
             ) : null}
 
             <CtaButton
-              role={isMyPost ? 'destructiveEntry' : 'secondary'}
+              role={isMyPost ? 'destructiveConfirm' : 'secondary'}
+              compact
               activeOpacity={0.9}
-              style={[styles.menuAction, styles.menuDangerAction]}
+              style={styles.menuAction}
               onPress={() => {
                 setMenuVisible(false);
                 if (isMyPost) {
@@ -1586,9 +1836,8 @@ export default function CommunityDetailScreen() {
                 setReportReasonCategory('spam');
               }}
             >
-              <CtaIcon name={isMyPost ? 'trash-2' : 'flag'} size={16} />
               <CtaText preset="body" style={[styles.menuActionText, {}]}>
-                {isMyPost ? '삭제' : '신고'}
+                {isMyPost ? '삭제하기' : '신고'}
               </CtaText>
             </CtaButton>
           </View>

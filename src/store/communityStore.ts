@@ -44,6 +44,7 @@ import type {
   UpdateCommunityPostParams,
 } from '../types/community';
 import { DEFAULT_COMMUNITY_PAGE_SIZE } from '../types/community';
+import { normalizeCommunitySearchQuery } from '../services/community/search';
 import type { CommunityRouteListSnapshot } from '../navigation/communityRouteState';
 
 const UNKNOWN_COMMENT_AUTHOR_NICKNAME = '알 수 없는 사용자';
@@ -57,8 +58,10 @@ function getCommunityListKey(
   filter: CommunityListFilter,
   category: CommunityCategory,
   pageSize: CommunityPageSize,
+  query = '',
 ) {
-  return `${filter}:${category}:${pageSize}`;
+  const base = `${filter}:${category}:${pageSize}`;
+  return query ? `${base}:${JSON.stringify(query)}` : base;
 }
 
 function uniquePosts(posts: CommunityPost[]) {
@@ -101,6 +104,7 @@ type CommunityStore = {
   cursorHistory: CommunityCursorHistory;
   activeFilter: CommunityListFilter;
   activeCategory: CommunityCategory;
+  searchQuery: string;
   pageSize: CommunityPageSize;
   lastFetchedAt: number | null;
 
@@ -112,6 +116,7 @@ type CommunityStore = {
     category?: CommunityCategory,
   ) => Promise<void>;
   setCategory: (category: CommunityCategory) => Promise<void>;
+  setSearchQuery: (query: string) => Promise<void>;
   refreshPosts: () => Promise<void>;
   loadMorePosts: () => Promise<void>;
   loadPreviousPosts: () => Promise<void>;
@@ -210,10 +215,9 @@ function clearCommunityDetailState(
     delete nextReplyCommentIdsByParentId[commentId];
   });
   Object.keys(nextReplyCommentIdsByParentId).forEach(parentId => {
-    nextReplyCommentIdsByParentId[parentId] =
-      nextReplyCommentIdsByParentId[parentId].filter(
-        commentId => !removedCommentIds.has(commentId),
-      );
+    nextReplyCommentIdsByParentId[parentId] = nextReplyCommentIdsByParentId[
+      parentId
+    ].filter(commentId => !removedCommentIds.has(commentId));
   });
 
   return {
@@ -316,6 +320,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
   let pageSizeRequestGeneration = 0;
 
   const requestListPage = async (options: {
+    query?: string;
     filter: CommunityListFilter;
     category: CommunityCategory;
     pageSize: CommunityPageSize;
@@ -345,10 +350,14 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
       requestFilter === 'notice' ? 'all' : options.category;
 
     const requestId = ++listRequestSequence;
+    const requestQuery = normalizeCommunitySearchQuery(
+      options.query ?? get().searchQuery,
+    );
     const listKey = getCommunityListKey(
       requestFilter,
       requestCategory,
       options.pageSize,
+      requestQuery,
     );
     const requestGeneration = {
       filter: filterRequestGeneration,
@@ -364,6 +373,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
         get().activeFilter,
         get().activeCategory,
         get().pageSize,
+        get().searchQuery,
       ) === listKey;
 
     set(() => ({
@@ -371,6 +381,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
       listErrorMessage: null,
       activeFilter: requestFilter,
       activeCategory: requestCategory,
+      searchQuery: requestQuery,
       pageSize: options.pageSize,
       ...(options.resetHistory
         ? {
@@ -393,6 +404,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
         category: requestCategory,
         cursor: options.cursor,
         limit: options.pageSize,
+        ...(requestQuery ? { query: requestQuery } : {}),
       });
 
       if (!isCurrentRequest()) return;
@@ -474,11 +486,13 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
       state.activeFilter,
       state.activeCategory,
       state.pageSize,
+      state.searchQuery,
     );
 
     return {
       activeFilter: state.activeFilter,
       activeCategory: state.activeCategory,
+      ...(state.searchQuery ? { searchQuery: state.searchQuery } : {}),
       pageSize: state.pageSize,
       currentPage: state.currentPage,
       cursor: state.cursor,
@@ -517,6 +531,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
     },
     activeFilter: 'all',
     activeCategory: 'all',
+    searchQuery: '',
     pageSize: DEFAULT_COMMUNITY_PAGE_SIZE,
     lastFetchedAt: null,
 
@@ -530,6 +545,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
         snapshot.activeFilter,
         snapshot.activeCategory,
         snapshot.pageSize,
+        snapshot.searchQuery ?? '',
       );
 
       set({
@@ -555,6 +571,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
           [listKey]: { ...snapshot.cursorHistory },
         },
         activeFilter: snapshot.activeFilter,
+        searchQuery: snapshot.searchQuery ?? '',
         activeCategory:
           snapshot.activeFilter === 'notice' ? 'all' : snapshot.activeCategory,
         pageSize: snapshot.pageSize,
@@ -568,6 +585,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
         state.activeFilter,
         state.activeCategory,
         state.pageSize,
+        state.searchQuery,
       );
       const pageCursor =
         state.currentPage === 1
@@ -645,6 +663,24 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
       });
     },
 
+    setSearchQuery: async query => {
+      const normalized = normalizeCommunitySearchQuery(query);
+      const state = get();
+      if (state.searchQuery === normalized) return;
+      await requestListPage({
+        query: normalized,
+        filter: state.activeFilter,
+        category: state.activeCategory,
+        pageSize: state.pageSize,
+        page: 1,
+        cursor: null,
+        status: 'loading',
+        resetHistory: true,
+        clearPosts: true,
+        requestKind: 'filter',
+      });
+    },
+
     refreshPosts: async () => {
       const state = get();
       if (
@@ -703,13 +739,16 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
         return;
       }
 
-      const listKey = getCommunityListKey(
-        state.activeFilter,
-        state.activeCategory,
-        state.pageSize,
-      );
       const previousPage = state.currentPage - 1;
-      const previousCursor = state.cursorHistory[listKey]?.[previousPage];
+      const previousCursor =
+        state.cursorHistory[
+          getCommunityListKey(
+            state.activeFilter,
+            state.activeCategory,
+            state.pageSize,
+            state.searchQuery,
+          )
+        ]?.[previousPage];
       if (previousCursor === undefined) return;
 
       await requestListPage({
@@ -754,9 +793,8 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
             .filter(post => post.authorId === authorId)
             .map(post => post.id)
         : [];
-      const removedCommentIds = removedPostIds.flatMap(
-        postId =>
-          (state.commentsByPostId[postId] ?? []).map(comment => comment.id),
+      const removedCommentIds = removedPostIds.flatMap(postId =>
+        (state.commentsByPostId[postId] ?? []).map(comment => comment.id),
       );
 
       set(prev => {
@@ -805,7 +843,9 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
           postViewRecordStatusByPostId: authorId
             ? nextPostViewRecordStatusByPostId
             : prev.postViewRecordStatusByPostId,
-          commentsByPostId: authorId ? nextCommentsByPostId : prev.commentsByPostId,
+          commentsByPostId: authorId
+            ? nextCommentsByPostId
+            : prev.commentsByPostId,
           latestCommentByPostId: authorId
             ? nextLatestCommentByPostId
             : prev.latestCommentByPostId,
@@ -1283,7 +1323,12 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
       }
     },
 
-    submitComment: async (postId, content, parentCommentId, replyToCommentId) => {
+    submitComment: async (
+      postId,
+      content,
+      parentCommentId,
+      replyToCommentId,
+    ) => {
       const comment = await createCommunityComment({
         postId,
         content,
@@ -1476,7 +1521,6 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
           ),
         };
       });
-
     },
 
     reportContent: async (
@@ -1534,6 +1578,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
         },
         activeFilter: 'all',
         activeCategory: 'all',
+        searchQuery: '',
         pageSize: DEFAULT_COMMUNITY_PAGE_SIZE,
         lastFetchedAt: null,
       });

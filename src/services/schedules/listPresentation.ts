@@ -47,7 +47,7 @@ export function buildScheduleListSections(
   }
   return [...groups.entries()]
     .sort(([a], [b]) =>
-      filter === 'past' ? b.localeCompare(a) : a.localeCompare(b),
+      filter === 'past' || filter === 'all' ? b.localeCompare(a) : a.localeCompare(b),
     )
     .map(([day, data]) => ({
       key: day,
@@ -55,8 +55,8 @@ export function buildScheduleListSections(
       month: day.slice(0, 7),
       data: data.sort(
         (a, b) =>
-          Number(b.schedule.allDay) - Number(a.schedule.allDay) ||
-          Date.parse(a.startsAt) - Date.parse(b.startsAt) ||
+          (filter === 'all' ? Date.parse(b.startsAt) - Date.parse(a.startsAt) :
+            Number(b.schedule.allDay) - Number(a.schedule.allDay) || Date.parse(a.startsAt) - Date.parse(b.startsAt)) ||
           a.schedule.id.localeCompare(b.schedule.id),
       ),
     }));

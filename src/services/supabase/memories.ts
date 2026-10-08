@@ -14,6 +14,7 @@
 // - pagination cursor와 삭제 시 storage 정리 흐름은 타임라인/상세/업로드 큐가 같이 의존하므로 회귀 검증이 필수다.
 
 import { supabase } from './client';
+import { invalidateMonthlyExpenses } from '../records/expenses';
 import {
   deleteMemoryImage,
   prefetchMemorySignedUrls,
@@ -840,6 +841,7 @@ export async function createMemory(input: {
   if (!isInsertedMemoryIdRow(data)) {
     throw new Error('기록 식별자를 확인하지 못했어요.');
   }
+  invalidateMonthlyExpenses();
   return data.id;
 }
 
@@ -872,6 +874,7 @@ export async function updateMemoryFields(input: {
     .eq('id', input.memoryId);
 
   if (error) throw error;
+  invalidateMonthlyExpenses();
 }
 
 /* ---------------------------------------------------------
@@ -1214,6 +1217,7 @@ export async function deleteMemoryWithFile(input: {
     .eq('id', input.memoryId);
 
   if (error) throw error;
+  invalidateMonthlyExpenses();
 
   try {
     await supabase

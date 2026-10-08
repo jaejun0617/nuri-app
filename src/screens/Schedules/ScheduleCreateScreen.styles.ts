@@ -3,9 +3,9 @@ import { StyleSheet } from 'react-native';
 const TEXT = '#0B1220';
 const MUTED = '#556070';
 const BG = '#FFFFFF';
-const SURFACE = '#FFFFFF';
+const SURFACE = 'rgba(255,255,255,0.7)';
 const BORDER = 'rgba(0,0,0,0.06)';
-const BRAND = '#6D6AF8';
+const BRAND = '#263445';
 
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BG },
@@ -23,7 +23,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: BG,
+    backgroundColor: 'transparent',
   },
   headerSideSlot: {
     width: 56,
@@ -60,8 +60,8 @@ export const styles = StyleSheet.create({
   card: {
     borderRadius: 8,
     paddingHorizontal: 16,
-    paddingVertical: 18,
-    backgroundColor: SURFACE,
+    paddingVertical: 12,
+    backgroundColor: 'transparent',
     borderColor: BORDER,
   },
   label: {
@@ -73,9 +73,9 @@ export const styles = StyleSheet.create({
   input: {
     height: 48,
     borderRadius: 8,
-    paddingHorizontal: 14,
+    paddingHorizontal: 12,
     color: TEXT,
-    backgroundColor: '#F7F8FC',
+    backgroundColor: 'rgba(255,255,255,0.66)',
     borderWidth: 1,
     borderColor: 'rgba(109,106,248,0.08)',
   },
@@ -149,8 +149,10 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    minHeight: 44,
+    justifyContent: 'center',
     borderRadius: 8,
     backgroundColor: '#F7F8FC',
     borderWidth: 1,
@@ -261,6 +263,8 @@ export const styles = StyleSheet.create({
   primaryBtnText: {
     color: '#FFFFFF',
     fontWeight: '900',
+    fontSize: 15,
+    lineHeight: 22,
   },
   bottomSubmitBtn: {
     marginTop: 18,

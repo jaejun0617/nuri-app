@@ -1,4 +1,5 @@
-import CtaButton, { CtaText } from '../../../app/ui/CtaButton';
+import { resolveCtaPalette } from '../../../app/theme/ctaPalette';
+import { useEffectiveSeason } from '../../../app/providers/SeasonPreferenceProvider';
 import React, { memo, useCallback } from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import { TouchableOpacity, View } from 'react-native';
@@ -31,6 +32,13 @@ function CommentActionRowBase({
   rowStyle,
 }: Props) {
   const theme = useTheme();
+  const season = useEffectiveSeason();
+  const actionPalette = resolveCtaPalette({
+    role: authorId === currentUserId ? 'destructiveEntry' : 'secondary',
+    season,
+    colorScheme: theme.mode,
+    colors: theme.colors,
+  });
 
   const handleToggleLike = useCallback(() => {
     onToggleLike(commentId);
@@ -67,29 +75,37 @@ function CommentActionRowBase({
       </TouchableOpacity>
 
       {currentUserId ? (
-        authorId === currentUserId ? (
-          <CtaButton
-            role="destructiveEntry"
-            activeOpacity={0.88}
-            hitSlop={8}
-            onPress={handlePressDelete}
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel={
+            authorId === currentUserId ? '댓글 삭제' : '댓글 신고'
+          }
+          activeOpacity={0.88}
+          style={styles.commentActionTouchTarget}
+          onPress={
+            authorId === currentUserId ? handlePressDelete : handlePressReport
+          }
+        >
+          <View
+            style={[
+              styles.commentActionFace,
+              {
+                backgroundColor: actionPalette.background,
+                borderColor: actionPalette.border,
+              },
+            ]}
           >
-            <CtaText preset="caption" style={[styles.commentActionText, {}]}>
-              삭제
-            </CtaText>
-          </CtaButton>
-        ) : (
-          <CtaButton
-            role="secondary"
-            activeOpacity={0.88}
-            hitSlop={8}
-            onPress={handlePressReport}
-          >
-            <CtaText preset="caption" style={[styles.commentActionText, {}]}>
-              신고
-            </CtaText>
-          </CtaButton>
-        )
+            <AppText
+              preset="caption"
+              style={[
+                styles.commentActionText,
+                { color: actionPalette.text, fontSize: 12, lineHeight: 18 },
+              ]}
+            >
+              {authorId === currentUserId ? '삭제' : '신고'}
+            </AppText>
+          </View>
+        </TouchableOpacity>
       ) : null}
     </View>
   );

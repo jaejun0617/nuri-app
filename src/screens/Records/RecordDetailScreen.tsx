@@ -65,8 +65,8 @@ import {
   getTimelinePrimaryMemoryImageSource,
 } from '../../services/records/imageSources';
 import {
-  getMemoryCategoryChipLabel,
   getRecordCategoryMeta,
+  getMemoryCategoryChipLabel,
 } from '../../services/memories/categoryMeta';
 import {
   formatMemoryDetailDate,
@@ -158,7 +158,6 @@ const FeedPostCard = memo(function FeedPostCardView({
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
   const window = useWindowDimensions();
-  const categoryMeta = getRecordCategoryMeta(item);
   const categoryTone = getMemoryDetailCategoryTone(item);
   const moodMeta = item.emotion ? EMOTION_META[item.emotion] : null;
   const imagePaths = useMemo(() => {
@@ -419,11 +418,6 @@ const FeedPostCard = memo(function FeedPostCardView({
                   { backgroundColor: categoryTone.backgroundColor },
                 ]}
               >
-                <NuriSemanticIcon
-                  family="material"
-                  name={categoryMeta.icon}
-                  size={14}
-                />
                 <AppText
                   preset="unifiedMeta"
                   styleOverridesPreset
@@ -564,7 +558,7 @@ const FeedPostCard = memo(function FeedPostCardView({
 
         {priceText ? (
           <AppText preset="unifiedMeta" style={styles.postTagsText}>
-            구매 가격 {priceText}
+            {item.category === 'health' || item.subCategory === 'hospital' ? '병원·건강 비용' : '구매 가격'} {priceText}
           </AppText>
         ) : null}
       </View>
@@ -649,7 +643,6 @@ const RelatedMemoryCard = memo(function RelatedMemoryCardView({
             { backgroundColor: tone.backgroundColor },
           ]}
         >
-          <NuriSemanticIcon family="material" name={category.icon} size={14} />
           <AppText
             preset="unifiedMeta"
             styleOverridesPreset
@@ -1167,7 +1160,7 @@ export default function RecordDetailScreen() {
                     preset="unifiedTitle"
                     style={styles.relatedSectionTitle}
                   >
-                    다른 추억들
+                    함께 쌓아온 추억
                   </AppText>
                   <AppText
                     preset="unifiedMeta"
@@ -1243,13 +1236,7 @@ export default function RecordDetailScreen() {
                     style={styles.relatedMoreButtonSide}
                     pointerEvents="none"
                     accessible={false}
-                  >
-                    <Feather
-                      name="chevron-right"
-                      size={18}
-                      color={seasonColors.selectedCategory}
-                    />
-                  </View>
+                  />
                 </TouchableOpacity>
               ) : null}
             </View>

@@ -1,4 +1,4 @@
-import CtaButton, { CtaText, CtaIcon } from '../../app/ui/CtaButton';
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // 파일: src/screens/Schedules/ScheduleEditScreen.tsx
 // 역할:
 // - 기존 일정을 불러와 날짜/시간/카테고리/반복/알림 정보를 수정
@@ -28,6 +28,8 @@ import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 
 import AppText from '../../app/ui/AppText';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import { SeasonalFormBackground, SeasonalFormPanel } from '../../components/common/SeasonalFormSurface';
+import ScheduleReminderNotice from '../../components/common/ScheduleReminderNotice';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -90,6 +92,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList, 'ScheduleEdit'>;
 type Route = RootScreenRoute<'ScheduleEdit'>;
 
 export default function ScheduleEditScreen() {
+  const [reminderNoticeVisible, setReminderNoticeVisible] = useState(false);
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const queryClient = useQueryClient();
@@ -363,10 +366,7 @@ export default function ScheduleEditScreen() {
         startsAt: startsAtIso,
       });
       if (reminderKey !== 'none' && reminderMinutes.length === 0) {
-        Alert.alert(
-          '알림 시간 확인',
-          '선택한 알림 시점이 이미 지났어요. 더 짧은 간격으로 바꾸거나 직접 설정해 주세요.',
-        );
+        setReminderNoticeVisible(true);
         return;
       }
       const notificationLifecycle = captureScheduleNotificationLifecycle();
@@ -511,6 +511,7 @@ export default function ScheduleEditScreen() {
       style={styles.screen}
       edges={keyboardVisible ? ['left', 'right'] : ['left', 'right', 'bottom']}
     >
+      <SeasonalFormBackground />
       <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
@@ -531,6 +532,8 @@ export default function ScheduleEditScreen() {
         </AppText>
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
           <HeaderTextActionButton
+            compact
+            borderRadius={8}
             role="primarySubtle"
             loading={saving}
             accessibilityLabel={saving ? '일정 수정 중' : '일정 수정 완료'}
@@ -545,13 +548,13 @@ export default function ScheduleEditScreen() {
         style={styles.scroll}
         contentContainerStyle={[
           styles.scrollContent,
-          { paddingBottom: keyboardVisible ? 12 : insets.bottom + 32 },
+          { paddingBottom: 16 },
         ]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="none"
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.card}>
+        <SeasonalFormPanel style={styles.card}>
           {loading ? (
             <AppText preset="unifiedBody" style={styles.label}>
               일정을 불러오는 중이에요.
@@ -899,7 +902,7 @@ export default function ScheduleEditScreen() {
               />
             </>
           )}
-        </View>
+        </SeasonalFormPanel>
         <CtaButton
           role="primary"
           loading={saving}
@@ -913,21 +916,21 @@ export default function ScheduleEditScreen() {
           style={[
             styles.bottomSubmitBtn,
             {},
-            { marginBottom: keyboardVisible ? 0 : Math.max(insets.bottom, 18) },
+            { marginBottom: 0 },
           ]}
           onPress={onSubmit}
           disabled={saving || loading}
         >
-          <CtaIcon name="save" size={16} />
           <CtaText
             preset="unifiedBody"
             styleOverridesPreset
-            style={[styles.primaryBtnText, { fontSize: 12, lineHeight: 18 }]}
+            style={styles.primaryBtnText}
           >
             일정 수정하기
           </CtaText>
         </CtaButton>
       </KeyboardAwareScrollView>
+      <ScheduleReminderNotice visible={reminderNoticeVisible} onClose={() => setReminderNoticeVisible(false)} />
 
       <DatePickerModal
         visible={dateModalVisible}

@@ -1,0 +1,73 @@
+{
+  "date_kst": "2026-10-07",
+  "task": "community_keyboard_scroll_analysis",
+  "status": "ANALYSIS_COMPLETE_IMPLEMENTATION_NOT_STARTED",
+  "head": "26891aaed1fbee37141ecbd89e4d4c18970b4a1d",
+  "branch": "codex/task6-community-content-policy",
+  "baseline_tracked_source_diff_sha256": "33165ca03762ff85f9f47053407a6dada1787384e5c95f070c8464bee7c06d8f",
+  "baseline_staged_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "source_diff_scope": ["src", "android", "App.tsx", "__tests__", "supabase", "package.json", "yarn.lock"],
+  "original_video_root": "/Users/shinjaejun/Downloads",
+  "private_frame_root": "/private/tmp/nuri-keyboard-audit-20261007-181342",
+  "videos": [
+    {
+      "file": "스무스하게.mp4",
+      "duration_seconds": 11.633333,
+      "bytes": 4199191,
+      "sha256": "50819745a90ab328b2d4afbf6accd806e077b1d2d65009bfcfc8918ccf32ebac"
+    },
+    {
+      "file": "스무스2.mp4",
+      "duration_seconds": 7.3,
+      "bytes": 3503319,
+      "sha256": "b394b20820174f4a2d57fab5982dc1bd5ade3666bc0f385317f188c4b9bbb93c"
+    },
+    {
+      "file": "스무스3.mp4",
+      "duration_seconds": 36.033333,
+      "bytes": 10705055,
+      "sha256": "c084aec6f8a4435ac9a39f267b59b2b745dd9fb7f7e0a56ad7c5667e8b509aaa"
+    },
+    {
+      "file": "커뮤니티영상1.mp4",
+      "duration_seconds": 16.866667,
+      "bytes": 4531445,
+      "sha256": "8dd6df6ea9e7f15432e6507306f7e2d326552fe7baa6e1532291b0b0b9273507"
+    },
+    {
+      "file": "커뮤니티영상2.mp4",
+      "duration_seconds": 10.866667,
+      "bytes": 3754819,
+      "sha256": "7407eede7fc10fd5c777f2a7da95adb3ca1955d658e5de8874714e7b15e4495b"
+    }
+  ],
+  "video_format": { "width": 1080, "height": 2340, "recorded_fps": 30 },
+  "approximate_reference3_intervals_seconds": [[5, 9], [16, 18], [29, 32]],
+  "new_physical_device_qa": "NOT_RUN",
+  "video_apk_identity": "NOT_VERIFIED",
+  "browser_dom_identity": "NOT_INSPECTED",
+  "native_ime_trace": "NOT_RUN",
+  "performance_profile": "NOT_RUN",
+  "source_edit_count": 0,
+  "app_test_count": 0,
+  "build_count": 0,
+  "install_count": 0,
+  "db_mutation_count": 0,
+  "cleanup_count": 0,
+  "commit_count": 0,
+  "push_count": 0,
+  "large_media_copied_to_repository": false,
+  "personal_input_copied_to_repository": false,
+  "document_validation": {
+    "markdown_structure": "PASS_STATIC_CHECK",
+    "internal_links": "PASS",
+    "internal_link_count": 41,
+    "json_parse": "PASS",
+    "git_diff_check": "PASS",
+    "tracked_source_diff": "UNCHANGED",
+    "head": "UNCHANGED",
+    "branch": "UNCHANGED",
+    "staged": "NONE",
+    "original_videos": "5_UNCHANGED"
+  }
+}

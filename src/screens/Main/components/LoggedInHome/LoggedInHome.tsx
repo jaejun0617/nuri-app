@@ -6,6 +6,7 @@ import CtaButton, { CtaText } from '../../../../app/ui/CtaButton';
 // - 최근 기록은 홈 전용 세로 프리뷰 섹션으로, 최신 3개만 압축 노출한다.
 
 import AppText from '../../../../app/ui/AppText';
+import { SEASON_CTA } from '../../../../app/theme/ctaPalette';
 import { FixedTypographyBoundary } from '../../../../app/providers/AppFontPreferenceProvider';
 import React, {
   useEffect,
@@ -61,6 +62,7 @@ import Animated, {
 
 import Screen from '../../../../components/layout/Screen';
 import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
+import MonthlyExpenseSection from './MonthlyExpenseSection';
 import { HomeScheduleCalendar } from '../../../../components/home/HomeScheduleCalendar';
 import { HomeSeasonProvider } from '../../../../components/home/HomeSeasonContext';
 import {
@@ -1150,7 +1152,7 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
           <NuriSemanticIcon
             family="material"
             preserveOriginal
-            name="paw"
+            name="heart"
             size={12}
             color={headerPalette?.brand ?? petThemePrimary}
             style={styles.brandPaw}
@@ -2439,7 +2441,7 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
         {isSeasonal ? (
           <TouchableOpacity
             activeOpacity={0.86}
-            accessibilityLabel="우리 아이 더 알아보기"
+            accessibilityLabel={`${profilePetName} 더 알아보기`}
             accessibilityRole="button"
             style={[
               styles.autumnProfileEntry,
@@ -2447,6 +2449,7 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
               isWinter ? styles.winterProfileEntry : null,
               isSpring ? styles.springProfileEntry : null,
               isSummer ? styles.summerProfileEntry : null,
+              { borderColor: SEASON_CTA[season].border },
             ]}
             onPress={onPressProfileInfo}
           >
@@ -2457,16 +2460,11 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
                 isWinter ? styles.winterProfileEntryText : null,
                 isSpring ? styles.springProfileEntryText : null,
                 isSummer ? styles.summerProfileEntryText : null,
+                { color: SEASON_CTA[season].primary },
               ]}
             >
-              우리 아이 더 알아보기
+              {profilePetName} 더 알아보기
             </AppText>
-            <Feather
-              name="chevron-right"
-              size={17}
-              color={petTheme.deep}
-              style={styles.autumnProfileEntryChevron}
-            />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -4081,6 +4079,7 @@ export default function LoggedInHome() {
         ambientBubbleCanvasEnabled ? styles.ambientBackgroundTransparent : null,
       ]}
     >
+      <MonthlyExpenseSection onPress={monthKey => navigation.navigate('TimelineTab', { screen: 'MonthlyExpenses', params: { monthKey, entrySource: 'home' } })} />
       <WeatherToLowerHomeBridge
         season={seasonalHomeVisual?.season ?? null}
         height={weatherToHomeBridgeHeight}

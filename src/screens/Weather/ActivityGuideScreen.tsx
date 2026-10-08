@@ -156,11 +156,6 @@ export default function ActivityGuideScreen() {
             }
           }}
         >
-          <MaterialCommunityIcons
-            name="check-circle-outline"
-            size={20}
-            color="#FFFFFF"
-          />
           <Text style={styles.primaryButtonText}>활동 완료하고 기록하기</Text>
         </TouchableOpacity>
       </View>

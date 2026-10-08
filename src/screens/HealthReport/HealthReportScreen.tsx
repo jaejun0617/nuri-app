@@ -1,4 +1,4 @@
-import CtaButton, { CtaText, CtaIcon } from '../../app/ui/CtaButton';
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, {
   useCallback,
   useEffect,
@@ -1234,7 +1234,6 @@ export default function HealthReportScreen() {
             onPress={openHealthWriteActions}
             style={[styles.headerActionButton, {}]}
           >
-            <CtaIcon name="plus" size={15} />
             <CtaText preset="unifiedMeta">기록</CtaText>
           </CtaButton>
         </View>
@@ -1488,7 +1487,6 @@ export default function HealthReportScreen() {
                 onPress={openWeightCreate}
                 style={[styles.inlineButton, {}]}
               >
-                <CtaIcon name="plus" size={16} />
                 <CtaText preset="unifiedLabel">기록 추가</CtaText>
               </CtaButton>
             </View>
@@ -1929,24 +1927,10 @@ export default function HealthReportScreen() {
                 onPress={() => handleHealthWriteAction(action.key)}
                 style={[styles.writeActionItem, {}]}
               >
-                <View
-                  style={[
-                    styles.iconWrap,
-                    { backgroundColor: `${petTheme.primary}18` },
-                  ]}
-                >
-                  <NuriSemanticIcon
-                    family="feather"
-                    color={petTheme.primary}
-                    name={action.icon}
-                    size={16}
-                  />
-                </View>
                 <View style={styles.writeActionItemText}>
                   <CtaText preset="unifiedBody">{action.title}</CtaText>
                   <CtaText preset="unifiedBody">{action.description}</CtaText>
                 </View>
-                <CtaIcon name="chevron-right" size={18} />
               </CtaButton>
             ))}
           </Pressable>

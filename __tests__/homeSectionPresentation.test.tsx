@@ -99,7 +99,7 @@ describe('Home section rhythm and material', () => {
       /const usesCanonicalHeroGeometry =\s*isAutumn \|\| isWinter \|\| isSpring \|\| isSummer;/,
     );
     expect(source).toMatch(
-      /style=\{usesCanonicalHeroGeometry \? styles\.autumnHeroBodyGroup : null\}[\s\S]*?<HeroProfileIdentity[\s\S]*?accessibilityLabel="우리 아이 더 알아보기"/,
+      /style=\{usesCanonicalHeroGeometry \? styles\.autumnHeroBodyGroup : null\}[\s\S]*?<HeroProfileIdentity[\s\S]*?accessibilityLabel=\{`\$\{profilePetName\} 더 알아보기`\}/,
     );
   });
 
@@ -363,7 +363,7 @@ describe('Home section rhythm and material', () => {
     expect(actionStyles.text).toMatchObject({
       textAlign: 'center',
       flex: 1,
-      marginHorizontal: 14,
+      marginHorizontal: 6,
     });
     expect(actionStyles.compactIconSlot).toMatchObject({
       position: 'absolute',
@@ -375,7 +375,7 @@ describe('Home section rhythm and material', () => {
     });
     expect(
       renderer.root.findAll(node => node.props.name === 'chevron-right'),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
     const header = renderer.root.findAll(
       node => node.type === View && node.props.testID === 'home-section-header',
     )[0];

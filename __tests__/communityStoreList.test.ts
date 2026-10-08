@@ -83,6 +83,82 @@ function makeCursor(
 }
 
 describe('community list store pagination', () => {
+  it('preserves search across pagination, category, page size and route restoration', async () => {
+    mockedFetchCommunityPosts.mockResolvedValue({
+      items: [makePost('search')],
+      nextCursor: 'search-next',
+      hasMore: true,
+    });
+    await useCommunityStore.getState().setSearchQuery(' 강아지 ');
+    await useCommunityStore.getState().loadMorePosts();
+    expect(mockedFetchCommunityPosts).toHaveBeenLastCalledWith({
+      filter: 'all',
+      category: 'all',
+      query: '강아지',
+      limit: 30,
+      cursor: 'search-next',
+    });
+    expect(useCommunityStore.getState().currentPage).toBe(2);
+    await useCommunityStore.getState().loadPreviousPosts();
+    expect(useCommunityStore.getState().currentPage).toBe(1);
+    await useCommunityStore.getState().setCategory('question');
+    await useCommunityStore.getState().setPageSize(50);
+    const snapshot = useCommunityStore.getState().getListSnapshot();
+    expect(snapshot).toMatchObject({
+      searchQuery: '강아지',
+      activeCategory: 'question',
+      pageSize: 50,
+    });
+    useCommunityStore.getState().clearAll();
+    useCommunityStore.getState().restoreListSnapshot(snapshot);
+    await useCommunityStore.getState().resumePosts();
+    expect(mockedFetchCommunityPosts).toHaveBeenLastCalledWith({
+      filter: 'all',
+      category: 'question',
+      query: '강아지',
+      limit: 50,
+      cursor: null,
+    });
+    await useCommunityStore.getState().setSearchQuery('');
+    expect(useCommunityStore.getState()).toMatchObject({
+      searchQuery: '',
+      currentPage: 1,
+      pageSize: 50,
+      activeCategory: 'question',
+    });
+    expect(mockedFetchCommunityPosts).toHaveBeenLastCalledWith({
+      filter: 'all',
+      category: 'question',
+      limit: 50,
+      cursor: null,
+    });
+  });
+
+  it('ignores stale search responses after changing the query', async () => {
+    const old = createDeferred<CommunityPostsResult>();
+    mockedFetchCommunityPosts
+      .mockReturnValueOnce(old.promise)
+      .mockResolvedValueOnce({
+        items: [makePost('new-query')],
+        nextCursor: null,
+        hasMore: false,
+      });
+    const previousRequest = useCommunityStore
+      .getState()
+      .setSearchQuery('강아지');
+    await useCommunityStore.getState().setSearchQuery('고양이');
+    old.resolve({
+      items: [makePost('old-query')],
+      nextCursor: null,
+      hasMore: false,
+    });
+    await previousRequest;
+    expect(useCommunityStore.getState().posts.map(post => post.id)).toEqual([
+      'new-query',
+    ]);
+    expect(useCommunityStore.getState().searchQuery).toBe('고양이');
+  });
+
   beforeEach(() => {
     mockedFetchCommunityPosts.mockReset();
     useCommunityStore.getState().clearAll();
@@ -487,10 +563,7 @@ describe('community list store pagination', () => {
 
   it('renders the server-provided notice-first order without client sorting', async () => {
     mockedFetchCommunityPosts.mockResolvedValueOnce({
-      items: [
-        makePost('notice-1', { isNotice: true }),
-        makePost('regular-1'),
-      ],
+      items: [makePost('notice-1', { isNotice: true }), makePost('regular-1')],
       nextCursor: null,
       hasMore: false,
     });
@@ -614,7 +687,9 @@ describe('community list store pagination', () => {
       .invalidateCommunityVisibility('blocked-author');
 
     expect(useCommunityStore.getState().posts).toEqual([]);
-    expect(useCommunityStore.getState().postsById['blocked-post']).toBeUndefined();
+    expect(
+      useCommunityStore.getState().postsById['blocked-post'],
+    ).toBeUndefined();
 
     refreshRequest.resolve({
       items: [makePost('unrelated-post', { authorId: 'unrelated-author' })],

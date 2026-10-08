@@ -1,0 +1,20 @@
+{
+  "time": "2026-10-08T10:49:17.679Z",
+  "installCountThisAttempt": 1,
+  "installCountThisTask": 2,
+  "installedSha": "eae763280deb2bee464ad32413193afebb27484b446743f3be1cb3b37a53cc2d",
+  "expectedSha": "eae763280deb2bee464ad32413193afebb27484b446743f3be1cb3b37a53cc2d",
+  "matched": true,
+  "uidBefore": "package:com.nuri.app uid:10402",
+  "uidAfter": "package:com.nuri.app uid:10402",
+  "firstInstallBefore": "2026-06-02 19:16:57",
+  "firstInstallAfter": "2026-06-02 19:16:57",
+  "preserved": true,
+  "package": [
+    "    versionCode=1 minSdk=24 targetSdk=36",
+    "    versionName=1.0",
+    "    lastUpdateTime=2026-10-08 19:49:17",
+    "      firstInstallTime=2026-06-02 19:16:57",
+    "      firstInstallTime=2026-06-02 19:16:57"
+  ]
+}

@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, TouchableOpacity } from 'react-native';
 import Feather from '../icons/NuriFeatherIcon';
+import NuriSemanticIcon from '../icons/NuriSemanticIcon';
 import CtaButton from '../../app/ui/CtaButton';
 import type { CtaRole } from '../../app/theme/ctaPalette';
 
@@ -13,6 +14,7 @@ type Props = {
   onPress: () => void;
   role?: CtaRole;
   loading?: boolean;
+  preserveOriginal?: boolean;
 };
 
 export default function HeaderIconActionButton({
@@ -24,6 +26,7 @@ export default function HeaderIconActionButton({
   onPress,
   role,
   loading = false,
+  preserveOriginal = false,
 }: Props) {
   if (role) {
     return (
@@ -37,7 +40,7 @@ export default function HeaderIconActionButton({
         onPress={onPress}
       >
         {palette => (
-          <Feather name={iconName as never} size={18} color={palette.text} />
+          preserveOriginal ? <NuriSemanticIcon family="feather" name={iconName} size={18} color={palette.text} preserveOriginal /> : <Feather name={iconName as never} size={18} color={palette.text} />
         )}
       </CtaButton>
     );

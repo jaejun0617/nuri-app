@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "candidateApkSha256": "eae763280deb2bee464ad32413193afebb27484b446743f3be1cb3b37a53cc2d",
+  "previousLedger": "../nuri-global-keyboard-open-defect-2026-10-08-evidence/k-id-ledger-final.json",
+  "evidenceRoot": "/private/tmp/nuri-glass-expenses-20261008T092854/",
+  "scope": "Scoped final-candidate revalidation only. Prior 22 PASS and 12 exact gates retained, not rerun on this APK. No ALL_PATHS_PASS declaration.",
+  "items": [
+    {
+      "id": "K22",
+      "previousStatus": "OPEN_REPRODUCED",
+      "finalStatus": "PASS",
+      "scenario": "Regular composer visible above IME; persistent drag/fling, synthetic draft, Korean composition and caret; no send.",
+      "evidence": ["final-community-open.json", "final-comment-scroll.json", "final-comment-hangul.json", "final-comment-caret.json"]
+    },
+    {
+      "id": "K23",
+      "previousStatus": "OPEN_REPRODUCED",
+      "finalStatus": "PASS",
+      "scenario": "Inline focus, keyboard-open scroll/offscreen return, continue without refocus, draft/target, native selection menu, closed system-nav boundary; no send.",
+      "evidence": ["final-reply-offscreen.json", "final-reply-return.json", "final-reply-continued.json", "final-reply-selection.json", "final-reply-closed-stable.json", "final-reply-closed-stable-insets.json"]
+    },
+    {
+      "id": "K14",
+      "previousStatus": "OPEN_REPRODUCED",
+      "finalStatus": "PASS",
+      "scenario": "Embedded Weather tag modal Back closes modal without popping parent; focus/IME and memo draft return; no submit.",
+      "evidence": ["final-weather-tag-back-before.json", "final-weather-back-parent.json", "final-weather-continued.json"]
+    },
+    {
+      "id": "K15",
+      "previousStatus": "OPEN_REPRODUCED",
+      "finalStatus": "PASS",
+      "scenario": "Weather memo caret/text visible above IME after modal Back, continue without manual scroll; CTA reachable by scroll. Entire multiline field does not fit above IME.",
+      "evidence": ["final-weather-back-parent.json", "final-weather-continued.json", "final-weather-cta-access.json"]
+    }
+  ],
+  "composedHistoricalCoverage": {
+    "PASS": 26,
+    "OPEN_REPRODUCED": 0,
+    "BLOCKED": 6,
+    "NOT_REACHABLE_WITHOUT_MUTATION": 2,
+    "DEV_ONLY": 1,
+    "UNUSED": 3
+  },
+  "all38RerunThisCandidate": false,
+  "unrelatedGateChanges": 0,
+  "newCorrectiveAutoStart": false
+}

@@ -1,0 +1,71 @@
+{
+  "tempRoot": "/private/tmp/nuri-community-search-comment-20261007-162703",
+  "copiedMetadata": [
+    {
+      "name": "apk-v4.json",
+      "sha256": "408992327a4be1145f120b81a8801a1c6475afb0e2ce5ee69958e461b81eb6bc",
+      "bytes": 354
+    },
+    {
+      "name": "build-input-preservation-v4.json",
+      "sha256": "d73c76410c5187dc060f91870b41db3f8931448d7ad4d3d6434d9f66a29d6fa0",
+      "bytes": 110
+    },
+    {
+      "name": "installed-verification-v4.json",
+      "sha256": "c158a3043b2041d3e663202af1205dafa11d041b954e0a4d35eda16186c71f9a",
+      "bytes": 405
+    },
+    {
+      "name": "native-summary.json",
+      "sha256": "dfbe3bb4693d6e30cf74a8b4513513074d409a2c076468dfc8774f5ca7707e0c",
+      "bytes": 1330
+    },
+    {
+      "name": "preservation-final.json",
+      "sha256": "9c948bc5dad4e9f734f2d380899ec22eb9497ed0e409bd6b7f1825c00dd07934",
+      "bytes": 2173
+    },
+    {
+      "name": "protectedAfter.json",
+      "sha256": "b29c178a0efff41217d9abfdd23827d98dfa031d0b6946fa53b9f650c42cd425",
+      "bytes": 719
+    },
+    {
+      "name": "protectedBaseline.json",
+      "sha256": "c17ed03dca79da4f7e0dd167a94844ced266f9cf88ab422a197d5542fec2e556",
+      "bytes": 719
+    },
+    {
+      "name": "remote-audit-summary.json",
+      "sha256": "55c12486dc83d7cd95f05141a57f4f89393dbf919dff359c93a5a64175e761d0",
+      "bytes": 1429
+    },
+    {
+      "name": "remoteAfterFunctions.json",
+      "sha256": "f28d97977d5bdddc8cb6c82626ad4aa140f21bbdf62d897c50d2241cb7a147ed",
+      "bytes": 565
+    },
+    {
+      "name": "remoteErrorVerification.json",
+      "sha256": "007dd55121a4319ad6a4a1f2d267ac453118555cca1818c61cabfe1b120136d8",
+      "bytes": 49
+    },
+    {
+      "name": "remoteSearchInitial.json",
+      "sha256": "e1ae2207b6efcf30186f6c7c1808364c005e97ac9fe4d1bd22570b8d6a081696",
+      "bytes": 701
+    },
+    {
+      "name": "remoteSearchPages.json",
+      "sha256": "39375c7992f1493c4532aba8306a1b506f9e4abaf1fdcc5a9d689c5ebe114e51",
+      "bytes": 96
+    },
+    {
+      "name": "validation-summary.json",
+      "sha256": "a63d3aadb914687bb7106329fc05d771fcb5618f07cf4b87d80250645097dc4d",
+      "bytes": 492
+    }
+  ],
+  "binaryCopied": 0
+}

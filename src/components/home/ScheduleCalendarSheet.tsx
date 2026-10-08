@@ -31,6 +31,7 @@ import AppText from '../../app/ui/AppText';
 import AppTextInput from '../../app/ui/AppTextInput';
 import DatePickerModal from '../date-picker/DatePickerModal';
 import ConfirmDialog from '../common/ConfirmDialog';
+import ScheduleReminderNotice from '../common/ScheduleReminderNotice';
 import Feather from '../icons/NuriFeatherIcon';
 import NuriSemanticIcon from '../icons/NuriSemanticIcon';
 import { useScheduleCreateForm } from '../../hooks/useScheduleCreateForm';
@@ -146,8 +147,13 @@ export function ScheduleCalendarSheet({
     },
     onSaved: saved,
   });
+  const { setReminderNoticeVisible } = form;
   const close = useCallback(() => {
     if (form.saving) return;
+    if (form.reminderNoticeVisible) {
+      setReminderNoticeVisible(false);
+      return;
+    }
     if (exitConfirmVisible) {
       setExitConfirmVisible(false);
       return;
@@ -162,6 +168,8 @@ export function ScheduleCalendarSheet({
     exitConfirmVisible,
     form.hasUnsavedChanges,
     form.persisted,
+    form.reminderNoticeVisible,
+    setReminderNoticeVisible,
     form.saving,
     mode,
     onClose,
@@ -848,6 +856,7 @@ export function ScheduleCalendarSheet({
             </Animated.View>
           </KeyboardAvoidingView>
         </SafeAreaView>
+        <ScheduleReminderNotice embedded visible={form.reminderNoticeVisible} onClose={() => form.setReminderNoticeVisible(false)} />
         <ConfirmDialog
           confirmRole="destructiveConfirm"
           cancelRole="neutral"

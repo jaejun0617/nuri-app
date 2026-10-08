@@ -1,0 +1,63 @@
+{
+  "at": "2026-10-07T08:59:53.145Z",
+  "checkedBaselineFiles": 1652,
+  "head": "26891aaed1fbee37141ecbd89e4d4c18970b4a1d",
+  "branch": "codex/task6-community-content-policy",
+  "staged": "",
+  "headUnchanged": true,
+  "branchUnchanged": true,
+  "stagedUnchanged": true,
+  "missing": [],
+  "unexpectedChanges": [],
+  "existingDocumentationBodyChanges": [],
+  "artifacts": [
+    {
+      "path": "/private/tmp/nuri-community-search-comment-20261007-162703/nuri-community-search-comment-9783f894.apk",
+      "exists": true,
+      "shaMatches": true
+    },
+    {
+      "path": "/private/tmp/nuri-community-search-comment-20261007-162703/nuri-community-search-comment-v2-2289d176.apk",
+      "exists": true,
+      "shaMatches": true
+    },
+    {
+      "path": "/private/tmp/nuri-community-search-comment-20261007-162703/nuri-community-search-comment-v3-a3a030d9.apk",
+      "exists": true,
+      "shaMatches": true
+    },
+    {
+      "path": "/private/tmp/nuri-community-search-comment-20261007-162703/nuri-community-search-comment-v4-e30a433d.apk",
+      "exists": true,
+      "shaMatches": true
+    }
+  ],
+  "gitDiffCheck": "PASS",
+  "markdownStructure": "PASS",
+  "internalLinks": "PASS",
+  "brokenLinks": [],
+  "sourceScope": [
+    "__tests__/communityCategoryListService.test.ts",
+    "__tests__/communityDetailPresentation.test.ts",
+    "__tests__/communityStoreList.test.ts",
+    "__tests__/homeSectionPresentation.test.tsx",
+    "__tests__/memoryDetailScreen.test.tsx",
+    "docs/sql/커뮤니티/커뮤니티-운영-최종.sql",
+    "src/navigation/communityRouteState.ts",
+    "src/screens/Community/CommunityDetailScreen.styles.ts",
+    "src/screens/Community/CommunityDetailScreen.tsx",
+    "src/screens/Community/CommunityListScreen.styles.ts",
+    "src/screens/Community/CommunityListScreen.tsx",
+    "src/screens/Community/components/CommentActionRow.tsx",
+    "src/screens/Main/components/LoggedInHome/LoggedInHome.tsx",
+    "src/screens/Records/RecordDetailScreen.tsx",
+    "src/services/supabase/community.ts",
+    "src/store/communityStore.ts",
+    "src/types/community.ts"
+  ],
+  "appBuilds": 4,
+  "installs": 4,
+  "cleanup": 0,
+  "commit": 0,
+  "push": 0
+}

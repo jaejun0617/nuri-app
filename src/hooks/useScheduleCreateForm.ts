@@ -78,6 +78,7 @@ export function useScheduleCreateForm({ petId, params, onSaved }: Props) {
   const [saving, setSaving] = useState(false);
   const [persisted, setPersisted] = useState(false);
   const [dateModalVisible, setDateModalVisible] = useState(false);
+  const [reminderNoticeVisible, setReminderNoticeVisible] = useState(false);
   const savingRef = useRef(false);
   const completed = useRef(false);
   const mounted = useRef(true);
@@ -213,10 +214,7 @@ export function useScheduleCreateForm({ petId, params, onSaved }: Props) {
           startsAt,
         });
         if (reminderKey !== 'none' && !reminderMinutes.length) {
-          Alert.alert(
-            '알림 시간 확인',
-            '선택한 알림 시점이 이미 지났어요. 더 짧은 간격으로 바꾸거나 직접 설정해 주세요.',
-          );
+          setReminderNoticeVisible(true);
           return;
         }
         const lifecycle = captureScheduleNotificationLifecycle();
@@ -319,6 +317,8 @@ export function useScheduleCreateForm({ petId, params, onSaved }: Props) {
   const reminderSummaryText = formatReminderMinutesSummary(reminderMinutes);
 
   return {
+    reminderNoticeVisible,
+    setReminderNoticeVisible,
     title,
     setTitle,
     note,

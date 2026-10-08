@@ -13,7 +13,12 @@ const seasonalScreens = [
 describe('seasonal route ownership', () => {
   it.each(seasonalScreens)('%s resolves global preference rather than a route-local forced season', file => {
     const source = read(file);
-    expect(source).toContain('useEffectiveSeason()');
+    if (file === 'screens/Pets/PetProfileEditDoneScreen.tsx') {
+      expect(source).toContain('<SeasonalFormBackground />');
+      expect(read('components/common/SeasonalFormSurface.tsx')).toContain('useEffectiveSeason()');
+    } else {
+      expect(source).toContain('useEffectiveSeason()');
+    }
     expect(source).not.toContain('getSeasonalThemeKey()');
     expect(source).not.toContain('QA_SEASON');
   });

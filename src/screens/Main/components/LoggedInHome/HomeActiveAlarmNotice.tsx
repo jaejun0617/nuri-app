@@ -1,9 +1,9 @@
 import React from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import Feather from '../../../../components/icons/NuriFeatherIcon';
 import { useTheme } from 'styled-components/native';
 import AppText from '../../../../app/ui/AppText';
-import CtaButton, { CtaText, CtaIcon } from '../../../../app/ui/CtaButton';
+import CtaButton, { CtaText } from '../../../../app/ui/CtaButton';
 import type { ActiveScheduleAlarm } from '../../../../services/schedules/activeAlarm';
 
 type Props = {
@@ -50,20 +50,12 @@ export default function HomeActiveAlarmNotice({
               accessibilityLabel={`${alarm.title} 알람 중지`}
               accessibilityState={{ disabled: busy, busy }}
               disabled={busy}
+              loading={busy}
               onPress={() => {
                 onStop(alarm);
               }}
               style={[styles.stop, { borderColor: theme.colors.border }]}
             >
-              {busy ? (
-                <ActivityIndicator color={theme.colors.brand} size="small" />
-              ) : (
-                <Feather
-                  name="square"
-                  size={16}
-                  color={theme.colors.textPrimary}
-                />
-              )}
               <CtaText preset="unifiedLabel">중지</CtaText>
             </CtaButton>
           </View>
@@ -86,9 +78,9 @@ export default function HomeActiveAlarmNotice({
             onPress={() => {
               onRefresh();
             }}
-            style={styles.retry}
+            style={[styles.retry, { width: undefined, minWidth: 64, paddingHorizontal: 8 }]}
           >
-            <CtaIcon name="refresh-cw" size={20} />
+            <CtaText preset="unifiedMeta">다시 확인</CtaText>
           </CtaButton>
         </View>
       ) : null}

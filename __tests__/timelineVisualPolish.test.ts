@@ -23,11 +23,8 @@ describe('Timeline visual polish', () => {
     expect(create).toContain('role="primary"');
     expect(create).toContain('onPress={onPressCreate}');
     expect(create).toContain('accessibilityLabel="기록하기"');
-    expect(create).toContain('family="feather"');
-    expect(create).toContain('name="plus"');
-    expect(create).toContain('size={24}');
-    expect(create).toContain('color="#FFFFFF"');
-    expect(create).toContain('preserveOriginal');
+    expect(create).toContain('>기록</CtaText>');
+    expect(create).not.toContain('name="plus"');
     expect(source).toContain('useContext(ToolbarHeightContext)');
     expect(source).toContain('(toolbarHeight ?? insets.bottom) + 12');
     expect(source).not.toContain('insets.bottom + 74');

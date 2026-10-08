@@ -1,0 +1,38 @@
+[
+  {
+    "query": "강아지",
+    "first_page_count": 0,
+    "has_more": false,
+    "bound_query": "강아지"
+  },
+  {
+    "query": "QA-PAGINATION",
+    "first_page_count": 30,
+    "has_more": true,
+    "bound_query": "QA-PAGINATION"
+  },
+  {
+    "query": "QA_BATCH",
+    "first_page_count": 30,
+    "has_more": true,
+    "bound_query": "QA_BATCH"
+  },
+  {
+    "query": "%",
+    "first_page_count": 0,
+    "has_more": false,
+    "bound_query": "%"
+  },
+  {
+    "query": "_",
+    "first_page_count": 30,
+    "has_more": true,
+    "bound_query": "_"
+  },
+  {
+    "query": "nuri-no-result-20261007",
+    "first_page_count": 0,
+    "has_more": false,
+    "bound_query": "nuri-no-result-20261007"
+  }
+]

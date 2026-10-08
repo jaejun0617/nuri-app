@@ -3,7 +3,6 @@ import { StyleSheet } from 'react-native';
 const BRAND = '#6D6AF8';
 const BRAND_DEEP = '#5753E6';
 const TEXT = '#0B1220';
-const MUTED = '#94A0B4';
 
 export const styles = StyleSheet.create({
   screen: {
@@ -20,6 +19,7 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingTop: 0,
   },
+  completionPanel: { paddingVertical: 24, alignItems: 'center' },
   checkCard: {
     width: 106,
     height: 106,
@@ -42,19 +42,19 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   title: {
-    marginTop: 34,
+    marginTop: 18,
     color: TEXT,
     fontWeight: '900',
     textAlign: 'center',
   },
   body: {
     marginTop: 8,
-    color: MUTED,
+    color: '#465363',
     textAlign: 'center',
   },
   meta: {
     marginTop: 10,
-    color: BRAND_DEEP,
+    color: '#263445',
     fontWeight: '800',
     textAlign: 'center',
   },

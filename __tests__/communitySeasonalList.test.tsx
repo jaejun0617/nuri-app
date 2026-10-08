@@ -33,7 +33,6 @@ import {
   COMMUNITY_CATEGORY_PALETTE,
   getCommunityCategoryPalette,
 } from '../src/screens/Community/communityCategoryPalette';
-import AppText from '../src/app/ui/AppText';
 import { useCommunityStore } from '../src/store/communityStore';
 import { usePetStore } from '../src/store/petStore';
 import type { CommunityPost } from '../src/types/community';
@@ -247,11 +246,8 @@ describe('community seasonal list candidate', () => {
         width: 48,
         minHeight: 48,
       });
-      expect(create?.findByType(NativeFeather).props).toMatchObject({
-        name: 'plus',
-        color: '#FFFFFF',
-        size: 24,
-      });
+      expect(create?.findAllByType(NativeFeather)).toHaveLength(0);
+      expect(create?.findAllByProps({ children: '글쓰기' }).length).toBeGreaterThan(0);
       expect(create?.findAllByType(NuriIcon)).toHaveLength(0);
       expect(
         renderer.root.findAllByProps({
@@ -460,11 +456,8 @@ describe('community seasonal list candidate', () => {
     expect(
       controls.findAllByProps({ testID: 'community-fixed-create' }),
     ).toHaveLength(0);
-    expect(create?.findAllByType(AppText)).toHaveLength(0);
-    expect(create?.findByType(NativeFeather).props).toMatchObject({
-      name: 'plus',
-      color: '#FFFFFF',
-    });
+    expect(create?.findAllByProps({ children: '글쓰기' }).length).toBeGreaterThan(0);
+    expect(create?.findAllByType(NativeFeather)).toHaveLength(0);
     expect(
       StyleSheet.flatten(create?.props.style({ pressed: false })),
     ).not.toHaveProperty('position');

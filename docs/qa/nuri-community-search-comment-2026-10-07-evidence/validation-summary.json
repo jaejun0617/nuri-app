@@ -1,0 +1,27 @@
+{
+  "typescript": "PASS",
+  "fullTests": {
+    "suites": 188,
+    "tests": 1917,
+    "failed": 0,
+    "success": true
+  },
+  "targeted": {
+    "suites": 2,
+    "tests": 15,
+    "failed": 0
+  },
+  "lint": {
+    "files": 19,
+    "errors": 0,
+    "warnings": 16,
+    "warningBoundary": "16 existing Home no-shadow warnings"
+  },
+  "gitDiffCheck": "PASS",
+  "buildInputs": {
+    "at": "2026-10-07T08:49:55.558Z",
+    "checkedInputs": 682,
+    "headUnchanged": true,
+    "changedInputs": []
+  }
+}

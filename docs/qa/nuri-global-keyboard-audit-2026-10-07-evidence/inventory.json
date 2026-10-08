@@ -1,0 +1,1859 @@
+{
+  "schemaVersion": 1,
+  "scope": "STATIC_SOURCE_INVENTORY_NOT_DEVICE_QA",
+  "head": "26891aaed1fbee37141ecbd89e4d4c18970b4a1d",
+  "branch": "codex/task6-community-content-policy",
+  "sourceDiffSha256": "33165ca03762ff85f9f47053407a6dada1787384e5c95f070c8464bee7c06d8f",
+  "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "scannedFiles": 451,
+  "inputDeclarationCount": 73,
+  "inputFiles": 33,
+  "wrapperCallCount": 30,
+  "inventory": [
+    {
+      "file": "src/app/ui/AppTextInput.tsx",
+      "inputs": [
+        {
+          "line": 46,
+          "tag": "TextInput",
+          "owner": "AppTextInput"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [],
+      "keyboardImports": []
+    },
+    {
+      "file": "src/components/common/ConfirmDialog.tsx",
+      "inputs": [],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 163,
+          "tag": "ScrollView",
+          "owner": "content",
+          "keyboardShouldPersistTaps": "\"handled\""
+        }
+      ],
+      "keyboardImports": [
+        "react-native-keyboard-controller"
+      ]
+    },
+    {
+      "file": "src/components/date-picker/DatePickerModal.tsx",
+      "inputs": [
+        {
+          "line": 692,
+          "tag": "AppTextInput",
+          "owner": "DatePickerModalBase",
+          "editable": "{!disabled}",
+          "keyboardType": "\"number-pad\""
+        },
+        {
+          "line": 722,
+          "tag": "AppTextInput",
+          "owner": "DatePickerModalBase",
+          "editable": "{!disabled}",
+          "keyboardType": "\"number-pad\""
+        },
+        {
+          "line": 758,
+          "tag": "AppTextInput",
+          "owner": "DatePickerModalBase",
+          "editable": "{!disabled}",
+          "keyboardType": "\"number-pad\""
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 561,
+          "tag": "ScrollView",
+          "owner": "DatePickerModalBase"
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput",
+        "react-native-keyboard-controller",
+        "../../hooks/useKeyboardBottomPadding"
+      ]
+    },
+    {
+      "file": "src/components/health/WeightLogEntrySheet.tsx",
+      "inputs": [
+        {
+          "line": 315,
+          "tag": "AppTextInput",
+          "owner": "WeightLogEntrySheet",
+          "keyboardType": "\"decimal-pad\""
+        },
+        {
+          "line": 365,
+          "tag": "AppTextInput",
+          "owner": "WeightLogEntrySheet",
+          "multiline": "true"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 297,
+          "tag": "ScrollView",
+          "owner": "WeightLogEntrySheet",
+          "keyboardShouldPersistTaps": "\"handled\"",
+          "keyboardDismissMode": "\"none\""
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput",
+        "react-native-keyboard-controller",
+        "../../hooks/useBoundedKeyboardScroll",
+        "../../hooks/useKeyboardBottomPadding"
+      ]
+    },
+    {
+      "file": "src/components/home/ScheduleCalendarSheet.tsx",
+      "inputs": [
+        {
+          "line": 529,
+          "tag": "AppTextInput",
+          "owner": "ScheduleCalendarSheet",
+          "editable": "{!form.saving && !form.persisted}"
+        },
+        {
+          "line": 693,
+          "tag": "AppTextInput",
+          "owner": "ScheduleCalendarSheet",
+          "editable": "{!form.saving && !form.persisted}",
+          "keyboardType": "\"number-pad\""
+        },
+        {
+          "line": 722,
+          "tag": "AppTextInput",
+          "owner": "ScheduleCalendarSheet",
+          "editable": "{!form.saving && !form.persisted}",
+          "multiline": "true"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 335,
+          "tag": "KeyboardAvoidingView",
+          "owner": "ScheduleCalendarSheet",
+          "behavior": "\"height\""
+        },
+        {
+          "line": 418,
+          "tag": "FlatList",
+          "owner": "ScheduleCalendarSheet"
+        },
+        {
+          "line": 509,
+          "tag": "ScrollView",
+          "owner": "ScheduleCalendarSheet",
+          "keyboardShouldPersistTaps": "\"handled\"",
+          "keyboardDismissMode": "\"none\""
+        }
+      ],
+      "keyboardImports": [
+        "react-native-keyboard-controller",
+        "../../app/ui/AppTextInput",
+        "../../hooks/useBoundedKeyboardScroll",
+        "../../hooks/useKeyboardBottomPadding"
+      ]
+    },
+    {
+      "file": "src/components/locationDiscovery/LocationDiscoverySearchBar.tsx",
+      "inputs": [
+        {
+          "line": 38,
+          "tag": "AppTextInput",
+          "owner": "LocationDiscoverySearchBar"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput"
+      ]
+    },
+    {
+      "file": "src/components/pets/PetDeleteConfirmDialog.tsx",
+      "inputs": [
+        {
+          "line": 256,
+          "tag": "AppTextInput",
+          "owner": "PetDeleteConfirmDialogBase",
+          "editable": "{!deleting}"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 131,
+          "tag": "ScrollView",
+          "owner": "PetDeleteConfirmDialogBase",
+          "keyboardShouldPersistTaps": "\"handled\"",
+          "keyboardDismissMode": "\"none\""
+        }
+      ],
+      "keyboardImports": [
+        "react-native-keyboard-controller",
+        "../../app/ui/AppTextInput",
+        "../../hooks/useBoundedKeyboardScroll"
+      ]
+    },
+    {
+      "file": "src/components/pets/PetMemorialFields.tsx",
+      "inputs": [
+        {
+          "line": 112,
+          "tag": "AppTextInput",
+          "owner": "",
+          "editable": "{false}"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput"
+      ]
+    },
+    {
+      "file": "src/hooks/useKeyboardBottomPadding.ts",
+      "inputs": [],
+      "wrapperCalls": [],
+      "containers": [],
+      "keyboardImports": [
+        "react-native-keyboard-controller"
+      ]
+    },
+    {
+      "file": "src/screens/AnimalHospital/AnimalHospitalAdminScreen.tsx",
+      "inputs": [
+        {
+          "line": 505,
+          "tag": "AppTextInput",
+          "owner": "AnimalHospitalAdminScreen"
+        },
+        {
+          "line": 682,
+          "tag": "AppTextInput",
+          "owner": "AnimalHospitalAdminScreen",
+          "multiline": "true"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 423,
+          "tag": "ScrollView",
+          "owner": "AnimalHospitalAdminScreen",
+          "keyboardShouldPersistTaps": "\"handled\""
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput"
+      ]
+    },
+    {
+      "file": "src/screens/Auth/NicknameSetupScreen.tsx",
+      "inputs": [
+        {
+          "line": 180,
+          "tag": "AppTextInput",
+          "owner": "NicknameInputSection"
+        }
+      ],
+      "wrapperCalls": [
+        {
+          "line": 568,
+          "tag": "NicknameInputSection",
+          "owner": "NicknameSetupScreen"
+        }
+      ],
+      "containers": [
+        {
+          "line": 554,
+          "tag": "KeyboardAwareScrollView",
+          "owner": "NicknameSetupScreen",
+          "bottomOffset": "{focusedInputBottomOffset}",
+          "keyboardDismissMode": "\"on-drag\"",
+          "keyboardShouldPersistTaps": "\"handled\""
+        },
+        {
+          "line": 584,
+          "tag": "KeyboardStickyView",
+          "owner": "NicknameSetupScreen"
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput",
+        "react-native-keyboard-controller"
+      ]
+    },
+    {
+      "file": "src/screens/Auth/PasswordResetFormScreen.tsx",
+      "inputs": [
+        {
+          "line": 175,
+          "tag": "AppTextInput",
+          "owner": "PasswordResetFormScreen",
+          "secureTextEntry": "true"
+        },
+        {
+          "line": 194,
+          "tag": "AppTextInput",
+          "owner": "PasswordResetFormScreen",
+          "secureTextEntry": "true"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 153,
+          "tag": "KeyboardAvoidingView",
+          "owner": "PasswordResetFormScreen",
+          "behavior": "{Platform.OS === 'ios' ? 'padding' : undefined}"
+        },
+        {
+          "line": 157,
+          "tag": "ScrollView",
+          "owner": "PasswordResetFormScreen",
+          "keyboardShouldPersistTaps": "\"handled\""
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput"
+      ]
+    },
+    {
+      "file": "src/screens/Auth/PasswordResetRequestScreen.tsx",
+      "inputs": [
+        {
+          "line": 124,
+          "tag": "AppTextInput",
+          "owner": "PasswordResetRequestScreen",
+          "keyboardType": "\"email-address\""
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 96,
+          "tag": "KeyboardAvoidingView",
+          "owner": "PasswordResetRequestScreen",
+          "behavior": "{Platform.OS === 'ios' ? 'padding' : undefined}"
+        },
+        {
+          "line": 100,
+          "tag": "ScrollView",
+          "owner": "PasswordResetRequestScreen",
+          "keyboardShouldPersistTaps": "\"handled\""
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput"
+      ]
+    },
+    {
+      "file": "src/screens/Auth/SignInScreen.tsx",
+      "inputs": [
+        {
+          "line": 150,
+          "tag": "AppTextInput",
+          "owner": "AuthField",
+          "keyboardType": "{keyboardType}",
+          "secureTextEntry": "{secureTextEntry}"
+        }
+      ],
+      "wrapperCalls": [
+        {
+          "line": 871,
+          "tag": "AuthField",
+          "owner": "screenContent",
+          "keyboardType": "\"email-address\""
+        },
+        {
+          "line": 883,
+          "tag": "AuthField",
+          "owner": "screenContent",
+          "secureTextEntry": "{securePassword}"
+        }
+      ],
+      "containers": [
+        {
+          "line": 745,
+          "tag": "KeyboardAwareScrollView",
+          "owner": "screenContent",
+          "extraScrollHeight": "{isSeasonalLogin ? 80 : 24}",
+          "keyboardDismissMode": "\"none\"",
+          "keyboardShouldPersistTaps": "\"handled\""
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput",
+        "react-native-keyboard-aware-scroll-view"
+      ]
+    },
+    {
+      "file": "src/screens/Auth/SignUpScreen.tsx",
+      "inputs": [
+        {
+          "line": 111,
+          "tag": "AppTextInput",
+          "owner": "InputField",
+          "keyboardType": "{keyboardType}",
+          "secureTextEntry": "{secureTextEntry}"
+        }
+      ],
+      "wrapperCalls": [
+        {
+          "line": 796,
+          "tag": "InputField",
+          "owner": "content",
+          "keyboardType": "\"email-address\""
+        },
+        {
+          "line": 806,
+          "tag": "InputField",
+          "owner": "content",
+          "secureTextEntry": "{securePassword}"
+        },
+        {
+          "line": 828,
+          "tag": "InputField",
+          "owner": "content",
+          "secureTextEntry": "{secureConfirmPassword}"
+        }
+      ],
+      "containers": [
+        {
+          "line": 984,
+          "tag": "KeyboardAwareScrollView",
+          "owner": "SignUpScreen",
+          "extraScrollHeight": "{96}",
+          "keyboardShouldPersistTaps": "\"handled\""
+        },
+        {
+          "line": 1012,
+          "tag": "KeyboardAvoidingView",
+          "owner": "SignUpScreen",
+          "behavior": "{Platform.OS === 'ios' ? 'padding' : undefined}"
+        },
+        {
+          "line": 1016,
+          "tag": "ScrollView",
+          "owner": "SignUpScreen",
+          "keyboardShouldPersistTaps": "\"handled\""
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput",
+        "react-native-keyboard-aware-scroll-view"
+      ]
+    },
+    {
+      "file": "src/screens/Community/CommunityCreateScreen.tsx",
+      "inputs": [],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 407,
+          "tag": "KeyboardAwareScrollView",
+          "owner": "CommunityCreateScreen",
+          "bottomOffset": "{COMMUNITY_COMPOSER_KEYBOARD_BOTTOM_OFFSET}",
+          "keyboardShouldPersistTaps": "\"handled\"",
+          "keyboardDismissMode": "\"none\""
+        }
+      ],
+      "keyboardImports": [
+        "react-native-keyboard-controller"
+      ]
+    },
+    {
+      "file": "src/screens/Community/CommunityDetailScreen.tsx",
+      "inputs": [
+        {
+          "line": 1291,
+          "tag": "TextInput",
+          "owner": "renderCommentComposer",
+          "editable": "{!!currentUserId && !commentSubmitting}",
+          "autoFocus": "{isInline}",
+          "multiline": "true"
+        },
+        {
+          "line": 1872,
+          "tag": "TextInput",
+          "owner": "CommunityDetailScreen",
+          "multiline": "true"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 1483,
+          "tag": "KeyboardAvoidingView",
+          "owner": "CommunityDetailScreen",
+          "behavior": "\"padding\""
+        },
+        {
+          "line": 1495,
+          "tag": "FlatList",
+          "owner": "CommunityDetailScreen",
+          "keyboardShouldPersistTaps": "\"handled\"",
+          "keyboardDismissMode": "\"on-drag\"",
+          "removeClippedSubviews": "{false}"
+        }
+      ],
+      "keyboardImports": [
+        "react-native-keyboard-controller",
+        "../../hooks/useKeyboardBottomPadding",
+        "../../hooks/useKeyboardInset"
+      ]
+    },
+    {
+      "file": "src/screens/Community/CommunityEditScreen.tsx",
+      "inputs": [],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 354,
+          "tag": "KeyboardAwareScrollView",
+          "owner": "CommunityEditScreen",
+          "bottomOffset": "{COMMUNITY_COMPOSER_KEYBOARD_BOTTOM_OFFSET}",
+          "keyboardShouldPersistTaps": "\"handled\"",
+          "keyboardDismissMode": "\"none\""
+        }
+      ],
+      "keyboardImports": [
+        "react-native-keyboard-controller"
+      ]
+    },
+    {
+      "file": "src/screens/Community/CommunityListScreen.tsx",
+      "inputs": [
+        {
+          "line": 541,
+          "tag": "TextInput",
+          "owner": "categoryHeader"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 475,
+          "tag": "ScrollView",
+          "owner": "categoryHeader"
+        },
+        {
+          "line": 571,
+          "tag": "ScrollView",
+          "owner": "categoryHeader"
+        },
+        {
+          "line": 765,
+          "tag": "FlatList",
+          "owner": "CommunityListScreen",
+          "removeClippedSubviews": "{Platform.OS === 'android' && !searchVisible}",
+          "keyboardShouldPersistTaps": "\"handled\"",
+          "keyboardDismissMode": "\"on-drag\""
+        }
+      ],
+      "keyboardImports": []
+    },
+    {
+      "file": "src/screens/Community/components/CommunityPostEditorForm.tsx",
+      "inputs": [
+        {
+          "line": 251,
+          "tag": "TextInput",
+          "owner": "CommunityPostEditorFormBase"
+        },
+        {
+          "line": 288,
+          "tag": "TextInput",
+          "owner": "CommunityPostEditorFormBase",
+          "multiline": "true"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [],
+      "keyboardImports": []
+    },
+    {
+      "file": "src/screens/DevTest/DevTestScreen.tsx",
+      "inputs": [
+        {
+          "line": 437,
+          "tag": "S.Input",
+          "owner": "DevTestScreen"
+        },
+        {
+          "line": 449,
+          "tag": "S.Input",
+          "owner": "DevTestScreen",
+          "secureTextEntry": "true"
+        },
+        {
+          "line": 461,
+          "tag": "S.Input",
+          "owner": "DevTestScreen"
+        },
+        {
+          "line": 501,
+          "tag": "S.Input",
+          "owner": "DevTestScreen"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 406,
+          "tag": "ScrollView",
+          "owner": "DevTestScreen"
+        }
+      ],
+      "keyboardImports": []
+    },
+    {
+      "file": "src/screens/Guestbook/GuestbookScreen.tsx",
+      "inputs": [
+        {
+          "line": 262,
+          "tag": "AppTextInput",
+          "owner": "GuestbookScreen",
+          "multiline": "true"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 122,
+          "tag": "ScrollView",
+          "owner": "GuestbookScreen"
+        },
+        {
+          "line": 155,
+          "tag": "ScrollView",
+          "owner": "GuestbookScreen"
+        },
+        {
+          "line": 197,
+          "tag": "ScrollView",
+          "owner": "GuestbookScreen",
+          "keyboardShouldPersistTaps": "\"handled\""
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput"
+      ]
+    },
+    {
+      "file": "src/screens/Guides/GuideAdminEditorScreen.tsx",
+      "inputs": [
+        {
+          "line": 72,
+          "tag": "AppTextInput",
+          "owner": "Field",
+          "multiline": "{multiline}",
+          "keyboardType": "{keyboardType}"
+        }
+      ],
+      "wrapperCalls": [
+        {
+          "line": 338,
+          "tag": "Field",
+          "owner": "GuideAdminEditorScreen"
+        },
+        {
+          "line": 349,
+          "tag": "Field",
+          "owner": "GuideAdminEditorScreen"
+        },
+        {
+          "line": 358,
+          "tag": "Field",
+          "owner": "GuideAdminEditorScreen",
+          "multiline": "true"
+        },
+        {
+          "line": 365,
+          "tag": "Field",
+          "owner": "GuideAdminEditorScreen",
+          "multiline": "true"
+        },
+        {
+          "line": 374,
+          "tag": "Field",
+          "owner": "GuideAdminEditorScreen",
+          "multiline": "true"
+        },
+        {
+          "line": 396,
+          "tag": "Field",
+          "owner": "GuideAdminEditorScreen",
+          "multiline": "true"
+        },
+        {
+          "line": 434,
+          "tag": "Field",
+          "owner": "GuideAdminEditorScreen"
+        },
+        {
+          "line": 440,
+          "tag": "Field",
+          "owner": "GuideAdminEditorScreen"
+        },
+        {
+          "line": 446,
+          "tag": "Field",
+          "owner": "GuideAdminEditorScreen"
+        },
+        {
+          "line": 550,
+          "tag": "Field",
+          "owner": "GuideAdminEditorScreen",
+          "keyboardType": "\"numeric\""
+        },
+        {
+          "line": 558,
+          "tag": "Field",
+          "owner": "GuideAdminEditorScreen",
+          "keyboardType": "\"numeric\""
+        },
+        {
+          "line": 572,
+          "tag": "Field",
+          "owner": "GuideAdminEditorScreen",
+          "keyboardType": "\"numeric\""
+        },
+        {
+          "line": 580,
+          "tag": "Field",
+          "owner": "GuideAdminEditorScreen",
+          "keyboardType": "\"numeric\""
+        },
+        {
+          "line": 588,
+          "tag": "Field",
+          "owner": "GuideAdminEditorScreen",
+          "keyboardType": "\"numeric\""
+        },
+        {
+          "line": 644,
+          "tag": "Field",
+          "owner": "GuideAdminEditorScreen"
+        },
+        {
+          "line": 650,
+          "tag": "Field",
+          "owner": "GuideAdminEditorScreen"
+        },
+        {
+          "line": 656,
+          "tag": "Field",
+          "owner": "GuideAdminEditorScreen"
+        }
+      ],
+      "containers": [
+        {
+          "line": 257,
+          "tag": "KeyboardAwareScrollView",
+          "owner": "GuideAdminEditorScreen",
+          "bottomOffset": "{12}",
+          "keyboardDismissMode": "\"none\"",
+          "keyboardShouldPersistTaps": "\"handled\""
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput",
+        "react-native-keyboard-controller"
+      ]
+    },
+    {
+      "file": "src/screens/Guides/GuideAdminListScreen.tsx",
+      "inputs": [
+        {
+          "line": 168,
+          "tag": "AppTextInput",
+          "owner": "GuideAdminListScreen"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 241,
+          "tag": "FlatList",
+          "owner": "GuideAdminListScreen",
+          "keyboardDismissMode": "{Platform.OS === 'ios' ? 'interactive' : 'on-drag'}",
+          "keyboardShouldPersistTaps": "\"handled\""
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput"
+      ]
+    },
+    {
+      "file": "src/screens/Guides/GuideListScreen.tsx",
+      "inputs": [
+        {
+          "line": 366,
+          "tag": "AppTextInput",
+          "owner": "GuideListScreen"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 654,
+          "tag": "FlatList",
+          "owner": "GuideListScreen",
+          "keyboardDismissMode": "{Platform.OS === 'ios' ? 'interactive' : 'on-drag'}",
+          "keyboardShouldPersistTaps": "\"handled\""
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput"
+      ]
+    },
+    {
+      "file": "src/screens/LocationDiscovery/WalkPoiAdminReadOnlyScreen.tsx",
+      "inputs": [
+        {
+          "line": 1049,
+          "tag": "AppTextInput",
+          "owner": "WalkPoiAdminReadOnlyScreen",
+          "editable": "{!reviewMutation.isPending}",
+          "multiline": "true"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 261,
+          "tag": "ScrollView",
+          "owner": "BatchDrillDown"
+        },
+        {
+          "line": 741,
+          "tag": "ScrollView",
+          "owner": "WalkPoiAdminReadOnlyScreen"
+        },
+        {
+          "line": 841,
+          "tag": "ScrollView",
+          "owner": "WalkPoiAdminReadOnlyScreen"
+        },
+        {
+          "line": 920,
+          "tag": "ScrollView",
+          "owner": "WalkPoiAdminReadOnlyScreen"
+        },
+        {
+          "line": 1025,
+          "tag": "KeyboardAvoidingView",
+          "owner": "WalkPoiAdminReadOnlyScreen",
+          "behavior": "{Platform.OS === 'ios' ? 'padding' : undefined}"
+        },
+        {
+          "line": 1030,
+          "tag": "ScrollView",
+          "owner": "WalkPoiAdminReadOnlyScreen",
+          "keyboardShouldPersistTaps": "\"handled\""
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput"
+      ]
+    },
+    {
+      "file": "src/screens/More/MoreDrawerContent.tsx",
+      "inputs": [
+        {
+          "line": 384,
+          "tag": "AppTextInput",
+          "owner": "PasswordField",
+          "secureTextEntry": "{secureTextEntry}"
+        },
+        {
+          "line": 1277,
+          "tag": "AppTextInput",
+          "owner": "ProfileEditModal"
+        },
+        {
+          "line": 2924,
+          "tag": "AppTextInput",
+          "owner": "MoreDrawerContent"
+        }
+      ],
+      "wrapperCalls": [
+        {
+          "line": 518,
+          "tag": "PasswordField",
+          "owner": "PasswordChangeModal",
+          "secureTextEntry": "{!currentPasswordVisible}"
+        },
+        {
+          "line": 529,
+          "tag": "PasswordField",
+          "owner": "PasswordChangeModal",
+          "secureTextEntry": "{!nextPasswordVisible}"
+        },
+        {
+          "line": 541,
+          "tag": "PasswordField",
+          "owner": "PasswordChangeModal",
+          "secureTextEntry": "{!confirmPasswordVisible}"
+        }
+      ],
+      "containers": [
+        {
+          "line": 508,
+          "tag": "ScrollView",
+          "owner": "PasswordChangeModal",
+          "keyboardDismissMode": "\"none\"",
+          "keyboardShouldPersistTaps": "\"handled\""
+        },
+        {
+          "line": 646,
+          "tag": "ScrollView",
+          "owner": "ThemeSettingsModal"
+        },
+        {
+          "line": 828,
+          "tag": "ScrollView",
+          "owner": "NotificationSettingsModal"
+        },
+        {
+          "line": 1261,
+          "tag": "ScrollView",
+          "owner": "ProfileEditModal",
+          "keyboardShouldPersistTaps": "\"handled\"",
+          "keyboardDismissMode": "\"none\""
+        },
+        {
+          "line": 2547,
+          "tag": "ScrollView",
+          "owner": "MoreDrawerContent"
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput",
+        "react-native-keyboard-controller",
+        "../../hooks/useBoundedKeyboardScroll",
+        "../../hooks/useKeyboardBottomPadding"
+      ]
+    },
+    {
+      "file": "src/screens/More/MoreScreen.tsx",
+      "inputs": [
+        {
+          "line": 345,
+          "tag": "AppTextInput",
+          "owner": "MoreScreen"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput"
+      ]
+    },
+    {
+      "file": "src/screens/Pets/PetCreateScreen.tsx",
+      "inputs": [
+        {
+          "line": 314,
+          "tag": "AppTextInput",
+          "owner": "MultiInputSection"
+        },
+        {
+          "line": 655,
+          "tag": "AppTextInput",
+          "owner": "StepOneForm",
+          "editable": "{false}"
+        },
+        {
+          "line": 704,
+          "tag": "AppTextInput",
+          "owner": "StepOneForm"
+        },
+        {
+          "line": 731,
+          "tag": "AppTextInput",
+          "owner": "StepOneForm",
+          "editable": "{false}"
+        },
+        {
+          "line": 760,
+          "tag": "AppTextInput",
+          "owner": "StepOneForm",
+          "editable": "{false}"
+        },
+        {
+          "line": 867,
+          "tag": "AppTextInput",
+          "owner": "StepOneForm"
+        },
+        {
+          "line": 1077,
+          "tag": "AppTextInput",
+          "owner": "StepTwoForm",
+          "keyboardType": "\"decimal-pad\""
+        }
+      ],
+      "wrapperCalls": [
+        {
+          "line": 1095,
+          "tag": "MultiInputSection",
+          "owner": "StepTwoForm"
+        },
+        {
+          "line": 1107,
+          "tag": "MultiInputSection",
+          "owner": "StepTwoForm"
+        },
+        {
+          "line": 1119,
+          "tag": "MultiInputSection",
+          "owner": "StepTwoForm"
+        },
+        {
+          "line": 1147,
+          "tag": "MultiInputSection",
+          "owner": "StepTwoForm"
+        }
+      ],
+      "containers": [
+        {
+          "line": 2172,
+          "tag": "KeyboardAwareScrollView",
+          "owner": "PetCreateScreen",
+          "bottomOffset": "{actionLayout.focusedInputBottomOffset}",
+          "keyboardShouldPersistTaps": "\"handled\"",
+          "keyboardDismissMode": "\"none\""
+        },
+        {
+          "line": 2258,
+          "tag": "KeyboardStickyView",
+          "owner": "PetCreateScreen"
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput",
+        "react-native-keyboard-controller"
+      ]
+    },
+    {
+      "file": "src/screens/Pets/PetProfileEditScreen.tsx",
+      "inputs": [
+        {
+          "line": 999,
+          "tag": "AppTextInput",
+          "owner": "PetProfileEditScreen",
+          "editable": "{false}"
+        },
+        {
+          "line": 1057,
+          "tag": "AppTextInput",
+          "owner": "PetProfileEditScreen",
+          "editable": "{canEditName}"
+        },
+        {
+          "line": 1095,
+          "tag": "AppTextInput",
+          "owner": "PetProfileEditScreen",
+          "editable": "{false}"
+        },
+        {
+          "line": 1126,
+          "tag": "AppTextInput",
+          "owner": "PetProfileEditScreen",
+          "editable": "{false}"
+        },
+        {
+          "line": 1234,
+          "tag": "AppTextInput",
+          "owner": "PetProfileEditScreen"
+        },
+        {
+          "line": 1414,
+          "tag": "AppTextInput",
+          "owner": "PetProfileEditScreen",
+          "multiline": "true"
+        },
+        {
+          "line": 1448,
+          "tag": "AppTextInput",
+          "owner": "PetProfileEditScreen",
+          "multiline": "true"
+        },
+        {
+          "line": 1482,
+          "tag": "AppTextInput",
+          "owner": "PetProfileEditScreen",
+          "multiline": "true"
+        },
+        {
+          "line": 1556,
+          "tag": "AppTextInput",
+          "owner": "PetProfileEditScreen"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 849,
+          "tag": "KeyboardAwareScrollView",
+          "owner": "PetProfileEditScreen",
+          "bottomOffset": "{STICKY_ACTION_KEYBOARD_OFFSET}",
+          "keyboardShouldPersistTaps": "\"handled\"",
+          "keyboardDismissMode": "\"none\""
+        },
+        {
+          "line": 1639,
+          "tag": "KeyboardStickyView",
+          "owner": "PetProfileEditScreen"
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput",
+        "react-native-keyboard-controller"
+      ]
+    },
+    {
+      "file": "src/screens/Records/RecordCreateScreen.tsx",
+      "inputs": [
+        {
+          "line": 1476,
+          "tag": "AppTextInput",
+          "owner": "RecordCreateScreen",
+          "keyboardType": "\"number-pad\"",
+          "editable": "{!saving}"
+        },
+        {
+          "line": 1538,
+          "tag": "AppTextInput",
+          "owner": "RecordCreateScreen",
+          "keyboardType": "\"number-pad\"",
+          "editable": "{!saving && !useDefaultMealAmount}"
+        },
+        {
+          "line": 1603,
+          "tag": "AppTextInput",
+          "owner": "RecordCreateScreen",
+          "keyboardType": "\"decimal-pad\"",
+          "editable": "{!saving}"
+        },
+        {
+          "line": 1716,
+          "tag": "AppTextInput",
+          "owner": "RecordCreateScreen"
+        },
+        {
+          "line": 1736,
+          "tag": "AppTextInput",
+          "owner": "RecordCreateScreen",
+          "multiline": "true"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 1250,
+          "tag": "KeyboardAwareScrollView",
+          "owner": "RecordCreateScreen",
+          "keyboardShouldPersistTaps": "\"handled\"",
+          "keyboardDismissMode": "\"none\""
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput",
+        "react-native-keyboard-controller"
+      ]
+    },
+    {
+      "file": "src/screens/Records/RecordEditScreen.tsx",
+      "inputs": [
+        {
+          "line": 884,
+          "tag": "AppTextInput",
+          "owner": "RecordEditScreen",
+          "editable": "{!saving}"
+        },
+        {
+          "line": 908,
+          "tag": "AppTextInput",
+          "owner": "RecordEditScreen",
+          "multiline": "true",
+          "editable": "{!saving}"
+        },
+        {
+          "line": 1017,
+          "tag": "AppTextInput",
+          "owner": "RecordEditScreen",
+          "keyboardType": "\"number-pad\"",
+          "editable": "{!saving}"
+        },
+        {
+          "line": 1038,
+          "tag": "AppTextInput",
+          "owner": "RecordEditScreen",
+          "editable": "{!saving}"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 780,
+          "tag": "KeyboardAwareScrollView",
+          "owner": "RecordEditScreen",
+          "keyboardShouldPersistTaps": "\"handled\"",
+          "keyboardDismissMode": "\"none\"",
+          "extraKeyboardSpace": "{-10}"
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput",
+        "react-native-keyboard-controller",
+        "../../hooks/useKeyboardInset"
+      ]
+    },
+    {
+      "file": "src/screens/Records/components/RecordTagModal.tsx",
+      "inputs": [
+        {
+          "line": 119,
+          "tag": "AppTextInput",
+          "owner": "RecordTagModal"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 58,
+          "tag": "KeyboardAvoidingView",
+          "owner": "RecordTagModal",
+          "behavior": "\"height\""
+        },
+        {
+          "line": 110,
+          "tag": "ScrollView",
+          "owner": "RecordTagModal",
+          "keyboardShouldPersistTaps": "\"handled\"",
+          "keyboardDismissMode": "\"none\""
+        }
+      ],
+      "keyboardImports": [
+        "../../../app/ui/AppTextInput",
+        "react-native-keyboard-controller",
+        "../../../hooks/useKeyboardBottomPadding"
+      ]
+    },
+    {
+      "file": "src/screens/Schedules/ScheduleCreateScreen.tsx",
+      "inputs": [
+        {
+          "line": 253,
+          "tag": "AppTextInput",
+          "owner": "ScheduleCreateScreen",
+          "editable": "{!saving && !persisted}"
+        },
+        {
+          "line": 559,
+          "tag": "AppTextInput",
+          "owner": "ScheduleCreateScreen",
+          "editable": "{!saving && !persisted}",
+          "keyboardType": "\"number-pad\""
+        },
+        {
+          "line": 577,
+          "tag": "AppTextInput",
+          "owner": "ScheduleCreateScreen",
+          "editable": "{!saving && !persisted}",
+          "multiline": "true"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 235,
+          "tag": "KeyboardAwareScrollView",
+          "owner": "ScheduleCreateScreen",
+          "keyboardShouldPersistTaps": "\"handled\"",
+          "keyboardDismissMode": "\"none\""
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput",
+        "react-native-keyboard-controller"
+      ]
+    },
+    {
+      "file": "src/screens/Schedules/ScheduleEditScreen.tsx",
+      "inputs": [
+        {
+          "line": 564,
+          "tag": "AppTextInput",
+          "owner": "ScheduleEditScreen"
+        },
+        {
+          "line": 875,
+          "tag": "AppTextInput",
+          "owner": "ScheduleEditScreen",
+          "keyboardType": "\"number-pad\""
+        },
+        {
+          "line": 892,
+          "tag": "AppTextInput",
+          "owner": "ScheduleEditScreen",
+          "multiline": "true"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 544,
+          "tag": "KeyboardAwareScrollView",
+          "owner": "ScheduleEditScreen",
+          "keyboardShouldPersistTaps": "\"handled\"",
+          "keyboardDismissMode": "\"none\""
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput",
+        "react-native-keyboard-controller"
+      ]
+    },
+    {
+      "file": "src/screens/Schedules/ScheduleListScreen.tsx",
+      "inputs": [
+        {
+          "line": 255,
+          "tag": "AppTextInput",
+          "owner": "ScheduleListScreen"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 220,
+          "tag": "SectionList",
+          "owner": "ScheduleListScreen",
+          "keyboardShouldPersistTaps": "\"handled\"",
+          "keyboardDismissMode": "\"on-drag\""
+        }
+      ],
+      "keyboardImports": [
+        "../../app/ui/AppTextInput"
+      ]
+    },
+    {
+      "file": "src/screens/Weather/WeatherActivityRecordScreen.tsx",
+      "inputs": [
+        {
+          "line": 398,
+          "tag": "TextInput",
+          "owner": "WeatherActivityRecordScreen"
+        },
+        {
+          "line": 410,
+          "tag": "TextInput",
+          "owner": "WeatherActivityRecordScreen",
+          "multiline": "true"
+        }
+      ],
+      "wrapperCalls": [],
+      "containers": [
+        {
+          "line": 303,
+          "tag": "KeyboardAwareScrollView",
+          "owner": "WeatherActivityRecordScreen",
+          "keyboardDismissMode": "\"none\"",
+          "keyboardShouldPersistTaps": "\"handled\""
+        }
+      ],
+      "keyboardImports": [
+        "react-native-keyboard-controller"
+      ]
+    },
+    {
+      "file": "App.tsx",
+      "inputs": [],
+      "wrapperCalls": [],
+      "containers": [],
+      "keyboardImports": [
+        "react-native-keyboard-controller"
+      ]
+    }
+  ],
+  "surfaceMatrix": [
+    {
+      "id": "K01",
+      "label": "로그인",
+      "file": "src/screens/Auth/SignInScreen.tsx",
+      "line": 871,
+      "route": "Root SignIn",
+      "cases": "이메일·비밀번호, 계절 login 및 일반 branch",
+      "policy": "legacy aware",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K02",
+      "label": "회원가입",
+      "file": "src/screens/Auth/SignUpScreen.tsx",
+      "line": 796,
+      "route": "Root SignUp",
+      "cases": "이메일·비밀번호·확인, 계절/일반 branch",
+      "policy": "legacy aware 또는 core KAV",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K03",
+      "label": "비밀번호 재설정 요청",
+      "file": "src/screens/Auth/PasswordResetRequestScreen.tsx",
+      "line": 124,
+      "route": "Root PasswordResetRequest",
+      "cases": "이메일",
+      "policy": "core KAV Android undefined",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K04",
+      "label": "비밀번호 재설정",
+      "file": "src/screens/Auth/PasswordResetFormScreen.tsx",
+      "line": 175,
+      "route": "Root PasswordResetForm",
+      "cases": "새 비밀번호·확인; recovery session gate",
+      "policy": "core KAV Android undefined",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K05",
+      "label": "온보딩 닉네임",
+      "file": "src/screens/Auth/NicknameSetupScreen.tsx",
+      "line": 180,
+      "route": "Root NicknameSetup",
+      "cases": "닉네임·Sticky CTA",
+      "policy": "controller aware + Sticky",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K06",
+      "label": "홈 일정 시트",
+      "file": "src/components/home/ScheduleCalendarSheet.tsx",
+      "line": 529,
+      "route": "HomeScheduleCalendar → ScheduleCalendarSheet",
+      "cases": "추가/수정 제목·알림 숫자·메모; 목록/편집 mode",
+      "policy": "controller KAV + bounded scroll",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K07",
+      "label": "펫 등록",
+      "file": "src/screens/Pets/PetCreateScreen.tsx",
+      "line": 655,
+      "route": "Root PetCreate",
+      "cases": "1/2단계, 추모/생존, 날짜·이름·종 상세·몸무게·활동·좋아함·싫어함·태그",
+      "policy": "controller aware + Sticky",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K08",
+      "label": "펫 프로필 수정",
+      "file": "src/screens/Pets/PetProfileEditScreen.tsx",
+      "line": 999,
+      "route": "Root PetProfileEdit",
+      "cases": "추모/생존, 날짜·이름·종 상세·활동·좋아함·싫어함·태그",
+      "policy": "controller aware + Sticky",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K09",
+      "label": "몸무게 기록 시트",
+      "file": "src/components/health/WeightLogEntrySheet.tsx",
+      "line": 315,
+      "route": "HealthReport / PetProfileEdit",
+      "cases": "몸무게 decimal·메모·날짜 자식 modal",
+      "policy": "controller KAV + bounded scroll",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K10",
+      "label": "펫 삭제 확인",
+      "file": "src/components/pets/PetDeleteConfirmDialog.tsx",
+      "line": 256,
+      "route": "PetManagement",
+      "cases": "확인 문구 입력만; 삭제 실행 금지",
+      "policy": "controller KAV + bounded scroll",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K11",
+      "label": "공통 날짜 입력 모달",
+      "file": "src/components/date-picker/DatePickerModal.tsx",
+      "line": 692,
+      "route": "PetCreate / PetProfileEdit / RecordCreate / RecordEdit / ScheduleCreate / ScheduleEdit / ScheduleCalendarSheet / WeightLogEntrySheet",
+      "cases": "직접 날짜·선택적 시간/분; 각 caller의 inset·기존 keyboard 전환 확인",
+      "policy": "controller KAV + animated gap",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K12",
+      "label": "기록 작성",
+      "file": "src/screens/Records/RecordCreateScreen.tsx",
+      "line": 1476,
+      "route": "Root RecordCreate",
+      "cases": "제목·본문·비용·산책 분·건강 몸무게; 카테고리/returnTo별 조건",
+      "policy": "controller aware",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K13",
+      "label": "기록 수정",
+      "file": "src/screens/Records/RecordEditScreen.tsx",
+      "line": 884,
+      "route": "Timeline stack RecordEdit",
+      "cases": "제목·본문·비용·태그; 기존 사진/카테고리 조건",
+      "policy": "controller aware + DidShow boolean padding",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K14",
+      "label": "기록 태그 모달",
+      "file": "src/screens/Records/components/RecordTagModal.tsx",
+      "line": 119,
+      "route": "RecordCreate / WeatherActivityRecord",
+      "cases": "태그 입력·추가·재입력; parent keyboard → modal → 복귀",
+      "policy": "controller KAV + animated gap",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K15",
+      "label": "날씨 활동 기록",
+      "file": "src/screens/Weather/WeatherActivityRecordScreen.tsx",
+      "line": 398,
+      "route": "Root WeatherActivityRecord",
+      "cases": "제목·메모; 태그 모달",
+      "policy": "controller aware",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K16",
+      "label": "일정 검색",
+      "file": "src/screens/Schedules/ScheduleListScreen.tsx",
+      "line": 255,
+      "route": "Root ScheduleList",
+      "cases": "검색 → 결과 스크롤 → 검색 복귀",
+      "policy": "SectionList handled / on-drag",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K17",
+      "label": "일정 생성",
+      "file": "src/screens/Schedules/ScheduleCreateScreen.tsx",
+      "line": 253,
+      "route": "Root ScheduleCreate",
+      "cases": "제목·알림 숫자·메모·날짜 모달",
+      "policy": "controller aware",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K18",
+      "label": "일정 수정",
+      "file": "src/screens/Schedules/ScheduleEditScreen.tsx",
+      "line": 564,
+      "route": "Root ScheduleEdit",
+      "cases": "제목·알림 숫자·메모·날짜 모달",
+      "policy": "controller aware",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K19",
+      "label": "커뮤니티 검색",
+      "file": "src/screens/Community/CommunityListScreen.tsx",
+      "line": 541,
+      "route": "CommunityTab / Root CommunityList",
+      "cases": "검색 열기/닫기·입력·결과·필터·페이지, 두 navigation container",
+      "policy": "FlatList handled / on-drag",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K20",
+      "label": "커뮤니티 작성",
+      "file": "src/screens/Community/CommunityCreateScreen.tsx",
+      "line": 407,
+      "route": "Root CommunityCreate",
+      "cases": "shared editor 제목·본문, validation·draft·종료 확인",
+      "policy": "controller aware",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K21",
+      "label": "커뮤니티 수정",
+      "file": "src/screens/Community/CommunityEditScreen.tsx",
+      "line": 354,
+      "route": "Root CommunityEdit",
+      "cases": "shared editor 제목·본문, validation·draft·종료 확인",
+      "policy": "controller aware",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K22",
+      "label": "커뮤니티 댓글",
+      "file": "src/screens/Community/CommunityDetailScreen.tsx",
+      "line": 1291,
+      "route": "Root CommunityDetail",
+      "cases": "root composer · 긴 본문·한국어 조합·list scroll·오류 draft",
+      "policy": "core KAV + DidShow inset + explicit drag dismiss",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K23",
+      "label": "커뮤니티 답글",
+      "file": "src/screens/Community/CommunityDetailScreen.tsx",
+      "line": 1360,
+      "route": "CommunityDetail → CommentThreadItem / ReplyCommentItem",
+      "cases": "root/child reply·타깃 교체·접기/펼치기·viewport 밖 왕복·댓글 복귀",
+      "policy": "same KAV + delayed reveal + conditional input mount",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K24",
+      "label": "커뮤니티 신고",
+      "file": "src/screens/Community/CommunityDetailScreen.tsx",
+      "line": 1872,
+      "route": "CommunityDetail report modal",
+      "cases": "선택 사유·기타 텍스트; parent keyboard/modal 전환; 신고 제출 금지",
+      "policy": "controller KAV + animated gap",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K25",
+      "label": "편지함",
+      "file": "src/screens/Guestbook/GuestbookScreen.tsx",
+      "line": 262,
+      "route": "AppTabs GuestbookTab",
+      "cases": "selected pet multiline 편지·긴 입력·목록·fixed nav",
+      "policy": "plain ScrollView handled + fixed bottom padding",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K26",
+      "label": "비밀번호 변경 모달",
+      "file": "src/screens/More/MoreDrawerContent.tsx",
+      "line": 518,
+      "route": "MoreDrawer → PasswordChangeModal",
+      "cases": "현재·새 비밀번호·확인·secure toggle; 변경 제출 금지",
+      "policy": "controller KAV + bounded scroll + animated gap",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K27",
+      "label": "닉네임 수정 모달",
+      "file": "src/screens/More/MoreDrawerContent.tsx",
+      "line": 1277,
+      "route": "MoreDrawer → ProfileEditModal",
+      "cases": "닉네임·validation·닫기/재열기; 저장 금지",
+      "policy": "controller KAV + bounded scroll",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K28",
+      "label": "계정 탈퇴 확인",
+      "file": "src/screens/More/MoreDrawerContent.tsx",
+      "line": 2924,
+      "route": "MoreDrawer ConfirmDialog",
+      "cases": "확인 문구 입력만; 탈퇴 실행 금지",
+      "policy": "keyboardAware ConfirmDialog",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K29",
+      "label": "가이드 검색",
+      "file": "src/screens/Guides/GuideListScreen.tsx",
+      "line": 366,
+      "route": "Root GuideList",
+      "cases": "검색·결과·sort/filter·clear",
+      "policy": "FlatList handled / on-drag Android",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K30",
+      "label": "가이드 관리자 검색",
+      "file": "src/screens/Guides/GuideAdminListScreen.tsx",
+      "line": 168,
+      "route": "Root GuideAdminList + admin gate",
+      "cases": "검색·결과·관리자 gate",
+      "policy": "FlatList handled / on-drag Android",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K31",
+      "label": "가이드 관리자 편집",
+      "file": "src/screens/Guides/GuideAdminEditorScreen.tsx",
+      "line": 338,
+      "route": "Root GuideAdminEditor + admin gate",
+      "cases": "17 Field 호출: 제목·slug·설명·본문·카테고리·종·tags·검색·숫자·이미지 URL",
+      "policy": "controller aware",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K32",
+      "label": "동물병원 검색",
+      "file": "src/screens/AnimalHospital/AnimalHospitalListScreen.tsx",
+      "line": 228,
+      "route": "Root AnimalHospitalList → LocationDiscoverySearchBar",
+      "cases": "병원/지역 검색·clear·결과 scroll·복귀",
+      "policy": "plain search/header + result list",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K33",
+      "label": "산책 장소 검색",
+      "file": "src/screens/LocationDiscovery/LocationDiscoveryListScreen.tsx",
+      "line": 358,
+      "route": "Root NearbyWalkList → LocationDiscoveryList → shared search",
+      "cases": "공원/지역 검색·최근검색·clear·결과·filters",
+      "policy": "plain search/header + result list",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K34",
+      "label": "병원 관리자",
+      "file": "src/screens/AnimalHospital/AnimalHospitalAdminScreen.tsx",
+      "line": 505,
+      "route": "Root AnimalHospitalAdmin + admin gate",
+      "cases": "검색·검토 메모; 운영 action 제출 금지",
+      "policy": "plain ScrollView handled",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K35",
+      "label": "산책 POI 운영 사유",
+      "file": "src/screens/LocationDiscovery/WalkPoiAdminReadOnlyScreen.tsx",
+      "line": 1049,
+      "route": "Root WalkPoiAdminReadOnly + role/profile gate",
+      "cases": "운영 사유 modal; 운영 action 제출 금지",
+      "policy": "core KAV Android undefined",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "REGISTERED_OR_CONSUMED_RUNTIME_GATES_NOT_REVALIDATED"
+    },
+    {
+      "id": "K36",
+      "label": "개발용 입력",
+      "file": "src/screens/DevTest/DevTestScreen.tsx",
+      "line": 437,
+      "route": "Root DevTest only __DEV__",
+      "cases": "email/password/nickname/pet name styled 입력 4곳; Release route 없음",
+      "policy": "plain ScrollView",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "DEV_ONLY"
+    },
+    {
+      "id": "K37",
+      "label": "구형 More 탈퇴 입력",
+      "file": "src/screens/More/MoreScreen.tsx",
+      "line": 345,
+      "route": "현재 src consumer/route 미발견",
+      "cases": "잔존 코드; 활성 화면으로 합산하지 않음",
+      "policy": "legacy ConfirmDialog, keyboardAware 미지정",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "NO_CURRENT_CONSUMER_FOUND"
+    },
+    {
+      "id": "K38",
+      "label": "미사용 추모 입력 컴포넌트",
+      "file": "src/components/pets/PetMemorialFields.tsx",
+      "line": 112,
+      "route": "현재 src consumer 미발견",
+      "cases": "잔존 코드; 재사용 시 QA 등록 필요",
+      "policy": "parent-dependent",
+      "staticStatus": "LOCATED",
+      "deviceStatus": "NOT_RUN_THIS_TURN",
+      "reachability": "NO_CURRENT_CONSUMER_FOUND"
+    }
+  ],
+  "method": {
+    "scan": "TypeScript AST over all 450 src TS/TSX files plus App.tsx",
+    "nativeInputBindings": "RN TextInput and AppTextInput; sole styled TextInput alias S.Input resolved manually",
+    "countMeaning": "73 declaration sites including AppTextInput implementation; not 73 independent screens or mounted runtime inputs",
+    "wrapperMeaning": "30 known input-wrapper JSX call sites; not additive to 73",
+    "crossChecks": "rg import/alias/styled/createElement/editable/native/WebView scan and independent NURI-11 review",
+    "deviceCoverage": "New physical QA 0; no claim of exhaustive runtime completion",
+    "excludedScopes": "Separate nuri-web / admin-console browser / external OAuth and OS keyboards are not owned native app input surfaces"
+  }
+}

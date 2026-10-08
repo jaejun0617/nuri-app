@@ -1,0 +1,36 @@
+{
+  "capturedAt": "2026-10-08T11:24:09.535Z",
+  "originalBodyChecks": [
+    {
+      "file": "docs/project-memory/현재-프로젝트-상태.md",
+      "originalBodyPreserved": true
+    },
+    {
+      "file": "docs/project-memory/핵심-결정사항.md",
+      "originalBodyPreserved": true
+    },
+    {
+      "file": "docs/project-memory/다음-작업-우선순위.md",
+      "originalBodyPreserved": true
+    },
+    {
+      "file": "docs/project-memory/최근-작업-로그.md",
+      "originalBodyPreserved": true
+    },
+    {
+      "file": "docs/qa/release-checklist.md",
+      "originalBodyPreserved": true
+    }
+  ],
+  "markdownScope": "New report, evidence README, and five appended current blocks only; no whole-repository link claim.",
+  "markdownIssues": [],
+  "brokenLinks": [],
+  "gitDiffCheck": true,
+  "sourceChangesAfterFinalBuild": [],
+  "staged": "",
+  "evidenceJsonValid": true,
+  "additionalUiControl": 0,
+  "additionalBuild": 0,
+  "additionalInstall": 0,
+  "cleanup": 0
+}

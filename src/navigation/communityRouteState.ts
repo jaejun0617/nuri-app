@@ -6,6 +6,7 @@ import type {
   CommunityPageSize,
 } from '../types/community';
 import { COMMUNITY_PAGE_SIZE_OPTIONS } from '../types/community';
+import { COMMUNITY_SEARCH_MAX_LENGTH } from '../services/community/search';
 
 export const COMMUNITY_ROUTE_STATE_STORAGE_KEY =
   'nuri.navigation.communityRoute.v1';
@@ -22,6 +23,7 @@ export type CommunityRouteSnapshotRoute =
   | { name: 'detail'; postId: string; commentId?: string };
 
 export type CommunityRouteListSnapshot = {
+  searchQuery?: string;
   activeFilter: CommunityListFilter;
   activeCategory: CommunityCategory;
   pageSize: CommunityPageSize;
@@ -116,6 +118,13 @@ function normalizeListSnapshot(
   if (!isRecord(value)) return null;
   if (!isCommunityListFilter(value.activeFilter)) return null;
   if (!isCommunityPageSize(value.pageSize)) return null;
+  if (
+    value.searchQuery !== undefined &&
+    (typeof value.searchQuery !== 'string' ||
+      value.searchQuery.length > COMMUNITY_SEARCH_MAX_LENGTH)
+  ) {
+    return null;
+  }
 
   const activeCategory = isCommunityCategory(value.activeCategory)
     ? value.activeCategory
@@ -150,8 +159,10 @@ function normalizeListSnapshot(
 
   return {
     activeFilter: value.activeFilter,
-    activeCategory:
-      value.activeFilter === 'notice' ? 'all' : activeCategory,
+    ...(typeof value.searchQuery === 'string' && value.searchQuery.trim()
+      ? { searchQuery: value.searchQuery.trim() }
+      : {}),
+    activeCategory: value.activeFilter === 'notice' ? 'all' : activeCategory,
     pageSize: value.pageSize,
     currentPage,
     cursor,

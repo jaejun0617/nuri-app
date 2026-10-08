@@ -70,11 +70,6 @@ const REVIEW_ACTION_LABEL: Record<WalkPoiAdminReviewAction, string> = {
   held: '보류',
 };
 
-const REVIEW_ACTION_ICON: Record<WalkPoiAdminReviewAction, string> = {
-  approve: 'check',
-  reject: 'x',
-  held: 'pause',
-};
 
 const REVIEW_STATUS_FILTERS: Array<{
   id: WalkPoiAdminQueueStatusFilter;
@@ -404,11 +399,6 @@ function ReviewRow({
               ]}
               onPress={() => onAction(item, action)}
             >
-              <Feather
-                name={REVIEW_ACTION_ICON[action]}
-                size={14}
-                color="#102033"
-              />
               <AppText preset="unifiedMeta" style={styles.reviewActionButtonText}>
                 {REVIEW_ACTION_LABEL[action]}
               </AppText>

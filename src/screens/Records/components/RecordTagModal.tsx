@@ -21,6 +21,7 @@ import NuriSemanticIcon from '../../../components/icons/NuriSemanticIcon';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../app/ui/AppText';
+import { SeasonalFormPanel } from '../../../components/common/SeasonalFormSurface';
 import { styles } from '../RecordCreateScreen.styles';
 
 type Props = {
@@ -31,6 +32,7 @@ type Props = {
   onChangeTagDraft: (value: string) => void;
   onSubmitDraftTag: () => void;
   onRemoveTag: (tag: string) => void;
+  embedded?: boolean;
 };
 
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
@@ -43,20 +45,15 @@ export default function RecordTagModal({
   onChangeTagDraft,
   onSubmitDraftTag,
   onRemoveTag,
+  embedded = false,
 }: Props) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const bottomPaddingStyle = useKeyboardBottomPadding(Math.max(insets.bottom, 18) + 6);
 
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+  const content = (
       <KeyboardAvoidingView
-        style={styles.modalBackdrop}
+        style={[styles.modalBackdrop, embedded ? { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, zIndex: 10 } : null]}
         behavior="height"
         automaticOffset
         enabled
@@ -78,11 +75,13 @@ export default function RecordTagModal({
               maxHeight: '100%',
               flexShrink: 1,
               minHeight: 0,
+              backgroundColor: 'transparent',
             },
             bottomPaddingStyle,
           ]}
           onPress={Keyboard.dismiss}
         >
+          <SeasonalFormPanel style={{ padding: 12, backgroundColor: 'rgba(255,255,255,0.76)' }}>
           <View style={styles.tagModalHeader}>
             <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.tagModalTitle}>
               태그 추가
@@ -154,8 +153,14 @@ export default function RecordTagModal({
             </>
           ) : null}
           </ScrollView>
+          </SeasonalFormPanel>
         </AnimatedTouchableOpacity>
       </KeyboardAvoidingView>
+  );
+  if (embedded) return visible ? content : null;
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      {content}
     </Modal>
   );
 }

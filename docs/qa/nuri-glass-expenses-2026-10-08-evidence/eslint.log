@@ -1,0 +1,33 @@
+
+/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/Main/components/LoggedInHome/LoggedInHome.tsx
+   407:49  warning  'HomeRecentRecordRow' is already declared in the upper scope on line 407 column 7             @typescript-eslint/no-shadow
+   494:43  warning  'PetChipButton' is already declared in the upper scope on line 494 column 7                   @typescript-eslint/no-shadow
+   537:46  warning  'MonthlyDiaryCard' is already declared in the upper scope on line 537 column 7                @typescript-eslint/no-shadow
+   581:48  warning  'HomeWeatherSection' is already declared in the upper scope on line 581 column 7              @typescript-eslint/no-shadow
+   683:12  warning  'HomeNotificationSwipeItem' is already declared in the upper scope on line 682 column 7       @typescript-eslint/no-shadow
+   869:53  warning  'HomeNotificationOverlay' is already declared in the upper scope on line 869 column 7         @typescript-eslint/no-shadow
+  1100:47  warning  'HomeHeaderSection' is already declared in the upper scope on line 1100 column 7              @typescript-eslint/no-shadow
+  1234:49  warning  'HeroProfileIdentity' is already declared in the upper scope on line 1234 column 7            @typescript-eslint/no-shadow
+  1474:50  warning  'HeroProfileAccordion' is already declared in the upper scope on line 1474 column 7           @typescript-eslint/no-shadow
+  1931:52  warning  'ProfileInfoBottomSheet' is already declared in the upper scope on line 1931 column 7         @typescript-eslint/no-shadow
+  2322:48  warning  'HeroProfileSection' is already declared in the upper scope on line 2322 column 7             @typescript-eslint/no-shadow
+  2476:12  warning  'RecommendationTipsSection' is already declared in the upper scope on line 2475 column 7      @typescript-eslint/no-shadow
+  2625:49  warning  'TodayRecordsSection' is already declared in the upper scope on line 2625 column 7            @typescript-eslint/no-shadow
+  2695:45  warning  'ScheduleSection' is already declared in the upper scope on line 2695 column 7                @typescript-eslint/no-shadow
+  2736:12  warning  'HealthRecentActivitiesSection' is already declared in the upper scope on line 2735 column 7  @typescript-eslint/no-shadow
+  2795:49  warning  'MonthlyDiarySection' is already declared in the upper scope on line 2795 column 7            @typescript-eslint/no-shadow
+
+/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/More/MoreDrawerContent.tsx
+   235:31  warning  'MenuRow' is already declared in the upper scope on line 235 column 7                       @typescript-eslint/no-shadow
+   307:32  warning  'MenuCard' is already declared in the upper scope on line 307 column 7                      @typescript-eslint/no-shadow
+   354:37  warning  'PasswordField' is already declared in the upper scope on line 354 column 7                 @typescript-eslint/no-shadow
+   420:50  warning  'PasswordChangeModal' is already declared in the upper scope on line 420 column 14          @typescript-eslint/no-shadow
+   583:42  warning  'ThemeSettingsModal' is already declared in the upper scope on line 583 column 7            @typescript-eslint/no-shadow
+   758:12  warning  'NotificationSettingsModal' is already declared in the upper scope on line 757 column 14    @typescript-eslint/no-shadow
+  1116:12  warning  'PasswordChangeSuccessModal' is already declared in the upper scope on line 1115 column 14  @typescript-eslint/no-shadow
+  1178:40  warning  'ProfileEditModal' is already declared in the upper scope on line 1178 column 7             @typescript-eslint/no-shadow
+
+/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/src/screens/Records/TimelineScreen.tsx
+  199:35  warning  'ControlsBar' is already declared in the upper scope on line 199 column 7  @typescript-eslint/no-shadow
+
+✖ 25 problems (0 errors, 25 warnings)

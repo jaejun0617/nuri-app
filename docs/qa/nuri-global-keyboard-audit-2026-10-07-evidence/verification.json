@@ -1,0 +1,26 @@
+{
+  "markdownStaticStructure": "PASS",
+  "internalLocalLinksChecked": 91,
+  "jsonParse": "PASS",
+  "gitDiffCheck": "PASS",
+  "head": "26891aaed1fbee37141ecbd89e4d4c18970b4a1d",
+  "branch": "codex/task6-community-content-policy",
+  "sourceDiffSha256Before": "33165ca03762ff85f9f47053407a6dada1787384e5c95f070c8464bee7c06d8f",
+  "sourceDiffSha256After": "33165ca03762ff85f9f47053407a6dada1787384e5c95f070c8464bee7c06d8f",
+  "sourceDeltaThisAudit": 0,
+  "indexPreserved": true,
+  "stagedDiffSha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "physicalDeviceQaThisAudit": 0,
+  "appTestsThisAudit": 0,
+  "buildThisAudit": 0,
+  "installThisAudit": 0,
+  "dbMutationThisAudit": 0,
+  "cleanupThisAudit": 0,
+  "commitThisAudit": 0,
+  "pushThisAudit": 0,
+  "peerReviewsCompleted": [
+    "NURI-11-디자인시스템·접근성",
+    "NURI-12-Android·Release-QA"
+  ],
+  "limits": "Static Markdown/link/JSON checks only; app runtime, TypeScript, lint, build, motion/device rendering are not revalidated in this audit."
+}

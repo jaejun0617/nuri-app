@@ -224,12 +224,14 @@ export const HomeAmbientBubbleCanvas = memo(
     sectionOrigin = 0,
     season = 'autumn',
     decorationMode = 'home',
+    showDecorations = true,
   }: {
     heroHeight: number;
     sectionLayouts?: HomeAmbientSectionLayouts;
     sectionOrigin?: number;
     season?: SeasonKey;
     decorationMode?: 'home' | 'reading';
+    showDecorations?: boolean;
   }) {
     const { width: windowWidth } = useWindowDimensions();
     const visual = getHomeAmbientVisual(season);
@@ -340,7 +342,7 @@ export const HomeAmbientBubbleCanvas = memo(
           </>
         ) : null}
 
-        {heroHeight > 0 && decorationMode === 'home' ? (
+        {heroHeight > 0 && decorationMode === 'home' && showDecorations ? (
           <>
             {HOME_AMBIENT_HERO_BUBBLES.map((bubble, index) => (
               <AmbientBubble
@@ -430,7 +432,7 @@ export const HomeAmbientBubbleCanvas = memo(
             </View>
           </>
         ) : null}
-        {decorationMode === 'reading' ? (
+        {decorationMode === 'reading' && showDecorations ? (
           <>
             {[0.16, 0.88].map((ratio, index) => (
               <AmbientBubble

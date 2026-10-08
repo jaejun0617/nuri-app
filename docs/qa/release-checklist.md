@@ -1,5 +1,52 @@
 # V1.0 Remaining Task/Risk Closeout
 
+<!-- NURI_APPROVED_FREEZE_20261008_BEGIN -->
+## 2026-10-08 PO 통합 승인 release closeout
+
+- [통합 동결](nuri-keyboard-glass-expenses-final-freeze-2026-10-08.md): keyboard 및 glass·월별 지출 FINAL_APPROVED. 최신 PO 지시는 이번 증분 Release/install-r 각 1회·선별 commit/push만 허용하며 이전 단독 승인 시점 NO와 구분한다.
+- 타입·scoped lint·대상123·전체192 suites/1,952 tests 및 bounded native 증거를 재사용한다. 승인 후 앱 소스/테스트 변경 0, 추가 전역 keyboard QA 0. 정확한12개 gate와 mixed-candidate 경계를 유지하며 ALL_PATHS_PASS NO다.
+- runtime committed-source 일치·APK signer/출처·설치 hash·UID/최초 설치 시각/설정 보존을 확인한다. Store·DB·cleanup·자동 후속 작업은 없다. QA 데이터·기존 APK/AAB/build output과 unrelated dirty 보존.
+<!-- NURI_APPROVED_FREEZE_20261008_END -->
+
+<!-- NURI_KEYBOARD_FINAL_APPROVAL_20261008_BEGIN -->
+## 2026-10-08 키보드 승인 게이트
+
+- [PO 최종 승인](nuri-global-keyboard-final-approval-2026-10-08.md): K01~K38 FINAL_APPROVED, KEYBOARD_BASELINE COMPLETE_FROZEN_WITH_EXACT_GATES, 알려진 OPEN 0, PASS 26·정확한 기타 상태 12. 최신 전체 38개 재실행이나 ALL_PATHS_PASS로 확대하지 않는다.
+- MainActivity global corrective NOT_REQUIRED, global native inset corrective NOT_AUTHORIZED. 추가 keyboard QA/build/install은 하지 않는다. 기존 fixture/consumer gate와 증거는 보존한다.
+- 승인 metadata 반영에서 앱 source/test·기기·DB·build/install·cleanup·commit/push는 0. 키보드 승인과 다른 glass/expense 디자인 후보·운영/Store gate는 별개다. STORE HOLD, AUTO_START_NEXT_WORK NO, MASTER_STATE STOPPED_WAITING_FOR_NEXT_PO_INSTRUCTION.
+<!-- NURI_KEYBOARD_FINAL_APPROVAL_20261008_END -->
+
+<!-- NURI_GLASS_EXPENSES_20261008_BEGIN -->
+## 2026-10-08 최신 glass·expense 후보 경계
+
+- [최신 후보](nuri-glass-forms-monthly-expenses-2026-10-08.md): 일정/기록 glass·전체일정·장식 CTA·모든 소유 펫의 용품/병원비 월합계와 목록. 기존 price·RLS로 구현, schema/RPC/policy/직접SQL변경0. 승인된 정상UI QA 지출2건·1수정·동일값프로필저장1회 및 부수효과는 별도 기록한다.
+- 최종 타입PASS·lint43파일errors0/기존warnings25·대상123·192 suites/1,952 tests PASS. full실행actual5회·build/install-r각2회(추가1회PO승인), APK `eae763280deb2bee464ad32413193afebb27484b446743f3be1cb3b37a53cc2d` 설치hashmatch. UID·최초설치시각·QA로그인·선택펫·기기설정 보존.
+- 최종 Galaxy S24 384dp/fontScale1.0/THREE_BUTTON에서 폼폭·월합계200/150·네계절지출·K14/K15/K22/K23 scoped revalidation PASS. 과거OPEN4는 이번delta로대체하되 다른22PASS·gate12는이전증거재사용이다. 38개전체최종APK재실행·ALL_PATHS_PASS·iOS·확대글꼴·장기성능으로확대하지않는다.
+- 보호baseline1690파일누락0·unrelatedhash변경0·최종설치후sourcedelta0. 기존QA100/사진/댓글·APK/AAB·build출력·signing보존. STAGED NONE, COMMIT NO, PUSH NO, CLEANUP NO. DIRTY_QA_NOT_STORE_RC, STORE HOLD, IMPLEMENTED_PENDING_PO_APPROVAL. GLOBAL_CTA별도시각한계2개와운영/Store게이트는유지한다.
+- DEVICE_OWNER PO, CODEX_UI_CONTROL STOPPED_AFTER_QA. 다음한작업은이번설치후보PO검토이며추가구현·빌드·설치·cleanup은자동시작하지않는다. 아래후보들은당시이력이다.
+<!-- NURI_GLASS_EXPENSES_20261008_END -->
+
+<!-- NURI_KEYBOARD_OPEN_DEFECT_20261008_BEGIN -->
+## 2026-10-08 최신 키보드 후보 결함 경계
+
+- [OPEN corrective native 보고서](nuri-global-keyboard-open-defect-final-corrective-2026-10-08.md): K29 PASS, K14/K15/K23 FAIL, K22 layout 회귀 OPEN. 현재 키보드 결함 4 K-ID가 있으므로 아래 과거 NO_KNOWN_FUNCTIONAL_BLOCKERS 및 bounded PASS를 현재 전체 승인으로 읽지 않는다.
+- 타입 PASS·scoped lint 0 errors·대상 34 tests·최종 전체 190 suites/1,939 tests PASS. Full run 실제 2회(2번째 PO 추가 승인). 단위 테스트는 Weather native window/IME 복귀와 Community open-IME 48dp 여백 회귀를 보증하지 못했다.
+- Incremental Release build/install-r 각 1회. APK `7f24f510a4fc2a3f3b3a9aebf2974918b635483fd72051b425a801f18af8783b`, installed match PASS; UID·최초 설치 시각·QA 로그인·선택 펫·기기 기본 설정 보존. DIRTY_QA_NOT_STORE_RC.
+- 원장 38개 모두 accounted: PASS 22/OPEN 4/BLOCKED 6/NOT_REACHABLE 2/DEV 1/UNUSED 3. 설명 없는 NOT_RUN/PARTIAL/WIP 0. 이전 APK 증적 및 gate를 재사용했으며 ALL_PATHS_PASS·전체 E2E·Store 검증을 선언하지 않는다.
+- MainActivity/global inset/공통 input/DB/Supabase 변경 0, 저장/전송/삭제 0, 정상 조회 counter 부수 효과는 별도 기록. 기존 source dirty·artifact·build outputs·QA 데이터 보존, staging/commit/push/cleanup 0.
+- STORE HOLD. DEVICE_OWNER PO, CODEX_ADB_CONTROL STOPPED_AFTER_QA. 다음 한 작업은 남은 두 원인 묶음·K22 회귀의 PO 범위 검토다. 추가 구현·빌드·설치를 자동 시작하지 않는다.
+<!-- NURI_KEYBOARD_OPEN_DEFECT_20261008_END -->
+
+<!-- NURI_COMMUNITY_SEARCH_COMMENT_20261007_BEGIN -->
+## 2026-10-07 최신 Community 후보 경계
+
+- [검색·댓글 및 supporting polish](nuri-community-search-comment-corrective-2026-10-07.md): 타입 PASS·19파일 lint 오류 0/기존 경고 16·188 suites/1,917 tests PASS. 별도 승인 incremental Release/install-r 각 4회, 최신 APK e30a433d SHA·signer·embedded bundle 및 native base.apk 일치.
+- 실제 model SM-S937N·384dp/fontScale 1.0에서 검색/메뉴/댓글/첫 reply keyboard 및 추억 분류·문구·흰색 X bounded PASS. 이전 frozen 문구/X의 미설치 표기는 이 설치로 해소됐다. 전체 device matrix·Store E2E·production 검색 benchmark는 미실행.
+- 승인 migration의 read search 및 NULL HINT 처리만 적용. 기존 목록/create/guard hash·RLS/moderation 유지. 새 public read SECURITY DEFINER 권한 advisor 2 WARN은 공개해 기록하며 보안 전체 PASS로 승격하지 않는다.
+- QA100·기존 기록/사진 보존, QA 댓글 2개·답글 1개 보존. Auth 한 QA row digest 변화의 실제 column 미확인. 정상 post counter/updated_at은 content 보존 비교에서 제외한다.
+- DIRTY_QA_NOT_STORE_RC, IMPLEMENTED_PENDING_PO_APPROVAL. 기존 clean-RC dirty 거절을 우회하지 않았고 unrelated dirty/staging/cache/artifact를 보존했다. COMMIT NO, PUSH NO, CLEANUP NO, STORE HOLD, 다음 한 개 PO 후보 검토.
+<!-- NURI_COMMUNITY_SEARCH_COMMENT_20261007_END -->
+
 <!-- NURI_MEMORY_DETAIL_FINAL_FREEZE_20261007_BEGIN -->
 ## 2026-10-07 추억 상세 source 동결 경계
 

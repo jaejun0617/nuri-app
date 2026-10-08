@@ -11,12 +11,14 @@ import TimelineScreen from '../screens/Records/TimelineScreen';
 import TimelineEntryGateScreen from '../screens/Records/TimelineEntryGateScreen';
 import RecordDetailScreen from '../screens/Records/RecordDetailScreen';
 import RecordEditScreen from '../screens/Records/RecordEditScreen';
+import MonthlyExpensesScreen from '../screens/Records/MonthlyExpensesScreen';
 import type { MemoryOtherSubCategory } from '../services/memories/categoryMeta';
 import type { HomeTotalSummaryEntryRequest } from '../screens/Records/timelineEntry';
 import type { ScreenEntrySource } from './entry';
 import type { ScheduleDetailReturnContext } from './scheduleReturn';
 
 export type TimelineStackParamList = {
+  MonthlyExpenses: { monthKey?: string; entrySource?: 'home' } | undefined;
   TimelineMain:
     | {
         petId?: string;
@@ -56,6 +58,7 @@ export default function TimelineStackNavigator() {
       />
       <Stack.Screen name="RecordDetail" component={RecordDetailScreen} />
       <Stack.Screen name="RecordEdit" component={RecordEditScreen} />
+      <Stack.Screen name="MonthlyExpenses" component={MonthlyExpensesScreen} />
     </Stack.Navigator>
   );
 }

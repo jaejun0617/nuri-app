@@ -1,0 +1,133 @@
+{
+  "capturedAt": "2026-10-08T11:17:43.127Z",
+  "branch": "codex/task6-community-content-policy",
+  "head": "26891aaed1fbee37141ecbd89e4d4c18970b4a1d",
+  "originHead": "26891aaed1fbee37141ecbd89e4d4c18970b4a1d",
+  "staged": "",
+  "baselineFileCount": 1690,
+  "missingBaselineFiles": [],
+  "unexpectedProtectedChanges": [],
+  "sourceChangesAfterFinalBuild": [],
+  "taskSourceFileCount": 43,
+  "taskTestFileCount": 13,
+  "changedSource": [
+    "src/components/common/ScheduleReminderNotice.tsx",
+    "src/components/common/SeasonalFormSurface.tsx",
+    "src/hooks/useMonthlyExpenses.ts",
+    "src/screens/Community/components/CommunityCommentComposer.tsx",
+    "src/screens/Main/components/LoggedInHome/MonthlyExpenseSection.tsx",
+    "src/screens/Records/MonthlyExpensesScreen.tsx",
+    "src/services/records/expenses.ts",
+    "src/app/ui/SectionHeaderAction.styles.ts",
+    "src/app/ui/SectionHeaderAction.tsx",
+    "src/components/common/GuestLockedState.tsx",
+    "src/components/home/ScheduleCalendarSheet.tsx",
+    "src/components/navigation/HeaderIconActionButton.tsx",
+    "src/components/navigation/HeaderTextActionButton.tsx",
+    "src/components/pets/PetManagementCard.tsx",
+    "src/hooks/useScheduleCreateForm.ts",
+    "src/navigation/TimelineStackNavigator.tsx",
+    "src/screens/Auth/NicknameSetupScreen.tsx",
+    "src/screens/Community/CommunityDetailScreen.tsx",
+    "src/screens/Community/CommunityListScreen.tsx",
+    "src/screens/HealthReport/HealthReportScreen.tsx",
+    "src/screens/LocationDiscovery/WalkPoiAdminReadOnlyScreen.tsx",
+    "src/screens/Main/components/LoggedInHome/HomeActiveAlarmNotice.tsx",
+    "src/screens/Main/components/LoggedInHome/HomeAmbientBubbleCanvas.tsx",
+    "src/screens/Main/components/LoggedInHome/LoggedInHome.tsx",
+    "src/screens/More/MoreDrawerContent.tsx",
+    "src/screens/Pets/PetProfileEditDoneScreen.styles.ts",
+    "src/screens/Pets/PetProfileEditDoneScreen.tsx",
+    "src/screens/Records/RecordCreateScreen.tsx",
+    "src/screens/Records/RecordDetailScreen.tsx",
+    "src/screens/Records/RecordEditScreen.styles.ts",
+    "src/screens/Records/RecordEditScreen.tsx",
+    "src/screens/Records/TimelineScreen.tsx",
+    "src/screens/Records/components/RecordTagModal.tsx",
+    "src/screens/Schedules/ScheduleCreateScreen.styles.ts",
+    "src/screens/Schedules/ScheduleCreateScreen.tsx",
+    "src/screens/Schedules/ScheduleDetailScreen.tsx",
+    "src/screens/Schedules/ScheduleEditScreen.tsx",
+    "src/screens/Schedules/ScheduleListScreen.tsx",
+    "src/screens/Weather/ActivityGuideScreen.tsx",
+    "src/screens/Weather/WeatherActivityRecordScreen.tsx",
+    "src/services/records/form.ts",
+    "src/services/schedules/listPresentation.ts",
+    "src/services/supabase/memories.ts"
+  ],
+  "changedTests": [
+    "__tests__/communityCommentCorrective.test.tsx",
+    "__tests__/communityKeyboardInteraction.test.tsx",
+    "__tests__/glassExpenseSourceContracts.test.ts",
+    "__tests__/monthlyExpenses.test.ts",
+    "__tests__/communitySeasonalList.test.tsx",
+    "__tests__/homeSectionPresentation.test.tsx",
+    "__tests__/inputFooterKeyboardContracts.test.tsx",
+    "__tests__/responsiveSourceGuards.test.ts",
+    "__tests__/scheduleDetailScreen.test.tsx",
+    "__tests__/scheduleListPresentation.test.ts",
+    "__tests__/scheduleRecordCreate.test.tsx",
+    "__tests__/seasonalRouteIntegration.test.ts",
+    "__tests__/timelineVisualPolish.test.ts"
+  ],
+  "signingInputChecks": [
+    {
+      "role": "Supabase client config",
+      "preserved": true
+    },
+    {
+      "role": "android/app/nuri-upload.keystore",
+      "preserved": true
+    },
+    {
+      "role": "android/local.properties",
+      "preserved": true
+    }
+  ],
+  "artifactChecks": [
+    {
+      "file": "nuri-glass-expenses-release.apk",
+      "exists": true
+    },
+    {
+      "file": "nuri-glass-expenses-release.aab",
+      "exists": true
+    },
+    {
+      "file": "attempt-1/nuri-glass-expenses-release.apk",
+      "exists": true
+    },
+    {
+      "file": "attempt-1/nuri-glass-expenses-release.aab",
+      "exists": true
+    },
+    {
+      "file": "community-final.mp4",
+      "exists": true
+    },
+    {
+      "file": "weather-final.mp4",
+      "exists": true
+    }
+  ],
+  "settingsMatch": true,
+  "device": {
+    "fontScale": "1.0",
+    "density": "Physical density: 450",
+    "display": "Physical size: 1080x2340",
+    "navigation": "0",
+    "foreground": [],
+    "keyboardClosed": true,
+    "selectedPet": "누리",
+    "season": "autumn",
+    "authState": "EXISTING_QA_AUTHENTICATED"
+  },
+  "cleanupCount": 0,
+  "buildCount": 2,
+  "installCount": 2,
+  "commitCount": 0,
+  "pushCount": 0,
+  "directSqlMutationCount": 0,
+  "schemaPolicyRpcMutationCount": 0,
+  "dataBoundary": "Exactly two approved normal-UI expense creates, one expense edit, one same-value pet save. Normal XP/counter/updated_at side effects are not declared immutable. No existing-content save/delete."
+}

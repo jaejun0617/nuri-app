@@ -286,9 +286,6 @@ const NicknameFooter = memo(function NicknameFooterView({
             <AppText style={styles.primaryButtonText}>
               완료
             </AppText>
-            <View pointerEvents="none" style={styles.primaryButtonArrow}>
-              <Feather color="#FFFFFF" name="chevron-right" size={22} />
-            </View>
           </>
         )}
       </TouchableOpacity>

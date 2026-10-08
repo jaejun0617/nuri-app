@@ -1,0 +1,18 @@
+{
+  "capturedAt": "2026-10-08T07:59:27.649Z",
+  "installedSha": "7f24f510a4fc2a3f3b3a9aebf2974918b635483fd72051b425a801f18af8783b",
+  "artifactSha": "7f24f510a4fc2a3f3b3a9aebf2974918b635483fd72051b425a801f18af8783b",
+  "matched": true,
+  "package": [
+    "    versionCode=1 minSdk=24 targetSdk=36",
+    "    versionName=1.0",
+    "    lastUpdateTime=2026-10-08 16:59:01",
+    "      firstInstallTime=2026-06-02 19:16:57",
+    "      firstInstallTime=2026-06-02 19:16:57"
+  ],
+  "uid": "package:com.nuri.app uid:10402",
+  "fontScale": "1.0",
+  "density": "Physical density: 450",
+  "display": "Physical size: 1080x2340",
+  "navigation": "0"
+}

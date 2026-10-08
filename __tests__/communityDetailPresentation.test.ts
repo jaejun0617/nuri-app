@@ -3,6 +3,25 @@ import { StyleSheet } from 'react-native';
 import { styles } from '../src/screens/Community/CommunityDetailScreen.styles';
 
 describe('community detail title presentation', () => {
+  it('centers the input and keeps small action faces inside 44dp touch targets', () => {
+    expect(styles.commentComposer.alignItems).toBe('center');
+    expect(styles.commentInput).toMatchObject({
+      textAlignVertical: 'center',
+      includeFontPadding: false,
+      minHeight: 44,
+    });
+    expect(styles.commentActionTouchTarget).toMatchObject({
+      minHeight: 44,
+      minWidth: 44,
+    });
+    expect(styles.commentActionFace).toMatchObject({
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 6,
+    });
+    expect(styles.moreButton).toMatchObject({ width: 44, height: 44 });
+    expect(styles.moreButton).not.toHaveProperty('borderWidth');
+  });
   it('keeps the category inline while allowing the title to consume remaining width', () => {
     expect(StyleSheet.flatten(styles.postTitleRow)).toMatchObject({
       flexDirection: 'row',

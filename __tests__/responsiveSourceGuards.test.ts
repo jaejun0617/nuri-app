@@ -43,6 +43,9 @@ describe('responsive source guards', () => {
     const styles = readProjectFile(
       'src/screens/Community/CommunityDetailScreen.styles.ts',
     );
+    const composer = readProjectFile(
+      'src/screens/Community/components/CommunityCommentComposer.tsx',
+    );
 
     expect(styles).toContain('paddingVertical: 6');
     expect(styles).toContain('borderRadius: 20');
@@ -51,8 +54,13 @@ describe('responsive source guards', () => {
     expect(styles).toContain('width: 44');
     expect(styles).toContain('height: 44');
     expect(screen.replace(/\s+/g, ' ')).toContain(
-      'paddingBottom: isInline ? 8 : keyboardInset > 0 ? 6 : insets.bottom + 6',
+      'paddingBottom: isInline ? 8 : 6',
     );
-    expect(screen).toContain('hitSlop={4}');
+    expect(screen).toContain('paddingBottom: closedBottomInset');
+    expect(screen).toContain('const closedBottomInset = insets.bottom');
+    expect(screen).toContain('behavior="height"');
+    expect(screen).toContain('keyboardVerticalOffset={contentWindowY}');
+    expect(screen).toContain('onLayout={measureContentWindow}');
+    expect(composer).toContain('hitSlop={4}');
   });
 });

@@ -1,7 +1,6 @@
 import AppText from './AppText';
 import React, { memo } from 'react';
-import { Pressable, useWindowDimensions, View } from 'react-native';
-import Feather from 'react-native-vector-icons/Feather';
+import { Pressable, useWindowDimensions } from 'react-native';
 
 import type { TypographyPresetName } from '../theme/tokens/typography';
 import { styles } from './SectionHeaderAction.styles';
@@ -53,13 +52,6 @@ function SectionHeaderActionBase({
       <AppText preset={textPreset} style={[styles.text, { color }]}>
         {label}
       </AppText>
-      <View style={size === 'compact' ? styles.compactIconSlot : styles.iconSlot}>
-        <Feather
-          name="chevron-right"
-          size={size === 'compact' ? 12 : 14}
-          color={color}
-        />
-      </View>
     </Pressable>
   );
 }

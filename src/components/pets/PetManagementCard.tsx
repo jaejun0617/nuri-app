@@ -1,7 +1,6 @@
-import CtaButton, { CtaText, CtaIcon } from '../../app/ui/CtaButton';
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, { memo, useCallback, useMemo } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
-import Feather from '../icons/NuriFeatherIcon';
 
 import AppText from '../../app/ui/AppText';
 import { formatPetAgeLabelFromBirthDate } from '../../services/pets/age';
@@ -110,12 +109,6 @@ function PetManagementCardComponent({
             ]}
             onPress={handleSelect}
           >
-            <Feather
-              name="check"
-              size={12}
-              color={petTheme.onPrimary}
-              style={styles.selectButtonIcon}
-            />
             <AppText
               preset="unifiedMeta"
               style={[styles.selectButtonText, { color: petTheme.onPrimary }]}
@@ -146,7 +139,6 @@ function PetManagementCardComponent({
           style={styles.deleteButton}
           onPress={handleDelete}
         >
-          <CtaIcon name="trash-2" size={13} />
           <CtaText preset="unifiedMeta" style={styles.deleteButtonText}>
             삭제하기
           </CtaText>

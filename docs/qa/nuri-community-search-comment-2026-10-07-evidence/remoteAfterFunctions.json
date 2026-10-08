@@ -1,0 +1,22 @@
+[
+  {
+    "proname": "community_create_comment_v1",
+    "definition_hash": "d8dac41517bf23365069e03ac05bfbc0"
+  },
+  {
+    "proname": "community_list_posts_v3",
+    "definition_hash": "eb14246e0b2ad3896d772598c5a12e67"
+  },
+  {
+    "proname": "community_search_posts_v1",
+    "definition_hash": "1092321080a1a363c1a4ba67a1032a38"
+  },
+  {
+    "proname": "guard_community_comment_insert",
+    "definition_hash": "d292ef27488b78e43afca5396d13c4ad"
+  },
+  {
+    "proname": "raise_community_write_error",
+    "definition_hash": "80dd64e216778c9bf5caa5713e4efec1"
+  }
+]

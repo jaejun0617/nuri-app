@@ -1,4 +1,4 @@
-import CtaButton, { CtaText, CtaIcon } from '../../app/ui/CtaButton';
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // 파일: src/screens/More/MoreDrawerContent.tsx
 // 파일 목적:
 // - 더보기 드로어 안에서 주요 메뉴 허브와 계정 관리 기능을 한 화면으로 제공한다.
@@ -2633,7 +2633,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                 onPress={onPressDeleteAccount}
                 disabled={deleting}
               >
-                <CtaIcon name="trash-2" size={16} />
                 <CtaText
                   preset="unifiedLabel"
                   style={[styles.standaloneDeleteActionLabel, {}]}

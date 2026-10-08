@@ -1,4 +1,4 @@
-import CtaButton, { CtaText, CtaIcon } from '../../app/ui/CtaButton';
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import { shouldStackCtaPair } from '../../app/theme/ctaPalette';
 // 파일: src/screens/Schedules/ScheduleDetailScreen.tsx
 // 역할:
@@ -846,7 +846,6 @@ export default function ScheduleDetailScreen() {
                             : '아직 연결된 기록이 없어요.')}
                     </CtaText>
                   </View>
-                  <CtaIcon name="chevron-right" size={20} />
                 </CtaButton>
               </View>
             ) : null}

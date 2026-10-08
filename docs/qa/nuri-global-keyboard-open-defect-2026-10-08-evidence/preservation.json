@@ -1,0 +1,110 @@
+{
+  "capturedAt": "2026-10-08T08:37:31.210Z",
+  "baselineFileCount": 1679,
+  "changedTaskFiles": [
+    "__tests__/communityCommentCorrective.test.tsx",
+    "__tests__/communityKeyboardInteraction.test.tsx",
+    "src/screens/Community/utils/commentViewport.ts",
+    "__tests__/inputFooterKeyboardContracts.test.tsx",
+    "__tests__/responsiveSourceGuards.test.ts",
+    "src/screens/Community/CommunityDetailScreen.tsx",
+    "src/screens/Guides/GuideListScreen.tsx",
+    "src/screens/Weather/WeatherActivityRecordScreen.tsx"
+  ],
+  "changedDocumentation": [
+    "docs/project-memory/다음-작업-우선순위.md",
+    "docs/project-memory/최근-작업-로그.md",
+    "docs/project-memory/현재-프로젝트-상태.md",
+    "docs/qa/release-checklist.md"
+  ],
+  "newTest": "__tests__/guideSearchKeyboard.test.tsx",
+  "unexpectedChanged": [],
+  "missing": [],
+  "sourceChangeAfterInstalledCandidate": 0,
+  "testChangeAfterInstalledCandidate": 0,
+  "candidateSourceMissing": [],
+  "originalDocumentBodies": [
+    {
+      "file": "docs/project-memory/다음-작업-우선순위.md",
+      "baselineSha256": "39d1b28acc05ef9921479c7c3a1b0b170d7e24ed758a817e466ae94f1ff836bb",
+      "previousBodyPreserved": true
+    },
+    {
+      "file": "docs/project-memory/최근-작업-로그.md",
+      "baselineSha256": "9e4e69487c84c89dc255c0081628d8e5c8aeaf02dc9c9533aec0d1b38589b7da",
+      "previousBodyPreserved": true
+    },
+    {
+      "file": "docs/project-memory/현재-프로젝트-상태.md",
+      "baselineSha256": "4d19b17f6bda6589a5548483030bdff3ebbb580401bfd480ccdcd6b56763a674",
+      "previousBodyPreserved": true
+    },
+    {
+      "file": "docs/qa/release-checklist.md",
+      "baselineSha256": "9e48a51e5df426ccc231a992ac31829271c6df6be3d8287096b40428f1dd6a8a",
+      "previousBodyPreserved": true
+    }
+  ],
+  "git": {
+    "branch": "codex/task6-community-content-policy",
+    "head": "26891aaed1fbee37141ecbd89e4d4c18970b4a1d",
+    "staged": "",
+    "branchPreserved": true,
+    "headPreserved": true,
+    "stagedPreserved": true,
+    "commit": false,
+    "push": false
+  },
+  "artifacts": [
+    {
+      "path": "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/nuri-keyboard-open-corrective-release.apk",
+      "sha256": "7f24f510a4fc2a3f3b3a9aebf2974918b635483fd72051b425a801f18af8783b",
+      "preserved": true
+    },
+    {
+      "path": "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/nuri-keyboard-open-corrective-release.aab",
+      "sha256": "207e39d975c172b529eb9730a5ec4f79a9bff6d9c4a46110cdb49bdd14b32d63",
+      "preserved": true
+    }
+  ],
+  "previousLedgerPreserved": true,
+  "previousEvidenceRoot": "/private/tmp/nuri-global-keyboard-final-20261007-212757",
+  "directories": [
+    {
+      "path": "android/app/build",
+      "exists": true
+    },
+    {
+      "path": "android/app/.cxx",
+      "exists": true
+    },
+    {
+      "path": "android/build",
+      "exists": true
+    },
+    {
+      "path": "android/.gradle",
+      "exists": true
+    },
+    {
+      "path": "node_modules",
+      "exists": true
+    },
+    {
+      "path": "docs/project-memory",
+      "exists": true
+    }
+  ],
+  "dbDirectMutation": 0,
+  "savedContentMutation": 0,
+  "automaticReadSideEffects": "Observed QA post view count 2 to 3; no reset or whole-DB unchanged claim.",
+  "authState": "PRESERVED",
+  "selectedPet": "PRESERVED_NURI",
+  "deviceSettings": "PRESERVED",
+  "deviceOwner": "PO",
+  "adbControl": "STOPPED_AFTER_QA",
+  "cleanup": 0,
+  "requiredArtifactLoss": 0,
+  "baselineSha256": "9f4c59bb2ad6b63fad6b1d24e9868ce6a99a62bca6b90096006a70864408424c",
+  "sourceCandidateSha256": "45f936319ab28f5674aef5cd0df7f4c6861ac0cdec4a501e638771fc943cf241"
+}

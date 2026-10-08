@@ -1,4 +1,4 @@
-import CtaButton, { CtaText, CtaIcon } from '../../app/ui/CtaButton';
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, {
   memo,
   Profiler,
@@ -14,6 +14,7 @@ import {
   Animated,
   Easing,
   FlatList,
+  Keyboard,
   Image,
   type LayoutChangeEvent,
   NativeScrollEvent,
@@ -23,6 +24,7 @@ import {
   RefreshControl,
   ScrollView,
   TouchableOpacity,
+  TextInput,
   useWindowDimensions,
   View,
   type ListRenderItem,
@@ -64,6 +66,7 @@ import type {
   CommunityPageSize,
 } from '../../types/community';
 import { COMMUNITY_PAGE_SIZE_OPTIONS } from '../../types/community';
+import { COMMUNITY_SEARCH_MAX_LENGTH } from '../../services/community/search';
 import { styles } from './CommunityListScreen.styles';
 import CommunityPostListItem from './components/CommunityPostListItem';
 import { COMMUNITY_CATEGORY_PALETTE } from './communityCategoryPalette';
@@ -242,6 +245,14 @@ export default function CommunityListScreen() {
   const currentPage = useCommunityStore(s => s.currentPage);
   const activeFilter = useCommunityStore(s => s.activeFilter);
   const activeCategory = useCommunityStore(s => s.activeCategory);
+  const searchQuery = useCommunityStore(s => s.searchQuery);
+  const setSearchQuery = useCommunityStore(s => s.setSearchQuery);
+  const [searchDraft, setSearchDraft] = useState(searchQuery ?? '');
+  const [searchVisible, setSearchVisible] = useState(!!searchQuery);
+  const handleSearch = useCallback(() => {
+    Keyboard.dismiss();
+    setSearchQuery(searchDraft).catch(() => {});
+  }, [searchDraft, setSearchQuery]);
   const pageSize = useCommunityStore(s => s.pageSize);
   const lastFetchedAt = useCommunityStore(s => s.lastFetchedAt);
   const fetchPosts = useCommunityStore(s => s.fetchPosts);
@@ -500,7 +511,61 @@ export default function CommunityListScreen() {
               <Feather name="chevron-down" size={15} color={seasonal.primary} />
             )}
           </TouchableOpacity>
+          <TouchableOpacity
+            testID="community-search-toggle"
+            accessibilityRole="button"
+            accessibilityLabel={
+              searchVisible ? '게시글 검색 닫기' : '게시글 검색'
+            }
+            style={styles.searchIconButton}
+            onPress={() => {
+              if (searchVisible) {
+                Keyboard.dismiss();
+                setSearchDraft('');
+                setSearchQuery('').catch(() => {});
+              }
+              setSearchVisible(previous => !previous);
+            }}
+          >
+            <NuriSemanticIcon
+              family="feather"
+              preserveOriginal
+              name={searchVisible ? 'x' : 'search'}
+              size={20}
+              color={seasonal.primary}
+            />
+          </TouchableOpacity>
         </View>
+        {searchVisible ? (
+          <View style={styles.searchRow}>
+            <TextInput
+              testID="community-search-input"
+              accessibilityLabel="게시글 제목과 내용 검색"
+              placeholder="제목과 내용 검색"
+              placeholderTextColor="#697586"
+              value={searchDraft}
+              onChangeText={setSearchDraft}
+              maxLength={COMMUNITY_SEARCH_MAX_LENGTH}
+              returnKeyType="search"
+              onSubmitEditing={handleSearch}
+              style={styles.searchInput}
+            />
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="검색 실행"
+              style={styles.searchIconButton}
+              onPress={handleSearch}
+            >
+              <NuriSemanticIcon
+                family="feather"
+                preserveOriginal
+                name="search"
+                size={18}
+                color={seasonal.primary}
+              />
+            </TouchableOpacity>
+          </View>
+        ) : null}
         {activeFilter === 'notice' ? null : (
           <View style={styles.secondaryCategoryRow}>
             <ScrollView
@@ -541,6 +606,10 @@ export default function CommunityListScreen() {
       isListBusy,
       pageSize,
       seasonal.primary,
+      searchDraft,
+      searchVisible,
+      setSearchQuery,
+      handleSearch,
     ],
   );
 
@@ -553,9 +622,9 @@ export default function CommunityListScreen() {
           <Feather name="message-circle" size={22} color={seasonal.primary} />
         </View>
         <AppText preset="headline" style={styles.emptyTitle}>
-          {emptyState.title}
+          {searchQuery ? '검색 결과가 없어요' : emptyState.title}
         </AppText>
-        {emptyState.showCreateCta ? (
+        {!searchQuery && emptyState.showCreateCta ? (
           <>
             <AppText preset="body" style={styles.emptyBody}>
               첫 번째로 공유해 보세요!
@@ -580,6 +649,7 @@ export default function CommunityListScreen() {
     handlePressCreate,
     seasonal.primary,
     seasonal.subtle,
+    searchQuery,
   ]);
 
   const footerActions = useMemo(() => {
@@ -614,7 +684,6 @@ export default function CommunityListScreen() {
             style={styles.paginationButton}
             onPress={handleLoadPreviousPage}
           >
-            <CtaIcon name="chevron-left" size={14} />
             <CtaText preset="caption" style={styles.paginationButtonText}>
               이전
             </CtaText>
@@ -651,7 +720,6 @@ export default function CommunityListScreen() {
             <CtaText preset="caption" style={styles.paginationButtonText}>
               다음
             </CtaText>
-            <CtaIcon name="chevron-right" size={14} />
           </CtaButton>
         </View>
       </View>
@@ -703,7 +771,9 @@ export default function CommunityListScreen() {
             maxToRenderPerBatch={10}
             windowSize={9}
             updateCellsBatchingPeriod={50}
-            removeClippedSubviews={Platform.OS === 'android'}
+            removeClippedSubviews={Platform.OS === 'android' && !searchVisible}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
             onScroll={handleScroll}
             scrollEventThrottle={16}
             showsVerticalScrollIndicator={false}
@@ -869,18 +939,10 @@ export default function CommunityListScreen() {
                 testID="community-fixed-create"
                 role="primary"
                 accessibilityLabel="게시글 작성"
-                style={styles.createButton}
+                style={[styles.createButton, { paddingHorizontal: 4 }]}
                 onPress={handlePressCreate}
               >
-                <NuriSemanticIcon
-                  family="feather"
-                  name="plus"
-                  size={24}
-                  color="#FFFFFF"
-                  preserveOriginal
-                  accessible={false}
-                  accessibilityElementsHidden
-                />
+                <CtaText preset="caption" numberOfLines={1} style={{ fontWeight: '800', fontSize: 12 }}>글쓰기</CtaText>
               </CtaButton>
             ) : null}
           </View>

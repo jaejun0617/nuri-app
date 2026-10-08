@@ -307,7 +307,9 @@ function CommentThreadItemBase({
                   <ReplyCommentItem
                     replyId={replyId}
                     activeReplyTargetId={activeReplyTargetId}
-                    inlineComposer={inlineComposer}
+                    inlineComposer={
+                      activeReplyTargetId === replyId ? inlineComposer : null
+                    }
                     currentUserId={currentUserId}
                     postAuthorId={postAuthorId}
                     authorAccentColor={authorAccentColor}

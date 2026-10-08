@@ -1,7 +1,6 @@
 import React, { memo } from 'react';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
-import Feather from '../icons/NuriFeatherIcon';
 import { useTheme } from 'styled-components/native';
 
 import { ASSETS } from '../../assets';
@@ -86,7 +85,6 @@ function GuestLockedStateBase({
           onPress={onPress}
           style={[styles.button, { backgroundColor: theme.colors.brand }]}
         >
-          <Feather name="arrow-right" size={16} color="#FFFFFF" />
           <AppText preset="unifiedLabel" style={styles.buttonText}>
             {buttonLabel}
           </AppText>

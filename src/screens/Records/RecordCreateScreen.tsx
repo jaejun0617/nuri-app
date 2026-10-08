@@ -62,6 +62,7 @@ import {
   formatRecordPriceLabel,
   hasPositiveRecordNumber,
   isShoppingRecordCategory,
+  isExpenseRecordCategory,
   mergeRecordTags,
   normalizePositiveDecimalInput,
   normalizePositiveIntegerInput,
@@ -286,6 +287,7 @@ export default function RecordCreateScreen() {
     () => isShoppingRecordCategory(mainCategoryKey, otherSubCategoryKey),
     [mainCategoryKey, otherSubCategoryKey],
   );
+  const isExpenseCategory = isExpenseRecordCategory(mainCategoryKey, otherSubCategoryKey);
   const priceLabel = useMemo(
     () => formatRecordPriceLabel(parseRecordPrice(priceText)),
     [priceText],
@@ -788,7 +790,7 @@ export default function RecordCreateScreen() {
     setMainCategoryKey(nextKey);
     if (nextKey !== 'other') {
       setOtherSubCategoryKey(null);
-      setPriceText('');
+      if (nextKey !== 'health') setPriceText('');
     }
     if (nextKey !== 'meal') {
       setMealAmountText('');
@@ -806,7 +808,7 @@ export default function RecordCreateScreen() {
     (nextKey: RecordOtherSubCategoryKey) => {
       setMainCategoryKey('other');
       setOtherSubCategoryKey(nextKey);
-      if (nextKey !== 'shopping') {
+      if (nextKey !== 'shopping' && nextKey !== 'hospital') {
         setPriceText('');
       }
       if (nextKey !== 'grooming') setGroomingCareTypes([]);
@@ -934,7 +936,7 @@ export default function RecordCreateScreen() {
         mainCategoryKey,
         otherSubCategoryKey,
       );
-      const price = isShoppingCategory ? parseRecordPrice(priceText) : null;
+      const price = isExpenseCategory ? parseRecordPrice(priceText) : null;
       const mealAmount = isMealCategory
         ? parsePositiveRecordNumber(mealAmountText, '급여량')
         : null;
@@ -1186,7 +1188,7 @@ export default function RecordCreateScreen() {
     groomingCareTypes,
     healthCondition,
     healthWeightText,
-    isShoppingCategory,
+    isExpenseCategory,
     isMealCategory,
     isHealthCategory,
     isGroomingCategory,
@@ -1468,10 +1470,10 @@ export default function RecordCreateScreen() {
           </View>
         ) : null}
 
-        {isShoppingCategory ? (
+        {isExpenseCategory ? (
           <View style={styles.field}>
             <AppText preset="unifiedBody" style={styles.fieldLabel}>
-              구매 가격
+              {isShoppingCategory ? '구매 가격 (선택)' : '병원·건강 비용 (선택)'}
             </AppText>
             <AppTextInput
               style={styles.input}
@@ -1489,7 +1491,7 @@ export default function RecordCreateScreen() {
               </AppText>
             ) : (
               <AppText preset="unifiedMeta" style={styles.helperText}>
-                숫자만 입력하면 자동으로 원 단위로 저장돼요.
+                원 단위로 입력해 주세요. 비워 두면 지출 합계에 포함되지 않아요.
               </AppText>
             )}
           </View>

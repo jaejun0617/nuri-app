@@ -6,7 +6,7 @@ import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // - 온보딩 완료 화면과 유사한 감정선을 유지하면서 수정 흐름을 마무리
 
 import React, { useMemo } from 'react';
-import { Image, StyleSheet, View } from 'react-native';
+import { View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,15 +19,12 @@ import { formatPetAgeLabelFromBirthDate } from '../../services/pets/age';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { usePetStore } from '../../store/petStore';
 import { styles } from './PetProfileEditDoneScreen.styles';
-import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
-import { getSeasonalProfileEditVisual } from '../../theme/seasonal/profileEdit';
+import { SeasonalFormBackground, SeasonalFormPanel } from '../../components/common/SeasonalFormSurface';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'PetProfileEditDone'>;
 type Route = RootScreenRoute<'PetProfileEditDone'>;
 
 export default function PetProfileEditDoneScreen() {
-  const season = useEffectiveSeason();
-  const seasonalVisual = getSeasonalProfileEditVisual(season);
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
@@ -60,32 +57,19 @@ export default function PetProfileEditDoneScreen() {
     <View
       style={[
         styles.screen,
-        { backgroundColor: seasonalVisual.palette.pageBackgroundColor },
         {
           paddingTop: Math.max(insets.top + 16, 40),
           paddingBottom: Math.max(insets.bottom + 18, 32),
         },
       ]}
     >
-      <Image
-        pointerEvents="none"
-        accessible={false}
-        source={seasonalVisual.backgroundSource}
-        resizeMode="cover"
-        style={StyleSheet.absoluteFill}
-      />
-      <View style={styles.confettiOne} />
-      <View style={styles.confettiTwo} />
-      <View style={styles.confettiThree} />
-      <View style={styles.confettiFour} />
-      <View style={styles.confettiFive} />
+      <SeasonalFormBackground />
 
       <View style={styles.hero}>
-        <View style={styles.checkCard}>
-          <View style={styles.checkCircle}>
+        <SeasonalFormPanel style={styles.completionPanel}>
+          <View style={[styles.checkCircle, { backgroundColor: petTheme.tint }]}>
             <Feather name="check" size={30} color={petTheme.primary} />
           </View>
-        </View>
 
         <AppText
           typographyRole="celebration"
@@ -105,6 +89,7 @@ export default function PetProfileEditDoneScreen() {
         <AppText preset="unifiedBody" style={styles.body}>
           이제 홈에서 바로 새로운 프로필을 볼 수 있어요.
         </AppText>
+        </SeasonalFormPanel>
       </View>
 
       <CtaButton
@@ -113,7 +98,7 @@ export default function PetProfileEditDoneScreen() {
         style={[
           styles.primaryButton,
           {},
-          { marginBottom: Math.max(insets.bottom, 0) },
+          { marginBottom: 0 },
         ]}
         onPress={() =>
           navigation.reset({

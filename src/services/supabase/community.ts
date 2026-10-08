@@ -34,12 +34,10 @@ import type {
   UpdateCommunityPostParams,
 } from '../../types/community';
 import { COMMUNITY_LIST_CURSOR_VERSION } from '../../types/community';
-import {
-  getErrorMessage,
-  getStableAppErrorCode,
-} from '../app/errors';
+import { getErrorMessage, getStableAppErrorCode } from '../app/errors';
 import { awardUserActivityXp } from '../activity/xpProgress';
 import { getCommunityGuestSessionId } from '../community/guestSession';
+import { normalizeCommunitySearchQuery } from '../community/search';
 import { formatPetAgeLabelFromBirthDate } from '../pets/age';
 import { supabase } from './client';
 import { toPublicPetAvatarUrl } from './pets';
@@ -940,7 +938,27 @@ export async function fetchCommunityPosts(
   const filter: CommunityListFilter = params.filter ?? 'all';
   const category: CommunityCategory = params.category ?? 'all';
   const limit = params.limit ?? COMMUNITY_PAGE_SIZE;
-  const cursor = decodeCommunityListCursor(params.cursor ?? null);
+  const query = normalizeCommunitySearchQuery(params.query ?? '');
+  let rawCursor: unknown = null;
+  if (query && params.cursor) {
+    try {
+      rawCursor = JSON.parse(params.cursor) as unknown;
+    } catch {
+      throw new Error('community_cursor_invalid');
+    }
+    if (
+      !isRecord(rawCursor) ||
+      rawCursor.query !== query ||
+      !isRecord(rawCursor.position)
+    ) {
+      throw new Error('community_cursor_invalid');
+    }
+  }
+  const cursor = decodeCommunityListCursor(
+    query && isRecord(rawCursor)
+      ? JSON.stringify(rawCursor.position)
+      : params.cursor ?? null,
+  );
   if (
     cursor &&
     (cursor.filter !== filter ||
@@ -950,12 +968,19 @@ export async function fetchCommunityPosts(
     throw new Error('community_cursor_invalid');
   }
   const rpcStartedAt = Date.now();
-  const { data, error } = await supabase.rpc('community_list_posts_v3', {
+  const rpcArgs = {
     p_filter: filter,
     p_category: category,
     p_limit: limit,
     p_cursor: cursor,
-  });
+  };
+  const { data, error } = query
+    ? await supabase.rpc('community_search_posts_v1', {
+        ...rpcArgs,
+        p_query: query,
+        p_cursor: cursor ? { query, position: cursor } : null,
+      })
+    : await supabase.rpc('community_list_posts_v3', rpcArgs);
   const rpcElapsedMs = Date.now() - rpcStartedAt;
 
   if (error) throw error;
@@ -968,19 +993,39 @@ export async function fetchCommunityPosts(
   if (
     data.filter !== filter ||
     data.category !== category ||
-    data.pageSize !== limit
+    data.pageSize !== limit ||
+    (query && data.query !== query)
   ) {
     throw new Error('community_cursor_invalid');
   }
 
   const pageRows = toCommunityPostRows(data.items);
   const hasMore = data.hasMore === true;
-  const nextCursor = encodeCommunityListCursor(data.nextCursor);
-  if (hasMore && nextCursor === null) {
+  const searchNext = data.nextCursor;
+  if (
+    query &&
+    searchNext != null &&
+    (!isRecord(searchNext) ||
+      searchNext.query !== query ||
+      !isRecord(searchNext.position))
+  ) {
+    throw new Error('community_cursor_invalid');
+  }
+  const encodedPosition = encodeCommunityListCursor(
+    query && isRecord(searchNext) ? searchNext.position : searchNext,
+  );
+  const nextCursor =
+    query && encodedPosition
+      ? JSON.stringify({
+          query,
+          position: JSON.parse(encodedPosition) as unknown,
+        })
+      : encodedPosition;
+  if (hasMore && encodedPosition === null) {
     throw new Error('게시글 목록 페이지 정보가 올바르지 않아요.');
   }
   if (nextCursor) {
-    const decodedNextCursor = decodeCommunityListCursor(nextCursor);
+    const decodedNextCursor = decodeCommunityListCursor(encodedPosition);
     if (
       !decodedNextCursor ||
       decodedNextCursor.filter !== filter ||

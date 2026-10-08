@@ -1,0 +1,19 @@
+{
+  "head": "26891aaed1fbee37141ecbd89e4d4c18970b4a1d",
+  "apkSha256": "eae763280deb2bee464ad32413193afebb27484b446743f3be1cb3b37a53cc2d",
+  "installedMatch": true,
+  "versionName": "1.0",
+  "versionCode": 1,
+  "uid": 10402,
+  "firstInstallTime": "2026-06-02 19:16:57",
+  "apk": {
+    "path": "/private/tmp/nuri-glass-expenses-20261008T092854/nuri-glass-expenses-release.apk",
+    "sha256": "eae763280deb2bee464ad32413193afebb27484b446743f3be1cb3b37a53cc2d"
+  },
+  "aab": {
+    "path": "/private/tmp/nuri-glass-expenses-20261008T092854/nuri-glass-expenses-release.aab",
+    "sha256": "16775d784b181e3c409e8956a7b2ec8ccd75d2db343b6fe48322cecdf167b61e"
+  },
+  "sourceChangesAfterBuild": 0,
+  "dirtyQaNotStoreRc": true
+}

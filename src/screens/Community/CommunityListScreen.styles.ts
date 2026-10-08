@@ -2,6 +2,34 @@ import { StyleSheet } from 'react-native';
 import { typography } from '../../app/theme/tokens/typography';
 
 export const styles = StyleSheet.create({
+  searchIconButton: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchRow: {
+    marginHorizontal: 16,
+    marginVertical: 8,
+    borderWidth: 1,
+    borderColor: '#DDE2E8',
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFFFF',
+  },
+  searchInput: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 44,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#243042',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
+  },
   screen: {
     flex: 1,
     backgroundColor: '#FFFFFF',

@@ -160,6 +160,35 @@ describe('memory detail rendered contract', () => {
     expect(lists[0].props.scrollEnabled).not.toBe(false);
     TestRenderer.act(() => tree.unmount());
   });
+  it('uses a warm history heading and text-only category chips while preserving empty thumbnails', async () => {
+    const tree = await render();
+    expect(text(tree)).toContain('함께 쌓아온 추억');
+    expect(text(tree)).not.toContain('다른 추억들');
+    const chips = tree.root
+      .findAllByType(View)
+      .filter(
+        node =>
+          Array.isArray(node.props.style) &&
+          node.props.style.includes(styles.categoryChip),
+      );
+    expect(chips).toHaveLength(6);
+    chips.forEach(chip => {
+      expect(chip.findAll(node => node.props.family === 'material')).toHaveLength(
+        0,
+      );
+    });
+    const related = tree.root
+      .findAllByType(TouchableOpacity)
+      .filter(node => node.props.testID === 'memory-detail-related-record');
+    related.forEach(card => {
+      expect(
+        card.findAll(
+          node => node.props.family === 'material' && node.props.size === 26,
+        ),
+      ).toHaveLength(1);
+    });
+    TestRenderer.act(() => tree.unmount());
+  });
   it('fits original image proportions without crop and opens a dismissible overlay', async () => {
     mockRecord.imagePaths = ['qa/portrait.png'];
     const spy = jest

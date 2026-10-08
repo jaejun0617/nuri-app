@@ -1,0 +1,13 @@
+{
+  "capturedAt": "2026-10-08T08:22:36.312Z",
+  "command": "adb logcat -d --pid CURRENT_PID -v threadtime -T \"10-08 16:59:01.000\"; events am_anr package match",
+  "currentPid": "30383",
+  "observedLines": 17871,
+  "fatalCount": 0,
+  "rnFatalCount": 0,
+  "anrCount": 0,
+  "limitation": "Retained log buffer/current process only; no reset, no instrumentation, no historical global crash assertion. Raw logs are not persisted to avoid private data.",
+  "focusLoop": "NONE_OBSERVED_IN_SCOPED_QA",
+  "revealLoop": "NONE_OBSERVED_IN_SCOPED_QA",
+  "performance": "NOT_MEASURED"
+}

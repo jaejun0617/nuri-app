@@ -47,7 +47,7 @@ jest.mock('@react-navigation/native', () => ({
     runtime.useEffect(callback, [callback]);
   },
 }));
-jest.mock('@tanstack/react-query', () => ({ useQueryClient: () => mockQuery }));
+jest.mock('@tanstack/react-query', () => ({ ...jest.requireActual('@tanstack/react-query'), useQueryClient: () => mockQuery }));
 jest.mock('../src/store/authStore', () => ({
   useAuthStore: (
     selector: (state: { session: { user: { id: string } } }) => unknown,

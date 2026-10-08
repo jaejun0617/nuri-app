@@ -1,0 +1,732 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-10-08T08:25:16.278Z",
+  "canonical": true,
+  "finalAdjudicator": "MASTER_NURI_00",
+  "candidate": "OpenDefectCorrective1",
+  "apkSha256": "7f24f510a4fc2a3f3b3a9aebf2974918b635483fd72051b425a801f18af8783b",
+  "total": 38,
+  "allAccounted": true,
+  "physicalQaResult": "COMPLETE_WITH_EXACT_GATES_AND_OPEN_DEFECTS",
+  "coverage": {
+    "PASS": 22,
+    "OPEN_REPRODUCED": 4,
+    "BLOCKED": 6,
+    "NOT_REACHABLE_WITHOUT_MUTATION": 2,
+    "DEV_ONLY": 1,
+    "UNUSED": 3,
+    "UNEXPLAINED_NOT_RUN": 0,
+    "UNEXPLAINED_PARTIAL": 0,
+    "WORK_IN_PROGRESS": 0
+  },
+  "rules": {
+    "pass": "Applicable input/keyboard core with prior technical/native evidence plus exact residual device or direct PO attestation. No server submit or native instrumentation PASS implied.",
+    "open": "Actual reproduced defect; no auto corrective, no repeated full QA after sufficient evidence.",
+    "blocked": "Exact fixture/ownership gate; not fabricated runtime PASS."
+  },
+  "items": [
+    {
+      "id": "K01",
+      "screen": "로그인",
+      "sourceOwner": "src/screens/Auth/SignInScreen.tsx",
+      "route": "Root SignIn",
+      "fieldCases": "이메일·비밀번호, 계절 login 및 일반 branch",
+      "finalStatus": "PASS",
+      "reason": "Supported Root SignIn URI delivered to existing MainActivity without session transition. Residual email/secure fastfocus and IME-open CTA/scroll, AndroidBack returns Home authenticated, reentryempty verified. Prior Hangul/caret/native selection/paste proof reused. No login/OAuth/logout.",
+      "closedAt": "2026-10-08T06:57:13.028Z",
+      "physicalQaOwner": "MASTER_NURI_00",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k01-fast-focus.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k01-ime-scroll.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k01-back-ime.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k01-reentry-empty.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-11/K01-pasted.png"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K02",
+      "screen": "회원가입",
+      "sourceOwner": "src/screens/Auth/SignUpScreen.tsx",
+      "route": "Root SignUp",
+      "fieldCases": "이메일·비밀번호·확인, 계절/일반 branch",
+      "finalStatus": "PASS",
+      "reason": "Normal SignIn→SignUp route. Residual native caret/own synthetic copy-paste, email/secure/confirm rapid focus, IME-open scrolling to last field and disabled signup CTA, Android Back and empty route reentry verified. Prior Hangul/validation/modal proof reused. Consent unchanged, no signup submit.",
+      "closedAt": "2026-10-08T07:01:14.176Z",
+      "physicalQaOwner": "MASTER_NURI_00",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k02-native-paste.png",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k02-last-field-ime.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k02-reentry-empty.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-11/NURI-11-device-qa-final.md"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K03",
+      "screen": "비밀번호 재설정 요청",
+      "sourceOwner": "src/screens/Auth/PasswordResetRequestScreen.tsx",
+      "route": "Root PasswordResetRequest",
+      "fieldCases": "이메일",
+      "finalStatus": "PASS",
+      "reason": "Normal SignIn→PasswordResetRequest route. Residual Samsung native Hangul테스트 composition, field/primary CTA above IME, draft retained after margin gesture closes IME, refocus, clear, Android Back to SignIn and empty reentry verified. Previous native caret/selection/own-paste proof reused. Persistent-IME margin scrolling is not asserted; no reset-mail submit.",
+      "closedAt": "2026-10-08T07:03:43.038Z",
+      "physicalQaOwner": "MASTER_NURI_00",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k03-hangul.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k03-scroll-ime.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k03-reentry-empty.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-11/NURI-11-device-qa-final.md"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K04",
+      "screen": "비밀번호 재설정",
+      "sourceOwner": "src/screens/Auth/PasswordResetFormScreen.tsx",
+      "route": "Root PasswordResetForm",
+      "fieldCases": "새 비밀번호·확인; recovery session gate",
+      "finalStatus": "BLOCKED_RECOVERY_GATE",
+      "reason": "No existing approved fixture; no forced route/account/role mutation allowed.",
+      "closedAt": null,
+      "physicalQaOwner": "PRIOR_SERIAL_OWNER_OR_SOURCE_REVIEW",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/route-blockers-and-preservation.md"
+      ],
+      "fullScenario": "GATED_OR_NONPRODUCTION_CLASSIFIED",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K05",
+      "screen": "온보딩 닉네임",
+      "sourceOwner": "src/screens/Auth/NicknameSetupScreen.tsx",
+      "route": "Root NicknameSetup",
+      "fieldCases": "닉네임·Sticky CTA",
+      "finalStatus": "BLOCKED_ONBOARDING_FIXTURE",
+      "reason": "No existing approved fixture; no forced route/account/role mutation allowed.",
+      "closedAt": null,
+      "physicalQaOwner": "PRIOR_SERIAL_OWNER_OR_SOURCE_REVIEW",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/route-blockers-and-preservation.md"
+      ],
+      "fullScenario": "GATED_OR_NONPRODUCTION_CLASSIFIED",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K06",
+      "screen": "홈 일정 시트",
+      "sourceOwner": "src/components/home/ScheduleCalendarSheet.tsx",
+      "route": "HomeScheduleCalendar → ScheduleCalendarSheet",
+      "fieldCases": "추가/수정 제목·알림 숫자·메모; 목록/편집 mode",
+      "finalStatus": "PASS",
+      "reason": "Home schedule title/memo IME/actual Samsung Korean/own native selection-paste supplemented; parent modal/time picker cancel and Home return observed. No submit. Read-only reviewer reports no remaining applicable core scenario; Master directly inspected native pasted state.",
+      "closedAt": "2026-10-07 17:21:39 UTC",
+      "physicalQaOwner": "PRIOR_SERIAL_OWNER_OR_SOURCE_REVIEW",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-06/k06-title-korean-longpress.png",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-06/k06-title-selectall.png",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-06/k06-title-pasted.png",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-06/k06-note-ime.png",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-06/k06-date-hour-11.png",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-06/k06-home-resume.xml"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K07",
+      "screen": "펫 등록",
+      "sourceOwner": "src/screens/Pets/PetCreateScreen.tsx",
+      "route": "Root PetCreate",
+      "fieldCases": "1/2단계, 추모/생존, 날짜·이름·종 상세·몸무게·활동·좋아함·싫어함·태그",
+      "finalStatus": "PASS",
+      "reason": "Prior technical/runtime evidence reused; human PO explicitly reported '18 / 7 / 8 검증완료 pass' for Batch 2 residual scenarios. No Codex device control or new technical measurements.",
+      "closedAt": "2026-10-08 05:29:35 UTC",
+      "physicalQaOwner": "PO",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/k01-k38-phase-b-ledger.md",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/po-handoff-20261008.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/po-attestation-final.json"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K08",
+      "screen": "펫 프로필 수정",
+      "sourceOwner": "src/screens/Pets/PetProfileEditScreen.tsx",
+      "route": "Root PetProfileEdit",
+      "fieldCases": "추모/생존, 날짜·이름·종 상세·활동·좋아함·싫어함·태그",
+      "finalStatus": "PASS",
+      "reason": "Prior technical/runtime evidence reused; human PO explicitly reported '18 / 7 / 8 검증완료 pass' for Batch 2 residual scenarios. No Codex device control or new technical measurements.",
+      "closedAt": "2026-10-08 05:29:35 UTC",
+      "physicalQaOwner": "PO",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/k01-k38-phase-b-ledger.md",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/po-handoff-20261008.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/po-attestation-final.json"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K09",
+      "screen": "몸무게 기록 시트",
+      "sourceOwner": "src/components/health/WeightLogEntrySheet.tsx",
+      "route": "HealthReport / PetProfileEdit",
+      "fieldCases": "몸무게 decimal·메모·날짜 자식 modal",
+      "finalStatus": "PASS",
+      "reason": "Both WeightLog callers opened; final supplement physically entered/restored decimal5.2, native Samsung Hangul memo/selection-own copy-paste/IME Back and no-save close. Master directly reviewed native numberpad and native selection screenshot; sufficient prior date/parent proof reused.",
+      "closedAt": "2026-10-07 17:29:14 UTC",
+      "physicalQaOwner": "PRIOR_SERIAL_OWNER_OR_SOURCE_REVIEW",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-06/k09-weight-5-2.png",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-06/k09-weight-restored.xml",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-06/k09-note-korean-2.png",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-06/k09-note-selectall.png",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-06/k09-note-pasted.xml",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-06/k09-final-clear.xml",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-06/k09-final-closed.xml"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K10",
+      "screen": "펫 삭제 확인",
+      "sourceOwner": "src/components/pets/PetDeleteConfirmDialog.tsx",
+      "route": "PetManagement",
+      "fieldCases": "확인 문구 입력만; 삭제 실행 금지",
+      "finalStatus": "NOT_REACHABLE_WITHOUT_MUTATION",
+      "reason": "Existing sole pet minimum-one-profile guard precludes confirmation input. Direct screenshot reviewed by Master; no deletion.",
+      "closedAt": null,
+      "physicalQaOwner": "PRIOR_SERIAL_OWNER_OR_SOURCE_REVIEW",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-06/k10-delete-2.png",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-06/k10-after.xml"
+      ],
+      "fullScenario": "GATED_OR_NONPRODUCTION_CLASSIFIED",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K11",
+      "screen": "공통 날짜 입력 모달",
+      "sourceOwner": "src/components/date-picker/DatePickerModal.tsx",
+      "route": "PetCreate / PetProfileEdit / RecordCreate / RecordEdit / ScheduleCreate / ScheduleEdit / ScheduleCalendarSheet / WeightLogEntrySheet",
+      "fieldCases": "직접 날짜·선택적 시간/분; 각 caller의 inset·기존 keyboard 전환 확인",
+      "finalStatus": "PASS",
+      "reason": "Prior technical/runtime evidence reused; PO completed the exact Batch 1 residual scenarios and explicitly confirmed all three PASS in this chat. No Codex device control, source change, build or install.",
+      "closedAt": "2026-10-08 05:11:06 UTC",
+      "physicalQaOwner": "PO",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/k01-k38-phase-b-ledger.md",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/po-handoff-20261008.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/po-attestation-final.json"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K12",
+      "screen": "기록 작성",
+      "sourceOwner": "src/screens/Records/RecordCreateScreen.tsx",
+      "route": "Root RecordCreate",
+      "fieldCases": "제목·본문·비용·산책 분·건강 몸무게; 카테고리/returnTo별 조건",
+      "finalStatus": "PASS",
+      "reason": "PO directly completed supplied K12 residual scenarios and explicitly stated 'k12 검증 완료 Pass다'. Prior technical/runtime evidence reused; no invented measurements.",
+      "closedAt": "2026-10-08 06:18:25 UTC",
+      "physicalQaOwner": "PO",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/po-attestation-final.json"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K13",
+      "screen": "기록 수정",
+      "sourceOwner": "src/screens/Records/RecordEditScreen.tsx",
+      "route": "Timeline stack RecordEdit",
+      "fieldCases": "제목·본문·비용·태그; 기존 사진/카테고리 조건",
+      "finalStatus": "PASS",
+      "reason": "Actual Samsung Hangul in tag, numeric purchase price, native selection/own copy-paste, title/body rapid focus, IME-open user scroll/return and CTA visibility verified. Android Back exits unsaved; reentry restores original title/body/category. Existing date/emoji proof reused; no submit.",
+      "closedAt": "2026-10-08T06:28:35.407Z",
+      "physicalQaOwner": "MASTER_NURI_00",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k13-hangul.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k13-selected.png",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k13-bottom-ime.png",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k13-reentry-original.json"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K14",
+      "screen": "기록 태그 모달",
+      "sourceOwner": "src/screens/Records/components/RecordTagModal.tsx",
+      "route": "RecordCreate / WeatherActivityRecord",
+      "fieldCases": "태그 입력·추가·재입력; parent keyboard → modal → 복귀",
+      "finalStatus": "OPEN_REPRODUCED",
+      "reason": "Weather caller restoration still fails: Android Back closes the tag dialog; memo remains focused with QA_WEATHER_DRAFT but IME stays closed through the settled capture. Same result with and without tag-input focus. Unit focus dispatch is not native window/IME restoration proof.",
+      "closedAt": "2026-10-08T08:25:16.278Z",
+      "physicalQaOwner": "MASTER_NURI_00",
+      "evidence": [
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/weather-tag-return-settled.json",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/weather-tag-return-insets.json",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/weather-modal-back-ime.json",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/weather-tag-input-confirmed.json",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/weather-native.mp4"
+      ],
+      "fullScenario": "DEFECT_REPRODUCED_NO_REDUNDANT_RETEST",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65",
+      "previousFinalStatus": "OPEN_REPRODUCED"
+    },
+    {
+      "id": "K15",
+      "screen": "날씨 활동 기록",
+      "sourceOwner": "src/screens/Weather/WeatherActivityRecordScreen.tsx",
+      "route": "Root WeatherActivityRecord",
+      "fieldCases": "제목·메모; 태그 모달",
+      "finalStatus": "OPEN_REPRODUCED",
+      "reason": "Weather memo/title blur and next-frame focus corrective did not restore the native IME after tag-modal return. Memo draft survives; re-tap is needed to reopen keyboard. Required automatic visible parent/IME return is not PASS.",
+      "closedAt": "2026-10-08T08:25:16.278Z",
+      "physicalQaOwner": "MASTER_NURI_00",
+      "evidence": [
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/weather-tag-return-settled.png",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/weather-tag-return-settled.json",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/weather-modal-back-ime.json",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/weather-memo-before-tag.json",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/weather-native.mp4"
+      ],
+      "fullScenario": "DEFECT_REPRODUCED_NO_REDUNDANT_RETEST",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65",
+      "previousFinalStatus": "OPEN_REPRODUCED"
+    },
+    {
+      "id": "K16",
+      "screen": "일정 검색",
+      "sourceOwner": "src/screens/Schedules/ScheduleListScreen.tsx",
+      "route": "Root ScheduleList",
+      "fieldCases": "검색 → 결과 스크롤 → 검색 복귀",
+      "finalStatus": "PASS",
+      "reason": "Prior technical/runtime evidence reused; PO completed the exact Batch 1 residual scenarios and explicitly confirmed all three PASS in this chat. No Codex device control, source change, build or install.",
+      "closedAt": "2026-10-08 05:11:06 UTC",
+      "physicalQaOwner": "PO",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/k01-k38-phase-b-ledger.md",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/po-handoff-20261008.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/po-attestation-final.json"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K17",
+      "screen": "일정 생성",
+      "sourceOwner": "src/screens/Schedules/ScheduleCreateScreen.tsx",
+      "route": "Root ScheduleCreate",
+      "fieldCases": "제목·알림 숫자·메모·날짜 모달",
+      "finalStatus": "PASS",
+      "reason": "Prior technical/runtime evidence reused; PO completed the exact Batch 1 residual scenarios and explicitly confirmed all three PASS in this chat. No Codex device control, source change, build or install.",
+      "closedAt": "2026-10-08 05:11:06 UTC",
+      "physicalQaOwner": "PO",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/k01-k38-phase-b-ledger.md",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/po-handoff-20261008.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/po-attestation-final.json"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K18",
+      "screen": "일정 수정",
+      "sourceOwner": "src/screens/Schedules/ScheduleEditScreen.tsx",
+      "route": "Root ScheduleEdit",
+      "fieldCases": "제목·알림 숫자·메모·날짜 모달",
+      "finalStatus": "PASS",
+      "reason": "Prior technical/runtime evidence reused; human PO explicitly reported '18 / 7 / 8 검증완료 pass' for Batch 2 residual scenarios. No Codex device control or new technical measurements.",
+      "closedAt": "2026-10-08 05:29:35 UTC",
+      "physicalQaOwner": "PO",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/k01-k38-phase-b-ledger.md",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/po-handoff-20261008.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/po-attestation-final.json"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K19",
+      "screen": "커뮤니티 검색",
+      "sourceOwner": "src/screens/Community/CommunityListScreen.tsx",
+      "route": "CommunityTab / Root CommunityList",
+      "fieldCases": "검색 열기/닫기·입력·결과·필터·페이지, 두 navigation container",
+      "finalStatus": "PASS",
+      "reason": "Root CommunityList caller actual Samsung Hangul/caret/selection/synthetic paste/read-only search results/drag/clear/back proof complements earlier tab caller evidence. List has explicit on-drag dismiss; intended behavior distinct from K22/K23. No search-history mutation. Observed automatic QA view increment+1 after incidental QA013 detail entry, separately disclosed.",
+      "closedAt": "2026-10-08T06:37:22.094Z",
+      "physicalQaOwner": "MASTER_NURI_00",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k19-root-native-selection.png",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k19-root-results.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k19-root-scroll.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k19-cleared-return.json"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K20",
+      "screen": "커뮤니티 작성",
+      "sourceOwner": "src/screens/Community/CommunityCreateScreen.tsx",
+      "route": "Root CommunityCreate",
+      "fieldCases": "shared editor 제목·본문, validation·draft·종료 확인",
+      "finalStatus": "PASS",
+      "reason": "Existing protected QA draft recovered. Actual Samsung title/body Hangul, caret/selection/synthetic paste, multiline/emoji, IME-open offscreen roundtrip, Back/exit/reentry draft verified. Original title fully restored and body returned blank before safe no-submit exit; no discard.",
+      "closedAt": "2026-10-08T06:41:30.304Z",
+      "physicalQaOwner": "MASTER_NURI_00",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k20-body-selection.png",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k20-body-offscreen.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k20-reentry-retained.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k20-original-draft-final.json"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K21",
+      "screen": "커뮤니티 수정",
+      "sourceOwner": "src/screens/Community/CommunityEditScreen.tsx",
+      "route": "Root CommunityEdit",
+      "fieldCases": "shared editor 제목·본문, validation·draft·종료 확인",
+      "finalStatus": "NOT_REACHABLE_WITHOUT_MUTATION",
+      "reason": "No safely identified approved current-account-owned Community edit QA fixture in supplied manifest. Identified pagination QA batch is owned by adminQA, current session kakaoQA. Normal report menu has no owner edit action. Does not claim no owned posts exist remotely; needs PO-approved existing owned synthetic post reference, not role/account/post creation.",
+      "closedAt": "2026-10-08T06:42:57.074Z",
+      "physicalQaOwner": "PRIOR_SERIAL_OWNER_OR_SOURCE_REVIEW",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k21-qa-fixture-search.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k24-cancel-parent.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/k01-k38-phase-b-ledger.md"
+      ],
+      "fullScenario": "GATED_OR_NONPRODUCTION_CLASSIFIED",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K22",
+      "screen": "커뮤니티 댓글",
+      "sourceOwner": "src/screens/Community/CommunityDetailScreen.tsx",
+      "route": "Root CommunityDetail",
+      "fieldCases": "root composer · 긴 본문·한국어 조합·list scroll·오류 draft",
+      "finalStatus": "OPEN_REPRODUCED",
+      "reason": "Persistent scroll/draft/focus core retained, but shared local K23 inset change creates a new 135px (48dp) white gap above IME: ordinary input bottom1231 and frame end1260 versus IME top1395. Previous candidate screenshot has no matching gap. This layout regression is not hidden behind the retained core PASS.",
+      "closedAt": "2026-10-08T08:25:16.278Z",
+      "physicalQaOwner": "MASTER_NURI_00",
+      "evidence": [
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/k22-open-scroll-sanity.png",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/k22-draft-focus-retained.json",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/k23-open-return-insets.json"
+      ],
+      "fullScenario": "DEFECT_REPRODUCED_NO_REDUNDANT_RETEST",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65",
+      "previousFinalStatus": "PASS"
+    },
+    {
+      "id": "K23",
+      "screen": "커뮤니티 답글",
+      "sourceOwner": "src/screens/Community/CommunityDetailScreen.tsx",
+      "route": "CommunityDetail → CommentThreadItem / ReplyCommentItem",
+      "fieldCases": "root/child reply·타깃 교체·접기/펼치기·viewport 밖 왕복·댓글 복귀",
+      "finalStatus": "OPEN_REPRODUCED",
+      "reason": "Closed-IME underlap corrected: list viewport end2205 matches system-navigation start2205, no content drawn in that region. Root/child reply keep Hangul, target and draft; root offscreen/fling/return continued input without re-tap works. Open-IME viewport end1260 versus IME top1395 leaves a new 135px gap and initially clips composer bottom at viewport boundary. Overall corrective FAIL pending local transition follow-up.",
+      "closedAt": "2026-10-08T08:25:16.278Z",
+      "physicalQaOwner": "MASTER_NURI_00",
+      "evidence": [
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/k23-closed-bottom.json",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/k23-closed-bottom-insets.json",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/k23-child-focus.json",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/k23-offscreen-return.json",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/k23-return-continue.png",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/k23-open-return-insets.json",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/k23-native.mp4"
+      ],
+      "fullScenario": "DEFECT_REPRODUCED_NO_REDUNDANT_RETEST",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65",
+      "previousFinalStatus": "OPEN_REPRODUCED"
+    },
+    {
+      "id": "K24",
+      "screen": "커뮤니티 신고",
+      "sourceOwner": "src/screens/Community/CommunityDetailScreen.tsx",
+      "route": "CommunityDetail report modal",
+      "fieldCases": "선택 사유·기타 텍스트; parent keyboard/modal 전환; 신고 제출 금지",
+      "finalStatus": "PASS",
+      "reason": "Native Other reason Hangul/caret/selection/own synthetic paste; both report/cancel CTAs visible above IME; cancel returns detail IMEclosed without submit. Existing parent-comment transition proof reused.",
+      "closedAt": "2026-10-08T06:35:48.817Z",
+      "physicalQaOwner": "MASTER_NURI_00",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k24-selection.png",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k24-pasted.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k24-cancel-parent.json"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K25",
+      "screen": "편지함",
+      "sourceOwner": "src/screens/Guestbook/GuestbookScreen.tsx",
+      "route": "AppTabs GuestbookTab",
+      "fieldCases": "selected pet multiline 편지·긴 입력·목록·fixed nav",
+      "finalStatus": "PASS",
+      "reason": "Actual Samsung Korean/multiline/native caret-selection-ownpaste/emoji/IME-back/reentry-draft/scroll-CTA core confirmed by device owner and independent read-only residual review; no send. Master reviewed reentry screenshot. Other 8 K partials do not block K25.",
+      "closedAt": "2026-10-07 17:21:39 UTC",
+      "physicalQaOwner": "PRIOR_SERIAL_OWNER_OR_SOURCE_REVIEW",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-11/K25-full-gap.mp4",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-11/K25-reentry.png",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-11/K25-hangul-draft.png",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-11/K25-selectall.png",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-11/K25-after-emoji.png",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-11/NURI-11-device-qa-final.md"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K26",
+      "screen": "비밀번호 변경 모달",
+      "sourceOwner": "src/screens/More/MoreDrawerContent.tsx",
+      "route": "MoreDrawer → PasswordChangeModal",
+      "fieldCases": "현재·새 비밀번호·확인·secure toggle; 변경 제출 금지",
+      "finalStatus": "UNUSED_CONFIRMED",
+      "reason": "Source consumer/import/route search reconfirmed no production consumer.",
+      "closedAt": null,
+      "physicalQaOwner": "PRIOR_SERIAL_OWNER_OR_SOURCE_REVIEW",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/route-blockers-and-preservation.md"
+      ],
+      "fullScenario": "GATED_OR_NONPRODUCTION_CLASSIFIED",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K27",
+      "screen": "닉네임 수정 모달",
+      "sourceOwner": "src/screens/More/MoreDrawerContent.tsx",
+      "route": "MoreDrawer → ProfileEditModal",
+      "fieldCases": "닉네임·validation·닫기/재열기; 저장 금지",
+      "finalStatus": "PASS",
+      "reason": "Actual current nickname kakaoQA native caret/selection/own copy-paste, IME modal scroll/CTA access, AndroidBack and reopen unchanged confirmed. Existing Hangul proof reused. No nickname save; previous report's original누리 corrected to current actualkakaoQA.",
+      "closedAt": "2026-10-08T06:44:44.501Z",
+      "physicalQaOwner": "MASTER_NURI_00",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k27-native-selection.png",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k27-native-pasted.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k27-reentry-original.json"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K28",
+      "screen": "계정 탈퇴 확인",
+      "sourceOwner": "src/screens/More/MoreDrawerContent.tsx",
+      "route": "MoreDrawer ConfirmDialog",
+      "fieldCases": "확인 문구 입력만; 탈퇴 실행 금지",
+      "finalStatus": "PASS",
+      "reason": "Approved confirmation-only modal: native caret/selection/own QA28 copy-paste, IME-open modal scroll and cancellation buttons unobscured, AndroidBack and reentry empty input. Prior Hangul exact confirmation proof reused. No final account-delete submit.",
+      "closedAt": "2026-10-08T06:49:20.496Z",
+      "physicalQaOwner": "MASTER_NURI_00",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k28-native.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k28-reentry.json"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K29",
+      "screen": "가이드 검색",
+      "sourceOwner": "src/screens/Guides/GuideListScreen.tsx",
+      "route": "Root GuideList",
+      "fieldCases": "검색·결과·sort/filter·clear",
+      "finalStatus": "PASS",
+      "reason": "Samsung keyboard key tapping produces exact 테스트, 강아지 건강 관리, test and123. Clear retains input focus; reptile results return audience-matching ranked entries; closing/reopening search resets query; Android Back exits safely. Synchronous controlled-value update and deferred ranking separation covered by source/unit tests. No explicit sort/filter UI exists; existing audience/ranking contract is unchanged.",
+      "closedAt": "2026-10-08T08:25:16.278Z",
+      "physicalQaOwner": "MASTER_NURI_00",
+      "evidence": [
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/guide-test-confirmed.json",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/guide-long-hangul.json",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/guide-english.json",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/guide-numeric.json",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/guide-search-results.json",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/guide-reopened-clear.json",
+        "/private/tmp/nuri-keyboard-open-corrective-20261008-163925/guide-native.mp4"
+      ],
+      "fullScenario": "SCOPED_CORRECTIVE_COMPLETE_WITH_PRIOR_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65",
+      "previousFinalStatus": "OPEN_REPRODUCED"
+    },
+    {
+      "id": "K30",
+      "screen": "가이드 관리자 검색",
+      "sourceOwner": "src/screens/Guides/GuideAdminListScreen.tsx",
+      "route": "Root GuideAdminList + admin gate",
+      "fieldCases": "검색·결과·관리자 gate",
+      "finalStatus": "BLOCKED_ADMIN_GATE",
+      "reason": "No existing approved fixture; no forced route/account/role mutation allowed.",
+      "closedAt": null,
+      "physicalQaOwner": "PRIOR_SERIAL_OWNER_OR_SOURCE_REVIEW",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/route-blockers-and-preservation.md"
+      ],
+      "fullScenario": "GATED_OR_NONPRODUCTION_CLASSIFIED",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K31",
+      "screen": "가이드 관리자 편집",
+      "sourceOwner": "src/screens/Guides/GuideAdminEditorScreen.tsx",
+      "route": "Root GuideAdminEditor + admin gate",
+      "fieldCases": "17 Field 호출: 제목·slug·설명·본문·카테고리·종·tags·검색·숫자·이미지 URL",
+      "finalStatus": "BLOCKED_ADMIN_GATE",
+      "reason": "No existing approved fixture; no forced route/account/role mutation allowed.",
+      "closedAt": null,
+      "physicalQaOwner": "PRIOR_SERIAL_OWNER_OR_SOURCE_REVIEW",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/route-blockers-and-preservation.md"
+      ],
+      "fullScenario": "GATED_OR_NONPRODUCTION_CLASSIFIED",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K32",
+      "screen": "동물병원 검색",
+      "sourceOwner": "src/screens/AnimalHospital/AnimalHospitalListScreen.tsx",
+      "route": "Root AnimalHospitalList → LocationDiscoverySearchBar",
+      "fieldCases": "병원/지역 검색·clear·결과 scroll·복귀",
+      "finalStatus": "PASS",
+      "reason": "Native Samsung Hangul테스트/caret/selection/own paste; list drag explicit dismiss preserved draft; scroll return/continued input, clear AndroidBack and route reentry verified. Fixed search field offscreen structurallyN/A. No search submit/history/bookmark/contact.",
+      "closedAt": "2026-10-08T06:53:58.974Z",
+      "physicalQaOwner": "MASTER_NURI_00",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k32-hangul.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k32-scroll.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k32-continued.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k32-reentry.json"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K33",
+      "screen": "산책 장소 검색",
+      "sourceOwner": "src/screens/LocationDiscovery/LocationDiscoveryListScreen.tsx",
+      "route": "Root NearbyWalkList → LocationDiscoveryList → shared search",
+      "fieldCases": "공원/지역 검색·최근검색·clear·결과·filters",
+      "finalStatus": "PASS",
+      "reason": "Native Samsung Hangul/caret/selection/own paste/keyboard-open listscroll/returncontinued input, queryclear/AndroidBack/route reentry. List drag intentionally dismissesIME; fixedheaderinput offscreenN/A. No keywordsubmit/localhistory/bookmark/POIaction.",
+      "closedAt": "2026-10-08T06:55:00.399Z",
+      "physicalQaOwner": "MASTER_NURI_00",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k33-hangul.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k33-scroll.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k33-continued.json",
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/support/NURI-00/k33-reentry.json"
+      ],
+      "fullScenario": "APPLICABLE_CORE_COMPLETE_WITH_REUSED_EVIDENCE",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K34",
+      "screen": "병원 관리자",
+      "sourceOwner": "src/screens/AnimalHospital/AnimalHospitalAdminScreen.tsx",
+      "route": "Root AnimalHospitalAdmin + admin gate",
+      "fieldCases": "검색·검토 메모; 운영 action 제출 금지",
+      "finalStatus": "BLOCKED_ADMIN_GATE",
+      "reason": "No existing approved fixture; no forced route/account/role mutation allowed.",
+      "closedAt": null,
+      "physicalQaOwner": "PRIOR_SERIAL_OWNER_OR_SOURCE_REVIEW",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/route-blockers-and-preservation.md"
+      ],
+      "fullScenario": "GATED_OR_NONPRODUCTION_CLASSIFIED",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K35",
+      "screen": "산책 POI 운영 사유",
+      "sourceOwner": "src/screens/LocationDiscovery/WalkPoiAdminReadOnlyScreen.tsx",
+      "route": "Root WalkPoiAdminReadOnly + role/profile gate",
+      "fieldCases": "운영 사유 modal; 운영 action 제출 금지",
+      "finalStatus": "BLOCKED_ADMIN_GATE",
+      "reason": "No existing approved fixture; no forced route/account/role mutation allowed.",
+      "closedAt": null,
+      "physicalQaOwner": "PRIOR_SERIAL_OWNER_OR_SOURCE_REVIEW",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/route-blockers-and-preservation.md"
+      ],
+      "fullScenario": "GATED_OR_NONPRODUCTION_CLASSIFIED",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K36",
+      "screen": "개발용 입력",
+      "sourceOwner": "src/screens/DevTest/DevTestScreen.tsx",
+      "route": "Root DevTest only __DEV__",
+      "fieldCases": "email/password/nickname/pet name styled 입력 4곳; Release route 없음",
+      "finalStatus": "DEV_ONLY_CONFIRMED",
+      "reason": "DevTest route registration gated by __DEV__; Release inactive.",
+      "closedAt": null,
+      "physicalQaOwner": "PRIOR_SERIAL_OWNER_OR_SOURCE_REVIEW",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/route-blockers-and-preservation.md"
+      ],
+      "fullScenario": "GATED_OR_NONPRODUCTION_CLASSIFIED",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K37",
+      "screen": "구형 More 탈퇴 입력",
+      "sourceOwner": "src/screens/More/MoreScreen.tsx",
+      "route": "현재 src consumer/route 미발견",
+      "fieldCases": "잔존 코드; 활성 화면으로 합산하지 않음",
+      "finalStatus": "UNUSED_CONFIRMED",
+      "reason": "Source consumer/import/route search reconfirmed no production consumer.",
+      "closedAt": null,
+      "physicalQaOwner": "PRIOR_SERIAL_OWNER_OR_SOURCE_REVIEW",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/route-blockers-and-preservation.md"
+      ],
+      "fullScenario": "GATED_OR_NONPRODUCTION_CLASSIFIED",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    },
+    {
+      "id": "K38",
+      "screen": "미사용 추모 입력 컴포넌트",
+      "sourceOwner": "src/components/pets/PetMemorialFields.tsx",
+      "route": "현재 src consumer 미발견",
+      "fieldCases": "잔존 코드; 재사용 시 QA 등록 필요",
+      "finalStatus": "UNUSED_CONFIRMED",
+      "reason": "Source consumer/import/route search reconfirmed no production consumer.",
+      "closedAt": null,
+      "physicalQaOwner": "PRIOR_SERIAL_OWNER_OR_SOURCE_REVIEW",
+      "evidence": [
+        "/private/tmp/nuri-global-keyboard-final-20261007-212757/route-blockers-and-preservation.md"
+      ],
+      "fullScenario": "GATED_OR_NONPRODUCTION_CLASSIFIED",
+      "inheritedCandidate": "41cfe8def1cdb33d2e2cf38e774e946bdf250d40578dccfbbd17e5841b584a65"
+    }
+  ],
+  "limitations": [
+    "Unaffected routes use prior evidence; only corrective/affected regression scenarios were rerun on this APK.",
+    "K22 was prior PASS but is now OPEN due to measured shared-screen spacing regression.",
+    "No extra build/install or out-of-scope corrective; no new fixture/account/role or content submissions.",
+    "RecordCreate tag-return sanity keeps native IME/focus; multiline body partly extends below IME. No new full-form PASS is inferred from this narrow check."
+  ],
+  "previousLedger": "/private/tmp/nuri-global-keyboard-final-20261007-212757/k-id-ledger-final.json"
+}

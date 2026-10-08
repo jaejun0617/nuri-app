@@ -33,7 +33,7 @@ export const styles = StyleSheet.create({
     ...typography.unified.body,
     textAlign: 'center',
     flex: 1,
-    marginHorizontal: 14,
+    marginHorizontal: 6,
   },
   iconSlot: {
     position: 'absolute',

@@ -1,0 +1,62 @@
+{
+  "stage": "NATIVE_REVALIDATION_COMPLETE_WITH_OPEN_DEFECTS",
+  "sourceScope": [
+    "K23",
+    "K14",
+    "K15",
+    "K29"
+  ],
+  "sourceFiles": [
+    "src/screens/Community/CommunityDetailScreen.tsx",
+    "src/screens/Community/utils/commentViewport.ts",
+    "src/screens/Weather/WeatherActivityRecordScreen.tsx",
+    "src/screens/Guides/GuideListScreen.tsx"
+  ],
+  "typescript": "PASS",
+  "eslint": "PASS_0_ERRORS",
+  "targeted": {
+    "suitesPassed": 6,
+    "testsPassed": 34,
+    "log": "targeted-tests-complete.log"
+  },
+  "fullSuite": {
+    "count": 2,
+    "status": "PASS_APPROVED_ADDITIONAL_RUN",
+    "suitesPassed": 190,
+    "suitesFailed": 0,
+    "testsPassed": 1939,
+    "testsFailed": 0,
+    "log": "full-suite-approved-retry.log",
+    "failures": [
+      "New Guide test used a Pressable component lookup not exposed by the renderer.",
+      "Existing responsive source guard expected the superseded composer-owned bottom inset."
+    ],
+    "correctedTargetedTests": "PASS",
+    "additionalRun": "PO_APPROVED_2026_10_08",
+    "firstRunFailureLog": "full-suite.log"
+  },
+  "buildCount": 1,
+  "installCount": 1,
+  "physicalRevalidation": {
+    "K14": "FAIL",
+    "K15": "FAIL",
+    "K23": "FAIL",
+    "K29": "PASS",
+    "K22Regression": "FAIL_LAYOUT_CORE_RETAINED"
+  },
+  "installedApk": "7f24f510a4fc2a3f3b3a9aebf2974918b635483fd72051b425a801f18af8783b",
+  "nativeSourceChange": 0,
+  "dbDirectMutation": 0,
+  "supportRooms": 0,
+  "deviceOwner": "PO",
+  "concurrentAdb": 0,
+  "commit": false,
+  "push": false,
+  "cleanup": false,
+  "gitDiffCheck": "PASS",
+  "documentationChecks": {
+    "previousBodiesPreserved": true,
+    "newReportLinks": "PASS",
+    "newReportStructure": "PASS"
+  }
+}

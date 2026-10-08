@@ -1,0 +1,47 @@
+{
+  "actualDevice": "SM-S937N",
+  "widthDp": 384,
+  "fontScale": 1,
+  "settingsChanged": false,
+  "titleSearch": "PASS",
+  "bodySearch": "PASS",
+  "emptySearch": "PASS",
+  "categorySearch": "PASS",
+  "pageSizeChangeAndRestore": "PASS",
+  "searchPagination": "PASS",
+  "duplicateCommentDraftRetention": "PASS",
+  "editableRetry": "PASS",
+  "rootKeyboard": "PASS_V3",
+  "directReplyKeyboard": "PASS_V3",
+  "firstInlineReplyFreshMount": "PASS_V3_AND_V4",
+  "inlineInput": {
+    "boundsPx": [
+      65,
+      1168,
+      882,
+      1293
+    ],
+    "keyboardTopPx": 1395,
+    "gapDp": 36.266666666666666,
+    "touchHeightDp": 44.44444444444444
+  },
+  "ownPostMoreMenu": "PASS_V3",
+  "reportKeyboard": "PASS_V3_NO_REPORT_SUBMITTED",
+  "deleteConfirmation": "PASS_V3_CANCELLED_NO_DELETE",
+  "homeHeartAndPetNameCta": "PASS",
+  "memoryHeading": "PASS_V4_함께 쌓아온 추억",
+  "memoryMainAndRelatedChipIconsRemoved": "PASS_V4",
+  "emptyPhotoThumbnailPreserved": "PASS_V4",
+  "memoryWarmFooterAndWhiteClose": "PASS_V3_AND_V4",
+  "restored": "autumn/all/category-all/page-1/page-size-30/search-closed/no-draft",
+  "qaCreated": {
+    "rootComments": 2,
+    "replies": 1
+  },
+  "limitations": [
+    "iOS not run",
+    "expanded font/width matrix not run",
+    "production-volume benchmark not run",
+    "bounded runtime tail only"
+  ]
+}

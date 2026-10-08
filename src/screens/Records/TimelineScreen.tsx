@@ -40,7 +40,6 @@ import {
   type ViewToken,
 } from '@shopify/flash-list';
 import Feather from '../../components/icons/NuriFeatherIcon';
-import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 import { ToolbarHeightContext } from '../../components/navigation/ToolbarHeightContext';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
 import type {
@@ -1549,15 +1548,7 @@ export default function TimelineScreen() {
         ]}
         onPress={onPressCreate}
       >
-        <NuriSemanticIcon
-          family="feather"
-          name="plus"
-          size={24}
-          color="#FFFFFF"
-          preserveOriginal
-          accessible={false}
-          accessibilityElementsHidden
-        />
+        <CtaText preset="unifiedMeta" style={{ fontWeight: '800' }}>기록</CtaText>
       </CtaButton>
 
       <Modal

@@ -77,6 +77,14 @@ export function normalizeRecordPriceInput(value: string) {
   return value.replace(/[^\d]/g, '').slice(0, 9);
 }
 
+export function isExpenseRecordCategory(
+  mainCategoryKey: RecordMainCategoryKey | null,
+  otherSubCategoryKey: RecordOtherSubCategoryKey | null,
+) {
+  return mainCategoryKey === 'health' ||
+    (mainCategoryKey === 'other' && (otherSubCategoryKey === 'shopping' || otherSubCategoryKey === 'hospital'));
+}
+
 export function normalizePositiveDecimalInput(value: string) {
   const normalized = value.replace(/[^\d.]/g, '');
   const [integerPart = '', ...decimalParts] = normalized.split('.');

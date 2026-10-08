@@ -1,0 +1,20 @@
+{
+  "typescript": "PASS",
+  "eslintErrors": 0,
+  "existingWarnings": 25,
+  "lintSourceFiles": 43,
+  "targetedSuites": 9,
+  "targetedTests": 123,
+  "finalFullSuites": 192,
+  "finalFullTests": 1952,
+  "fullSuiteInvocationCount": 5,
+  "earlierRuns": [
+    "6 suites / 8 tests failed",
+    "1 suite / 5 tests failed",
+    "192 suites / 1950 tests passed",
+    "192 suites / 1950 tests passed"
+  ],
+  "finalResult": "PASS",
+  "buildCount": 2,
+  "installCount": 2
+}

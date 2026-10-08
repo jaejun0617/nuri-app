@@ -1,10 +1,10 @@
 // 파일: src/screens/Records/RecordEditScreen.styles.ts
 // 목적:
-// - RecordEditScreen 스타일 분리 (화이트 + 퍼플 톤)
+// - Compact record form on the shared seasonal glass surface.
 
 import { StyleSheet } from 'react-native';
 
-const BRAND = '#6D7CFF';
+const BRAND = '#263445';
 const TEXT = '#0B1220';
 const BORDER = '#E6E8F0';
 const BG = '#FFFFFF';
@@ -26,7 +26,7 @@ export const styles = StyleSheet.create({
     gap: 12,
     borderBottomWidth: 1,
     borderBottomColor: BORDER,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
   },
   headerSideSlot: {
     width: 40,
@@ -53,9 +53,9 @@ export const styles = StyleSheet.create({
   card: {
     marginHorizontal: 16,
     marginBottom: 16,
-    backgroundColor: '#FFFFFF',
-    padding: 23,
-    borderRadius: 18,
+    backgroundColor: 'transparent',
+    padding: 16,
+    borderRadius: 8,
   },
   cardKeyboardVisible: {
     paddingBottom: 10,
@@ -274,8 +274,8 @@ export const styles = StyleSheet.create({
   primaryText: {
     color: '#FFFFFF',
     fontWeight: '900',
-    fontSize: 12,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
   },
 
   ghost: {
@@ -289,8 +289,8 @@ export const styles = StyleSheet.create({
   ghostText: {
     color: '#FFFFFF',
     fontWeight: '900',
-    fontSize: 12,
-    lineHeight: 20,
+    fontSize: 15,
+    lineHeight: 22,
   },
 
   desc: { marginTop: 8, color: '#556070', fontSize: 13, lineHeight: 19 },

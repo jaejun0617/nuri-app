@@ -16,6 +16,7 @@ import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // 5) “이미지 제거” 의도는 removeRequested 플래그로 관리한다.
 
 import AppTextInput from '../../app/ui/AppTextInput';
+import { SeasonalFormBackground, SeasonalFormPanel } from '../../components/common/SeasonalFormSurface';
 import React, {
   useCallback,
   useContext,
@@ -80,6 +81,7 @@ import {
   formatRecordKoreanDate,
   formatRecordPriceLabel,
   isShoppingRecordCategory,
+  isExpenseRecordCategory,
   parseRecordTags,
   parseRecordPrice,
   RECORD_MAIN_CATEGORIES,
@@ -235,6 +237,7 @@ export default function RecordEditScreen() {
     () => isShoppingRecordCategory(mainCategoryKey, otherSubCategoryKey),
     [mainCategoryKey, otherSubCategoryKey],
   );
+  const isExpenseCategory = isExpenseRecordCategory(mainCategoryKey, otherSubCategoryKey);
   const priceLabel = useMemo(
     () => formatRecordPriceLabel(parseRecordPrice(priceText)),
     [priceText],
@@ -465,7 +468,7 @@ export default function RecordEditScreen() {
     setMainCategoryKey(nextKey);
     if (nextKey !== 'other') {
       setOtherSubCategoryKey(null);
-      setPriceText('');
+      if (nextKey !== 'health') setPriceText('');
     }
   }, []);
 
@@ -474,7 +477,7 @@ export default function RecordEditScreen() {
       setDirty(true);
       setMainCategoryKey('other');
       setOtherSubCategoryKey(nextKey);
-      if (nextKey !== 'shopping') {
+      if (nextKey !== 'shopping' && nextKey !== 'hospital') {
         setPriceText('');
       }
     },
@@ -535,7 +538,7 @@ export default function RecordEditScreen() {
       const occurred = validateRecordOccurredAt(occurredAt);
       const nextContent = content.trim() || null;
       const nextTags = parseRecordTags(tagsText);
-      const nextPrice = isShoppingCategory ? parseRecordPrice(priceText) : null;
+      const nextPrice = isExpenseCategory ? parseRecordPrice(priceText) : null;
 
       await updateMemoryFields({
         memoryId,
@@ -680,7 +683,7 @@ export default function RecordEditScreen() {
     title,
     content,
     occurredAt,
-    isShoppingCategory,
+    isExpenseCategory,
     mainCategoryKey,
     otherSubCategoryKey,
     priceText,
@@ -753,6 +756,7 @@ export default function RecordEditScreen() {
   // ---------------------------------------------------------
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
+      <SeasonalFormBackground />
       <View style={styles.header}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
@@ -794,7 +798,7 @@ export default function RecordEditScreen() {
         keyboardDismissMode="none"
         extraKeyboardSpace={-10}
       >
-        <View
+        <SeasonalFormPanel
           style={[
             styles.card,
             keyboardVisible ? styles.cardKeyboardVisible : null,
@@ -1009,10 +1013,10 @@ export default function RecordEditScreen() {
             </View>
           ) : null}
 
-          {isShoppingCategory ? (
+          {isExpenseCategory ? (
             <>
               <AppText preset="unifiedMeta" style={styles.label}>
-                구매 가격
+                {isShoppingCategory ? '구매 가격 (선택)' : '병원·건강 비용 (선택)'}
               </AppText>
               <AppTextInput
                 style={styles.input}
@@ -1027,7 +1031,7 @@ export default function RecordEditScreen() {
               <AppText preset="unifiedMeta" style={styles.helperText}>
                 {priceLabel
                   ? `저장 예정 금액: ${priceLabel}`
-                  : '숫자만 입력하면 자동으로 원 단위로 저장돼요.'}
+                  : '원 단위로 입력해 주세요. 비워 두면 지출 합계에 포함되지 않아요.'}
               </AppText>
             </>
           ) : null}
@@ -1122,7 +1126,7 @@ export default function RecordEditScreen() {
               취소하기
             </CtaText>
           </CtaButton>
-        </View>
+        </SeasonalFormPanel>
       </KeyboardAwareScrollView>
 
       <PremiumNoticeModal

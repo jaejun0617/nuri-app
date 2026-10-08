@@ -137,6 +137,73 @@ function mockListDependencies() {
 }
 
 describe('community list v3 service adapter contract', () => {
+  it('binds literal title/body search and wraps the unchanged v4 keyset position', async () => {
+    jest.clearAllMocks();
+    mockListDependencies();
+    const position = makeCursor('all', 'all', 30);
+    const envelope = { query: '강아지_%', position };
+    supabase.rpc.mockResolvedValueOnce({
+      data: {
+        items: [postRow()],
+        hasMore: true,
+        nextCursor: envelope,
+        query: envelope.query,
+        filter: 'all',
+        category: 'all',
+        pageSize: 30,
+        cursorVersion: 4,
+      },
+      error: null,
+    });
+    const result = await fetchCommunityPosts({
+      query: ' 강아지_% ',
+      cursor: JSON.stringify(envelope),
+    });
+    expect(supabase.rpc).toHaveBeenCalledWith('community_search_posts_v1', {
+      p_filter: 'all',
+      p_category: 'all',
+      p_limit: 30,
+      p_query: '강아지_%',
+      p_cursor: envelope,
+    });
+    expect(JSON.parse(result.nextCursor!)).toEqual(envelope);
+    expect(supabase.from).not.toHaveBeenCalledWith('posts');
+  });
+
+  it('rejects a cursor from a different query before contacting the server', async () => {
+    jest.clearAllMocks();
+    await expect(
+      fetchCommunityPosts({
+        query: '고양이',
+        cursor: JSON.stringify({
+          query: '강아지',
+          position: makeCursor('all', 'all', 30),
+        }),
+      }),
+    ).rejects.toThrow('community_cursor_invalid');
+    expect(supabase.rpc).not.toHaveBeenCalled();
+  });
+
+  it('rejects a search response or position from a different scope', async () => {
+    jest.clearAllMocks();
+    supabase.rpc.mockResolvedValueOnce({
+      data: {
+        items: [],
+        hasMore: true,
+        query: '강아지',
+        filter: 'all',
+        category: 'all',
+        pageSize: 30,
+        cursorVersion: 4,
+        nextCursor: { query: '고양이', position: makeCursor('all', 'all', 30) },
+      },
+      error: null,
+    });
+    await expect(fetchCommunityPosts({ query: '강아지' })).rejects.toThrow(
+      'community_cursor_invalid',
+    );
+  });
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockListDependencies();
@@ -154,18 +221,21 @@ describe('community list v3 service adapter contract', () => {
     ['popular', 'daily'],
     ['popular', 'free'],
     ['notice', 'all'],
-  ] as const)('%s + %s maps to the v3 RPC contract', async (filter, category) => {
-    mockV3Response(filter, category, 30);
+  ] as const)(
+    '%s + %s maps to the v3 RPC contract',
+    async (filter, category) => {
+      mockV3Response(filter, category, 30);
 
-    await fetchCommunityPosts({ filter, category, limit: 30 });
+      await fetchCommunityPosts({ filter, category, limit: 30 });
 
-    expect(supabase.rpc).toHaveBeenCalledWith('community_list_posts_v3', {
-      p_filter: filter,
-      p_category: category,
-      p_limit: 30,
-      p_cursor: null,
-    });
-  });
+      expect(supabase.rpc).toHaveBeenCalledWith('community_list_posts_v3', {
+        p_filter: filter,
+        p_category: category,
+        p_limit: 30,
+        p_cursor: null,
+      });
+    },
+  );
 
   it('passes an opaque v4 cursor and excludes commentCount from popular ranking', async () => {
     const cursor = makeCursor('popular', 'question', 50);
@@ -195,9 +265,7 @@ describe('community list v3 service adapter contract', () => {
     const cursor = makeCursor('popular', 'info', 100);
 
     expect(decodeCommunityListCursor(JSON.stringify(cursor))).toEqual(cursor);
-    expect(JSON.parse(encodeCommunityListCursor(cursor) ?? '')).toEqual(
-      cursor,
-    );
+    expect(JSON.parse(encodeCommunityListCursor(cursor) ?? '')).toEqual(cursor);
   });
 
   it('rejects filter, category, and page-size cursor mixing before the RPC call', async () => {

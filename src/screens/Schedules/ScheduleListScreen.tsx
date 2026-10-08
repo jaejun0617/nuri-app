@@ -192,6 +192,7 @@ export default function ScheduleListScreen() {
           heroHeight={height}
           season={season}
           decorationMode="reading"
+          showDecorations={false}
         />
       </View>
       <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
@@ -212,6 +213,7 @@ export default function ScheduleListScreen() {
           전체 일정
         </AppText>
         <HeaderIconActionButton
+          preserveOriginal
           role="primary"
           accessibilityLabel="일정 추가"
           onPress={onPressCreate}

@@ -66,7 +66,7 @@ describe('saved schedule hub presentation', () => {
     ).toHaveLength(0);
     expect(original.startsAt).toBe(item.startsAt);
   });
-  it('sorts dates ascending, past descending, and all-day before timed rows', () => {
+  it('sorts all schedules latest first while preserving upcoming chronology', () => {
     const timed = {
       ...item,
       id: 'timed',
@@ -81,10 +81,13 @@ describe('saved schedule hub presentation', () => {
       '2026-10-06',
     );
     expect(all.map(section => section.day)).toEqual([
-      '2026-10-01',
       '2026-10-05',
+      '2026-10-01',
     ]);
-    expect(all[1].data.map(row => row.schedule.id)).toEqual(['qa', 'timed']);
+    expect(all[0].data.map(row => row.schedule.id)).toEqual(['timed', 'qa']);
+    const upcoming = buildScheduleListSections([timed, item, older], 'upcoming', '', '2026-10-01');
+    expect(upcoming.map(section => section.day)).toEqual(['2026-10-01', '2026-10-05']);
+    expect(upcoming[1].data.map(row => row.schedule.id)).toEqual(['qa', 'timed']);
     expect(
       buildScheduleListSections([item, older], 'past', '', '2026-10-06')[0].day,
     ).toBe('2026-10-05');
