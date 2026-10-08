@@ -1,5 +1,11 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-10-09 Approved Community Release
+
+- [최종 전달](nuri-community-approved-release-2026-10-09.md): source `7eafa38` 커밋·푸시, APK `5d48cb86` install-r 완료, 동일 signer/설치 hash/UID/최초 설치 시각/기기 설정 확인.
+- 마지막 전송 위 화살표 포함 200 suites/2,069 tests·타입 PASS. lint 오류 0/기존 경고 7, scoped diff check PASS. 증분 build/install 각 1회, Metro OFF.
+- PO 기존 최종 승인 유지. 이번 별도 native UI QA·DB·cleanup 없음. unrelated dirty 보존, clean Store RC 검증 및 Store 업로드 미실행, STORE HOLD.
+
 <!-- NURI_APPROVED_FREEZE_20261008_BEGIN -->
 ## 2026-10-08 PO 통합 승인 release closeout
 

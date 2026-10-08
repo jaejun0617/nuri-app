@@ -1,0 +1,82 @@
+{
+  "sourceCommit": "7eafa38a69577fa63b9abcfa5c46b725823bafa7",
+  "branch": "codex/task6-community-content-policy",
+  "validation": {
+    "typescript": "PASS",
+    "eslintErrors": 0,
+    "eslintExistingWarnings": 7,
+    "fullSuite": {
+      "suites": 200,
+      "tests": 2069,
+      "passed": true
+    },
+    "scopedDiffCheck": "PASS"
+  },
+  "build": {
+    "count": 1,
+    "exitCode": 0,
+    "duration": "2m34s",
+    "tasks": 1004,
+    "executed": 66,
+    "upToDate": 938
+  },
+  "artifacts": [
+    {
+      "path": "/private/tmp/nuri-community-approved-release-W5PwbM/nuri-7eafa38-approved-release.apk",
+      "sha256": "5d48cb860607819285b1685e4bcbf9f1cd34f1336c411c81f5dc5e673f581368",
+      "bytes": 282090224
+    },
+    {
+      "path": "/private/tmp/nuri-community-approved-release-W5PwbM/nuri-7eafa38-approved-release.aab",
+      "sha256": "6051df8c78f671b5661abb751a9476fca47062c31fdb6fcc0155ad61df33d28b",
+      "bytes": 247446497
+    }
+  ],
+  "install": {
+    "installCount": 1,
+    "result": "Success",
+    "checks": {
+      "installedMatch": true,
+      "settingsPreserved": true,
+      "uidPreserved": true,
+      "firstInstallPreserved": true
+    },
+    "after": {
+      "at": "2026-10-08T19:26:56.667Z",
+      "fields": [
+        "    versionCode=1 minSdk=24 targetSdk=36",
+        "    versionName=1.0",
+        "    lastUpdateTime=2026-10-09 04:26:38",
+        "      firstInstallTime=2026-06-02 19:16:57",
+        "      firstInstallTime=2026-06-02 19:16:57"
+      ],
+      "uid": "package:com.nuri.app uid:10402",
+      "apkSha256": "5d48cb860607819285b1685e4bcbf9f1cd34f1336c411c81f5dc5e673f581368",
+      "width": "Physical size: 1080x2340",
+      "density": "Physical density: 450",
+      "fontScale": "1.0",
+      "navigationMode": "0"
+    }
+  },
+  "preservation": {
+    "checkedFiles": 1814,
+    "modified": [],
+    "missing": [],
+    "protectedChanged": [],
+    "runtimeChanged": []
+  },
+  "runtimeFingerprint": "f8db93c9d7f539460525fe95aa36be48b59cd86be1091f47ff2f929af7acd6cc",
+  "logHashes": {
+    "full-suite.log": "2915928a7216e0e6b48f7b2edc6e08cc7cf229500a59b994cb8f6e2516120db7",
+    "typescript.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "eslint.log": "a5ebc4abbbb175a07f5d02b6cbc45ce624494b92a937602ae2dc4bb71ab6cd50",
+    "build.log": "341ebd82bb9613a7bb7415f5a3b6e73c9315d153f4b1fdc71bd874ca1f8d64ea",
+    "install.log": "781a31c82430c97897af612ece5e0ca2205e301cb5ff121ce2660541ea5182c7",
+    "apk-verification.txt": "fa83b325bd7097ef2d16f3aad06332722875f6b7bdd6fd83dce6b73061d4c7c5"
+  },
+  "metro": "OFF",
+  "appUiActions": 0,
+  "directDbMutation": 0,
+  "cleanup": 0,
+  "store": "HOLD"
+}

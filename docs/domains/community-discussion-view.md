@@ -1,5 +1,7 @@
 # Community Discussion View Contract
 
+최신 배포 상태: PO 최종 승인 후 [Release `5d48cb86` 설치](../qa/nuri-community-approved-release-2026-10-09.md) 완료. source `7eafa38` 커밋·푸시, Metro OFF. 아래 Metro 설치와 후보 설명은 구현 당시 이력이며 기능 계약은 유지한다.
+
 2026-10-09 KST. 구현 후보의 상세/댓글 읽기 계약이다. 최신 JS/서버 상태는 [사진·댓글 보완](../qa/nuri-community-media-comments-2026-10-09.md), 설치 APK는 [Metro 개발 corrective](../qa/nuri-community-live-corrective-2026-10-09.md)다. 이전 승인된 키보드 기준선을 새 route의 native PASS로 확대하지 않는다.
 
 ## 화면과 소유권
