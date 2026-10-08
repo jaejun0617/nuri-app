@@ -12,19 +12,24 @@ import {
   getCommunityReplySectionHeaderLabel,
   getVisibleReplies,
   isCommentByPostAuthor,
-  shouldShowReplyDivider,
 } from '../utils/commentHelpers';
 import {
   COMMENT_ROOT_DIVIDER_COLOR,
+  COMMENT_BUBBLE_SURFACES,
   styles,
 } from '../CommunityDetailScreen.styles';
 import CommentActionRow from './CommentActionRow';
+import ReplyPageControls from './ReplyPageControls';
+import type { DiscussionSession } from '../discussionSession';
 import ReplyCommentItem from './ReplyCommentItem';
 
 const EMPTY_REPLY_IDS: ReadonlyArray<string> = [];
 const EMPTY_COMMENT = null;
 
 type Props = {
+  session?: DiscussionSession;
+  preview?: boolean;
+  previewReplyIds?: ReadonlyArray<string>;
   commentId: string;
   repliesExpanded: boolean;
   activeReplyTargetId: string | null;
@@ -51,6 +56,9 @@ function isBestCommentLikeEligible(
 }
 
 function CommentThreadItemBase({
+  session,
+  preview = false,
+  previewReplyIds = EMPTY_REPLY_IDS,
   commentId,
   repliesExpanded,
   activeReplyTargetId,
@@ -88,8 +96,9 @@ function CommentThreadItemBase({
   }, [comment?.authorAvatarUrl]);
 
   const visibleReplyIds = useMemo(
-    () => getVisibleReplies(replyIds, repliesExpanded),
-    [repliesExpanded, replyIds],
+    () =>
+      getVisibleReplies(preview ? previewReplyIds : replyIds, repliesExpanded),
+    [preview, previewReplyIds, repliesExpanded, replyIds],
   );
   const handleToggleReplies = useCallback(() => {
     onToggleReplies(commentId);
@@ -107,14 +116,7 @@ function CommentThreadItemBase({
       ref={isHighlighted ? onTargetReady : undefined}
       style={[
         styles.commentThreadWrap,
-        isHighlighted ? styles.targetCommentThread : null,
         {
-          backgroundColor: isHighlighted
-            ? `${authorAccentColor}1A`
-            : 'transparent',
-          borderLeftColor: isHighlighted
-            ? authorAccentColor
-            : theme.colors.border,
           borderBottomColor: COMMENT_ROOT_DIVIDER_COLOR,
         },
       ]}
@@ -158,6 +160,7 @@ function CommentThreadItemBase({
           <View style={styles.commentBodyWrap}>
             <Pressable
               accessibilityRole="button"
+              accessibilityState={{ selected: isHighlighted }}
               accessibilityLabel={`댓글 ${comment.authorNickname} 내용에 답글 남기기`}
               style={({ pressed }) => [
                 styles.commentTapContent,
@@ -180,12 +183,18 @@ function CommentThreadItemBase({
                     <View
                       style={[
                         styles.authorBadge,
-                        { backgroundColor: authorAccentColor },
+                        {
+                          backgroundColor: 'transparent',
+                          borderColor: authorAccentColor,
+                        },
                       ]}
                     >
                       <AppText
                         preset="caption"
-                        style={[styles.authorBadgeText, { color: '#FFFFFF' }]}
+                        style={[
+                          styles.authorBadgeText,
+                          { color: authorAccentColor },
+                        ]}
                       >
                         글쓴이
                       </AppText>
@@ -229,7 +238,7 @@ function CommentThreadItemBase({
                 style={[
                   styles.commentBubble,
                   {
-                    backgroundColor: 'transparent',
+                    backgroundColor: COMMENT_BUBBLE_SURFACES[theme.mode],
                     borderColor: 'transparent',
                   },
                 ]}
@@ -238,7 +247,9 @@ function CommentThreadItemBase({
                   preset="body"
                   style={[
                     styles.commentContent,
-                    { color: theme.colors.textPrimary },
+                    {
+                      color: theme.colors.textPrimary,
+                    },
                   ]}
                 >
                   {comment.replyTargetNickname ? (
@@ -265,6 +276,7 @@ function CommentThreadItemBase({
               currentUserId={currentUserId}
               isLikedByMe={comment.isLikedByMe}
               likeCount={comment.likeCount}
+              onPressReply={onPressComment}
               onToggleLike={onToggleLike}
               onPressDelete={onPressDelete}
               onPressReport={onPressReport}
@@ -274,11 +286,16 @@ function CommentThreadItemBase({
         {activeReplyTargetId === comment.id ? inlineComposer : null}
       </View>
 
-      {replyIds.length > 0 ? (
+      {(
+        preview
+          ? previewReplyIds.length > 0
+          : comment.replyCount > 0 || replyIds.length > 0
+      ) ? (
         <View style={styles.replyListWrap}>
           <TouchableOpacity
             accessibilityRole="button"
-            accessibilityLabel={`답글 ${replyIds.length}, ${
+            accessibilityState={{ expanded: repliesExpanded }}
+            accessibilityLabel={`답글 ${comment.replyCount}, ${
               repliesExpanded ? '접기' : '펼치기'
             }`}
             activeOpacity={0.88}
@@ -293,7 +310,7 @@ function CommentThreadItemBase({
                 { color: theme.colors.textSecondary },
               ]}
             >
-              {getCommunityReplySectionHeaderLabel(replyIds.length)}
+              {getCommunityReplySectionHeaderLabel(comment.replyCount)}
             </AppText>
             <Feather
               name={repliesExpanded ? 'chevron-up' : 'chevron-down'}
@@ -301,8 +318,15 @@ function CommentThreadItemBase({
               color={theme.colors.textSecondary}
             />
           </TouchableOpacity>
+          {session && repliesExpanded && !preview ? (
+            <ReplyPageControls
+              session={session}
+              rootId={commentId}
+              edge="before"
+            />
+          ) : null}
           {repliesExpanded
-            ? visibleReplyIds.map((replyId, replyIndex) => (
+            ? visibleReplyIds.map(replyId => (
                 <React.Fragment key={replyId}>
                   <ReplyCommentItem
                     replyId={replyId}
@@ -320,15 +344,16 @@ function CommentThreadItemBase({
                     onPressDelete={onPressDelete}
                     onPressReport={onPressReport}
                   />
-                  {shouldShowReplyDivider(
-                    replyIndex,
-                    visibleReplyIds.length,
-                  ) ? (
-                    <View style={styles.replyDivider} />
-                  ) : null}
                 </React.Fragment>
               ))
             : null}
+          {session && repliesExpanded && !preview ? (
+            <ReplyPageControls
+              session={session}
+              rootId={commentId}
+              edge="after"
+            />
+          ) : null}
         </View>
       ) : null}
     </View>

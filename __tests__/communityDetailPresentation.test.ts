@@ -3,7 +3,7 @@ import { StyleSheet } from 'react-native';
 import { styles } from '../src/screens/Community/CommunityDetailScreen.styles';
 
 describe('community detail title presentation', () => {
-  it('centers the input and keeps small action faces inside 44dp touch targets', () => {
+  it('centers the input and keeps small action faces inside 48dp touch targets', () => {
     expect(styles.commentComposer.alignItems).toBe('center');
     expect(styles.commentInput).toMatchObject({
       textAlignVertical: 'center',
@@ -11,34 +11,36 @@ describe('community detail title presentation', () => {
       minHeight: 44,
     });
     expect(styles.commentActionTouchTarget).toMatchObject({
-      minHeight: 44,
-      minWidth: 44,
+      minHeight: 48,
+      minWidth: 48,
     });
     expect(styles.commentActionFace).toMatchObject({
-      paddingHorizontal: 10,
-      paddingVertical: 4,
-      borderRadius: 6,
+      paddingHorizontal: 4,
+      paddingVertical: 0,
     });
+    expect(styles.commentActionFace).not.toHaveProperty('borderWidth');
+    expect(styles.commentActionFace).not.toHaveProperty('borderRadius');
     expect(styles.moreButton).toMatchObject({ width: 44, height: 44 });
     expect(styles.moreButton).not.toHaveProperty('borderWidth');
   });
-  it('keeps the category inline while allowing the title to consume remaining width', () => {
+  it('separates the compact category from a wrapping full-width title', () => {
     expect(StyleSheet.flatten(styles.postTitleRow)).toMatchObject({
-      flexDirection: 'row',
+      flexDirection: 'column',
       alignItems: 'flex-start',
       gap: 8,
     });
     expect(StyleSheet.flatten(styles.categoryBadge)).toMatchObject({
-      minHeight: 24,
-      paddingHorizontal: 8,
+      minHeight: 20,
+      paddingHorizontal: 6,
       flexShrink: 0,
     });
     expect(StyleSheet.flatten(styles.postTitle)).toMatchObject({
-      flex: 1,
+      alignSelf: 'stretch',
+      flexShrink: 1,
       minWidth: 0,
-      fontSize: 16,
-      lineHeight: 22,
-      fontWeight: '600',
+      fontSize: 20,
+      lineHeight: 28,
+      fontWeight: '700',
     });
   });
 
@@ -48,6 +50,24 @@ describe('community detail title presentation', () => {
       lineHeight: 16,
       fontWeight: '600',
     });
+  });
+  it('keeps the compact post count below its divider with a full touch target', () => {
+    expect(styles.commentsHeader.alignItems).toBe('center');
+    expect(styles.commentsHeader.borderTopWidth).toBe(1);
+    expect(styles.commentsHeader).not.toHaveProperty('borderBottomWidth');
+    expect(styles.commentsTitleRow.minHeight).toBe(48);
+    expect(styles.commentsTitleRow).not.toHaveProperty('flexWrap');
+    expect(styles.commentsTitleRow).toMatchObject({ flex: 1, minWidth: 0 });
+    expect(styles.commentSortLabel.minHeight).toBe(48);
+    for (const text of [styles.commentsTitle, styles.commentsCount]) {
+      expect(text).toMatchObject({
+        fontSize: 14,
+        lineHeight: 22,
+        includeFontPadding: false,
+        textAlignVertical: 'center',
+      });
+    }
+    expect(styles.commentSortText.lineHeight).toBe(26);
   });
 
   it('keeps the inline composer compact and the post author metadata essential', () => {

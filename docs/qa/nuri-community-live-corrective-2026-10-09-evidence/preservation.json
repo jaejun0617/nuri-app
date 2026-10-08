@@ -1,0 +1,42 @@
+{
+  "missing": [],
+  "changed": [
+    "__tests__/communityCreatePresentation.test.tsx",
+    "__tests__/communityReadPresentation.test.tsx",
+    "docs/domains/community-discussion-view.md",
+    "docs/qa/nuri-community-create-redesign-2026-10-09.md",
+    "src/screens/Community/CommunityDiscussionContent.tsx",
+    "src/screens/Community/components/CommunityCreateForm.styles.ts",
+    "src/screens/Community/components/CommunityCreateForm.tsx",
+    "src/screens/Community/components/ReplyPageControls.tsx",
+    "__tests__/communityCommentCorrective.test.tsx",
+    "__tests__/communityCreateKeyboard.test.tsx",
+    "__tests__/communityDetailStore.test.ts",
+    "__tests__/communitySeasonalList.test.tsx",
+    "docs/project-memory/다음-작업-우선순위.md",
+    "docs/project-memory/최근-작업-로그.md",
+    "docs/project-memory/핵심-결정사항.md",
+    "docs/project-memory/현재-프로젝트-상태.md",
+    "docs/qa/release-checklist.md",
+    "docs/sql/커뮤니티/커뮤니티-운영-최종.sql",
+    "docs/리서치/리서치.md",
+    "src/screens/Community/CommunityCreateScreen.tsx",
+    "src/screens/Community/CommunityListScreen.tsx",
+    "src/screens/Community/components/CommentThreadItem.tsx",
+    "src/screens/Community/components/CommunityCommentComposer.tsx",
+    "src/screens/Community/components/CommunityPostListItem.tsx",
+    "src/screens/Community/components/ReplyCommentItem.tsx",
+    "src/store/communityStore.ts"
+  ],
+  "headUnchanged": true,
+  "branchUnchanged": true,
+  "stagedUnchanged": true,
+  "protected": {
+    "changed": [],
+    "requiredArtifactLoss": 0
+  },
+  "currentAppChangesAfterBuild": [],
+  "cleanup": 0,
+  "commit": false,
+  "push": false
+}

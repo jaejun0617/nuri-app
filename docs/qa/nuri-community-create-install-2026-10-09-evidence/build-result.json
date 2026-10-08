@@ -1,0 +1,21 @@
+{
+  "startedAt": "2026-10-08T17:14:21.842Z",
+  "endedAt": "2026-10-08T17:17:34.693Z",
+  "code": 0,
+  "buildCount": 1,
+  "head": "e49356c14f731599d0a428c52fff368aa997ce18",
+  "artifacts": {
+    "apk": {
+      "path": "/private/tmp/nuri-community-create-install-buVMQaDd/nuri-community-create-release.apk",
+      "sha256": "5c9f9cca22cb4bcd7d0fe536e403efe23556cf6196def7604571b7b0a86f5758",
+      "bytes": 282084200
+    },
+    "aab": {
+      "path": "/private/tmp/nuri-community-create-install-buVMQaDd/nuri-community-create-release.aab",
+      "sha256": "4c9415bd85da57d4d5a2c2e8bb6688b2bc797edd510983c36cf52c22324234cc",
+      "bytes": 247442412
+    }
+  },
+  "verifierCode": 0,
+  "sourceChangedDuringBuild": []
+}

@@ -20,7 +20,7 @@ const MAX_PAGE = 1000;
 
 export type CommunityRouteSnapshotRoute =
   | { name: 'list' }
-  | { name: 'detail'; postId: string; commentId?: string };
+  | { name: 'detail' | 'comments'; postId: string; commentId?: string };
 
 export type CommunityRouteListSnapshot = {
   searchQuery?: string;
@@ -198,11 +198,11 @@ export function parseCommunityRouteStateSnapshot(
   if (value.route.name === 'list') {
     route = { name: 'list' };
   } else if (
-    value.route.name === 'detail' &&
+    (value.route.name === 'detail' || value.route.name === 'comments') &&
     isNonEmptyString(value.route.postId, MAX_ID_LENGTH)
   ) {
     route = {
-      name: 'detail',
+      name: value.route.name,
       postId: value.route.postId,
       ...(isNonEmptyString(value.route.commentId, MAX_ID_LENGTH)
         ? { commentId: value.route.commentId }
@@ -236,11 +236,11 @@ export function createCommunityRouteStateSnapshot(input: {
   const routeParams = isRecord(input.route.params) ? input.route.params : null;
 
   const route: CommunityRouteSnapshotRoute | null =
-    routeName === 'CommunityDetail' &&
+    (routeName === 'CommunityDetail' || routeName === 'CommunityComments') &&
     routeParams &&
     isNonEmptyString(routeParams.postId, MAX_ID_LENGTH)
       ? {
-          name: 'detail',
+          name: routeName === 'CommunityComments' ? 'comments' : 'detail',
           postId: routeParams.postId,
           ...(isNonEmptyString(routeParams.commentId, MAX_ID_LENGTH)
             ? { commentId: routeParams.commentId }

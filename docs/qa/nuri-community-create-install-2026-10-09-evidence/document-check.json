@@ -1,0 +1,8 @@
+{
+  "at": "2026-10-08T17:21:13.064Z",
+  "issues": [],
+  "scopedDiffExit": 0,
+  "scopedOutput": "",
+  "wholeTreeDiffExit": 2,
+  "priorUnrelatedWarnings": "docs/qa/nuri-glass-expenses-2026-10-08-evidence/eslint.log:34: new blank line at EOF.\nsupabase/migrations/20261007074134_community_search_and_write_error_contract.sql:298: new blank line at EOF.\n"
+}

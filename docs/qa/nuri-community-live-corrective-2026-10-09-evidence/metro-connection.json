@@ -1,0 +1,23 @@
+{
+  "at": "2026-10-08T18:23:34.854Z",
+  "metroStatus": "packager-status:running",
+  "targets": [
+    {
+      "appId": "com.nuri.app",
+      "title": "com.nuri.app (samsung SM-S937N)",
+      "deviceName": "SM-S937N - 16 - API 36"
+    }
+  ],
+  "reverse": "UsbFfs tcp:8081 tcp:8081",
+  "fastRefresh": {
+    "at": "2026-10-08T18:18:45.933Z",
+    "preferenceReadable": false,
+    "fileAbsent": true,
+    "storedFastRefresh": null,
+    "defaultFastRefresh": true,
+    "effectiveFastRefresh": true
+  },
+  "deviceControl": "PO",
+  "nativeUxQa": "NOT_RUN_PO_DIRECT_PENDING",
+  "launchPurpose": "METRO_CONNECTION_ONLY"
+}

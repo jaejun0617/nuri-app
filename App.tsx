@@ -78,7 +78,7 @@ function App() {
       currentRouteName === 'CommunityTab' ||
       currentRouteName === 'CommunityTabList' ||
       currentRouteName === 'CommunityList' ||
-      currentRouteName === 'CommunityDetail';
+      currentRouteName === 'CommunityDetail' || currentRouteName === 'CommunityComments';
 
     if (!userId || !isCommunityRoute || !currentRoute) {
       if (!communitySnapshotExistsRef.current) return;

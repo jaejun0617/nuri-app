@@ -18,6 +18,8 @@ export const lightColors = {
   textPrimary: '#0B1220',
   textSecondary: '#556070',
   textMuted: '#8A94A6',
+  // Post-list rows retain a light surface even under the current dark theme.
+  communityReadTitle: '#7E22CE',
 
   overlay: 'rgba(0,0,0,0.35)',
 } as const;
@@ -32,6 +34,7 @@ export const darkColors = {
   textPrimary: '#FFFFFF',
   textSecondary: '#C7D2E3',
   textMuted: '#AAB4C4',
+  communityReadTitle: '#7E22CE',
 
   overlay: 'rgba(0,0,0,0.55)',
 } as const;

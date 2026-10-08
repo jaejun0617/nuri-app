@@ -221,7 +221,12 @@ function clearCommunityDetailState(
   });
 
   return {
-    posts: prev.posts.filter(post => post.id !== postId),
+    // A detail refresh invalidates protected detail data, not list membership.
+    // Keep the last eligible list snapshot during loading/transport failures.
+    posts:
+      status === 'loading' || status === 'error'
+        ? prev.posts
+        : prev.posts.filter(post => post.id !== postId),
     postsById: nextPostsById,
     commentsByPostId: nextCommentsByPostId,
     latestCommentByPostId: nextLatestCommentByPostId,
@@ -907,6 +912,11 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
           post.status === 'banned'
         ) {
           nextStatus = 'moderated';
+        }
+
+        if (nextStatus !== 'ready') {
+          set(prev => clearCommunityDetailState(prev, postId, nextStatus));
+          return;
         }
 
         set(prev => ({

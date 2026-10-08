@@ -1,0 +1,62 @@
+{
+  "capturedAt": "2026-10-08T13:23:50.425Z",
+  "baselineFileCount": 1723,
+  "branch": "codex/task6-community-content-policy",
+  "head": "e49356c14f731599d0a428c52fff368aa997ce18",
+  "origin": "e49356c14f731599d0a428c52fff368aa997ce18",
+  "staged": "NONE",
+  "branchUnchanged": true,
+  "headUnchanged": true,
+  "originUnchanged": true,
+  "stagedUnchanged": true,
+  "changedBaselineFiles": [
+    "__tests__/moreAccountDeleteConfirmDialog.test.tsx",
+    "docs/project-memory/다음-작업-우선순위.md",
+    "docs/project-memory/최근-작업-로그.md",
+    "docs/project-memory/핵심-결정사항.md",
+    "docs/project-memory/현재-프로젝트-상태.md",
+    "docs/qa/release-checklist.md",
+    "docs/리서치/리서치.md",
+    "src/screens/More/MoreDrawerContent.tsx"
+  ],
+  "missingFiles": [],
+  "unexpectedChanges": [],
+  "unexpectedNewFiles": [],
+  "unrelatedDirtyHashChanges": 0,
+  "preexistingDocumentationBodyChanges": [],
+  "protectedInputMismatch": [],
+  "runtimeSourceChangesAfterBuild": [],
+  "appSourceFiles": [
+    "src/screens/More/MoreDrawerContent.tsx",
+    "src/components/MoreDrawer/MoreMenuPresentation.tsx",
+    "src/components/MoreDrawer/moreMenuVisualTokens.ts"
+  ],
+  "testFiles": [
+    "__tests__/moreAccountDeleteConfirmDialog.test.tsx",
+    "__tests__/moreMenuPresentation.test.tsx"
+  ],
+  "documentationFiles": [
+    "docs/qa/nuri-more-menu-redesign-2026-10-08.md",
+    "docs/project-memory/현재-프로젝트-상태.md",
+    "docs/project-memory/핵심-결정사항.md",
+    "docs/project-memory/다음-작업-우선순위.md",
+    "docs/project-memory/최근-작업-로그.md",
+    "docs/qa/release-checklist.md",
+    "docs/리서치/리서치.md"
+  ],
+  "installedMatch": true,
+  "installIdentityAndSettingsPreserved": true,
+  "sourceEditsOutsideMore": 0,
+  "nativeChanges": 0,
+  "dbActions": 0,
+  "screenControlActions": 0,
+  "dataSubmissionActions": 0,
+  "cleanupActions": 0,
+  "commitActions": 0,
+  "pushActions": 0,
+  "authAndPet": "NO_ACTION_TO_CHANGE_STATE; POST_INSTALL_VISUAL_REVIEW_BY_PO",
+  "previousArtifacts": "HASH_MATCH",
+  "uiVerification": "PO_DIRECT_PENDING",
+  "store": "HOLD",
+  "result": "PASS"
+}

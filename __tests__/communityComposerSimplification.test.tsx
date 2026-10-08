@@ -10,6 +10,11 @@ import {
 } from '../src/screens/Community/communityPostSubmit.shared';
 import { resolveComposerFocusOffset } from '../src/services/forms/composerFocus';
 import type { CommunityPost } from '../src/types/community';
+import {
+  enqueueCommunityImageCleanup,
+  uploadCommunityImage,
+} from '../src/services/supabase/storageCommunity';
+import { buildCommunityRegularPostUpdatePatch } from '../src/services/supabase/community';
 
 jest.mock('../src/services/supabase/storageCommunity', () => ({
   deleteCommunityImageSafely: jest.fn().mockResolvedValue(undefined),
@@ -116,7 +121,10 @@ describe('Community composer simplification', () => {
     });
 
     expect(editPost).toHaveBeenCalledTimes(1);
-    const [, patch] = editPost.mock.calls[0] as [string, Record<string, unknown>];
+    const [, patch] = editPost.mock.calls[0] as [
+      string,
+      Record<string, unknown>,
+    ];
     expect(patch).toEqual(
       expect.objectContaining({
         title: '수정 제목',
@@ -134,5 +142,83 @@ describe('Community composer simplification', () => {
     expect(resolveComposerFocusOffset(8)).toBe(0);
     expect(resolveComposerFocusOffset(Number.NaN)).toBe(0);
     expect(resolveComposerFocusOffset(200, Number.POSITIVE_INFINITY)).toBe(0);
+  });
+
+  it('uploads all five images in order and preserves the existing text/moderation write path', async () => {
+    const post = { id: 'five-photo-post' } as CommunityPost;
+    const pickedImages = Array.from({ length: 5 }, (_, index) => ({
+      uri: `file:///photo-${index}.jpg`,
+      mimeType: 'image/jpeg',
+      fileName: null,
+    }));
+    jest
+      .mocked(uploadCommunityImage)
+      .mockImplementation(
+        async ({ fileUri }) => `uploaded/${fileUri.split('/').pop()}`,
+      );
+    const submitPost = jest.fn().mockResolvedValue(post);
+    const editPost = jest.fn().mockResolvedValue(undefined);
+    const onImageUploadWarning = jest.fn();
+    await runCommunityCreateSubmitFlow({
+      userId: 'qa-user',
+      title: '제목',
+      content: '본문',
+      category: 'question',
+      petId: null,
+      petSnapshot: null,
+      pickedImages,
+      submitPost,
+      editPost,
+      onImageUploadWarning,
+    });
+    expect(submitPost).toHaveBeenCalledTimes(1);
+    expect(uploadCommunityImage).toHaveBeenCalledTimes(5);
+    expect(editPost).toHaveBeenCalledWith(post.id, {
+      imagePath: 'uploaded/photo-0.jpg',
+      imagePaths: pickedImages.map((_, index) => `uploaded/photo-${index}.jpg`),
+    });
+    expect(onImageUploadWarning).not.toHaveBeenCalled();
+    const patch = buildCommunityRegularPostUpdatePatch(
+      editPost.mock.calls[0][1],
+    );
+    expect(patch.image_urls).toHaveLength(5);
+    // A text-only edit must not collapse the historical image_urls array.
+    expect(
+      buildCommunityRegularPostUpdatePatch({
+        title: '수정 제목',
+        content: '수정 본문',
+      }),
+    ).not.toHaveProperty('image_urls');
+  });
+
+  it('keeps existing cleanup and warning behavior when the fifth image upload fails', async () => {
+    const pickedImages = Array.from({ length: 5 }, (_, index) => ({
+      uri: `file:///photo-${index}.jpg`,
+      mimeType: 'image/jpeg',
+      fileName: null,
+    }));
+    jest
+      .mocked(uploadCommunityImage)
+      .mockImplementation(async ({ fileUri }) => {
+        if (fileUri.endsWith('4.jpg')) throw new Error('upload failed');
+        return `uploaded/${fileUri.split('/').pop()}`;
+      });
+    const editPost = jest.fn();
+    const onImageUploadWarning = jest.fn();
+    await runCommunityCreateSubmitFlow({
+      userId: 'qa-user',
+      title: '제목',
+      content: '본문',
+      category: 'free',
+      petId: null,
+      petSnapshot: null,
+      pickedImages,
+      submitPost: jest.fn().mockResolvedValue({ id: 'post' }),
+      editPost,
+      onImageUploadWarning,
+    });
+    expect(enqueueCommunityImageCleanup).toHaveBeenCalledTimes(4);
+    expect(editPost).not.toHaveBeenCalled();
+    expect(onImageUploadWarning).toHaveBeenCalledWith(expect.any(Error));
   });
 });

@@ -1,0 +1,94 @@
+{
+  "recordedAt": "2026-10-08T15:51:55.526Z",
+  "node": "v24.20.0",
+  "typescript": {
+    "startedAt": "2026-10-08T15:37:16.548Z",
+    "endedAt": "2026-10-08T15:37:25.647Z",
+    "code": 0,
+    "signal": null,
+    "command": [
+      "/Users/shinjaejun/.nvm/versions/node/v24.20.0/bin/node",
+      "node_modules/typescript/bin/tsc",
+      "--noEmit"
+    ]
+  },
+  "eslint": {
+    "files": 25,
+    "errors": 0,
+    "warnings": 1,
+    "messages": [
+      {
+        "file": "src/screens/Notifications/UserNotificationsScreen.tsx",
+        "messages": [
+          {
+            "ruleId": "@typescript-eslint/no-shadow",
+            "severity": 1,
+            "message": "'NotificationSwipeItem' is already declared in the upper scope on line 101 column 7.",
+            "line": 101,
+            "column": 51,
+            "nodeType": "Identifier",
+            "messageId": "noShadow",
+            "endLine": 101,
+            "endColumn": 72
+          }
+        ]
+      }
+    ]
+  },
+  "targeted": {
+    "startedAt": "2026-10-08T15:29:54.111Z",
+    "endedAt": "2026-10-08T15:30:01.395Z",
+    "code": 0,
+    "signal": null,
+    "command": [
+      "/Users/shinjaejun/.nvm/versions/node/v24.20.0/bin/node",
+      "node_modules/jest/bin/jest.js",
+      "--runInBand",
+      "--watchAll=false",
+      "--watchman=false",
+      "__tests__/communityDiscussionRead.test.ts",
+      "__tests__/communityDiscussionSession.test.ts",
+      "__tests__/communityKeyboardInteraction.test.tsx",
+      "__tests__/communityCommentCorrective.test.tsx",
+      "__tests__/communityDetailPresentation.test.ts",
+      "__tests__/communityCommentPresentation.test.ts",
+      "__tests__/communityRouteState.test.ts",
+      "__tests__/communityDetailStore.test.ts"
+    ],
+    "passedSuites": 8,
+    "passedTests": 80,
+    "scope": "Targeted run before final full-suite; not additive to full count"
+  },
+  "fullSuite": {
+    "startedAt": "2026-10-08T15:37:17.708Z",
+    "endedAt": "2026-10-08T15:37:51.304Z",
+    "code": 0,
+    "signal": null,
+    "command": [
+      "/Users/shinjaejun/.nvm/versions/node/v24.20.0/bin/node",
+      "node_modules/jest/bin/jest.js",
+      "--runInBand",
+      "--watchAll=false",
+      "--watchman=false",
+      "--json",
+      "--outputFile=/private/tmp/nuri-community-comments-20261009-002026/full-suite-result.json"
+    ],
+    "success": true,
+    "passedSuites": 195,
+    "passedTests": 1996,
+    "failedSuites": 0,
+    "failedTests": 0,
+    "runCount": 2,
+    "previousRunExitCode": 0
+  },
+  "diffCheck": {
+    "scopedExitCode": 0,
+    "scopedOutput": "",
+    "ownFileTrailingWhitespace": [],
+    "globalExitCode": 2,
+    "globalOutput": "docs/qa/nuri-glass-expenses-2026-10-08-evidence/eslint.log:34: new blank line at EOF.\nsupabase/migrations/20261007074134_community_search_and_write_error_contract.sql:298: new blank line at EOF.\n",
+    "globalStatus": "Existing unrelated EOF whitespace warnings preserved"
+  },
+  "nativeScreenQA": "NOT_RUN_PO_DIRECT",
+  "largeThreadPerformance": "NOT_MEASURED"
+}

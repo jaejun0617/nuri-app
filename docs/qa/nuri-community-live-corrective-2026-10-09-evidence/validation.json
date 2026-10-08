@@ -1,0 +1,52 @@
+{
+  "typescript": {
+    "name": "typescript-final",
+    "startedAt": "2026-10-08T18:19:26.698Z",
+    "endedAt": "2026-10-08T18:19:36.965Z",
+    "code": 0
+  },
+  "eslint": {
+    "name": "eslint-final",
+    "startedAt": "2026-10-08T18:10:50.558Z",
+    "endedAt": "2026-10-08T18:10:52.587Z",
+    "code": 0
+  },
+  "targeted": {
+    "name": "targeted-final",
+    "startedAt": "2026-10-08T18:08:37.660Z",
+    "endedAt": "2026-10-08T18:08:42.006Z",
+    "code": 0,
+    "suites": 11,
+    "tests": 150
+  },
+  "fullSuite": {
+    "name": "full-suite",
+    "startedAt": "2026-10-08T18:09:26.575Z",
+    "endedAt": "2026-10-08T18:09:53.801Z",
+    "code": 0,
+    "suites": 199,
+    "tests": 2039,
+    "runs": 1
+  },
+  "lateApprovedServerPolicy": {
+    "test": {
+      "name": "upload-policy-final",
+      "startedAt": "2026-10-08T18:19:00.303Z",
+      "endedAt": "2026-10-08T18:19:02.837Z",
+      "code": 0,
+      "suites": 1,
+      "tests": 2
+    },
+    "lint": {
+      "name": "upload-policy-eslint",
+      "startedAt": "2026-10-08T18:18:46.031Z",
+      "endedAt": "2026-10-08T18:18:47.872Z",
+      "code": 0
+    },
+    "appSourceChangedAfterBuild": 0,
+    "fullSuiteRepeated": false
+  },
+  "scopedDiffCheck": "PASS",
+  "wholeTreeDiffCheck": "PREEXISTING_UNRELATED_WHITESPACE_2_FILES",
+  "rawEvidenceRoot": "/private/tmp/nuri-community-live-YJWoCz"
+}

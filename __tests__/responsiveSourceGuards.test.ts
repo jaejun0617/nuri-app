@@ -38,7 +38,7 @@ describe('responsive source guards', () => {
 
   it('keeps the Community comment composer compact without shrinking its touch target', () => {
     const screen = readProjectFile(
-      'src/screens/Community/CommunityDetailScreen.tsx',
+      'src/screens/Community/CommunityDiscussionContent.tsx',
     );
     const styles = readProjectFile(
       'src/screens/Community/CommunityDetailScreen.styles.ts',

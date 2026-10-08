@@ -1,0 +1,49 @@
+{
+  "capturedAt": "2026-10-08T13:23:50.468Z",
+  "evidenceRoot": "/private/tmp/nuri-more-menu-redesign-20261008T125732",
+  "artifactPolicy": "APK_AAB_NOT_COPIED_TO_REPOSITORY",
+  "files": [
+    {
+      "name": "behavior-preservation.json",
+      "bytes": 3526,
+      "sha256": "188fe837e31e96e15d47f79796fa36e69f6766caaaccb564ea44a98a3d7edf22"
+    },
+    {
+      "name": "build-result.json",
+      "bytes": 653,
+      "sha256": "6c85dccbc8286d24563cf38c4a96d8260d4a130506b6c1deeab93a55819c6d39"
+    },
+    {
+      "name": "device-after.json",
+      "bytes": 542,
+      "sha256": "9d4c69cbfab6b27dba74bc5ef710188a235f94fd319784e9eb28fecc6d29b933"
+    },
+    {
+      "name": "device-before.json",
+      "bytes": 666,
+      "sha256": "f378a12f02b0eac592864891dcee6a633a3d5e8c45f06d68a8b23c39d4b50111"
+    },
+    {
+      "name": "install-result.json",
+      "bytes": 205,
+      "sha256": "163fbced9eaa4bd1b4f06f52107f18ae16914f88948f2461aee7bed9f76d0f32"
+    },
+    {
+      "name": "preservation.json",
+      "bytes": 2158,
+      "sha256": "ea4b7886c2dd1d7ca62654cf01d08c906b3e5903bffbd8589379375f7b7e163f"
+    },
+    {
+      "name": "validation.json",
+      "bytes": 5608,
+      "sha256": "3b20754d069d19992725ec620b0e203813fc92871010d9f085effb34016403a7"
+    }
+  ],
+  "sourceFiles": {
+    "src/screens/More/MoreDrawerContent.tsx": "f4eaa3c1a1e6ce6c1f06a2943de06dfb7fc4564b2df1d6610666d7b13c45d7cc",
+    "src/components/MoreDrawer/MoreMenuPresentation.tsx": "a1598aeb1012e36546a477db9aa9bb5e4861b03e6fb415be253cbf9f76faf02d",
+    "src/components/MoreDrawer/moreMenuVisualTokens.ts": "efb0845c4bb7c41badc4a16ccd76bd672e9a5ac36f04f0121952566ea29d8406",
+    "__tests__/moreAccountDeleteConfirmDialog.test.tsx": "968f1bb80cdcf4c1cdc1c46939842030188927eacbfc26fd1a5ccf84bf401288",
+    "__tests__/moreMenuPresentation.test.tsx": "3fb5e6bea15e3d2756f50cf426ff6e0a835bb1fc57dfe136a3fdfef4beddc13c"
+  }
+}

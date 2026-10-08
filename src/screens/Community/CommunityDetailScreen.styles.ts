@@ -4,11 +4,33 @@ import { typography } from '../../app/theme/tokens/typography';
 export const DETAIL_DIVIDER_COLOR = '#00000008';
 // Community comment separators use a neutral, low-contrast black so their
 // structure remains legible without changing the shared detail separators.
-export const COMMENT_ROOT_DIVIDER_COLOR = 'rgba(0, 0, 0, 0.20)';
-export const COMMENT_REPLY_DIVIDER_COLOR = 'rgba(0, 0, 0, 0.12)';
+export const COMMENT_ROOT_DIVIDER_COLOR = 'rgba(0, 0, 0, 0.08)';
+export const COMMENT_REPLY_DIVIDER_COLOR = 'rgba(0, 0, 0, 0.04)';
 export const COMMENT_REPLY_DIVIDER_WIDTH = 1;
+export const COMMENT_BUBBLE_SURFACES = {
+  light: '#F4F4F5',
+  dark: '#27272A',
+} as const;
+
+const DISCUSSION_BODY_TYPOGRAPHY = {
+  ...typography.role.body,
+  lineHeight: 25,
+};
 
 export const styles = StyleSheet.create({
+  bodyButton: {
+    minHeight: 48,
+    paddingHorizontal: 4,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  readRetry: {
+    minHeight: 48,
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+    justifyContent: 'center',
+    gap: 4,
+  },
   screen: {
     flex: 1,
   },
@@ -80,7 +102,7 @@ export const styles = StyleSheet.create({
     gap: 16,
   },
   postTitleRow: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'flex-start',
     gap: 8,
   },
@@ -96,7 +118,7 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   authorName: {
-    ...typography.role.body,
+    ...DISCUSSION_BODY_TYPOGRAPHY,
     fontWeight: '700',
   },
   petNameLine: {
@@ -107,9 +129,10 @@ export const styles = StyleSheet.create({
     ...typography.role.helper,
   },
   categoryBadge: {
-    minHeight: 24,
-    borderRadius: 999,
-    paddingHorizontal: 8,
+    minHeight: 20,
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -129,23 +152,23 @@ export const styles = StyleSheet.create({
   },
   postTitle: {
     ...typography.role.titleLg,
-    flex: 1,
+    alignSelf: 'stretch',
+    flexShrink: 1,
     minWidth: 0,
-    fontSize: 16,
-    lineHeight: 22,
-    fontWeight: '600',
+    fontSize: 20,
+    lineHeight: 28,
+    fontWeight: '700',
   },
   mediaSection: {
     marginTop: 4,
     marginBottom: 6,
   },
   postContent: {
-    ...typography.role.body,
+    ...DISCUSSION_BODY_TYPOGRAPHY,
   },
   postContentSection: {
     borderTopWidth: 1,
-    minHeight: 220,
-    paddingTop: 20,
+    paddingTop: 12,
     paddingBottom: 8,
   },
   postImage: {
@@ -209,29 +232,52 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: DETAIL_DIVIDER_COLOR,
+    borderTopWidth: 1,
+    borderTopColor: DETAIL_DIVIDER_COLOR,
     marginBottom: 8,
   },
+  commentsSortHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    minHeight: 48,
+    paddingBottom: 2,
+  },
   commentsTitle: {
-    ...typography.role.titleSm,
-    fontWeight: '800',
+    ...typography.role.bodySm,
+    fontWeight: '600',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    flexShrink: 1,
   },
   commentsTitleRow: {
+    minHeight: 48,
+    flex: 1,
+    minWidth: 0,
+    marginRight: 8,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
   },
   commentsCount: {
-    ...typography.role.titleSm,
-    fontWeight: '800',
+    ...typography.role.bodySm,
+    fontWeight: '600',
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   commentSortLabel: {
-    minHeight: 44,
+    minHeight: 48,
     paddingHorizontal: 4,
+    paddingVertical: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
+  },
+  commentSortText: {
+    ...typography.role.caption,
+    lineHeight: typography.role.titleSm.lineHeight,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   commentSortOptions: {
     gap: 8,
@@ -267,17 +313,15 @@ export const styles = StyleSheet.create({
     // comment viewport edge without a compensating margin patch.
     paddingHorizontal: 0,
     paddingVertical: 0,
-    marginBottom: 0,
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    marginBottom: 8,
+    borderBottomWidth: 0,
     borderBottomColor: DETAIL_DIVIDER_COLOR,
     borderRadius: 0,
   },
   commentRootContent: {
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-  },
-  targetCommentThread: {
-    borderLeftWidth: 3,
+    paddingHorizontal: 20,
+    paddingTop: 6,
+    paddingBottom: 2,
   },
   commentRow: {
     flexDirection: 'row',
@@ -288,6 +332,7 @@ export const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   commentTapContent: {
+    minHeight: 48,
     alignSelf: 'stretch',
     minWidth: 0,
   },
@@ -295,19 +340,18 @@ export const styles = StyleSheet.create({
     opacity: 0.76,
   },
   commentAvatar: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     borderWidth: 1,
-    // Optically center the avatar against the nickname/meta line, not the body.
-    marginTop: -2,
+    marginTop: 0,
   },
   commentAvatarFallback: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     borderWidth: 1,
-    marginTop: -2,
+    marginTop: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -328,11 +372,14 @@ export const styles = StyleSheet.create({
     ...typography.role.helper,
   },
   commentAuthorText: {
-    ...typography.role.helper,
+    maxWidth: '100%',
+    flexShrink: 1,
+    ...DISCUSSION_BODY_TYPOGRAPHY,
     fontWeight: '700',
   },
   authorBadge: {
     minHeight: 18,
+    borderWidth: 1,
     borderRadius: 5,
     paddingHorizontal: 6,
     alignItems: 'center',
@@ -354,63 +401,68 @@ export const styles = StyleSheet.create({
     fontWeight: '700',
   },
   commentBubble: {
-    borderRadius: 0,
+    borderRadius: 8,
     borderWidth: 0,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     alignSelf: 'flex-start',
     maxWidth: '100%',
   },
   commentActionRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 6,
+    gap: 4,
+    marginTop: 0,
     paddingLeft: 0,
   },
   commentActionText: {
     ...typography.role.helper,
+    fontSize: 12,
     fontWeight: '500',
   },
+  commentLikeGroup: {
+    flexDirection: 'row',
+    gap: 4,
+  },
   commentActionTouchTarget: {
-    minHeight: 44,
-    minWidth: 44,
+    minHeight: 48,
+    minWidth: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },
   commentActionFace: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderWidth: 1,
-    borderRadius: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 0,
   },
   commentContent: {
-    ...typography.role.bodySm,
+    ...DISCUSSION_BODY_TYPOGRAPHY,
   },
   commentMention: {
-    ...typography.role.bodySm,
+    ...DISCUSSION_BODY_TYPOGRAPHY,
     fontWeight: '600',
   },
   replyListWrap: {
-    marginTop: 10,
+    marginTop: 0,
     alignSelf: 'stretch',
-    // This is a direct sibling of the padded root content, so reply surfaces
-    // and dividers use the complete comment viewport width by construction.
+    // Each reply owns its indentation; the list adds no second inset.
     marginLeft: 0,
     marginRight: 0,
-    paddingTop: 8,
+    paddingTop: 0,
     paddingLeft: 0,
     paddingRight: 0,
     gap: 0,
   },
   replySectionHeader: {
-    backgroundColor: '#F6F7FB',
-    minHeight: 44,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
+    backgroundColor: 'transparent',
+    minHeight: 48,
+    paddingLeft: 56,
+    paddingRight: 20,
+    paddingVertical: 0,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-start',
+    gap: 4,
   },
   replySectionHeaderText: {
     ...typography.role.helper,
@@ -421,17 +473,26 @@ export const styles = StyleSheet.create({
     alignItems: 'flex-start',
     alignSelf: 'stretch',
     gap: 8,
-    paddingVertical: 8,
-    paddingLeft: 16,
-    paddingRight: 16,
-    // The reply surface separates a thread without bringing back card or
-    // speech-bubble treatment. Its value is theme-aware and near-flat.
-    backgroundColor: '#F6F7FB',
+    paddingTop: 4,
+    paddingBottom: 0,
+    // Reply avatars align to the root body (20 inset + 28 avatar + 8 gap).
+    paddingLeft: 56,
+    paddingRight: 20,
+    backgroundColor: 'transparent',
   },
   replyMarkerTapTarget: {
-    width: 24,
-    height: 24,
-    marginTop: -2,
+    width: 20,
+    height: 20,
+    marginTop: 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  replyAvatar: { width: 20, height: 20, borderRadius: 10, borderWidth: 1 },
+  replyAvatarFallback: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -440,17 +501,12 @@ export const styles = StyleSheet.create({
     alignSelf: 'stretch',
     backgroundColor: COMMENT_REPLY_DIVIDER_COLOR,
   },
-  targetReplyRow: {
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: 7,
-    marginHorizontal: -7,
-  },
   replyContentWrap: {
     flex: 1,
     minWidth: 0,
   },
   replyTapContent: {
+    minHeight: 48,
     alignSelf: 'stretch',
     minWidth: 0,
   },
@@ -462,32 +518,35 @@ export const styles = StyleSheet.create({
     marginBottom: 4,
   },
   replyAuthorText: {
-    ...typography.role.helper,
+    maxWidth: '100%',
+    flexShrink: 1,
+    ...DISCUSSION_BODY_TYPOGRAPHY,
     fontWeight: '700',
   },
   replyMetaText: {
     ...typography.role.helper,
   },
   replyBubble: {
-    borderRadius: 0,
+    borderRadius: 8,
     borderWidth: 0,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
     alignSelf: 'flex-start',
     maxWidth: '100%',
   },
   replyContent: {
-    ...typography.role.bodySm,
+    ...DISCUSSION_BODY_TYPOGRAPHY,
   },
   replyMention: {
-    ...typography.role.bodySm,
+    ...DISCUSSION_BODY_TYPOGRAPHY,
     fontWeight: '600',
   },
   replyActionRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 6,
+    gap: 4,
+    marginTop: 0,
     paddingLeft: 0,
   },
   listFooterWrap: {
@@ -499,9 +558,9 @@ export const styles = StyleSheet.create({
     height: 8,
   },
   moreCommentsButton: {
-    minHeight: 44,
+    minHeight: 48,
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: 8,
     paddingHorizontal: 14,
     flexDirection: 'row',
     alignItems: 'center',

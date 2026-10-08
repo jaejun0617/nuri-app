@@ -78,7 +78,7 @@ describe('CTA source safety guards', () => {
     for (const file of [
       'src/screens/Schedules/ScheduleDetailScreen.tsx',
       'src/screens/Records/RecordDetailScreen.tsx',
-      'src/screens/Community/CommunityDetailScreen.tsx',
+      'src/screens/Community/CommunityDiscussionContent.tsx',
       'src/screens/More/MoreDrawerContent.tsx',
     ]) {
       const dialogs = elements(file, 'ConfirmDialog').filter(

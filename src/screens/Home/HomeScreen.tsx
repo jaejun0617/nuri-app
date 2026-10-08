@@ -186,13 +186,13 @@ export default function HomeScreen() {
       movedRef.current = true;
 
       if (nextRoute.name === 'AppTabs' && communityRouteSnapshot) {
-        if (communityRouteSnapshot.route.name === 'detail') {
+        if (communityRouteSnapshot.route.name !== 'list') {
           navigation.reset({
             index: 1,
             routes: [
               { name: 'AppTabs', params: { screen: 'CommunityTab' } },
               {
-                name: 'CommunityDetail',
+                name: communityRouteSnapshot.route.name === 'comments' || communityRouteSnapshot.route.commentId ? 'CommunityComments' : 'CommunityDetail',
                 params: {
                   postId: communityRouteSnapshot.route.postId,
                   ...(communityRouteSnapshot.route.commentId

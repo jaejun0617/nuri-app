@@ -362,7 +362,7 @@ export default function UserNotificationsScreen() {
   const onPressNotification = useCallback(
     async (item: UserNotificationItem) => {
       if (item.actionTarget?.kind === 'community_comment') {
-        navigation.navigate('CommunityDetail', {
+        navigation.navigate('CommunityComments', {
           postId: item.actionTarget.postId,
           commentId: item.actionTarget.commentId,
         });

@@ -1,0 +1,101 @@
+{
+  "project": "grmekesqoydylqmyvfke",
+  "validationRole": "anon",
+  "contentMutations": 0,
+  "ddlScope": "3 new STABLE SECURITY INVOKER read functions; threads function then replaced for anchor_root_id",
+  "migrations": [
+    {
+      "name": "community_discussion_read_contract",
+      "version": "20261008145802"
+    },
+    {
+      "name": "community_discussion_anchor_metadata",
+      "version": "20261008151513"
+    }
+  ],
+  "localMigrationMapping": [
+    {
+      "file": "20261008145458_community_discussion_read_contract.sql",
+      "remoteVersion": "20261008145802"
+    },
+    {
+      "file": "20261008151447_community_discussion_anchor_metadata.sql",
+      "remoteVersion": "20261008151513"
+    }
+  ],
+  "readFunctions": [
+    {
+      "hash": "1eb3cd82d4ad1f86cdaedb89c6340952",
+      "name": "community_get_comment_replies_v1",
+      "volatility": "s",
+      "anon_execute": true,
+      "security_definer": false,
+      "authenticated_execute": true
+    },
+    {
+      "hash": "4e190a46f9a99c669c3d1ce9eb390b86",
+      "name": "community_get_comment_summary_v1",
+      "volatility": "s",
+      "anon_execute": true,
+      "security_definer": false,
+      "authenticated_execute": true
+    },
+    {
+      "hash": "8b9ec9880fb323921a3c2b95ebb1a9fb",
+      "name": "community_get_comment_threads_v1",
+      "volatility": "s",
+      "anon_execute": true,
+      "security_definer": false,
+      "authenticated_execute": true
+    }
+  ],
+  "policiesUnchanged": true,
+  "protectedFunctions": [
+    {
+      "hash": "522d71d1dc174668e0692ed968bcf558",
+      "name": "apply_community_moderation_action",
+      "unchanged": true
+    },
+    {
+      "hash": "d8dac41517bf23365069e03ac05bfbc0",
+      "name": "community_create_comment_v1",
+      "unchanged": true
+    },
+    {
+      "hash": "29ebf4620017d4aef69e9630fc262a28",
+      "name": "community_soft_delete_comment_v1",
+      "unchanged": true
+    },
+    {
+      "hash": "cc7783330c7cd6ceed2433f4903f0f7c",
+      "name": "refresh_community_moderation_queue",
+      "unchanged": true
+    }
+  ],
+  "paging": {
+    "sort_cases": 15,
+    "bounded": true,
+    "paginated_cases": 0,
+    "cursor_roundtrip": true,
+    "no_duplicate_roots": true
+  },
+  "anchors": {
+    "boundary_cursor_cases": 2,
+    "boundary_excluded": true,
+    "reply_anchor_cases": 5,
+    "reply_anchor_correct": true
+  },
+  "negativeContracts": {
+    "stale_cursor_rejected": true,
+    "cross_scope_rejected": true,
+    "unavailable_post_rejected": true,
+    "content_mutations": 0
+  },
+  "limitations": [
+    "No naturally populated >10-root next page fixture: paginated_cases 0; do not treat vacuous cursor_roundtrip as full multi-page runtime proof.",
+    "Authenticated blocked-viewer integration fixture not executed; existing RLS and parent visibility helper retained.",
+    "Existing comments RLS does not independently exclude blocked comment authors; no policy expansion authorized.",
+    "Visible replies with unavailable roots are excluded consistently from the navigable projection.",
+    "Large-thread query latency, native keyboard and rendering were not measured in this implementation."
+  ]
+}

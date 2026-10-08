@@ -7,14 +7,16 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { BackHandler } from 'react-native';
+import { BackHandler, Keyboard, Pressable, View } from 'react-native';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
   KeyboardAwareScrollView,
+  KeyboardStickyView,
   type KeyboardAwareScrollViewRef,
-  useKeyboardState,
+  useReanimatedKeyboardAnimation,
 } from 'react-native-keyboard-controller';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import RNBlobUtil from 'react-native-blob-util';
 import {
   SafeAreaView,
@@ -24,7 +26,9 @@ import { useTheme } from 'styled-components/native';
 
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { spacing } from '../../app/theme/tokens/spacing';
-import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
+import AppText from '../../app/ui/AppText';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
+import { SEASON_CTA } from '../../app/theme/ctaPalette';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import { getCommunityMutationErrorMeta } from '../../services/community/errors';
@@ -32,17 +36,16 @@ import {
   pickPhotoAssets,
   type PickedPhotoAsset,
 } from '../../services/media/photoPicker';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { flushPendingCommunityImageCleanup } from '../../services/supabase/storageCommunity';
 import { useCommunityAuth } from '../../hooks/useCommunityAuth';
 import { useCommunityStore } from '../../store/communityStore';
-import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
 import type { CommunityPostCategory } from '../../types/community';
-import CommunityPostEditorForm, {
-  COMMUNITY_COMPOSER_KEYBOARD_BOTTOM_OFFSET,
-} from './components/CommunityPostEditorForm';
+import CommunityCreateForm from './components/CommunityCreateForm';
+import CommunityCreateAttachments from './components/CommunityCreateAttachments';
+import CommunitySubmitProgress from './components/CommunitySubmitProgress';
 import {
+  COMMUNITY_CREATE_PHOTO_LIMIT,
   getCommunityEditorExitDialogCopy,
   hasCommunityEditorDraftChanges,
 } from './communityPostEditor.shared';
@@ -96,7 +99,7 @@ function parseDraft(raw: string | null): DraftPayload | null {
         } satisfies PickedPhotoAsset;
       })
       .filter((item): item is PickedPhotoAsset => item !== null)
-      .slice(0, 3);
+      .slice(0, COMMUNITY_CREATE_PHOTO_LIMIT);
     if (!title.trim() && !content.trim() && pickedImages.length === 0)
       return null;
     return { title, content, category, pickedImages };
@@ -143,19 +146,28 @@ export default function CommunityCreateScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const keyboardVisible = useKeyboardState(state => state.isVisible);
+  const season = useEffectiveSeason();
+  const seasonColors = SEASON_CTA[season];
+  const { progress: keyboardProgress } = useReanimatedKeyboardAnimation();
+  const toolbarInset = useAnimatedStyle(
+    () => ({
+      paddingBottom: insets.bottom * (1 - keyboardProgress.value),
+    }),
+    [insets.bottom],
+  );
+  const [toolbarHeight, setToolbarHeight] = useState(68);
+  const submittingRef = useRef(false);
   const draftHydratedRef = useRef(false);
+  const photoPickerOpenRef = useRef(false);
   const scrollViewRef = useRef<KeyboardAwareScrollViewRef | null>(null);
 
-  const pets = usePetStore(s => s.pets);
-  const selectedPetId = usePetStore(s => s.selectedPetId);
-  const selectedPet = useMemo(
-    () => pets.find(pet => pet.id === selectedPetId) ?? pets[0] ?? null,
-    [pets, selectedPetId],
-  );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
+  const editorAccent = useMemo(
+    () => ({
+      primary: seasonColors.primary,
+      onPrimary: '#FFFFFF',
+      deep: seasonColors.pressed,
+    }),
+    [seasonColors],
   );
   const { isLoggedIn, currentUserId } = useCommunityAuth();
   const submitPost = useCommunityStore(s => s.submitPost);
@@ -244,15 +256,27 @@ export default function CommunityCreateScreen() {
   }, [hasUnsavedChanges, navigation, submitting]);
   const renderHeaderLeft = useCallback(
     () => (
-      <HeaderTextActionButton
-        role="neutral"
-        label="취소"
+      <Pressable
+        accessibilityRole="button"
         accessibilityLabel="작성 취소"
+        accessibilityState={{ disabled: submitting }}
+        style={styles.headerAction}
         onPress={handleBack}
         disabled={submitting}
-      />
+      >
+        <AppText
+          preset="body"
+          style={[
+            styles.headerActionText,
+            { color: theme.colors.textSecondary },
+            submitting ? styles.headerDisabled : null,
+          ]}
+        >
+          취소
+        </AppText>
+      </Pressable>
     ),
-    [handleBack, submitting],
+    [handleBack, submitting, theme.colors.textSecondary],
   );
 
   useFocusEffect(
@@ -272,26 +296,51 @@ export default function CommunityCreateScreen() {
   );
 
   const handlePickImage = useCallback(async () => {
+    if (submitting || photoPickerOpenRef.current) return;
+    const remaining = Math.max(
+      COMMUNITY_CREATE_PHOTO_LIMIT - pickedImages.length,
+      0,
+    );
+    if (remaining === 0) {
+      showToast({
+        tone: 'info',
+        message: `사진은 최대 ${COMMUNITY_CREATE_PHOTO_LIMIT}장까지 첨부할 수 있어요.`,
+      });
+      return;
+    }
+    photoPickerOpenRef.current = true;
     try {
-      const remaining = Math.max(3 - pickedImages.length, 0);
-      if (remaining === 0) return;
       const result = await pickPhotoAssets({
         selectionLimit: remaining,
         quality: 0.9,
       });
       if (result.status !== 'success') return;
-      setPickedImages(prev => {
-        const existingUris = new Set(prev.map(image => image.uri));
-        const appended = result.assets.filter(
-          asset => !existingUris.has(asset.uri),
-        );
-        return [...prev, ...appended].slice(0, 3);
+      const existingUris = new Set(pickedImages.map(image => image.uri));
+      const appended = result.assets.filter(asset => {
+        if (existingUris.has(asset.uri)) return false;
+        existingUris.add(asset.uri);
+        return true;
       });
+      // Android may return more assets than the requested picker limit.
+      if (appended.length > remaining) {
+        showToast({
+          tone: 'info',
+          message: `사진은 최대 ${COMMUNITY_CREATE_PHOTO_LIMIT}장까지 첨부할 수 있어요. 선택 순서대로 ${remaining}장을 추가했어요.`,
+        });
+      }
+      setPickedImages(prev =>
+        [...prev, ...appended.slice(0, remaining)].slice(
+          0,
+          COMMUNITY_CREATE_PHOTO_LIMIT,
+        ),
+      );
     } catch (error: unknown) {
       const meta = getBrandedErrorMeta(error, 'image-pick');
       showToast({ tone: 'error', title: meta.title, message: meta.message });
+    } finally {
+      photoPickerOpenRef.current = false;
     }
-  }, [pickedImages.length]);
+  }, [pickedImages, submitting]);
 
   const handleRemoveImage = useCallback((index?: number) => {
     if (index === undefined) {
@@ -302,6 +351,7 @@ export default function CommunityCreateScreen() {
   }, []);
 
   const handleSubmit = useCallback(async () => {
+    if (submittingRef.current) return;
     const trimmedTitle = title.trim();
     const trimmed = content.trim();
     if (!currentUserId) {
@@ -323,7 +373,9 @@ export default function CommunityCreateScreen() {
       return;
     }
 
+    submittingRef.current = true;
     setSubmitting(true);
+    Keyboard.dismiss();
     try {
       await runCommunityCreateSubmitFlow({
         userId: currentUserId,
@@ -359,6 +411,7 @@ export default function CommunityCreateScreen() {
         message: meta.message,
       });
     } finally {
+      submittingRef.current = false;
       setSubmitting(false);
     }
   }, [
@@ -380,17 +433,27 @@ export default function CommunityCreateScreen() {
     submitting || title.trim().length === 0 || content.trim().length === 0;
   const renderHeaderRight = useCallback(
     () => (
-      <HeaderTextActionButton
-        role="primarySubtle"
-        loading={submitting}
-        compact
-        label="등록"
+      <Pressable
+        accessibilityRole="button"
         accessibilityLabel="게시글 등록"
+        accessibilityState={{ disabled, busy: submitting }}
+        style={styles.headerAction}
         onPress={handleSubmit}
         disabled={disabled}
-      />
+      >
+        <AppText
+          preset="body"
+          style={[
+            styles.headerActionText,
+            { color: seasonColors.primary },
+            disabled ? styles.headerDisabled : null,
+          ]}
+        >
+          등록
+        </AppText>
+      </Pressable>
     ),
-    [disabled, handleSubmit, submitting],
+    [disabled, handleSubmit, seasonColors.primary, submitting],
   );
   useLayoutEffect(() => {
     navigation.setOptions({
@@ -404,49 +467,60 @@ export default function CommunityCreateScreen() {
       style={[styles.screen, { backgroundColor: theme.colors.background }]}
       edges={['left', 'right']}
     >
-      <KeyboardAwareScrollView
-        ref={scrollViewRef}
-        bottomOffset={COMMUNITY_COMPOSER_KEYBOARD_BOTTOM_OFFSET}
-        keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="none"
-        contentContainerStyle={[
-          styles.scrollContent,
-          {
-            paddingBottom: keyboardVisible
-              ? spacing.md
-              : insets.bottom + spacing.xxl,
-          },
-        ]}
-        showsVerticalScrollIndicator={false}
+      <View
+        style={styles.screen}
+        accessibilityElementsHidden={submitting}
+        importantForAccessibility={submitting ? 'no-hide-descendants' : 'auto'}
       >
-        <CommunityPostEditorForm
-          category={category}
-          title={title}
-          content={content}
-          imageUri={pickedImages[0]?.uri ?? null}
-          imageUris={pickedImages.map(image => image.uri)}
-          accentPalette={petTheme}
-          bottomSubmitMargin={0}
-          submitLabel={submitting ? '글 등록 중...' : '글 등록'}
-          submitDisabled={disabled}
-          submitLoading={submitting}
-          onChangeCategory={setCategory}
-          onChangeTitle={setTitle}
-          onChangeContent={setContent}
-          onPressPolicy={handlePressCommunityPolicy}
-          onPickImage={handlePickImage}
-          onRemoveImage={handleRemoveImage}
-          onImageError={() => {
-            setPickedImages([]);
-            showToast({
-              tone: 'warning',
-              message:
-                '첨부 이미지를 다시 불러오지 못했어요. 이미지를 다시 선택해 주세요.',
-            });
-          }}
-          onSubmit={handleSubmit}
-        />
-      </KeyboardAwareScrollView>
+        <KeyboardAwareScrollView
+          ref={scrollViewRef}
+          bottomOffset={toolbarHeight + spacing.md}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="none"
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          <CommunityCreateForm
+            category={category}
+            title={title}
+            content={content}
+            accentPalette={editorAccent}
+            submitLoading={submitting}
+            onChangeCategory={setCategory}
+            onChangeTitle={setTitle}
+            onChangeContent={setContent}
+            onPressPolicy={handlePressCommunityPolicy}
+          />
+        </KeyboardAwareScrollView>
+        <KeyboardStickyView>
+          <Animated.View
+            style={[toolbarInset, { backgroundColor: theme.colors.background }]}
+          >
+            <View
+              onLayout={event =>
+                setToolbarHeight(event.nativeEvent.layout.height)
+              }
+            >
+              <CommunityCreateAttachments
+                imageUris={pickedImages.map(image => image.uri)}
+                submitLoading={submitting}
+                onPickImage={handlePickImage}
+                onRemoveImage={handleRemoveImage}
+                onImageError={() => {
+                  showToast({
+                    tone: 'warning',
+                    message:
+                      '첨부 이미지를 다시 불러오지 못했어요. 이미지를 다시 선택해 주세요.',
+                  });
+                }}
+              />
+            </View>
+          </Animated.View>
+        </KeyboardStickyView>
+      </View>
+      {submitting ? (
+        <CommunitySubmitProgress color={seasonColors.primary} />
+      ) : null}
 
       <ConfirmDialog
         confirmRole="neutral"
@@ -531,7 +605,21 @@ const styles = {
   },
   scrollContent: {
     paddingHorizontal: 20,
-    gap: 20,
+    paddingBottom: spacing.md,
+    gap: 12,
     flexGrow: 1,
   },
+  headerAction: {
+    minWidth: 48,
+    minHeight: 48,
+    paddingHorizontal: 4,
+    alignItems: 'center' as const,
+    justifyContent: 'center' as const,
+  },
+  headerActionText: {
+    fontSize: 16,
+    lineHeight: 24,
+    fontWeight: '600' as const,
+  },
+  headerDisabled: { opacity: 0.45 },
 };

@@ -15,7 +15,11 @@ function CommunityPostListItemBase({
   onPressPost,
 }: Props) {
   const post = useCommunityStore(
-    useCallback(s => s.postsById[postId] ?? null, [postId]),
+    // Only the list may reuse its eligible snapshot while detail revalidates.
+    useCallback(
+      s => s.postsById[postId] ?? s.posts.find(item => item.id === postId) ?? null,
+      [postId],
+    ),
   );
   if (!post) return null;
 

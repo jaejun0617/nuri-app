@@ -1,0 +1,18 @@
+{
+  "at": "2026-10-08T17:13:36.927Z",
+  "serial": "R5CY613NMSY",
+  "model": "SM-S937N",
+  "android": "16",
+  "uid": "10402",
+  "versionName": "1.0",
+  "versionCode": "1",
+  "firstInstallTime": "2026-06-02 19:16:57",
+  "lastUpdateTime": "2026-10-09 00:46:33",
+  "sha256": "82c293b818ddf9413bbf2638d82a0bf991fd83d42b1d8a8bdb39cfa8d8929651",
+  "display": "Physical size: 1080x2340",
+  "density": "Physical density: 450",
+  "fontScale": "1.0",
+  "navigation": "0",
+  "uiControl": 0,
+  "loginAndPet": "NOT_OBSERVED_NO_UI_ACTION"
+}

@@ -30,7 +30,6 @@ import React, {
 import {
   Alert,
   AppState,
-  Image,
   Keyboard,
   Modal,
   Platform,
@@ -57,7 +56,13 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from 'styled-components/native';
 import Feather from '../../components/icons/NuriFeatherIcon';
 import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
-import type { NuriIconName } from '../../components/icons/NuriIcon';
+import {
+  MoreIdentityBand,
+  MoreMenuHeader,
+  MoreMenuSection,
+  type MoreMenuItem as MenuItemSpec,
+} from '../../components/MoreDrawer/MoreMenuPresentation';
+import { MORE_MENU } from '../../components/MoreDrawer/moreMenuVisualTokens';
 
 import AppNavigationToolbar from '../../components/navigation/AppNavigationToolbar';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
@@ -124,31 +129,6 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type Props = {
   onRequestClose: () => void;
-};
-
-type MenuItemSpec = {
-  key: string;
-  label: string;
-  icon: string;
-  nuriIcon?: NuriIconName;
-  iconTone?: 'accent' | 'muted' | 'soft';
-  onPress: () => void;
-  badge?: 'dot' | 'soon' | null;
-  valueLabel?: string | null;
-};
-
-type MenuCardProps = {
-  title: string;
-  items: MenuItemSpec[];
-  titleColor: string;
-  themeColors: Record<
-    'accent' | 'muted' | 'soft',
-    { box: string; icon: string }
-  >;
-};
-
-type MenuRowProps = Omit<MenuItemSpec, 'key'> & {
-  testID?: string;
 };
 
 type PasswordModalProps = {
@@ -231,125 +211,6 @@ function formatDateLabel(value: Date | null): string {
   const label = formatDateLabelFromDate(value);
   return `${label || '날짜 확인 후'} 이후에 다시 변경할 수 있어요.`;
 }
-
-const MenuRow = memo(function MenuRow({
-  label,
-  icon,
-  nuriIcon,
-  iconTone = 'accent',
-  onPress,
-  badge = null,
-  valueLabel = null,
-  testID,
-  themeColors,
-}: MenuRowProps & {
-  themeColors: Record<
-    'accent' | 'muted' | 'soft',
-    { box: string; icon: string }
-  >;
-}) {
-  const theme = useTheme();
-  const tone = themeColors[iconTone];
-
-  return (
-    <TouchableOpacity
-      testID={testID}
-      activeOpacity={0.9}
-      style={[
-        styles.menuRow,
-        { backgroundColor: theme.colors.surfaceElevated },
-      ]}
-      onPress={onPress}
-    >
-      <View style={styles.menuLeft}>
-        <View style={[styles.menuIconBox, { backgroundColor: tone.box }]}>
-          <NuriSemanticIcon
-            family="feather"
-            name={icon}
-            semantic={nuriIcon}
-            size={17}
-            color={tone.icon}
-          />
-        </View>
-        <AppText
-          preset="unifiedLabel"
-          style={[styles.menuLabel, { color: theme.colors.textPrimary }]}
-        >
-          {label}
-        </AppText>
-      </View>
-
-      <View style={styles.menuRight}>
-        {valueLabel ? (
-          <AppText
-            preset="unifiedBody"
-            style={[styles.menuValue, { color: theme.colors.textMuted }]}
-          >
-            {valueLabel}
-          </AppText>
-        ) : null}
-        {badge === 'dot' ? <View style={styles.menuDot} /> : null}
-        {badge === 'soon' ? (
-          <AppText preset="unifiedLabel" style={styles.badgeSoon}>
-            soon
-          </AppText>
-        ) : null}
-        <Feather
-          name="chevron-right"
-          size={18}
-          color={theme.colors.textMuted}
-        />
-      </View>
-    </TouchableOpacity>
-  );
-});
-
-const MenuCard = memo(function MenuCard({
-  title,
-  items,
-  titleColor,
-  themeColors,
-}: MenuCardProps) {
-  const theme = useTheme();
-  return (
-    <View style={styles.sectionWrap}>
-      <AppText
-        typographyRole="sectionTitle"
-        preset="unifiedTitle"
-        style={[styles.sectionTitle, { color: titleColor }]}
-      >
-        {title}
-      </AppText>
-      <View
-        style={[
-          styles.menuCard,
-          {
-            backgroundColor: theme.colors.surfaceElevated,
-            borderColor: theme.colors.border,
-          },
-        ]}
-      >
-        {items.map(({ key, ...item }, index) => (
-          <View key={key}>
-            {index > 0 ? (
-              <View
-                style={[
-                  styles.menuDivider,
-                  { backgroundColor: theme.colors.border },
-                ]}
-              />
-            ) : null}
-            <MenuRow
-              {...item}
-              testID={`more-entry-${key}`}
-              themeColors={themeColors}
-            />
-          </View>
-        ))}
-      </View>
-    </View>
-  );
-});
 
 const PasswordField = memo(function PasswordField({
   label,
@@ -1360,6 +1221,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     null,
   );
   const currentMenuScrollOffsetRef = useRef(0);
+  const settingsSectionOffsetRef = useRef<number | null>(null);
   const [menuViewportHeight, setMenuViewportHeight] = useState(0);
   const [menuContentHeight, setMenuContentHeight] = useState(0);
 
@@ -1533,50 +1395,11 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     () => buildPetThemePalette(draftThemeColor ?? accentThemeColor),
     [accentThemeColor, draftThemeColor],
   );
-  const menuThemeColors = useMemo(
-    () => ({
-      accent: {
-        box: '#F2F5FA',
-        icon: '#65748A',
-      },
-      muted: {
-        box: '#F3F4F6',
-        icon: '#65748A',
-      },
-      soft: {
-        box: '#F6F7FA',
-        icon: '#65748A',
-      },
-    }),
-    [],
-  );
   const avatarUri = useMemo(
     () => selectedPet?.avatarUrl?.trim() || null,
     [selectedPet?.avatarUrl],
   );
-  const greetingName = useMemo(
-    () => (nickname ? `${nickname}님!` : '반가워요!'),
-    [nickname],
-  );
   const canShowLogout = Boolean(session?.user?.id) && isLoggedIn;
-  const headerTitle = useMemo(
-    () =>
-      isLoggedIn
-        ? `안녕하세요, ${greetingName}`
-        : 'NURI에 오신 것을\n환영합니다.',
-    [greetingName, isLoggedIn],
-  );
-  const headerSubtitle = useMemo(
-    () =>
-      isLoggedIn
-        ? '반가운 오늘, 아이들은 어땠나요?'
-        : '로그인하고 더 많은 여정을\n함께하세요.',
-    [isLoggedIn],
-  );
-  const avatarFallback = useMemo(
-    () => selectedPet?.name?.trim()?.charAt(0) || 'N',
-    [selectedPet?.name],
-  );
   const canEditNicknameNow = useMemo(
     () => canChangeNickname(nicknameChangedAt),
     [nicknameChangedAt],
@@ -2226,27 +2049,13 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     );
   }, [closeAndNavigate, navigation, selectedPet?.id]);
 
-  const petItems = useMemo<MenuItemSpec[]>(
-    () => [
-      {
-        key: 'pet-manage',
-        label: '아이들 프로필 관리',
-        icon: 'user',
-        iconTone: 'accent',
-        onPress: isLoggedIn ? openPetManagement : onPressLogin,
-      },
-    ],
-    [isLoggedIn, onPressLogin, openPetManagement],
-  );
-
-  const activityItems = useMemo<MenuItemSpec[]>(
+  const quickItems = useMemo<MenuItemSpec[]>(
     () => [
       {
         key: 'important-schedule',
-        label: '중요 일정 & 기념일',
+        label: '전체일정',
         icon: 'calendar',
         nuriIcon: 'calendar',
-        iconTone: 'accent',
         onPress: isLoggedIn ? openScheduleList : onPressLogin,
       },
       {
@@ -2254,7 +2063,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         label: '추억 다이어리',
         icon: 'book-open',
         nuriIcon: 'diary',
-        iconTone: 'accent',
         onPress: isLoggedIn ? openTimeline : onPressLogin,
       },
       {
@@ -2262,104 +2070,90 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         label: '건강관리',
         icon: 'clipboard',
         nuriIcon: 'health',
-        iconTone: 'accent',
         onPress: isLoggedIn ? openHealthReport : onPressLogin,
-      },
-      {
-        key: 'pet-activity-achievements',
-        label: '활동·칭호',
-        icon: 'award',
-        iconTone: 'accent',
-        onPress: isLoggedIn ? openPetActivityAchievements : onPressLogin,
       },
       {
         key: 'indoor-activities',
         label: '실내 놀이 추천',
         icon: 'sun',
-        iconTone: 'accent',
         onPress: isLoggedIn ? openIndoorActivities : onPressLogin,
       },
     ],
     [
       isLoggedIn,
+      onPressLogin,
+      openScheduleList,
+      openTimeline,
       openHealthReport,
       openIndoorActivities,
-      openPetActivityAchievements,
-      openScheduleList,
-      onPressLogin,
-      openTimeline,
     ],
   );
-
-  const infoItems = useMemo<MenuItemSpec[]>(
+  const socialItems = useMemo<MenuItemSpec[]>(
     () => [
       {
         key: 'community',
         label: '커뮤니티',
         icon: 'message-circle',
-        iconTone: 'muted',
         onPress: openCommunity,
       },
       {
         key: 'nuri-ranking',
         label: '누리 랭킹',
         icon: 'bar-chart-2',
-        iconTone: 'muted',
         onPress: isLoggedIn ? openNuriRanking : onPressLogin,
       },
       {
+        key: 'pet-activity-achievements',
+        label: '활동·칭호',
+        icon: 'award',
+        onPress: isLoggedIn ? openPetActivityAchievements : onPressLogin,
+      },
+    ],
+    [
+      isLoggedIn,
+      onPressLogin,
+      openCommunity,
+      openNuriRanking,
+      openPetActivityAchievements,
+    ],
+  );
+  const infoItems = useMemo<MenuItemSpec[]>(
+    () => [
+      {
         key: 'tips',
         label: '집사 꿀팁 가이드',
-        icon: 'map-pin',
-        iconTone: 'muted',
+        icon: 'book-open',
         onPress: openGuideList,
       },
       {
         key: 'walk-nearby',
         label: '우리동네 산책 장소 찾기',
         icon: 'map',
-        iconTone: 'muted',
         onPress: isLoggedIn ? openWalkDiscovery : onPressLogin,
       },
       {
         key: 'animal-hospital',
         label: '우리동네 동물병원',
         icon: 'plus-square',
-        iconTone: 'muted',
         onPress: isLoggedIn ? openAnimalHospital : onPressLogin,
       },
     ],
     [
       isLoggedIn,
       onPressLogin,
-      openAnimalHospital,
-      openCommunity,
       openGuideList,
-      openNuriRanking,
       openWalkDiscovery,
+      openAnimalHospital,
     ],
   );
-
-  const serviceItems = useMemo<MenuItemSpec[]>(() => {
-    if (!isLoggedIn) {
-      return [
-        {
-          key: 'login',
-          label: '로그인하고 더 많은 여정 보기',
-          icon: 'log-in',
-          iconTone: 'accent',
-          onPress: onPressLogin,
-        },
-      ];
-    }
-
-    const items: MenuItemSpec[] = [
+  const settingItems = useMemo<MenuItemSpec[]>(
+    () => [
       {
         key: 'theme',
-        label: '테마 설정',
+        label: '펫 강조색',
         icon: 'palette',
         nuriIcon: 'palette',
-        iconTone: 'accent',
+        swatch: petTheme.primary,
         onPress: openThemeModal,
       },
       {
@@ -2367,77 +2161,96 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         label: '앱 글꼴',
         valueLabel: getAppFontModeLabel(appFontMode),
         icon: 'type',
-        iconTone: 'accent',
         onPress: () => setFontSettingsModalVisible(true),
       },
       {
         key: 'notification',
         label: '알림 설정',
         icon: 'settings',
-        iconTone: 'accent',
         onPress: openNotificationModal,
       },
       {
         key: 'user-notifications',
         label: '알림함',
         icon: 'bell',
-        iconTone: 'accent',
         badge: userNotificationUnreadCount > 0 ? 'dot' : null,
         onPress: openUserNotifications,
       },
-      {
-        key: 'community-blocked-users',
-        label: '차단한 사용자 관리',
-        icon: 'slash',
-        iconTone: 'accent',
-        onPress: openCommunityBlockedUsers,
-      },
+    ],
+    [
+      appFontMode,
+      petTheme.primary,
+      openThemeModal,
+      openNotificationModal,
+      openUserNotifications,
+      userNotificationUnreadCount,
+    ],
+  );
+  const policyItems = useMemo<MenuItemSpec[]>(
+    () => [
       {
         key: 'policy-center',
         label: '약관 및 정책',
         icon: 'file-text',
-        iconTone: 'accent',
         onPress: openPolicyCenter,
       },
+    ],
+    [openPolicyCenter],
+  );
+  const accountItems = useMemo<MenuItemSpec[]>(
+    () => [
       {
-        key: 'logout',
-        label: loading ? '로그아웃 중...' : '로그아웃',
-        icon: 'log-out',
-        iconTone: 'accent',
-        onPress: onPressLogout,
+        key: 'community-blocked-users',
+        label: '차단한 사용자 관리',
+        icon: 'slash',
+        onPress: openCommunityBlockedUsers,
       },
-    ];
+      ...(canShowLogout
+        ? [
+            {
+              key: 'logout',
+              label: loading ? '로그아웃 중...' : '로그아웃',
+              command: true,
+              disabled: loading,
+              onPress: onPressLogout,
+            },
+          ]
+        : []),
+      {
+        key: 'account-delete',
+        testID: 'account-delete-entry',
+        label: deleting ? '회원탈퇴 처리 중...' : '회원탈퇴',
+        accessibilityLabel: '회원탈퇴 확인 시작',
+        command: true,
+        destructive: true,
+        disabled: deleting,
+        onPress: onPressDeleteAccount,
+      },
+    ],
+    [
+      canShowLogout,
+      loading,
+      deleting,
+      openCommunityBlockedUsers,
+      onPressLogout,
+      onPressDeleteAccount,
+    ],
+  );
 
-    if (isLoggedIn) {
-      items.unshift({
-        key: 'my-profile',
-        label: '닉네임 수정',
-        icon: 'edit-3',
-        iconTone: 'accent',
-        onPress: openProfileEditModal,
-      });
-    }
-
-    if (!canShowLogout) {
-      return items.filter(item => item.key !== 'logout');
-    }
-
-    return items;
-  }, [
-    appFontMode,
-    canShowLogout,
-    isLoggedIn,
-    loading,
-    onPressLogin,
-    onPressLogout,
-    openNotificationModal,
-    openCommunityBlockedUsers,
-    openPolicyCenter,
-    openProfileEditModal,
-    openThemeModal,
-    openUserNotifications,
-    userNotificationUnreadCount,
-  ]);
+  const handleSettingsSectionLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      settingsSectionOffsetRef.current = event.nativeEvent.layout.y;
+    },
+    [],
+  );
+  const scrollToSettings = useCallback(() => {
+    if (settingsSectionOffsetRef.current === null) return;
+    const y = Math.min(
+      settingsSectionOffsetRef.current,
+      Math.max(0, menuContentHeight - menuViewportHeight),
+    );
+    menuScrollRef.current?.scrollTo({ x: 0, y, animated: true });
+  }, [menuContentHeight, menuViewportHeight]);
 
   const adminItems = useMemo<MenuItemSpec[]>(
     () => [
@@ -2445,21 +2258,18 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         key: 'guide-admin',
         label: '가이드 운영',
         icon: 'edit',
-        iconTone: 'soft',
         onPress: openGuideAdmin,
       },
       {
         key: 'walk-poi-admin',
         label: '산책 POI 운영',
         icon: 'map-pin',
-        iconTone: 'soft',
         onPress: openWalkPoiAdmin,
       },
       {
         key: 'animal-hospital-admin',
         label: '동물병원 운영',
         icon: 'shield',
-        iconTone: 'soft',
         onPress: openAnimalHospitalAdmin,
       },
     ],
@@ -2478,71 +2288,10 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       <View
         style={[styles.screen, { backgroundColor: theme.colors.background }]}
       >
-        <View style={styles.headerRow}>
-          <View style={styles.headerTextWrap}>
-            <AppText
-              typographyRole="screenTitle"
-              preset="unifiedTitle"
-              style={[
-                styles.headerTitle,
-                !isLoggedIn ? styles.guestHeaderTitle : null,
-                {
-                  color: isLoggedIn ? petTheme.deep : theme.colors.brand,
-                },
-              ]}
-            >
-              {headerTitle}
-            </AppText>
-            <AppText
-              preset="unifiedBody"
-              style={[
-                styles.headerSubtitle,
-                !isLoggedIn ? styles.guestHeaderSubtitle : null,
-                { color: isLoggedIn ? theme.colors.textMuted : petTheme.deep },
-              ]}
-            >
-              {headerSubtitle}
-            </AppText>
-          </View>
-
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={styles.headerAvatarButton}
-            onPress={isLoggedIn ? openProfileEditModal : onPressLogin}
-          >
-            {avatarUri ? (
-              <Image
-                source={{ uri: avatarUri }}
-                style={styles.headerAvatarImage}
-              />
-            ) : (
-              <View
-                style={[styles.headerAvatarImage, styles.headerAvatarFallback]}
-              >
-                <AppText
-                  preset="unifiedBody"
-                  style={[
-                    styles.headerAvatarFallbackText,
-                    { color: petTheme.deep },
-                  ]}
-                >
-                  {avatarFallback}
-                </AppText>
-              </View>
-            )}
-            <View
-              style={[
-                styles.headerAvatarBadge,
-                {
-                  backgroundColor: petTheme.primary,
-                  borderColor: theme.colors.background,
-                },
-              ]}
-            >
-              <Feather name="edit-3" size={10} color="#FFFFFF" />
-            </View>
-          </TouchableOpacity>
-        </View>
+        <MoreMenuHeader
+          onClose={onRequestClose}
+          onSettings={isLoggedIn ? scrollToSettings : undefined}
+        />
 
         <ScrollView
           ref={menuScrollRef}
@@ -2565,96 +2314,37 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
-          <MenuCard
-            title="나의 반려동물"
-            items={petItems}
-            titleColor={petTheme.deep}
-            themeColors={menuThemeColors}
+          <MoreIdentityBand
+            loggedIn={isLoggedIn}
+            nickname={nickname}
+            petName={isLoggedIn ? selectedPet?.name ?? null : null}
+            petCount={isLoggedIn ? pets.length : 0}
+            petSelected={Boolean(
+              selectedPetId && selectedPet?.id === selectedPetId,
+            )}
+            avatarUri={isLoggedIn ? avatarUri : null}
+            petColor={petTheme.primary}
+            onProfile={isLoggedIn ? openProfileEditModal : onPressLogin}
+            onPets={isLoggedIn ? openPetManagement : onPressLogin}
           />
-          <MenuCard
-            title="활동 및 기록"
-            items={activityItems}
-            titleColor={petTheme.deep}
-            themeColors={menuThemeColors}
-          />
-          <MenuCard
-            title="소통 및 정보"
-            items={infoItems}
-            titleColor={petTheme.deep}
-            themeColors={menuThemeColors}
-          />
-          <MenuCard
-            title="앱 서비스 설정"
-            items={serviceItems}
-            titleColor={petTheme.deep}
-            themeColors={menuThemeColors}
-          />
-          {isGuideAdmin ? (
-            <MenuCard
-              title="운영"
-              items={adminItems}
-              titleColor={petTheme.deep}
-              themeColors={menuThemeColors}
-            />
-          ) : null}
-
-          {session?.user?.email ? (
-            <View style={styles.accountMeta}>
-              <AppText
-                preset="unifiedBody"
-                style={[
-                  styles.accountMetaEmail,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                {session.user.email}
-              </AppText>
-              <AppText
-                preset="unifiedBody"
-                style={[
-                  styles.accountMetaText,
-                  { color: theme.colors.textMuted },
-                ]}
-              >
-                닉네임은 월 1회 변경할 수 있어요.
-              </AppText>
-            </View>
-          ) : null}
-
+          <MoreMenuSection title="빠른 이동" items={quickItems} quick />
+          <MoreMenuSection title="소통과 활동" items={socialItems} />
+          <MoreMenuSection title="생활 정보" items={infoItems} />
           {isLoggedIn ? (
-            <View style={styles.bottomActions}>
-              <CtaButton
-                role="destructiveEntry"
-                testID="account-delete-entry"
-                accessibilityRole="button"
-                accessibilityLabel="회원탈퇴 확인 시작"
-                activeOpacity={0.82}
-                style={[styles.standaloneDeleteAction, {}]}
-                onPress={onPressDeleteAccount}
-                disabled={deleting}
-              >
-                <CtaText
-                  preset="unifiedLabel"
-                  style={[styles.standaloneDeleteActionLabel, {}]}
-                >
-                  {deleting ? '회원탈퇴 처리 중...' : '회원탈퇴'}
-                </CtaText>
-              </CtaButton>
-            </View>
-          ) : (
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[
-                styles.loginButton,
-                { backgroundColor: petTheme.primary },
-              ]}
-              onPress={onPressLogin}
-            >
-              <AppText preset="unifiedLabel" style={styles.loginButtonLabel}>
-                로그인하러 가기
-              </AppText>
-            </TouchableOpacity>
-          )}
+            <>
+              <MoreMenuSection
+                testID="more-settings-section"
+                title="앱 설정"
+                items={settingItems}
+                onLayout={handleSettingsSectionLayout}
+              />
+              <MoreMenuSection title="이용 안내" items={policyItems} />
+              <MoreMenuSection title="계정" items={accountItems} />
+            </>
+          ) : null}
+          {isGuideAdmin ? (
+            <MoreMenuSection title="운영" items={adminItems} />
+          ) : null}
         </ScrollView>
 
         <AppNavigationToolbar
@@ -2969,206 +2659,11 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F7F8FB',
   },
-  headerRow: {
-    paddingHorizontal: 22,
-    paddingTop: 8,
-    paddingBottom: 18,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 16,
-  },
-  headerTextWrap: {
-    flex: 1,
-    gap: 5,
-  },
-  headerTitle: {
-    fontSize: 16,
-    lineHeight: 22,
-    color: '#182133',
-    fontWeight: '800',
-  },
-  headerSubtitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#A0A8B8',
-    fontWeight: '500',
-  },
-  guestHeaderTitle: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '800',
-  },
-  guestHeaderSubtitle: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '500',
-  },
-  headerAvatarButton: {
-    width: 88,
-    height: 88,
-    borderRadius: 33,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-  },
-  headerAvatarImage: {
-    width: 88,
-    height: 88,
-    borderRadius: 33,
-    backgroundColor: '#F1E1D0',
-  },
-  headerAvatarFallback: {
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerAvatarFallbackText: {
-    fontSize: 16,
-    color: '#8B5E3C',
-    fontWeight: '700',
-  },
-  headerAvatarBadge: {
-    position: 'absolute',
-    right: 0,
-    bottom: 0,
-    width: 22,
-    height: 22,
-    borderRadius: 11,
-    backgroundColor: '#E8C8AA',
-    borderWidth: 2,
-    borderColor: '#F7F8FB',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  scroll: {
-    flex: 1,
-  },
+  scroll: { flex: 1 },
   content: {
-    paddingHorizontal: 18,
+    paddingHorizontal: MORE_MENU.contentPadding,
     paddingBottom: 18,
-    gap: 18,
-  },
-  sectionWrap: {
-    gap: 10,
-  },
-  sectionTitle: {
-    paddingHorizontal: 6,
-    fontSize: 12,
-    lineHeight: 16,
-    color: '#A9B2C1',
-    fontWeight: '600',
-  },
-  menuCard: {
-    borderRadius: 20,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: '#EDF0F5',
-    overflow: 'hidden',
-  },
-  menuDivider: {
-    height: 1,
-    backgroundColor: '#F2F4F8',
-    marginLeft: 64,
-  },
-  menuRow: {
-    minHeight: 62,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#FFFFFF',
-  },
-  menuLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 14,
-    flex: 1,
-  },
-  menuIconBox: {
-    width: 34,
-    height: 34,
-    borderRadius: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  menuLabel: {
-    fontSize: 15,
-    lineHeight: 20,
-    color: '#2C3445',
-    fontWeight: '600',
-  },
-  menuValue: {
-    maxWidth: 110,
-    fontSize: 12,
-    lineHeight: 16,
-    textAlign: 'right',
-  },
-  menuRight: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    marginLeft: 14,
-  },
-  menuDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#F29A98',
-  },
-  badgeSoon: {
-    fontSize: 11,
-    color: '#C3A4FF',
-    fontWeight: '600',
-  },
-  accountMeta: {
-    alignItems: 'center',
-    gap: 4,
-    paddingTop: 4,
-  },
-  accountMetaEmail: {
-    fontSize: 12,
-    color: '#98A1B2',
-    fontWeight: '500',
-  },
-  accountMetaText: {
-    fontSize: 11,
-    lineHeight: 16,
-    color: '#B0B8C6',
-    fontWeight: '500',
-    textAlign: 'center',
-  },
-  bottomActions: {
-    alignItems: 'center',
-    gap: 14,
-    paddingTop: 6,
-  },
-  standaloneDeleteAction: {
-    minHeight: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingHorizontal: 18,
-    borderWidth: 1,
-    borderRadius: 12,
-  },
-  standaloneDeleteActionLabel: {
-    fontSize: 13,
-    lineHeight: 18,
-    fontWeight: '700',
-  },
-  loginButton: {
-    minHeight: 50,
-    borderRadius: 16,
-    backgroundColor: '#8B5CF6',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  loginButtonLabel: {
-    fontSize: 15,
-    color: '#FFFFFF',
-    fontWeight: '700',
+    gap: MORE_MENU.sectionGap,
   },
   modalBackdrop: {
     flex: 1,

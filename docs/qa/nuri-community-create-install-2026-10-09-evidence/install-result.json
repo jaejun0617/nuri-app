@@ -1,0 +1,10 @@
+{
+  "at": "2026-10-08T17:18:11.468Z",
+  "count": 1,
+  "output": "Performing Streamed Install\nSuccess",
+  "installedMatch": true,
+  "preserved": true,
+  "uiControl": 0,
+  "nativeQa": "PO_DIRECT_PENDING",
+  "loginAndPet": "NOT_OBSERVED_NO_UI_ACTION"
+}

@@ -260,52 +260,104 @@ describe('community comment presentation', () => {
 
     expect(threadStyle.paddingHorizontal).toBe(0);
     expect(threadStyle.paddingVertical).toBe(0);
-    expect(threadStyle.marginBottom).toBe(0);
-    expect(threadStyle.borderBottomWidth).toBe(StyleSheet.hairlineWidth);
-    expect(rootContentStyle.paddingHorizontal).toBe(8);
-    expect(rootContentStyle.paddingVertical).toBe(8);
-    expect(COMMENT_ROOT_DIVIDER_COLOR).toBe('rgba(0, 0, 0, 0.20)');
-    expect(commentBubbleStyle.paddingHorizontal).toBe(0);
-    expect(commentBubbleStyle.paddingVertical).toBe(0);
+    expect(threadStyle.marginBottom).toBe(8);
+    expect(threadStyle.borderBottomWidth).toBe(0);
+    expect(rootContentStyle.paddingHorizontal).toBe(20);
+    expect(rootContentStyle.paddingTop).toBe(6);
+    expect(rootContentStyle.paddingBottom).toBe(2);
+    expect(COMMENT_ROOT_DIVIDER_COLOR).toBe('rgba(0, 0, 0, 0.08)');
+    expect(commentBubbleStyle.paddingHorizontal).toBe(10);
+    expect(commentBubbleStyle.paddingVertical).toBe(6);
+    expect(commentBubbleStyle.borderRadius).toBe(8);
     expect(commentBubbleStyle.borderWidth).toBe(0);
     expect(replyListStyle.alignSelf).toBe('stretch');
     expect(replyListStyle.marginLeft).toBe(0);
     expect(replyListStyle.marginRight).toBe(0);
     expect(replyListStyle.paddingLeft).toBe(0);
     expect(replyListStyle.paddingRight).toBe(0);
+    expect(replyListStyle.marginTop).toBe(0);
+    expect(replyListStyle.paddingTop).toBe(0);
     expect('borderLeftWidth' in replyListStyle).toBe(false);
     expect('borderLeftColor' in replyListStyle).toBe(false);
     expect('borderTopWidth' in replyListStyle).toBe(false);
-    expect('replyAvatar' in styles).toBe(false);
-    expect('replyAvatarFallback' in styles).toBe(false);
+    expect(styles.replyAvatar).toMatchObject({
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+    });
+    expect(styles.replyAvatarFallback).toMatchObject({
+      width: 20,
+      height: 20,
+      borderRadius: 10,
+    });
     expect('replyMarker' in styles).toBe(false);
     expect(replyDividerStyle.height).toBe(COMMENT_REPLY_DIVIDER_WIDTH);
     expect(replyDividerStyle.alignSelf).toBe('stretch');
-    expect(COMMENT_REPLY_DIVIDER_COLOR).toBe('rgba(0, 0, 0, 0.12)');
+    expect(COMMENT_REPLY_DIVIDER_COLOR).toBe('rgba(0, 0, 0, 0.04)');
     expect(replyDividerStyle.backgroundColor).toBe(COMMENT_REPLY_DIVIDER_COLOR);
     expect('borderBottomWidth' in replyRowStyle).toBe(false);
     expect(replyRowStyle.alignSelf).toBe('stretch');
     expect(replyRowStyle.gap).toBe(8);
-    expect(replyRowStyle.paddingLeft).toBe(16);
-    expect(replyRowStyle.paddingRight).toBe(16);
-    expect(replyRowStyle.backgroundColor).toBe('#F6F7FB');
+    expect(replyRowStyle.paddingLeft).toBe(56);
+    expect(replyRowStyle.paddingRight).toBe(20);
+    expect(replyRowStyle.backgroundColor).toBe('transparent');
+    expect(replyRowStyle.paddingTop).toBe(4);
+    expect(replyRowStyle.paddingBottom).toBe(0);
     expect('borderRadius' in replyRowStyle).toBe(false);
-    expect(styles.replySectionHeader.backgroundColor).toBe('#F6F7FB');
-    expect(styles.replySectionHeader.paddingHorizontal).toBe(16);
+    expect(styles.replySectionHeader.backgroundColor).toBe('transparent');
+    expect(styles.replySectionHeader.minHeight).toBe(48);
+    expect(styles.replySectionHeader.paddingLeft).toBe(56);
+    expect(styles.replySectionHeader.paddingRight).toBe(20);
     expect(styles.replySectionHeaderText.fontWeight).toBe('600');
-    expect(replyBubbleStyle.paddingHorizontal).toBe(0);
-    expect(replyBubbleStyle.paddingVertical).toBe(0);
+    expect(replyBubbleStyle.paddingHorizontal).toBe(10);
+    expect(replyBubbleStyle.paddingVertical).toBe(6);
     expect(replyBubbleStyle.borderWidth).toBe(0);
-    expect(styles.commentAvatar.width).toBe(24);
-    expect(styles.commentAvatar.marginTop).toBe(-2);
-    expect(styles.commentAvatarFallback.marginTop).toBe(-2);
-    expect(styles.replyMarkerTapTarget.width).toBe(24);
-    expect(styles.replyMarkerTapTarget.height).toBe(24);
-    expect(styles.replyMarkerTapTarget.marginTop).toBe(-2);
+    expect(styles.commentAvatar.width).toBe(28);
+    expect(styles.commentAvatar.marginTop).toBe(0);
+    expect(styles.commentAvatarFallback.marginTop).toBe(0);
+    expect(styles.replyMarkerTapTarget.width).toBe(20);
+    expect(styles.replyMarkerTapTarget.height).toBe(20);
+    expect(styles.replyMarkerTapTarget.marginTop).toBe(2);
     expect(styles.commentTapPressed.opacity).toBe(0.76);
     expect(commentRowStyle.gap).toBe(replyRowStyle.gap);
     expect(styles.replyContent).toMatchObject(styles.commentContent);
     expect(commentRowStyle.alignItems).toBe('flex-start');
     expect(replyRowStyle.alignItems).toBe('flex-start');
+    expect(styles.commentContent).toMatchObject({
+      fontSize: 16,
+      lineHeight: 25,
+    });
+    expect(styles.commentActionTouchTarget).toMatchObject({
+      minWidth: 48,
+      minHeight: 48,
+    });
+    expect(styles.commentActionFace).not.toHaveProperty('borderWidth');
+    expect(styles.commentActionRow.marginTop).toBe(0);
+    expect(styles.replyActionRow.marginTop).toBe(0);
+    expect('height' in rootContentStyle).toBe(false);
+    expect('height' in replyRowStyle).toBe(false);
+    expect('targetCommentThread' in styles).toBe(false);
+    expect('targetReplyRow' in styles).toBe(false);
+  });
+
+  it('uses the same readable size for post, comments, replies, authors and mentions', () => {
+    for (const style of [
+      styles.postContent,
+      styles.commentContent,
+      styles.replyContent,
+      styles.authorName,
+      styles.commentAuthorText,
+      styles.replyAuthorText,
+      styles.commentMention,
+      styles.replyMention,
+    ]) {
+      expect(style).toMatchObject({ fontSize: 16, lineHeight: 25 });
+    }
+    expect(styles.commentMetaText.fontSize).toBeLessThan(
+      styles.commentContent.fontSize,
+    );
+    expect(styles.postTitle.fontSize).toBeGreaterThan(
+      styles.postContent.fontSize,
+    );
   });
 });

@@ -1,0 +1,104 @@
+{
+  "recordedAt": "2026-10-08T17:00:43.126Z",
+  "evidenceRoot": "/private/tmp/nuri-community-compose-sjvHk2",
+  "typescript": {
+    "startedAt": "2026-10-08T16:54:27.832Z",
+    "endedAt": "2026-10-08T16:54:34.940Z",
+    "code": 0,
+    "signal": null,
+    "command": [
+      "/Users/shinjaejun/.nvm/versions/node/v24.20.0/bin/node",
+      "node_modules/typescript/bin/tsc",
+      "--noEmit"
+    ]
+  },
+  "eslint": {
+    "startedAt": "2026-10-08T16:55:00.828Z",
+    "endedAt": "2026-10-08T16:55:02.159Z",
+    "code": 0,
+    "signal": null,
+    "command": [
+      "/Users/shinjaejun/.nvm/versions/node/v24.20.0/bin/node",
+      "node_modules/eslint/bin/eslint.js",
+      "src/screens/Community/CommunityCreateScreen.tsx",
+      "src/screens/Community/components/CommunityCreateForm.tsx",
+      "src/screens/Community/components/CommunityCreateForm.styles.ts",
+      "src/screens/Community/communityPostEditor.shared.ts",
+      "__tests__/communityCreateKeyboard.test.tsx",
+      "__tests__/communityCreatePresentation.test.tsx",
+      "__tests__/communityComposerSimplification.test.tsx",
+      "-f",
+      "json",
+      "-o",
+      "/private/tmp/nuri-community-compose-sjvHk2/eslint-result.json"
+    ],
+    "files": 7,
+    "errors": 0,
+    "warnings": 0
+  },
+  "targeted": {
+    "startedAt": "2026-10-08T16:53:58.131Z",
+    "endedAt": "2026-10-08T16:54:01.649Z",
+    "code": 0,
+    "signal": null,
+    "command": [
+      "/Users/shinjaejun/.nvm/versions/node/v24.20.0/bin/node",
+      "node_modules/jest/bin/jest.js",
+      "--runInBand",
+      "--watchAll=false",
+      "--watchman=false",
+      "--runTestsByPath",
+      "__tests__/communityCreateKeyboard.test.tsx",
+      "__tests__/communityCreatePresentation.test.tsx",
+      "__tests__/communityComposerSimplification.test.tsx",
+      "__tests__/communityEditFocus.test.tsx",
+      "__tests__/communityWritePolicy.test.ts",
+      "__tests__/ctaMigration.test.ts",
+      "--json",
+      "--outputFile=/private/tmp/nuri-community-compose-sjvHk2/targeted-verified-result.json"
+    ],
+    "suites": 6,
+    "passed": 33,
+    "failed": 0
+  },
+  "fullSuite": {
+    "startedAt": "2026-10-08T16:55:37.766Z",
+    "endedAt": "2026-10-08T16:56:03.672Z",
+    "code": 0,
+    "signal": null,
+    "command": [
+      "/Users/shinjaejun/.nvm/versions/node/v24.20.0/bin/node",
+      "node_modules/jest/bin/jest.js",
+      "--runInBand",
+      "--watchAll=false",
+      "--watchman=false",
+      "--json",
+      "--outputFile=/private/tmp/nuri-community-compose-sjvHk2/full-suite-result.json"
+    ],
+    "runCount": 1,
+    "suites": 198,
+    "passed": 2031,
+    "failed": 0,
+    "skipped": 0
+  },
+  "preliminaryChecks": {
+    "typecheck": "ref/icon type errors corrected",
+    "targeted": "two runs failed due to memo/Pressable test selectors; assertions retained"
+  },
+  "remote": {
+    "method": "SELECT catalog only",
+    "queryCount": 2,
+    "project": "grmekesqoydylqmyvfke",
+    "observed": [
+      "posts constraints contain no image_urls cardinality limit",
+      "sync_community_post_image_assets processes full image_urls",
+      "guard_community_post_insert retains actor, content policy, rate and duplicate checks"
+    ],
+    "userRowRead": 0,
+    "mutation": 0,
+    "schemaChange": 0,
+    "rlsChange": 0,
+    "uploadE2e": "NOT_RUN",
+    "serverFivePhotoLimitAdded": false
+  }
+}

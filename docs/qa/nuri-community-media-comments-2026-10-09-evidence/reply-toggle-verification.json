@@ -1,0 +1,58 @@
+{
+  "branchUnchanged": true,
+  "headUnchanged": true,
+  "stagedUnchanged": true,
+  "changed": [
+    "__tests__/communityMediaActions.test.tsx",
+    "docs/domains/community-discussion-view.md",
+    "docs/qa/nuri-community-media-comments-2026-10-09.md",
+    "src/screens/Community/CommunityDiscussionContent.tsx",
+    "__tests__/communityCommentCorrective.test.tsx",
+    "__tests__/communityDetailPresentation.test.ts",
+    "docs/project-memory/다음-작업-우선순위.md",
+    "docs/project-memory/최근-작업-로그.md",
+    "docs/project-memory/핵심-결정사항.md",
+    "docs/project-memory/현재-프로젝트-상태.md",
+    "docs/qa/release-checklist.md",
+    "src/screens/Community/CommunityDetailScreen.styles.ts",
+    "src/screens/Community/components/CommentThreadItem.tsx"
+  ],
+  "removed": [],
+  "typescript": "PASS",
+  "lint": "PASS",
+  "targeted": {
+    "suites": 6,
+    "tests": 84
+  },
+  "fullSuite": {
+    "runs": 1,
+    "suites": 200,
+    "tests": 2069
+  },
+  "build": 0,
+  "install": 0,
+  "adb": 0,
+  "db": 0,
+  "commit": false,
+  "push": false,
+  "nativeQA": "PENDING_PO",
+  "metro": "RUNNING",
+  "evidence": [
+    {
+      "file": "reply-toggle-typescript.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "reply-toggle-eslint.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "reply-toggle-targeted-verified.log",
+      "sha256": "0e877435331ffde0032b43668c7cb758f5ba97313f5e38656d68bb8335f5caed"
+    },
+    {
+      "file": "reply-toggle-full-suite.log",
+      "sha256": "478de8ef67cae4eb8e437f59ae51ffaa6bf123eec83b69f3d637a90ead8447a6"
+    }
+  ]
+}

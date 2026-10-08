@@ -1,0 +1,37 @@
+{
+  "head": "e49356c14f731599d0a428c52fff368aa997ce18",
+  "installedPriorApk": "82c293b818ddf9413bbf2638d82a0bf991fd83d42b1d8a8bdb39cfa8d8929651",
+  "sourceState": "LOCAL_ONLY_NOT_BUILT",
+  "runtime": [
+    "src/store/communityReadStore.ts",
+    "src/screens/Community/components/PostCard.tsx",
+    "src/screens/Community/CommunityDiscussionContent.tsx",
+    "src/app/theme/tokens/colors.ts",
+    "src/screens/Community/components/CommentThreadItem.tsx",
+    "src/screens/Community/components/ReplyCommentItem.tsx",
+    "src/screens/Community/components/CommentActionRow.tsx",
+    "src/screens/Community/CommunityDetailScreen.styles.ts"
+  ],
+  "tests": [
+    "__tests__/communityReadStore.test.ts",
+    "__tests__/communityReadPresentation.test.tsx",
+    "__tests__/communityCommentCorrective.test.tsx",
+    "__tests__/communityCommentPresentation.test.ts",
+    "__tests__/communityDetailPresentation.test.ts"
+  ],
+  "hashes": {
+    "src/store/communityReadStore.ts": "b146f91e0128e3236778fd7944613ab9b03e48dbecf481be0136c0f693344c24",
+    "src/screens/Community/components/PostCard.tsx": "d481dfc4861ce96de48d442ecdf234471404a6c20b8fa9b8042bddfdc912fbcb",
+    "src/screens/Community/CommunityDiscussionContent.tsx": "684c3f3ae81fb5610869a9619058c8061436b4d879ba568cafee226032861082",
+    "src/app/theme/tokens/colors.ts": "a27bd2de99674aa0de521936b0f26d13f17919887aea2554edf3f038e6c3c233",
+    "src/screens/Community/components/CommentThreadItem.tsx": "c3e64ad67560f7957c5af74427f9ff26fdfe65aed2a556d147d01ff51faf87ea",
+    "src/screens/Community/components/ReplyCommentItem.tsx": "b1dbc333ae9e1802f5c856aa6df957f17f72ae4d913f819fa2c667da6771beea",
+    "src/screens/Community/components/CommentActionRow.tsx": "29b39238ddd4c3a6f000712b82c9ef86e9fd7a78962db4f047f0c0f72bdd76fb",
+    "src/screens/Community/CommunityDetailScreen.styles.ts": "785c466cf4793be5b3ac45e512524ea7aaa9862404f59889b31738c99c7b7681",
+    "__tests__/communityReadStore.test.ts": "522a489a0a4883315c78b9f8109b8147865b49a25cd43b646725188f73989f7d",
+    "__tests__/communityReadPresentation.test.tsx": "1736e6ac3e351f8078c234fb4efe1a33081d8efc19ee5e25ed7062a963fb7e4e",
+    "__tests__/communityCommentCorrective.test.tsx": "990a5b0390d8734b91ff2b5d8160560b2432197bc40fcd77d897dcfd93314f52",
+    "__tests__/communityCommentPresentation.test.ts": "62524dff7b053b603de52c3822c7c61d42df1bbbc8cea346cc67c6bdc7c71154",
+    "__tests__/communityDetailPresentation.test.ts": "e7f5027dde2d564ae5a53922c609906c1fdf1d6292f3c70ec44b6113c7498688"
+  }
+}

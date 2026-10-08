@@ -127,7 +127,7 @@ describe('More account deletion confirmation', () => {
     global.requestAnimationFrame = originalRequestAnimationFrame;
   });
 
-  it('keeps all 19 functional entries including app font in the four approved groups', async () => {
+  it('keeps all 19 destinations once across identity, quick links and purpose groups', async () => {
     let renderer!: TestRenderer.ReactTestRenderer;
 
     await TestRenderer.act(async () => {
@@ -140,10 +140,12 @@ describe('More account deletion confirmation', () => {
     });
 
     for (const title of [
-      '나의 반려동물',
-      '활동 및 기록',
-      '소통 및 정보',
-      '앱 서비스 설정',
+      '빠른 이동',
+      '소통과 활동',
+      '생활 정보',
+      '앱 설정',
+      '이용 안내',
+      '계정',
     ]) {
       expect(renderer.root.findByProps({ children: title })).toBeDefined();
     }
@@ -187,8 +189,142 @@ describe('More account deletion confirmation', () => {
         renderer.root.findByProps({ testID: `more-entry-${entryId}` }),
       ).toBeDefined();
     }
-    expect(renderer.root.findByProps({ testID: 'account-delete-entry' })).toBeDefined();
+    expect(
+      renderer.root.findByProps({ testID: 'account-delete-entry' }),
+    ).toBeDefined();
 
+    const quickGrid = renderer.root.findByProps({ testID: 'more-quick-grid' });
+    const quickEntries = new Set(
+      quickGrid
+        .findAll(node =>
+          String(node.props.testID ?? '').startsWith('more-entry-'),
+        )
+        .map(node => node.props.testID),
+    );
+    expect([...quickEntries]).toEqual([
+      'more-entry-important-schedule',
+      'more-entry-memory-diary',
+      'more-entry-health-report',
+      'more-entry-indoor-activities',
+    ]);
+    expect(
+      renderer.root.findAllByProps({ testID: 'more-entry-guide-admin' }),
+    ).toHaveLength(0);
+
+    await TestRenderer.act(async () => renderer.unmount());
+  });
+
+  it.each([
+    ['user', 'ready', false],
+    ['admin', 'loading', false],
+    ['admin', 'error', false],
+    ['admin', 'ready', true],
+    ['super_admin', 'ready', true],
+  ] as const)(
+    'preserves the %s/%s operating gate',
+    async (role, sync, visible) => {
+      useAuthStore.setState({
+        profile: { nickname: 'QA', role },
+        profileSyncStatus: sync,
+      });
+      let renderer!: TestRenderer.ReactTestRenderer;
+      await TestRenderer.act(async () => {
+        renderer = TestRenderer.create(
+          <ThemeProvider theme={createTheme('light')}>
+            <MoreDrawerContent onRequestClose={jest.fn()} />
+          </ThemeProvider>,
+        );
+      });
+      for (const id of [
+        'guide-admin',
+        'walk-poi-admin',
+        'animal-hospital-admin',
+      ]) {
+        expect(
+          renderer.root.findAllByProps({ testID: `more-entry-${id}` }).length >
+            0,
+        ).toBe(visible);
+      }
+      await TestRenderer.act(async () => renderer.unmount());
+    },
+  );
+
+  it('keeps guest public navigation and protects authenticated destinations', async () => {
+    useAuthStore.setState({
+      isLoggedIn: false,
+      session: null,
+      profile: { nickname: null, role: 'user' },
+      profileSyncStatus: 'idle',
+    });
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => {
+      renderer = TestRenderer.create(
+        <ThemeProvider theme={createTheme('light')}>
+          <MoreDrawerContent onRequestClose={jest.fn()} />
+        </ThemeProvider>,
+      );
+    });
+    for (const id of [
+      'theme',
+      'app-font',
+      'notification',
+      'user-notifications',
+      'logout',
+    ]) {
+      expect(
+        renderer.root.findAllByProps({ testID: `more-entry-${id}` }),
+      ).toHaveLength(0);
+    }
+    expect(
+      renderer.root.findAllByProps({ testID: 'account-delete-entry' }),
+    ).toHaveLength(0);
+    TestRenderer.act(() =>
+      renderer.root
+        .findByProps({ testID: 'more-entry-community' })
+        .props.onPress(),
+    );
+    expect(mockNavigation.navigate).toHaveBeenLastCalledWith('CommunityList', {
+      entrySource: 'more',
+    });
+    TestRenderer.act(() =>
+      renderer.root
+        .findByProps({ testID: 'more-entry-pet-manage' })
+        .props.onPress(),
+    );
+    expect(mockNavigation.navigate).toHaveBeenLastCalledWith('SignIn');
+    await TestRenderer.act(async () => renderer.unmount());
+  });
+
+  it('keeps user editing separate from pet management and does not persist on entry', async () => {
+    const onClose = jest.fn();
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => {
+      renderer = TestRenderer.create(
+        <ThemeProvider theme={createTheme('light')}>
+          <MoreDrawerContent onRequestClose={onClose} />
+        </ThemeProvider>,
+      );
+    });
+    TestRenderer.act(() =>
+      renderer.root
+        .findByProps({ testID: 'more-entry-my-profile' })
+        .props.onPress(),
+    );
+    expect(mockNavigation.navigate).not.toHaveBeenCalled();
+    expect(onClose).not.toHaveBeenCalled();
+    TestRenderer.act(() =>
+      renderer.root
+        .findByProps({ testID: 'more-entry-pet-manage' })
+        .props.onPress(),
+    );
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('PetManagement', {
+      entrySource: 'more',
+    });
+    expect(mockPerformAccountDeletion).not.toHaveBeenCalled();
+    TestRenderer.act(() =>
+      renderer.root.findByProps({ testID: 'more-close' }).props.onPress(),
+    );
+    expect(onClose).toHaveBeenCalledTimes(2);
     await TestRenderer.act(async () => renderer.unmount());
   });
 
@@ -221,7 +357,9 @@ describe('More account deletion confirmation', () => {
     );
 
     if (!deleteDialog || !acknowledgementDialog || !logoutDialog) {
-      throw new Error('Expected account confirmation dialogs were not rendered');
+      throw new Error(
+        'Expected account confirmation dialogs were not rendered',
+      );
     }
 
     expect(deleteDialog.props.keyboardAware).toBe(true);
@@ -335,11 +473,13 @@ describe('More account deletion confirmation', () => {
     let acknowledgementDialog = renderer.root
       .findAll(node => String(node.type) === CONFIRM_DIALOG_HOST)
       .find(dialog => dialog.props.title === '회원탈퇴 전 확인해 주세요');
-    if (!acknowledgementDialog) throw new Error('Acknowledgement dialog missing');
+    if (!acknowledgementDialog)
+      throw new Error('Acknowledgement dialog missing');
 
     expect(
       React.Children.toArray(acknowledgementDialog.props.children).map(
-        child => (child as React.ReactElement<{ testID?: string }>).props.testID,
+        child =>
+          (child as React.ReactElement<{ testID?: string }>).props.testID,
       ),
     ).toEqual([
       'account-delete-acknowledgement-toggle',
@@ -395,7 +535,9 @@ describe('More account deletion confirmation', () => {
     const scroll = renderer.root.findByProps({ testID: 'more-menu-scroll' });
     TestRenderer.act(() => {
       scroll.props.onScroll({ nativeEvent: { contentOffset: { y: 620 } } });
-      renderer.root.findByProps({ testID: 'more-entry-policy-center' }).props.onPress();
+      renderer.root
+        .findByProps({ testID: 'more-entry-policy-center' })
+        .props.onPress();
     });
 
     expect(onRequestClose).toHaveBeenCalledTimes(1);
@@ -426,7 +568,9 @@ describe('More account deletion confirmation', () => {
     });
     expect(restoredScroll.props.contentOffset).toEqual({ x: 0, y: 620 });
     TestRenderer.act(() => {
-      restoredScroll.props.onLayout({ nativeEvent: { layout: { height: 500 } } });
+      restoredScroll.props.onLayout({
+        nativeEvent: { layout: { height: 500 } },
+      });
       restoredScroll.props.onContentSizeChange(360, 1_400);
     });
     expect(useUiStore.getState().moreDrawerRestorePending).toBe(false);
@@ -491,16 +635,8 @@ describe('More account deletion confirmation', () => {
       ['nuri-ranking', 'NuriRanking', { entrySource: 'more' }],
       ['tips', 'GuideList', { entrySource: 'more' }],
       ['walk-nearby', 'WalkSpotList', { entrySource: 'more' }],
-      [
-        'animal-hospital',
-        'AnimalHospitalList',
-        { entrySource: 'more' },
-      ],
-      [
-        'user-notifications',
-        'UserNotifications',
-        { entrySource: 'more' },
-      ],
+      ['animal-hospital', 'AnimalHospitalList', { entrySource: 'more' }],
+      ['user-notifications', 'UserNotifications', { entrySource: 'more' }],
       [
         'community-blocked-users',
         'CommunityBlockedUsers',
@@ -556,5 +692,44 @@ describe('More account deletion confirmation', () => {
     await TestRenderer.act(async () => {
       renderer.unmount();
     });
+  });
+
+  it('scrolls the settings shortcut to the measured section without navigating or saving', async () => {
+    const scrollTo = jest
+      .spyOn(ScrollView.prototype, 'scrollTo')
+      .mockImplementation(() => {});
+    let renderer!: TestRenderer.ReactTestRenderer;
+    try {
+      await TestRenderer.act(async () => {
+        renderer = TestRenderer.create(
+          <ThemeProvider theme={createTheme('light')}>
+            <MoreDrawerContent onRequestClose={jest.fn()} />
+          </ThemeProvider>,
+        );
+      });
+      const scroll = renderer.root.findByProps({ testID: 'more-menu-scroll' });
+      TestRenderer.act(() => {
+        scroll.props.onLayout({ nativeEvent: { layout: { height: 600 } } });
+        scroll.props.onContentSizeChange(384, 1800);
+        renderer.root
+          .findByProps({ testID: 'more-settings-section' })
+          .props.onLayout({ nativeEvent: { layout: { y: 820 } } });
+      });
+      TestRenderer.act(() =>
+        renderer.root
+          .findByProps({ testID: 'more-settings-shortcut' })
+          .props.onPress(),
+      );
+      expect(scrollTo).toHaveBeenLastCalledWith({
+        x: 0,
+        y: 820,
+        animated: true,
+      });
+      expect(mockNavigation.navigate).not.toHaveBeenCalled();
+      expect(mockPerformAccountDeletion).not.toHaveBeenCalled();
+    } finally {
+      await TestRenderer.act(async () => renderer?.unmount());
+      scrollTo.mockRestore();
+    }
   });
 });

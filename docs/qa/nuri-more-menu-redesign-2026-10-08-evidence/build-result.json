@@ -1,0 +1,19 @@
+{
+  "startedAt": "2026-10-08T13:12:48.981Z",
+  "endedAt": "2026-10-08T13:16:24.845Z",
+  "code": 0,
+  "buildCount": 1,
+  "baseHead": "e49356c14f731599d0a428c52fff368aa997ce18",
+  "artifacts": {
+    "apk": {
+      "path": "/private/tmp/nuri-more-menu-redesign-20261008T125732/nuri-more-menu-release.apk",
+      "sha256": "520f38af66c815c6d1ca1f37165267b967796f17304ec23a4e35e450944076d3"
+    },
+    "aab": {
+      "path": "/private/tmp/nuri-more-menu-redesign-20261008T125732/nuri-more-menu-release.aab",
+      "sha256": "bde444000c18fe6d93fa9332dce2b50cc572101c7d5025316886f5e51b91cec8"
+    }
+  },
+  "verifierCode": 0,
+  "sourceChangedDuringBuild": []
+}

@@ -942,7 +942,15 @@ export default function CommunityListScreen() {
                 style={[styles.createButton, { paddingHorizontal: 4 }]}
                 onPress={handlePressCreate}
               >
-                <CtaText preset="caption" numberOfLines={1} style={{ fontWeight: '800', fontSize: 12 }}>글쓰기</CtaText>
+                <NuriSemanticIcon
+                  family="feather"
+                  preserveOriginal
+                  name="plus"
+                  size={26}
+                  color="#FFFFFF"
+                  accessible={false}
+                  accessibilityElementsHidden
+                />
               </CtaButton>
             ) : null}
           </View>

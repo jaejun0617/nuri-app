@@ -1,0 +1,20 @@
+{
+  "time": "2026-10-08T13:12:22.016Z",
+  "serial": "R5CY613NMSY",
+  "model": "SM-S937N",
+  "android": "16",
+  "versionName": "1.0",
+  "versionCode": "1",
+  "firstInstallTime": "2026-06-02 19:16:57",
+  "lastUpdateTime": "2026-10-08 20:56:12",
+  "installedSha256": "b41344b18adc6d76ae379da490836f6f3d94bdf1f101c8f0ade2f71a666b05f0",
+  "display": "Physical size: 1080x2340",
+  "density": "Physical density: 450",
+  "fontScale": "1.0",
+  "navigation": "0",
+  "uiControl": "NONE",
+  "loginAndPet": "NOT_OBSERVED_NO_UI_ACTION",
+  "uid": "10402",
+  "uidCapturedBeforeInstallAt": "2026-10-08T13:16:44.013Z",
+  "uidProvenance": "pm list packages --user 0 -U com.nuri.app"
+}

@@ -258,7 +258,7 @@ function isCommunityPostRow(value: unknown): value is CommunityPostRow {
   );
 }
 
-function isCommunityCommentRow(value: unknown): value is CommunityCommentRow {
+export function isCommunityCommentRow(value: unknown): value is CommunityCommentRow {
   return (
     isRecord(value) &&
     typeof value.id === 'string' &&
@@ -1181,6 +1181,12 @@ export async function fetchCommunityComments(postId: string) {
       .filter(row => row.deleted_at === null && row.status === 'active');
   }
 
+  return hydrateCommunityCommentRows(rows);
+}
+
+// Bounded discussion RPCs reuse the same public author and like projection.
+export async function hydrateCommunityCommentRows(rows: CommunityCommentRow[]) {
+  if (rows.length === 0) return [];
   const currentUserId = await getCommunityCurrentUserId();
   const commentUserIds = rows.flatMap(row =>
     [row.user_id, row.reply_target_user_id ?? ''].filter(Boolean),

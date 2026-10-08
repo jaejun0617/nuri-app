@@ -1,0 +1,59 @@
+{
+  "recordedAt": "2026-10-08T16:21:16.539Z",
+  "node": "v24.20.0",
+  "typescript": {
+    "startedAt": "2026-10-08T16:16:05.762Z",
+    "endedAt": "2026-10-08T16:16:15.841Z",
+    "code": 0,
+    "signal": null,
+    "command": [
+      "/Users/shinjaejun/.nvm/versions/node/v24.20.0/bin/node",
+      "node_modules/typescript/bin/tsc",
+      "--noEmit"
+    ]
+  },
+  "eslint": {
+    "files": 13,
+    "errors": 0,
+    "warnings": 0
+  },
+  "targeted": {
+    "success": true,
+    "passedSuites": 8,
+    "passedTests": 84,
+    "source": "/private/tmp/nuri-community-read-title-20261009-010327/targeted-typography-result.json"
+  },
+  "fullSuite": {
+    "success": true,
+    "passedSuites": 197,
+    "passedTests": 2016,
+    "failedSuites": 0,
+    "failedTests": 0,
+    "runCount": 1,
+    "execution": {
+      "startedAt": "2026-10-08T16:16:17.824Z",
+      "endedAt": "2026-10-08T16:16:51.917Z",
+      "code": 0,
+      "signal": null,
+      "command": [
+        "/Users/shinjaejun/.nvm/versions/node/v24.20.0/bin/node",
+        "node_modules/jest/bin/jest.js",
+        "--runInBand",
+        "--watchAll=false",
+        "--watchman=false",
+        "--json",
+        "--outputFile=/private/tmp/nuri-community-read-title-20261009-010327/full-suite-result.json"
+      ]
+    }
+  },
+  "diffCheck": {
+    "scopedExitCode": 0,
+    "scopedOutput": "",
+    "trailingWhitespace": [],
+    "globalExitCode": 2,
+    "globalOutput": "docs/qa/nuri-glass-expenses-2026-10-08-evidence/eslint.log:34: new blank line at EOF.\nsupabase/migrations/20261007074134_community_search_and_write_error_contract.sql:298: new blank line at EOF.\n"
+  },
+  "physicalQa": "NOT_RUN_NOT_INSTALLED",
+  "dbRemote": "NO_ACTION",
+  "nativeClaims": "No new native rendering, composition or font-scaling PASS claimed"
+}

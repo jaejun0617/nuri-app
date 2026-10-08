@@ -1,0 +1,41 @@
+{
+  "recordedAt": "2026-10-08T17:00:43.077Z",
+  "baselineAt": "2026-10-08T16:33:43.843Z",
+  "baselineFileCount": 1664,
+  "changed": [
+    "__tests__/communityComposerSimplification.test.tsx",
+    "__tests__/communityCreateKeyboard.test.tsx",
+    "docs/project-memory/다음-작업-우선순위.md",
+    "docs/project-memory/최근-작업-로그.md",
+    "docs/project-memory/핵심-결정사항.md",
+    "docs/project-memory/현재-프로젝트-상태.md",
+    "docs/qa/release-checklist.md",
+    "docs/리서치/리서치.md",
+    "src/screens/Community/CommunityCreateScreen.tsx",
+    "src/screens/Community/communityPostEditor.shared.ts"
+  ],
+  "missing": [],
+  "unrelated": [],
+  "branch": "codex/task6-community-content-policy",
+  "head": "e49356c14f731599d0a428c52fff368aa997ce18",
+  "branchUnchanged": true,
+  "headUnchanged": true,
+  "stagedUnchanged": true,
+  "staged": "NONE",
+  "sourceHashes": {
+    "src/screens/Community/CommunityCreateScreen.tsx": "67acf4e6028083afcb055f44de9003e6470ce566554f2f94c357ca74948ddeaf",
+    "src/screens/Community/components/CommunityCreateForm.tsx": "a64cad18f09291df29a02862bb9ee9f4a07db5dec72f263bcb54a896dcdc83f4",
+    "src/screens/Community/components/CommunityCreateForm.styles.ts": "f9e127c3a494883b9fbd1b739a71cf0cdacdac153892c8569770b58f2f0847e9",
+    "src/screens/Community/communityPostEditor.shared.ts": "836adcb71f51db6a59d7478132e2f3761b5c1b073cde309cd7a5136df1d737a3",
+    "__tests__/communityCreateKeyboard.test.tsx": "7e35143d97aae3155a8b9106377584608646969455ddfeb2e64f2beeca2c079a",
+    "__tests__/communityCreatePresentation.test.tsx": "8c379f2fb0b74f021b48a42e80c09e522a677a5f4fbc7fa2e258950e6f0f89a1",
+    "__tests__/communityComposerSimplification.test.tsx": "2b9c0e39f47b0446e4f2b49ce03873b0665781329876373f094715e54ed95e37"
+  },
+  "build": 0,
+  "install": 0,
+  "commit": 0,
+  "push": 0,
+  "directDbMutation": 0,
+  "nuriNativeQa": "NOT_RUN",
+  "deviceOwner": "PO"
+}

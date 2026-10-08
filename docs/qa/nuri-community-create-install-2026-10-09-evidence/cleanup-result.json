@@ -1,0 +1,61 @@
+{
+  "at": "2026-10-08T17:13:53.802Z",
+  "before": {
+    "at": "2026-10-08T17:13:51.284Z",
+    "command": "df -k /Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri",
+    "filesystem": "/dev/disk3s5",
+    "mount": "/System/Volumes/Data",
+    "totalKiB": 239362496,
+    "usedKiB": 178256088,
+    "freeKiB": 19170868,
+    "freeGiB": 18.282764434814453
+  },
+  "after": {
+    "at": "2026-10-08T17:13:53.802Z",
+    "command": "df -k /Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri",
+    "filesystem": "/dev/disk3s5",
+    "mount": "/System/Volumes/Data",
+    "totalKiB": 239362496,
+    "usedKiB": 165841988,
+    "freeKiB": 31584968,
+    "freeGiB": 30.12177276611328
+  },
+  "deleted": [
+    {
+      "path": "/private/tmp/nuri-community-category-footer-corrective-20261007-022032/build-temp",
+      "realpath": "/private/tmp/nuri-community-category-footer-corrective-20261007-022032/build-temp",
+      "uid": 501,
+      "allocatedKiB": 91976,
+      "openHandles": 0,
+      "regenerable": true,
+      "reason": "Completed task-local Jest, Metro, Node caches only",
+      "entries": 4
+    },
+    {
+      "path": "/private/tmp/nuri-timeline-memory-detail-20261007-001213/build-temp",
+      "realpath": "/private/tmp/nuri-timeline-memory-detail-20261007-001213/build-temp",
+      "uid": 501,
+      "allocatedKiB": 65908,
+      "openHandles": 0,
+      "regenerable": true,
+      "reason": "Completed task-local Jest, Metro, Node caches only",
+      "entries": 4
+    },
+    {
+      "path": "/Users/shinjaejun/.gradle/caches/build-cache-1",
+      "realpath": "/Users/shinjaejun/.gradle/caches/build-cache-1",
+      "uid": 501,
+      "allocatedKiB": 12249756,
+      "openHandles": 0,
+      "regenerable": true,
+      "reason": "Gradle build results only; dependencies and wrapper excluded",
+      "entries": 437
+    }
+  ],
+  "allocatedDeletedGiB": 11.832847595214844,
+  "observedReclaimedGiB": 11.839008331298828,
+  "projectIntermediates": "PRESERVED_INCREMENTAL_BUILD",
+  "dependencies": "PRESERVED",
+  "canonicalArtifacts": "PRESERVED",
+  "personalAndSystem": "UNTOUCHED"
+}

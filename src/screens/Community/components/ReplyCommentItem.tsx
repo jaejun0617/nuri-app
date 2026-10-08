@@ -1,6 +1,7 @@
 import React, { memo, useCallback, useMemo } from 'react';
 import { Pressable, View } from 'react-native';
 import Feather from '../../../components/icons/NuriFeatherIcon';
+import FastImage from 'react-native-fast-image';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../app/ui/AppText';
@@ -10,7 +11,10 @@ import {
   getCommunityReplyTargetMention,
   isCommentByPostAuthor,
 } from '../utils/commentHelpers';
-import { styles } from '../CommunityDetailScreen.styles';
+import {
+  COMMENT_BUBBLE_SURFACES,
+  styles,
+} from '../CommunityDetailScreen.styles';
 import CommentActionRow from './CommentActionRow';
 
 const EMPTY_REPLY = null;
@@ -64,16 +68,7 @@ function ReplyCommentItemBase({
     <React.Fragment>
       <View
         ref={highlighted ? onTargetReady : undefined}
-        style={[
-          styles.replyRow,
-          highlighted ? styles.targetReplyRow : null,
-          highlighted
-            ? {
-                backgroundColor: `${authorAccentColor}1A`,
-                borderColor: authorAccentColor,
-              }
-            : { backgroundColor: theme.colors.surface },
-        ]}
+        style={[styles.replyRow, { backgroundColor: 'transparent' }]}
       >
         <Pressable
           accessibilityRole="button"
@@ -85,15 +80,33 @@ function ReplyCommentItemBase({
           ]}
           onPress={handlePressComment}
         >
-          <Feather
-            name="corner-down-right"
-            size={16}
-            color={theme.colors.textSecondary}
-          />
+          {reply.authorAvatarUrl ? (
+            <FastImage
+              source={{
+                uri: reply.authorAvatarUrl,
+                priority: FastImage.priority.normal,
+              }}
+              style={[styles.replyAvatar, { borderColor: theme.colors.border }]}
+              resizeMode={FastImage.resizeMode.cover}
+            />
+          ) : (
+            <View
+              style={[
+                styles.replyAvatarFallback,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                },
+              ]}
+            >
+              <Feather name="user" size={10} color={theme.colors.textMuted} />
+            </View>
+          )}
         </Pressable>
         <View style={styles.replyContentWrap}>
           <Pressable
             accessibilityRole="button"
+            accessibilityState={{ selected: highlighted }}
             accessibilityLabel={`답글 ${reply.authorNickname} 내용에 직접 답글 남기기`}
             style={({ pressed }) => [
               styles.replyTapContent,
@@ -115,12 +128,18 @@ function ReplyCommentItemBase({
                 <View
                   style={[
                     styles.authorBadge,
-                    { backgroundColor: authorAccentColor },
+                    {
+                      backgroundColor: 'transparent',
+                      borderColor: authorAccentColor,
+                    },
                   ]}
                 >
                   <AppText
                     preset="caption"
-                    style={[styles.authorBadgeText, { color: '#FFFFFF' }]}
+                    style={[
+                      styles.authorBadgeText,
+                      { color: authorAccentColor },
+                    ]}
                   >
                     글쓴이
                   </AppText>
@@ -140,7 +159,7 @@ function ReplyCommentItemBase({
               style={[
                 styles.replyBubble,
                 {
-                  backgroundColor: 'transparent',
+                  backgroundColor: COMMENT_BUBBLE_SURFACES[theme.mode],
                   borderColor: 'transparent',
                 },
               ]}
@@ -149,7 +168,9 @@ function ReplyCommentItemBase({
                 preset="body"
                 style={[
                   styles.replyContent,
-                  { color: theme.colors.textPrimary },
+                  {
+                    color: theme.colors.textPrimary,
+                  },
                 ]}
               >
                 {reply.replyTargetNickname ? (
@@ -170,6 +191,7 @@ function ReplyCommentItemBase({
             currentUserId={currentUserId}
             isLikedByMe={reply.isLikedByMe}
             likeCount={reply.likeCount}
+            onPressReply={onPressComment}
             onToggleLike={onToggleLike}
             onPressDelete={onPressDelete}
             onPressReport={onPressReport}

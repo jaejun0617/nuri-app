@@ -56,6 +56,7 @@ import AnimalHospitalDetailScreen from '../screens/AnimalHospital/AnimalHospital
 import AnimalHospitalAdminScreen from '../screens/AnimalHospital/AnimalHospitalAdminScreen';
 import CommunityListScreen from '../screens/Community/CommunityListScreen';
 import CommunityDetailScreen from '../screens/Community/CommunityDetailScreen';
+import CommunityCommentsScreen from '../screens/Community/CommunityCommentsScreen';
 import CommunityCreateScreen from '../screens/Community/CommunityCreateScreen';
 import CommunityEditScreen from '../screens/Community/CommunityEditScreen';
 import CommunityBlockedUsersScreen from '../screens/Community/CommunityBlockedUsersScreen';
@@ -229,6 +230,15 @@ export type RootStackParamList = {
   CommunityDetail: {
     postId: string;
     commentId?: string;
+    discussionSessionId?: string;
+    scrollToBody?: boolean;
+    restoredFromRouteSnapshot?: true;
+  };
+  CommunityComments: {
+    postId: string;
+    commentId?: string;
+    discussionSessionId?: string;
+    postRouteKey?: string;
     restoredFromRouteSnapshot?: true;
   };
   CommunityCreate: undefined;
@@ -299,11 +309,6 @@ const FixedWeatherActivityRecordScreen = () => (
 const FixedCommunityListScreen = () => (
   <FixedTypographyBoundary>
     <CommunityListScreen />
-  </FixedTypographyBoundary>
-);
-const FixedCommunityDetailScreen = () => (
-  <FixedTypographyBoundary>
-    <CommunityDetailScreen />
   </FixedTypographyBoundary>
 );
 const FixedCommunityCreateScreen = () => (
@@ -507,12 +512,17 @@ export default function RootNavigator() {
       />
       <Stack.Screen
         name="CommunityDetail"
-        component={FixedCommunityDetailScreen}
+        component={CommunityDetailScreen}
         options={{
           headerShown: true,
           headerTitle: '커뮤니티',
           header: renderCommunityHeader,
         }}
+      />
+      <Stack.Screen
+        name="CommunityComments"
+        component={CommunityCommentsScreen}
+        options={{ headerShown: true, headerTitle: '댓글', header: renderCommunityHeader }}
       />
       <Stack.Screen
         name="CommunityCreate"

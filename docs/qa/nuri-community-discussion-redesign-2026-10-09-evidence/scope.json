@@ -1,0 +1,46 @@
+{
+  "runtimeFiles": [
+    "App.tsx",
+    "src/app/theme/tokens/colors.ts",
+    "src/navigation/RootNavigator.tsx",
+    "src/navigation/communityRouteState.ts",
+    "src/screens/Home/HomeScreen.tsx",
+    "src/screens/Notifications/UserNotificationsScreen.tsx",
+    "src/services/supabase/community.ts",
+    "src/services/community/discussionRead.ts",
+    "src/screens/Community/discussionSession.ts",
+    "src/screens/Community/CommunityDetailScreen.tsx",
+    "src/screens/Community/CommunityCommentsScreen.tsx",
+    "src/screens/Community/CommunityDiscussionContent.tsx",
+    "src/screens/Community/CommunityDetailScreen.styles.ts",
+    "src/screens/Community/components/CommentThreadItem.tsx",
+    "src/screens/Community/components/ReplyCommentItem.tsx",
+    "src/screens/Community/components/CommunityCommentComposer.tsx",
+    "src/screens/Community/components/ReplyPageControls.tsx"
+  ],
+  "testFiles": [
+    "__tests__/communityDiscussionRead.test.ts",
+    "__tests__/communityDiscussionSession.test.ts",
+    "__tests__/communityCommentCorrective.test.tsx",
+    "__tests__/communityKeyboardInteraction.test.tsx",
+    "__tests__/communityDetailPresentation.test.ts",
+    "__tests__/communityCommentPresentation.test.ts",
+    "__tests__/responsiveSourceGuards.test.ts",
+    "__tests__/ctaMigration.test.ts"
+  ],
+  "migrations": [
+    "supabase/migrations/20261008145458_community_discussion_read_contract.sql",
+    "supabase/migrations/20261008151447_community_discussion_anchor_metadata.sql"
+  ],
+  "docs": [
+    "docs/project-memory/현재-프로젝트-상태.md",
+    "docs/project-memory/핵심-결정사항.md",
+    "docs/project-memory/다음-작업-우선순위.md",
+    "docs/project-memory/최근-작업-로그.md",
+    "docs/qa/release-checklist.md",
+    "docs/리서치/리서치.md",
+    "docs/domains/community-discussion-view.md",
+    "docs/qa/nuri-community-discussion-redesign-2026-10-09.md",
+    "docs/sql/커뮤니티/커뮤니티-댓글-읽기-계약-최종.sql"
+  ]
+}

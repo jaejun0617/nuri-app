@@ -1,18 +1,10 @@
-import React, {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
-import {
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { TextInput, TouchableOpacity, View } from 'react-native';
 import { useTheme } from 'styled-components/native';
 
-import CtaButton, { CtaText } from '../../../app/ui/CtaButton';
+import CtaButton, { CtaIcon } from '../../../app/ui/CtaButton';
 import AppText from '../../../app/ui/AppText';
+import AppTextInput from '../../../app/ui/AppTextInput';
 import type { CommunityComment } from '../../../types/community';
 import { styles } from '../CommunityDetailScreen.styles';
 import {
@@ -27,6 +19,8 @@ type Props = {
   currentUserId: string | null;
   commentSubmitting: boolean;
   initialDraft: string;
+  initialSelection?: { start: number; end: number };
+  onSelectionChange?: (selection: { start: number; end: number }) => void;
   resetKey: number;
   paddingBottom: number;
   accentColor: string;
@@ -51,6 +45,8 @@ export default function CommunityCommentComposer({
   currentUserId,
   commentSubmitting,
   initialDraft,
+  initialSelection,
+  onSelectionChange,
   resetKey,
   paddingBottom,
   accentColor,
@@ -72,6 +68,7 @@ export default function CommunityCommentComposer({
     instanceIdRef.current = nextInlineComposerInstanceId;
   }
   const [draft, setDraft] = useState(initialDraft);
+  const [restoredSelection, setRestoredSelection] = useState(initialSelection);
   const firstResetKeyRef = useRef(resetKey);
   const isInline = placement === 'inline';
   const isDirectReply =
@@ -98,14 +95,12 @@ export default function CommunityCommentComposer({
   return (
     <View
       ref={isInline ? inlineComposerRef : undefined}
-      testID={isInline ? 'community-inline-composer' : 'community-root-composer'}
+      testID={
+        isInline ? 'community-inline-composer' : 'community-root-composer'
+      }
       onLayout={
         isInline && replyTargetId !== null
-          ? () =>
-              onInlineLayoutReady(
-                replyTargetId,
-                instanceIdRef.current ?? 0,
-              )
+          ? () => onInlineLayoutReady(replyTargetId, instanceIdRef.current ?? 0)
           : undefined
       }
       style={[
@@ -144,10 +139,7 @@ export default function CommunityCommentComposer({
               <>
                 <AppText
                   preset="caption"
-                  style={[
-                    styles.replyComposerMention,
-                    { color: accentColor },
-                  ]}
+                  style={[styles.replyComposerMention, { color: accentColor }]}
                 >
                   {getCommunityReplyTargetMention(replyTarget.authorNickname)}
                 </AppText>
@@ -185,11 +177,16 @@ export default function CommunityCommentComposer({
           },
         ]}
       >
-        <TextInput
+        <AppTextInput
           testID="community-comment-input"
           accessibilityLabel={isInline ? '답글 입력' : '댓글 입력'}
           ref={inputRef}
           value={draft}
+          selection={restoredSelection}
+          onSelectionChange={event => {
+            setRestoredSelection(undefined);
+            onSelectionChange?.(event.nativeEvent.selection);
+          }}
           onChangeText={value => {
             setDraft(value);
             onDraftChange(value);
@@ -222,7 +219,7 @@ export default function CommunityCommentComposer({
           }}
         />
         <CtaButton
-          role="primary"
+          role="neutral"
           loading={commentSubmitting}
           accessibilityLabel={commentSubmitting ? '댓글 전송 중' : '댓글 전송'}
           compact
@@ -232,7 +229,12 @@ export default function CommunityCommentComposer({
           disabled={!canSubmit}
           onPress={() => onSubmit(draft)}
         >
-          <CtaText preset="caption" style={{ fontSize: 12, fontWeight: '800' }}>전송</CtaText>
+          <CtaIcon
+            name="arrow-up"
+            size={22}
+            accessible={false}
+            accessibilityElementsHidden
+          />
         </CtaButton>
       </View>
     </View>

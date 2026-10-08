@@ -1,0 +1,16 @@
+{
+  "scope": [
+    "docs/qa/nuri-community-create-redesign-2026-10-09.md",
+    "docs/project-memory/현재-프로젝트-상태.md",
+    "docs/project-memory/핵심-결정사항.md",
+    "docs/project-memory/다음-작업-우선순위.md",
+    "docs/project-memory/최근-작업-로그.md",
+    "docs/qa/release-checklist.md",
+    "docs/리서치/리서치.md"
+  ],
+  "issues": [],
+  "scopedDiffExit": 0,
+  "scopedDiffOutput": "",
+  "globalDiffExit": 2,
+  "preExistingGlobalWarnings": "docs/qa/nuri-glass-expenses-2026-10-08-evidence/eslint.log:34: new blank line at EOF.\nsupabase/migrations/20261007074134_community_search_and_write_error_contract.sql:298: new blank line at EOF.\n"
+}

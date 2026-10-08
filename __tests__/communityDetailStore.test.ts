@@ -147,6 +147,46 @@ describe('community detail protected read gate', () => {
     expect(useCommunityStore.getState().commentsByPostId[post.id]).toHaveLength(1);
   });
 
+  it('keeps page order through detail loading and readiness without refreshing the list', async () => {
+    const posts = [makePost('before'), makePost('visited'), makePost('after')];
+    useCommunityStore.setState({ posts, postsById: Object.fromEntries(posts.map(p => [p.id, p])), currentPage: 3 });
+    const pending = deferred<CommunityPost | null>();
+    mockedFetchCommunityPostById.mockReturnValue(pending.promise);
+    const loading = useCommunityStore.getState().fetchPostDetail('visited');
+    expect(useCommunityStore.getState().posts).toBe(posts);
+    // The detail itself must still wait for protected revalidation.
+    expect(useCommunityStore.getState().postsById.visited).toBeUndefined();
+    const fresh = { ...posts[1], viewCount: 10 };
+    pending.resolve(fresh);
+    await loading;
+    expect(useCommunityStore.getState().posts.map(p => p.id)).toEqual(['before', 'visited', 'after']);
+    expect(useCommunityStore.getState().posts[1]).toBe(fresh);
+    expect(useCommunityStore.getState().currentPage).toBe(3);
+  });
+
+  it('retains the list snapshot on transport failure without exposing stale detail', async () => {
+    const post = makePost('offline');
+    useCommunityStore.setState({ posts: [post], postsById: { [post.id]: post } });
+    mockedFetchCommunityPostById.mockRejectedValue(new Error('network unavailable'));
+    await useCommunityStore.getState().fetchPostDetail(post.id);
+    expect(useCommunityStore.getState().posts).toEqual([post]);
+    expect(useCommunityStore.getState().postsById[post.id]).toBeUndefined();
+    expect(useCommunityStore.getState().detailStatusByPostId[post.id]).toBe('error');
+  });
+
+  it.each(['not_found', 'deleted', 'moderated'] as const)('removes ineligible list content for %s', async status => {
+    const post = makePost('ineligible');
+    useCommunityStore.setState({ posts: [post], postsById: { [post.id]: post } });
+    mockedFetchCommunityPostById.mockResolvedValue(status === 'not_found' ? null : {
+      ...post, deletedAt: status === 'deleted' ? '2026-10-09T00:00:00Z' : null,
+      status: status === 'moderated' ? 'hidden' : 'active',
+    });
+    await useCommunityStore.getState().fetchPostDetail(post.id);
+    expect(useCommunityStore.getState().posts).toEqual([]);
+    expect(useCommunityStore.getState().postsById[post.id]).toBeUndefined();
+    expect(useCommunityStore.getState().detailStatusByPostId[post.id]).toBe(status);
+  });
+
   it('오래된 detail 응답이 새 detail cache를 덮지 않는다', async () => {
     const oldRequest = deferred<CommunityPost | null>();
     const newPost = makePost('post-b');

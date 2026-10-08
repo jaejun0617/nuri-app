@@ -1,0 +1,35 @@
+{
+  "project": "grmekesqoydylqmyvfke",
+  "function": "public.guard_community_image_upload()",
+  "migrations": [
+    "20261008180014_community_image_five_photo_limit",
+    "20261008181510_community_remove_image_upload_window_limit"
+  ],
+  "perPostLimit": 5,
+  "tenMinuteUploadQuota": "REMOVED_BY_LATEST_PO_INSTRUCTION",
+  "definitionMd5Before": "dd2efdbf43769fc8665a7e9534737b81",
+  "definitionMd5FivePhotos": "d08cd24378d59b4cdf0a82ed2fe6337d",
+  "definitionMd5Final": "433be514ff3012c9d7d05977e218bdf2",
+  "remoteMatchesExactExpectedDefinition": true,
+  "onlyApprovedDelta": "per-post count/message 3 to 5, then recent_upload_count declaration and window query/exception removed",
+  "activeActorCheck": "PRESERVED",
+  "pathOwnershipCheck": "PRESERVED",
+  "postOwnershipAndActiveStatusCheck": "PRESERVED",
+  "securityDefiner": "UNCHANGED_TRUE",
+  "searchPath": "public, storage",
+  "grants": "UNCHANGED",
+  "rlsChanges": 0,
+  "userRowChanges": 0,
+  "actualUploadQa": "PO_DIRECT_PENDING",
+  "securityAdvisorNewFindings": [],
+  "existingSecurityAdvisorCategories": [
+    "rls_enabled_no_policy",
+    "security_definer_view",
+    "function_search_path_mutable",
+    "extension_in_public",
+    "anon_security_definer_function_executable",
+    "authenticated_security_definer_function_executable",
+    "auth_leaked_password_protection"
+  ],
+  "risk": "No per-account time-window image upload quota; repeated uploads can increase storage and bandwidth usage. Other write/moderation limits remain unchanged."
+}

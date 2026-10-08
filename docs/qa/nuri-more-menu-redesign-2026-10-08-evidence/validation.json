@@ -1,0 +1,267 @@
+{
+  "node": "24.20.0",
+  "typescript": {
+    "status": "PASS",
+    "log": "typescript.log",
+    "command": "node node_modules/typescript/bin/tsc --noEmit"
+  },
+  "eslint": {
+    "errors": 0,
+    "warnings": 6,
+    "files": [
+      {
+        "path": "__tests__/moreAccountDeleteConfirmDialog.test.tsx",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "path": "__tests__/moreMenuPresentation.test.tsx",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "path": "src/components/MoreDrawer/MoreMenuPresentation.tsx",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "path": "src/components/MoreDrawer/moreMenuVisualTokens.ts",
+        "errors": 0,
+        "warnings": 0
+      },
+      {
+        "path": "src/screens/More/MoreDrawerContent.tsx",
+        "errors": 0,
+        "warnings": 6
+      }
+    ]
+  },
+  "targeted": {
+    "success": true,
+    "suites": 8,
+    "tests": 223,
+    "failedTests": 0,
+    "failedSuites": 0
+  },
+  "finalTargeted": {
+    "success": true,
+    "suites": 2,
+    "tests": 30,
+    "failedTests": 0,
+    "failedSuites": 0
+  },
+  "countsAreOverlapping": true,
+  "fullSuite": {
+    "success": true,
+    "suites": 193,
+    "tests": 1975,
+    "failedTests": 0,
+    "failedSuites": 0,
+    "runCount": 1
+  },
+  "firstTargetedAttempt": "FAILED_NEW_TEST_FIXTURE_EXPECTATIONS; corrected and retained in targeted-tests.log",
+  "sourceContractComparison": {
+    "comparison": "TypeScript initializer AST printed without comments",
+    "checked": 46,
+    "changed": [],
+    "results": [
+      {
+        "name": "PasswordField",
+        "unchanged": true
+      },
+      {
+        "name": "PasswordChangeModal",
+        "unchanged": true
+      },
+      {
+        "name": "ThemeSettingsModal",
+        "unchanged": true
+      },
+      {
+        "name": "NotificationSettingsModal",
+        "unchanged": true
+      },
+      {
+        "name": "PasswordChangeSuccessModal",
+        "unchanged": true
+      },
+      {
+        "name": "ProfileEditModal",
+        "unchanged": true
+      },
+      {
+        "name": "handleToolbarLayout",
+        "unchanged": true
+      },
+      {
+        "name": "closeAndNavigate",
+        "unchanged": true
+      },
+      {
+        "name": "openPetManagement",
+        "unchanged": true
+      },
+      {
+        "name": "openPetActivityAchievements",
+        "unchanged": true
+      },
+      {
+        "name": "openScheduleList",
+        "unchanged": true
+      },
+      {
+        "name": "openTimeline",
+        "unchanged": true
+      },
+      {
+        "name": "openGuideList",
+        "unchanged": true
+      },
+      {
+        "name": "openCommunity",
+        "unchanged": true
+      },
+      {
+        "name": "openCommunityBlockedUsers",
+        "unchanged": true
+      },
+      {
+        "name": "openUserNotifications",
+        "unchanged": true
+      },
+      {
+        "name": "openNuriRanking",
+        "unchanged": true
+      },
+      {
+        "name": "openGuideAdmin",
+        "unchanged": true
+      },
+      {
+        "name": "openAnimalHospitalAdmin",
+        "unchanged": true
+      },
+      {
+        "name": "openWalkPoiAdmin",
+        "unchanged": true
+      },
+      {
+        "name": "openProfileEditModal",
+        "unchanged": true
+      },
+      {
+        "name": "closeProfileEditModal",
+        "unchanged": true
+      },
+      {
+        "name": "openThemeModal",
+        "unchanged": true
+      },
+      {
+        "name": "closeThemeModal",
+        "unchanged": true
+      },
+      {
+        "name": "refreshNotificationSettings",
+        "unchanged": true
+      },
+      {
+        "name": "openNotificationModal",
+        "unchanged": true
+      },
+      {
+        "name": "closeNotificationModal",
+        "unchanged": true
+      },
+      {
+        "name": "onToggleNotificationEnabled",
+        "unchanged": true
+      },
+      {
+        "name": "onTogglePushNotificationOptIn",
+        "unchanged": true
+      },
+      {
+        "name": "onRequestNotificationPermission",
+        "unchanged": true
+      },
+      {
+        "name": "onOpenExactAlarmSettings",
+        "unchanged": true
+      },
+      {
+        "name": "opened",
+        "unchanged": true
+      },
+      {
+        "name": "onSubmitProfile",
+        "unchanged": true
+      },
+      {
+        "name": "executeLogout",
+        "unchanged": true
+      },
+      {
+        "name": "onPressLogout",
+        "unchanged": true
+      },
+      {
+        "name": "executeDeleteAccount",
+        "unchanged": true
+      },
+      {
+        "name": "onPressDeleteAccount",
+        "unchanged": true
+      },
+      {
+        "name": "closeDeleteAcknowledgement",
+        "unchanged": true
+      },
+      {
+        "name": "continueDeleteAcknowledgement",
+        "unchanged": true
+      },
+      {
+        "name": "onPressLogin",
+        "unchanged": true
+      },
+      {
+        "name": "onSubmitTheme",
+        "unchanged": true
+      },
+      {
+        "name": "openIndoorActivities",
+        "unchanged": true
+      },
+      {
+        "name": "openWalkDiscovery",
+        "unchanged": true
+      },
+      {
+        "name": "openAnimalHospital",
+        "unchanged": true
+      },
+      {
+        "name": "openPolicyCenter",
+        "unchanged": true
+      },
+      {
+        "name": "openHealthReport",
+        "unchanged": true
+      }
+    ]
+  },
+  "diffCheck": {
+    "code": 0,
+    "output": ""
+  },
+  "markdown": {
+    "structureProblems": [],
+    "brokenLinks": [],
+    "whitespaceProblems": []
+  },
+  "nativeVisualQA": "NOT_RUN_PO_DIRECT_PENDING",
+  "deviceSettingsMutation": 0,
+  "buildCount": 1,
+  "installCount": 1
+}

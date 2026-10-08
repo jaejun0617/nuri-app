@@ -1,0 +1,26 @@
+{
+  "startedAt": "2026-10-08T18:11:06.187Z",
+  "endedAt": "2026-10-08T18:16:39.485Z",
+  "code": 0,
+  "buildCount": 1,
+  "variant": "debug",
+  "args": [
+    "assembleDebug",
+    "-PreactNativeArchitectures=arm64-v8a",
+    "--init-script",
+    "/private/tmp/nuri-community-live-YJWoCz/debug-signing.init.gradle",
+    "--no-daemon",
+    "--console",
+    "plain"
+  ],
+  "apk": {
+    "path": "/private/tmp/nuri-community-live-YJWoCz/nuri-community-live-debug.apk",
+    "sha256": "b131d108d328a0dce1b27ba16ea658be15c7c9756e01cc6ed6974766c7892876",
+    "bytes": 87515502
+  },
+  "signer": "08efb41ea4729792ce9fc3d242be9704e84a8ea3eadcbbcf1c8426884db689d3",
+  "sameSignature": true,
+  "debuggable": true,
+  "sameAppId": true,
+  "sourceUnchanged": true
+}

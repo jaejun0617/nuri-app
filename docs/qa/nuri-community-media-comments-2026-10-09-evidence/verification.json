@@ -1,0 +1,123 @@
+{
+  "date": "2026-10-08T19:02:55.664Z",
+  "branch": "codex/task6-community-content-policy",
+  "head": "e49356c14f731599d0a428c52fff368aa997ce18",
+  "typescript": "PASS",
+  "eslint": {
+    "files": 17,
+    "errors": 0,
+    "warnings": 0
+  },
+  "targeted": {
+    "suites": 8,
+    "tests": 157,
+    "status": "PASS"
+  },
+  "fullSuite": {
+    "suites": 200,
+    "tests": 2068,
+    "status": "PASS",
+    "runCountThisWork": 2
+  },
+  "additionalNavigationCheck": {
+    "suites": 1,
+    "tests": 23,
+    "status": "PASS",
+    "productionSourceChangedAfterFullSuite": false
+  },
+  "nativeVisualQA": "PENDING_PO",
+  "metro": "RUNNING",
+  "debuggerTargets": [],
+  "newBuilds": 0,
+  "newInstalls": 0,
+  "deviceTapSwipe": 0,
+  "externalCurrentScreenReadCaptures": 1,
+  "externalCaptureRetained": false,
+  "directUserDataMutation": 0,
+  "approvedReadOnlyRPC": "community_get_comment_summary_v2",
+  "commit": false,
+  "push": false,
+  "preservation": {
+    "branchUnchanged": true,
+    "headUnchanged": true,
+    "stagedNow": "",
+    "changed": [
+      "__tests__/communityDiscussionRead.test.ts",
+      "__tests__/communityDiscussionSession.test.ts",
+      "docs/domains/community-discussion-view.md",
+      "docs/sql/커뮤니티/커뮤니티-댓글-읽기-계약-최종.sql",
+      "src/screens/Community/CommunityDiscussionContent.tsx",
+      "src/screens/Community/discussionSession.ts",
+      "src/services/community/discussionRead.ts",
+      "__tests__/communityCommentCorrective.test.tsx",
+      "__tests__/communityCommentPresentation.test.ts",
+      "__tests__/communityDetailPresentation.test.ts",
+      "__tests__/communityKeyboardInteraction.test.tsx",
+      "__tests__/communitySeasonalList.test.tsx",
+      "docs/project-memory/다음-작업-우선순위.md",
+      "docs/project-memory/최근-작업-로그.md",
+      "docs/project-memory/핵심-결정사항.md",
+      "docs/project-memory/현재-프로젝트-상태.md",
+      "docs/qa/release-checklist.md",
+      "src/screens/Community/CommunityDetailScreen.styles.ts",
+      "src/screens/Community/CommunityListScreen.tsx",
+      "src/screens/Community/components/CommentActionRow.tsx",
+      "src/screens/Community/components/CommentThreadItem.tsx",
+      "src/screens/Community/components/ReplyCommentItem.tsx"
+    ],
+    "removed": [
+      "src/components/community/PostImageSlider.tsx"
+    ],
+    "added": [
+      "__tests__/communityMediaActions.test.tsx",
+      "docs/qa/nuri-community-media-comments-2026-10-09-evidence/remote-verification.json",
+      "docs/qa/nuri-community-media-comments-2026-10-09.md",
+      "src/components/community/PostImageGallery.tsx",
+      "supabase/migrations/20261008183526_community_ten_comment_preview.sql"
+    ],
+    "transientExternalCapturePreserved": false,
+    "stagedUnchanged": true
+  },
+  "evidence": [
+    {
+      "file": "typescript-layout-final.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "eslint-layout-final.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "eslint-keyboard-layout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "eslint-navigation-final.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "targeted-layout-verified.log",
+      "bytes": 7637,
+      "sha256": "66970d38cd97d7a820075310a2546e717df6c5aca2e2f11cc668b797a8f5ce28"
+    },
+    {
+      "file": "full-suite-layout-final.log",
+      "bytes": 93023,
+      "sha256": "3ad82f2ae1739315355a74afa81589546b9767612a46ec6ab0cae8384cb84cba"
+    },
+    {
+      "file": "preview-reply-navigation-check.log",
+      "bytes": 3784,
+      "sha256": "634d6ab37e9fd8342efda36084d19906c7e86b19e0f3e4d3c37180567f183e61"
+    },
+    {
+      "file": "diff-check-final.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
-import React, { memo, useCallback, useMemo } from 'react';
+import React, { memo, useCallback, useEffect, useMemo } from 'react';
 import { Pressable, View } from 'react-native';
+import { useTheme } from 'styled-components/native';
 import MaterialCommunityIcons from '../../../components/icons/NuriMaterialIcon';
 
 import AppText from '../../../app/ui/AppText';
@@ -13,6 +14,11 @@ import {
 } from '../communityListPresentation';
 import { styles } from './PostCard.styles';
 import { getCommunityCategoryPalette } from '../communityCategoryPalette';
+import { useAuthStore } from '../../../store/authStore';
+import {
+  communityPostReadKey,
+  useCommunityReadStore,
+} from '../../../store/communityReadStore';
 
 type Props = {
   post: CommunityPost;
@@ -38,6 +44,13 @@ function resolvePostTitle(post: CommunityPost) {
 }
 
 function PostCardBase({ post, accentColor, onPressPost }: Props) {
+  const theme = useTheme();
+  const viewerId = useAuthStore(s => s.session?.user?.id ?? null);
+  const readKey = communityPostReadKey(viewerId, post.id);
+  const hasRead = useCommunityReadStore(s => s.readKeys[readKey] === true);
+  useEffect(() => {
+    useCommunityReadStore.getState().hydratePost(viewerId, post.id);
+  }, [post.id, viewerId]);
   const title = useMemo(() => resolvePostTitle(post), [post]);
   const categoryLabel = getCommunityCategoryLabel(post.category);
   const categoryPalette = getCommunityCategoryPalette(post.category);
@@ -60,7 +73,9 @@ function PostCardBase({ post, accentColor, onPressPost }: Props) {
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
+      accessibilityLabel={
+        hasRead ? `읽은 게시글, ${accessibilityLabel}` : accessibilityLabel
+      }
       android_ripple={{
         color: post.isNotice ? `${noticeColor}18` : `${accentColor}0D`,
       }}
@@ -139,9 +154,13 @@ function PostCardBase({ post, accentColor, onPressPost }: Props) {
             </View>
           ) : null}
           <AppText
+            testID="community-post-title"
             preset="body"
             numberOfLines={getCommunityPostTitleLineCount(post.isNotice)}
-            style={styles.title}
+            style={[
+              styles.title,
+              hasRead ? { color: theme.colors.communityReadTitle } : null,
+            ]}
           >
             {title}
           </AppText>

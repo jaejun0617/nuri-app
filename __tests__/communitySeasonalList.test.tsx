@@ -28,7 +28,6 @@ import CommunityStackHeader from '../src/navigation/CommunityStackHeader';
 import { ToolbarHeightContext } from '../src/components/navigation/ToolbarHeightContext';
 import CommunityListScreen from '../src/screens/Community/CommunityListScreen';
 import { styles } from '../src/screens/Community/CommunityListScreen.styles';
-import NuriIcon from '../src/components/icons/NuriIcon';
 import {
   COMMUNITY_CATEGORY_PALETTE,
   getCommunityCategoryPalette,
@@ -246,9 +245,14 @@ describe('community seasonal list candidate', () => {
         width: 48,
         minHeight: 48,
       });
-      expect(create?.findAllByType(NativeFeather)).toHaveLength(0);
-      expect(create?.findAllByProps({ children: '글쓰기' }).length).toBeGreaterThan(0);
-      expect(create?.findAllByType(NuriIcon)).toHaveLength(0);
+      expect(create?.findByType(NativeFeather).props).toMatchObject({
+        name: 'plus',
+        color: '#FFFFFF',
+      });
+      expect(
+        create?.findAllByProps({ name: 'plus', color: '#FFFFFF' }).length,
+      ).toBeGreaterThan(0);
+      expect(create?.findAllByProps({ children: '글쓰기' })).toHaveLength(0);
       expect(
         renderer.root.findAllByProps({
           testID: 'community-hero-header-artwork',
@@ -456,8 +460,13 @@ describe('community seasonal list candidate', () => {
     expect(
       controls.findAllByProps({ testID: 'community-fixed-create' }),
     ).toHaveLength(0);
-    expect(create?.findAllByProps({ children: '글쓰기' }).length).toBeGreaterThan(0);
-    expect(create?.findAllByType(NativeFeather)).toHaveLength(0);
+    expect(
+      create?.findAllByProps({ name: 'plus', color: '#FFFFFF' }).length,
+    ).toBeGreaterThan(0);
+    expect(create?.findByType(NativeFeather).props).toMatchObject({
+      name: 'plus',
+      color: '#FFFFFF',
+    });
     expect(
       StyleSheet.flatten(create?.props.style({ pressed: false })),
     ).not.toHaveProperty('position');

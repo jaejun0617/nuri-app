@@ -1,0 +1,19 @@
+{
+  "startedAt": "2026-10-08T15:41:57.506Z",
+  "endedAt": "2026-10-08T15:45:40.026Z",
+  "code": 0,
+  "buildCount": 1,
+  "baseHead": "e49356c14f731599d0a428c52fff368aa997ce18",
+  "artifacts": {
+    "apk": {
+      "path": "/private/tmp/nuri-community-comments-20261009-002026/nuri-community-comments-release.apk",
+      "sha256": "82c293b818ddf9413bbf2638d82a0bf991fd83d42b1d8a8bdb39cfa8d8929651"
+    },
+    "aab": {
+      "path": "/private/tmp/nuri-community-comments-20261009-002026/nuri-community-comments-release.aab",
+      "sha256": "42a064fdae85a143c998c484e6a1250b4461bbf74ddaa6ff99f7f6f2de12728a"
+    }
+  },
+  "verifierCode": 0,
+  "sourceChangedDuringBuild": []
+}
