@@ -1,0 +1,67 @@
+{
+  "at": "2026-10-08T11:58:18.557Z",
+  "sourceCommit": "5009406c0a2e2cf6fd9f7416464c284676e0683b",
+  "sourceCommitPushVerified": true,
+  "sourceFilesSelected": 54,
+  "testsSelected": 18,
+  "additionalSourceEdit": 0,
+  "runtimeMatchesCommittedSource": true,
+  "runtimeSourceFiles": 456,
+  "buildCountThisCloseout": 1,
+  "installCountThisCloseout": 1,
+  "buildExitCode": 0,
+  "verifierExitCode": 0,
+  "artifacts": {
+    "apk": {
+      "path": "/private/tmp/nuri-approved-freeze-20261008T204700/nuri-approved-5009406-release.apk",
+      "sha256": "b41344b18adc6d76ae379da490836f6f3d94bdf1f101c8f0ade2f71a666b05f0"
+    },
+    "aab": {
+      "path": "/private/tmp/nuri-approved-freeze-20261008T204700/nuri-approved-5009406-release.aab",
+      "sha256": "08ac0134a9d70916be8c36f0befd4a2586a7009b31342ee1dbe95abddbfe0097"
+    }
+  },
+  "installed": {
+    "at": "2026-10-08T11:56:13.152Z",
+    "buildCountThisCloseout": 1,
+    "installCountThisCloseout": 1,
+    "before": {
+      "sha256": "eae763280deb2bee464ad32413193afebb27484b446743f3be1cb3b37a53cc2d",
+      "uid": "package:com.nuri.app uid:10402",
+      "firstInstallTime": "2026-06-02 19:16:57",
+      "lastUpdateTime": "2026-10-08 19:49:17",
+      "versionName": "1.0",
+      "versionCode": "1",
+      "display": "Physical size: 1080x2340",
+      "density": "Physical density: 450",
+      "fontScale": "1.0",
+      "navigationMode": "0"
+    },
+    "after": {
+      "sha256": "b41344b18adc6d76ae379da490836f6f3d94bdf1f101c8f0ade2f71a666b05f0",
+      "uid": "package:com.nuri.app uid:10402",
+      "firstInstallTime": "2026-06-02 19:16:57",
+      "lastUpdateTime": "2026-10-08 20:56:12",
+      "versionName": "1.0",
+      "versionCode": "1",
+      "display": "Physical size: 1080x2340",
+      "density": "Physical density: 450",
+      "fontScale": "1.0",
+      "navigationMode": "0"
+    },
+    "installedMatch": true,
+    "preserved": true,
+    "appLaunch": "NOT_RUN",
+    "additionalKeyboardQA": "NOT_RUN",
+    "accountDataAction": "NONE"
+  },
+  "previousTestEvidence": "192 suites / 1952 tests PASS; no additional suite this closeout",
+  "additionalKeyboardQa": "NOT_RUN",
+  "additionalAppLaunch": "NOT_RUN",
+  "keyboardBaseline": "COMPLETE_FROZEN_WITH_EXACT_GATES",
+  "glassMonthlyExpenses": "COMPLETE_FROZEN_BY_PO_APPROVAL",
+  "store": "HOLD",
+  "cleanup": 0,
+  "metadataCommit": "FOLLOW_UP_DOCUMENT_ONLY",
+  "finalGitProof": "/private/tmp/nuri-approved-freeze-20261008T204700/final-git.json"
+}

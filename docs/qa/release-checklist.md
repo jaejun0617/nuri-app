@@ -5,7 +5,7 @@
 
 - [통합 동결](nuri-keyboard-glass-expenses-final-freeze-2026-10-08.md): keyboard 및 glass·월별 지출 FINAL_APPROVED. 최신 PO 지시는 이번 증분 Release/install-r 각 1회·선별 commit/push만 허용하며 이전 단독 승인 시점 NO와 구분한다.
 - 타입·scoped lint·대상123·전체192 suites/1,952 tests 및 bounded native 증거를 재사용한다. 승인 후 앱 소스/테스트 변경 0, 추가 전역 keyboard QA 0. 정확한12개 gate와 mixed-candidate 경계를 유지하며 ALL_PATHS_PASS NO다.
-- runtime committed-source 일치·APK signer/출처·설치 hash·UID/최초 설치 시각/설정 보존을 확인한다. Store·DB·cleanup·자동 후속 작업은 없다. QA 데이터·기존 APK/AAB/build output과 unrelated dirty 보존.
+- runtime source `5009406` commit/push 확인, 해당 커밋의 증분 Release/install-r 각1회 PASS. APK `b41344b18adc6d76ae379da490836f6f3d94bdf1f101c8f0ade2f71a666b05f0` installed match, signer/출처·UID/최초 설치 시각/설정 보존. 1,719파일 누락0·허용문서 외 hash변경0. 후속 문서 commit은 runtime 변경0. COMPLETE_FROZEN_BY_PO_APPROVAL, Store·DB·cleanup·자동 후속 작업 없음, QA·이전 APK/AAB/build output·unrelated dirty 보존.
 <!-- NURI_APPROVED_FREEZE_20261008_END -->
 
 <!-- NURI_KEYBOARD_FINAL_APPROVAL_20261008_BEGIN -->

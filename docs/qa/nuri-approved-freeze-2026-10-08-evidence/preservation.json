@@ -1,0 +1,40 @@
+{
+  "at": "2026-10-08T11:58:16.044Z",
+  "baselineFiles": 1719,
+  "missing": [],
+  "unexpected": [],
+  "changedDocuments": [
+    "docs/qa/nuri-glass-forms-monthly-expenses-2026-10-08.md",
+    "docs/qa/nuri-global-keyboard-final-approval-2026-10-08.md",
+    "docs/project-memory/다음-작업-우선순위.md",
+    "docs/project-memory/최근-작업-로그.md",
+    "docs/project-memory/핵심-결정사항.md",
+    "docs/project-memory/현재-프로젝트-상태.md",
+    "docs/qa/release-checklist.md"
+  ],
+  "protectedInputFailures": [],
+  "priorArtifacts": [
+    {
+      "path": "/private/tmp/nuri-glass-expenses-20261008T092854/nuri-glass-expenses-release.apk",
+      "sha256": "eae763280deb2bee464ad32413193afebb27484b446743f3be1cb3b37a53cc2d",
+      "preserved": true
+    },
+    {
+      "path": "/private/tmp/nuri-glass-expenses-20261008T092854/nuri-glass-expenses-release.aab",
+      "sha256": "16775d784b181e3c409e8956a7b2ec8ccd75d2db343b6fe48322cecdf167b61e",
+      "preserved": true
+    }
+  ],
+  "sourceAdditionalEdit": 0,
+  "testAdditionalEdit": 0,
+  "cleanup": 0,
+  "directDbMutation": 0,
+  "settingsChangedByTask": 0,
+  "accountAction": "NONE",
+  "fullKeyboardQaThisCloseout": "NOT_RUN",
+  "branch": "codex/task6-community-content-policy",
+  "sourceHead": "5009406c0a2e2cf6fd9f7416464c284676e0683b",
+  "currentHead": "5009406c0a2e2cf6fd9f7416464c284676e0683b",
+  "staged": "",
+  "dirtyWorkingCopyBytesPreserved": true
+}
