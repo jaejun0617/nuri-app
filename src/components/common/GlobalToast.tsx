@@ -3,7 +3,11 @@
 // - 앱 최상단에서 전역 toast를 렌더링
 // - 현재 선택된 펫 테마를 반영해 더 부드럽고 고급스러운 알림 경험을 제공
 
-import React, { useEffect, useMemo } from 'react';
+// 파일: src/components/common/GlobalToast.tsx
+// 역할:
+// - 앱 최상단에서 전역 toast를 렌더링
+// - 현재 선택된 펫 테마를 반영해 더 부드럽고 고급스러운 알림 경험을 제공
+import React, { useEffect } from 'react';
 import {
   Platform,
   Pressable,
@@ -22,9 +26,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import { hideToast, useUiStore } from '../../store/uiStore';
-import { usePetStore } from '../../store/petStore';
+
 
 type ToneMeta = {
   icon: 'info' | 'check-circle' | 'alert-triangle' | 'x-circle';
@@ -62,17 +66,9 @@ export default function GlobalToast() {
   const title = useUiStore(s => s.title);
   const message = useUiStore(s => s.message);
   const tone = useUiStore(s => s.tone);
-  const pets = usePetStore(s => s.pets);
-  const selectedPetId = usePetStore(s => s.selectedPetId);
 
-  const selectedPet = useMemo(
-    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
-    [pets, selectedPetId],
-  );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+
+  const petTheme = NEUTRAL_UI_PALETTE;
   const toneMeta = TONE_META[tone];
   const progress = useSharedValue(0);
 
@@ -145,7 +141,7 @@ export default function GlobalToast() {
             {title ? (
               <AppText
                 preset="unifiedBody"
-                style={[styles.title, { color: petTheme.deep }]}
+                style={[styles.title, { color: theme.colors.textPrimary }]}
               >
                 {title}
               </AppText>

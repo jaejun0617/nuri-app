@@ -1,3 +1,5 @@
+import { usePetDisplayName } from '../../../hooks/usePetDisplayName';
+import { formatPetCopy } from '../../../utils/petDisplayName';
 import React, { memo, useRef, useState } from 'react';
 import { TextInput, TouchableOpacity, View } from 'react-native';
 import { useTheme } from 'styled-components/native';
@@ -34,6 +36,7 @@ function CommunityCreateForm({
   onChangeContent,
   onPressPolicy,
 }: Props) {
+  const petName = usePetDisplayName();
   const theme = useTheme();
   const [policyExpanded, setPolicyExpanded] = useState(false);
   const bodyRef = useRef<React.ElementRef<typeof TextInput>>(null);
@@ -169,7 +172,7 @@ function CommunityCreateForm({
           value={content}
           editable={!submitLoading}
           onChangeText={onChangeContent}
-          placeholder="우리 아이의 일상과 이야기를 나눠 주세요."
+          placeholder={formatPetCopy("우리 아이의 일상과 이야기를 나눠 주세요.", petName)}
           placeholderTextColor={theme.colors.textMuted}
           style={[styles.bodyInput, { color: theme.colors.textPrimary }]}
           maxLength={5000}

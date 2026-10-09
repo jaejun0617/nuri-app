@@ -60,7 +60,7 @@ describe('device-local global seasonal preference', () => {
     let renderer!: TestRenderer.ReactTestRenderer;
     await act(async () => { renderer = TestRenderer.create(tree('Home')); });
     await act(async () => { await selection.setOverride(season); });
-    for (const route of ['PetMore', 'PetProfileEdit', 'PetCreate', 'SignIn', 'SignUp', 'Home']) {
+    for (const route of ['PetMore', 'PetProfileEdit', 'PetCreate', 'SignIn', 'Home']) {
       await act(async () => renderer.update(tree(route)));
       expect(renderer.root.findByProps({ testID: `${route}:${season}` })).toBeDefined();
     }

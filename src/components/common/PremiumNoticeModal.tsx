@@ -17,8 +17,8 @@ import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import type { CtaRole } from '../../app/theme/ctaPalette';
 import { useOptionalSafeAreaInsets } from '../../hooks/useOptionalSafeAreaInsets';
 import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
-import { usePetStore } from '../../store/petStore';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
+
 
 type NoticeIconName = 'check' | 'shield' | 'user-plus';
 
@@ -84,17 +84,9 @@ function PremiumNoticeModalBase({
     bottomInset: insets.bottom,
     verticalMargin: 20,
   });
-  const pets = usePetStore(s => s.pets);
-  const selectedPetId = usePetStore(s => s.selectedPetId);
-  const selectedPet = useMemo(
-    () =>
-      pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
-    [pets, selectedPetId],
-  );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor ?? theme.colors.brand),
-    [selectedPet?.themeColor, theme.colors.brand],
-  );
+
+
+  const petTheme = NEUTRAL_UI_PALETTE;
   const primaryColor = accentColor ?? petTheme.primary;
   const textPresets =
     typographyMode === 'unified'

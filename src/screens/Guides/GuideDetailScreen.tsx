@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Linking, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -6,7 +6,9 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import Feather from '../../components/icons/NuriFeatherIcon';
 
 import AppText from '../../app/ui/AppText';
-import OptimizedImage from '../../components/images/OptimizedImage';
+import MarkerText from '../../app/ui/MarkerText';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
+import SeasonalAmbientBackground from '../../components/common/SeasonalAmbientBackground';
 import { usePetCareGuideDetail } from '../../hooks/usePetCareGuideDetail';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
@@ -18,7 +20,7 @@ import {
   getGuideCategoryLabel,
 } from '../../services/guides/presentation';
 import { recordPetCareGuideEvents } from '../../services/guides/service';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { styles } from './GuideDetailScreen.styles';
@@ -75,6 +77,7 @@ export default function GuideDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
+  const season = useEffectiveSeason();
   const selectedPet = usePetStore(s => {
     if (s.pets.length === 0) return null;
     if (!s.selectedPetId) return s.pets[0];
@@ -85,10 +88,7 @@ export default function GuideDetailScreen() {
   const guideState = usePetCareGuideDetail(route.params.guideId);
   const headerTopInset = Math.max(insets.top, 12);
   const ageInMonths = getAgeInMonthsFromBirthDate(selectedPet?.birthDate ?? null);
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+  const petTheme = NEUTRAL_UI_PALETTE;
 
   useEffect(() => {
     if (!guideState.guide) return;
@@ -133,6 +133,21 @@ export default function GuideDetailScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+      <SeasonalAmbientBackground season={season} appearance="light" />
+      <View style={[styles.topBar, { paddingTop: headerTopInset + 4 }]}>
+        <TouchableOpacity
+          accessibilityRole="button"
+          accessibilityLabel="가이드 목록으로 돌아가기"
+          style={styles.headerBackButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Feather name="arrow-left" size={20} color="#102033" />
+        </TouchableOpacity>
+        <View style={styles.topBarTitleWrap}>
+          <AppText preset="unifiedTitle" style={styles.headerTitle}>집사 꿀팁 가이드</AppText>
+        </View>
+        <View style={styles.headerSideSlot} />
+      </View>
       {guideState.loading ? (
         <View style={styles.emptyCard}>
           <Feather name="loader" size={28} color={petTheme.primary} />
@@ -156,66 +171,11 @@ export default function GuideDetailScreen() {
       ) : (
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={[
-            styles.scrollContent,
-            { paddingTop: headerTopInset + 4 },
-          ]}
+          contentContainerStyle={styles.scrollContent}
         >
-          <View style={styles.topBar}>
-            <View style={styles.headerSideSlot}>
-              <TouchableOpacity
-                activeOpacity={0.88}
-                style={styles.headerBackButton}
-                onPress={() => navigation.goBack()}
-              >
-                <Feather name="arrow-left" size={20} color="#102033" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.topBarTitleWrap}>
-              <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
-                집사 꿀팁 가이드
-              </AppText>
-            </View>
-
-            <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
-          </View>
-
           <View style={styles.heroCard}>
-            {guideState.guide.image?.sourceUri ? (
-              <OptimizedImage
-                uri={guideState.guide.image.sourceUri}
-                style={styles.heroImage}
-                resizeMode="cover"
-              />
-            ) : (
-              <View
-                style={[
-                  styles.heroPlaceholder,
-                  { backgroundColor: petTheme.tint },
-                ]}
-              >
-                <Feather name="book-open" size={28} color={petTheme.primary} />
-                <AppText
-                  preset="unifiedBody"
-                  style={[styles.heroPlaceholderText, { color: petTheme.primary }]}
-                >
-                  이미지가 준비되면 여기에 노출됩니다
-                </AppText>
-              </View>
-            )}
-
             <View style={styles.heroBody}>
-              <View
-                style={[
-                  styles.categoryBadge,
-                  {
-                    backgroundColor: petTheme.tint,
-                    borderColor: petTheme.border,
-                    borderWidth: 1,
-                  },
-                ]}
-              >
+              <View style={styles.categoryBadge}>
                 <AppText
                   preset="unifiedMeta"
                   style={[styles.categoryText, { color: petTheme.primary }]}
@@ -223,9 +183,9 @@ export default function GuideDetailScreen() {
                   {getGuideCategoryLabel(guideState.guide.category)}
                 </AppText>
               </View>
-              <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.title}>
-                {guideState.guide.title}
-              </AppText>
+              <MarkerText accessibilityRole="header" preset="unifiedTitle" styleOverridesPreset style={styles.title}>
+                {`“${guideState.guide.title}”`}
+              </MarkerText>
               <AppText preset="unifiedBody" style={styles.summary}>
                 {guideState.guide.summary}
               </AppText>
@@ -290,15 +250,15 @@ export default function GuideDetailScreen() {
                   ) : null}
                   <View style={styles.contentBlockCopy}>
                     {block.title ? (
-                      <AppText
+                      <MarkerText
                         preset="unifiedBody"
                         style={[
                           styles.contentBlockTitle,
                           { color: presentation.color },
                         ]}
                       >
-                        {block.title}
-                      </AppText>
+                        {`“${block.title}”`}
+                      </MarkerText>
                     ) : null}
                     <AppText
                       preset="unifiedBody"

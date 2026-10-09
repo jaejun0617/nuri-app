@@ -44,7 +44,7 @@ import {
 } from '../../services/supabase/memories';
 import { normalizeMemoryRecord } from '../../services/records/imageSources';
 import { uploadMemoryImage } from '../../services/supabase/storageMemories';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import {
   getIndoorActivityGuide,
   WEATHER_RECORD_EMOTION_OPTIONS,
@@ -87,14 +87,8 @@ export default function WeatherActivityRecordScreen() {
   const guideKey = route.params.guideKey;
   const district = route.params?.district?.trim() || '현재 위치';
   const guide = useMemo(() => getIndoorActivityGuide(guideKey), [guideKey]);
-  const selectedPet = useMemo(
-    () => pets.find(candidate => candidate.id === petId) ?? pets[0] ?? null,
-    [petId, pets],
-  );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+
+  const petTheme = NEUTRAL_UI_PALETTE;
   const [tagModalVisible, setTagModalVisible] = useState(false);
   const onPressBack = useEntryAwareBackAction({
     // One back owner closes the embedded dialog before applying route history.

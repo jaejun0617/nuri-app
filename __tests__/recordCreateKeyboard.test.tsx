@@ -5,11 +5,15 @@ import { ThemeProvider } from 'styled-components/native';
 
 import { createTheme } from '../src/app/theme/theme';
 import RecordCreateScreen from '../src/screens/Records/RecordCreateScreen';
+import { SeasonalFormPanel } from '../src/components/common/SeasonalFormSurface';
 import { usePetStore } from '../src/store/petStore';
+import type { RootStackParamList } from '../src/navigation/RootNavigator';
+import MedicalRecordFields from '../src/components/records/MedicalRecordFields';
 
 const mockAssureFocusedInputVisible = jest.fn();
 const mockScrollTo = jest.fn();
 let mockKeyboardVisible = false;
+let mockParams: RootStackParamList['RecordCreate'] = { petId: 'pet', initialMainCategory: 'walk' };
 const mockNavigation = {
   canGoBack: () => true,
   goBack: jest.fn(),
@@ -52,10 +56,7 @@ jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
   useNavigation: () => mockNavigation,
   useRoute: () => ({
-    params: {
-      petId: 'pet',
-      initialMainCategory: 'walk',
-    },
+    params: mockParams,
   }),
   useFocusEffect: (callback: () => void | (() => void)) => {
     const ReactRuntime = jest.requireActual('react') as typeof React;
@@ -89,6 +90,7 @@ describe('RecordCreate keyboard visibility contract', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockKeyboardVisible = false;
+    mockParams = { petId: 'pet', initialMainCategory: 'walk' };
     global.requestAnimationFrame = callback => {
       callback(0);
       return 1;
@@ -106,6 +108,25 @@ describe('RecordCreate keyboard visibility contract', () => {
     renderer = undefined;
     usePetStore.setState(originalPets);
     global.requestAnimationFrame = originalRequestAnimationFrame;
+  });
+
+  it.each(['hospital', 'medicine'] as const)('allows %s records without forcing a condition and keeps the cost field', async kind => {
+    mockParams = { petId: 'pet', initialMainCategory: 'health', initialHealthRecordKind: kind };
+    await TestRenderer.act(async () => {
+      renderer = TestRenderer.create(
+        <ThemeProvider theme={createTheme('light')}><RecordCreateScreen /></ThemeProvider>,
+      );
+    });
+    if (!renderer) throw new Error('RecordCreateScreen did not mount');
+    expect(renderer.root.findByType(MedicalRecordFields).props.value.kind).toBe(kind);
+    expect(renderer.root.findAllByType(TextInput).some(input => input.props.keyboardType === 'number-pad')).toBe(true);
+    TestRenderer.act(() => renderer?.root.findByProps({ placeholder: '제목을 입력하세요' }).props.onChangeText('진료 기록'));
+    expect(renderer.root.findByProps({ testID: 'record-create-submit' }).props.disabled).toBe(false);
+    TestRenderer.act(() => {
+      const fields = renderer?.root.findByType(MedicalRecordFields);
+      fields?.props.onChange({ ...fields.props.value, kind: 'condition' });
+    });
+    expect(renderer.root.findByProps({ testID: 'record-create-submit' }).props.disabled).toBe(true);
   });
 
   it('keeps the 12dp CTA contract and uses measured title/body positions', async () => {
@@ -129,6 +150,7 @@ describe('RecordCreate keyboard visibility contract', () => {
 
     mockKeyboardVisible = true;
     TestRenderer.act(() => {
+      renderer?.root.findByType(SeasonalFormPanel).props.onLayout({ nativeEvent: { layout: { y: 16 } } });
       renderer?.update(
         <ThemeProvider theme={createTheme('light')}>
           <RecordCreateScreen />
@@ -165,12 +187,12 @@ describe('RecordCreate keyboard visibility contract', () => {
 
     expect(mockScrollTo).toHaveBeenNthCalledWith(1, {
       x: 0,
-      y: 464,
+      y: 480,
       animated: true,
     });
     expect(mockScrollTo).toHaveBeenNthCalledWith(2, {
       x: 0,
-      y: 864,
+      y: 880,
       animated: true,
     });
     expect(mockAssureFocusedInputVisible).not.toHaveBeenCalled();

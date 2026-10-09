@@ -16,7 +16,7 @@ import AppText from '../../app/ui/AppText';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 import { formatPetAgeLabelFromBirthDate } from '../../services/pets/age';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import { usePetStore } from '../../store/petStore';
 import { styles } from './PetProfileEditDoneScreen.styles';
 import { SeasonalFormBackground, SeasonalFormPanel } from '../../components/common/SeasonalFormSurface';
@@ -34,10 +34,7 @@ export default function PetProfileEditDoneScreen() {
     [pets, route.params?.petId],
   );
   const petName = route.params?.petName?.trim() || '아이';
-  const petTheme = useMemo(
-    () => buildPetThemePalette(pet?.themeColor),
-    [pet?.themeColor],
-  );
+  const petTheme = NEUTRAL_UI_PALETTE;
   const petSpeciesLabel = useMemo(
     () => pet?.speciesDisplayName?.trim() || null,
     [pet?.speciesDisplayName],

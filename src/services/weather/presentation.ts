@@ -1,4 +1,5 @@
 import type { WeatherGuideBundle, WeatherMeasurement } from './guide';
+import { formatPetCopy } from '../../utils/petDisplayName';
 import { formatWeatherHourRange, getUpcomingWeatherHours } from './reliability';
 
 export function readWeatherMeasurement(
@@ -42,7 +43,7 @@ type WeatherAdvice = {
 };
 
 /** Guidance is not a warning bulletin or a species-specific exercise prescription. */
-export function getWeatherAdvice(weather: WeatherGuideBundle): WeatherAdvice {
+export function getWeatherAdvice(weather: WeatherGuideBundle, petName?: string | null): WeatherAdvice {
   if (weather.dataSource !== 'live') {
     return {
       headline:
@@ -145,7 +146,7 @@ export function getWeatherAdvice(weather: WeatherGuideBundle): WeatherAdvice {
     headline: '외출 전 날씨를 살펴보세요',
     caption: '기온과 대기질을 함께 살펴주세요.',
     label: '외출 전 체크',
-    message: '우리 아이의 컨디션에 맞춰 외출을 준비해 주세요.',
+    message: formatPetCopy('우리 아이의 컨디션에 맞춰 외출을 준비해 주세요.', petName),
     detail:
       '날씨가 무난해도 모든 반려동물에게 야외 활동이 적합한 것은 아니에요.',
     caution: false,

@@ -276,7 +276,7 @@ export default function WeatherInsightScreen() {
         : UNAVAILABLE_PALETTE,
     [seasonalHero, displayScenario, hasRenderableWeather, sceneIsDaytime],
   );
-  const advice = getWeatherAdvice(weather);
+  const advice = getWeatherAdvice(weather, selectedPetName);
   const needsRefresh = !hasLiveWeather || !!weatherState.error;
   const attributionLabel = weather.attribution?.label?.trim() || 'Open-Meteo';
 

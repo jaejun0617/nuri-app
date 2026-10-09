@@ -17,6 +17,7 @@ import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import AppTextInput from '../../app/ui/AppTextInput';
 import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 import SeasonalAmbientBackground from '../../components/common/SeasonalAmbientBackground';
+import BlurCaptureExclusion from '../../components/common/BlurCaptureExclusion';
 import AppFontSettingsModal from '../../components/settings/AppFontSettingsModal';
 import { useAppFontPreference } from '../../app/providers/AppFontPreferenceProvider';
 import { getAppFontModeLabel } from '../../app/typography/appFontMode';
@@ -100,7 +101,7 @@ import {
   fetchMyProfile,
   saveMyNickname,
 } from '../../services/supabase/profile';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { buildPetThemePalette, NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import {
   checkScheduleNotificationPermission,
   getScheduleNotificationSettings,
@@ -1224,7 +1225,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     null,
   );
   const currentMenuScrollOffsetRef = useRef(0);
-  const settingsSectionOffsetRef = useRef<number | null>(null);
   const [menuViewportHeight, setMenuViewportHeight] = useState(0);
   const [menuContentHeight, setMenuContentHeight] = useState(0);
 
@@ -1393,10 +1393,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const petTheme = useMemo(
     () => buildPetThemePalette(accentThemeColor),
     [accentThemeColor],
-  );
-  const draftThemePalette = useMemo(
-    () => buildPetThemePalette(draftThemeColor ?? accentThemeColor),
-    [accentThemeColor, draftThemeColor],
   );
   const avatarUri = useMemo(
     () => selectedPet?.avatarUrl?.trim() || null,
@@ -2240,21 +2236,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
     ],
   );
 
-  const handleSettingsSectionLayout = useCallback(
-    (event: LayoutChangeEvent) => {
-      settingsSectionOffsetRef.current = event.nativeEvent.layout.y;
-    },
-    [],
-  );
-  const scrollToSettings = useCallback(() => {
-    if (settingsSectionOffsetRef.current === null) return;
-    const y = Math.min(
-      settingsSectionOffsetRef.current,
-      Math.max(0, menuContentHeight - menuViewportHeight),
-    );
-    menuScrollRef.current?.scrollTo({ x: 0, y, animated: true });
-  }, [menuContentHeight, menuViewportHeight]);
-
   const adminItems = useMemo<MenuItemSpec[]>(
     () => [
       {
@@ -2289,10 +2270,9 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       edges={['top']}
     >
       <SeasonalAmbientBackground season={season} />
-      <View style={styles.screen}>
+      <BlurCaptureExclusion style={styles.screen}>
         <MoreMenuHeader
           onClose={onRequestClose}
-          onSettings={isLoggedIn ? scrollToSettings : undefined}
         />
 
         <ScrollView
@@ -2338,7 +2318,6 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
                 testID="more-settings-section"
                 title="앱 설정"
                 items={settingItems}
-                onLayout={handleSettingsSectionLayout}
               />
               <MoreMenuSection title="이용 안내" items={policyItems} />
               <MoreMenuSection title="계정" items={accountItems} />
@@ -2354,7 +2333,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
           onBeforeNavigate={onRequestClose}
           onLayout={handleToolbarLayout}
         />
-      </View>
+      </BlurCaptureExclusion>
 
       <ProfileEditModal
         visible={profileModalVisible}
@@ -2363,7 +2342,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         helperText={profileHelper.text}
         helperTone={profileHelper.tone}
         saving={profileSaving}
-        accentColor={petTheme.primary}
+        accentColor={NEUTRAL_UI_PALETTE.primary}
         onClose={closeProfileEditModal}
         onChangeNickname={setDraftNickname}
         onSubmit={onSubmitProfile}
@@ -2373,11 +2352,11 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         visible={themeModalVisible}
         bottomInset={Math.max(insets.bottom, 6)}
         petName={selectedPet?.name ?? null}
-        helperText="현재 선택한 아이의 강조색을 바꾸는 설정이에요. 홈과 주요 버튼의 포인트 컬러에 함께 반영돼요."
+        helperText="현재 선택한 아이의 프로필 링, 이름과 프로필 정보에 적용돼요."
         selectedColor={
           draftThemeColor ?? selectedPet?.themeColor ?? petTheme.primary
         }
-        accentColor={draftThemePalette.primary}
+        accentColor={NEUTRAL_UI_PALETTE.primary}
         saving={themeSaving}
         onClose={closeThemeModal}
         onSelectColor={setDraftThemeColor}
@@ -2399,7 +2378,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         permissionStatus={notificationPermissionStatus}
         settings={notificationSettings}
         loading={notificationSettingsLoading}
-        accentColor={petTheme.primary}
+        accentColor={NEUTRAL_UI_PALETTE.primary}
         onClose={closeNotificationModal}
         onToggleEnabled={onToggleNotificationEnabled}
         onTogglePushOptIn={onTogglePushNotificationOptIn}
@@ -2410,7 +2389,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         }}
       />
       <ConfirmDialog
-        confirmRole="secondary"
+        confirmRole="primary"
         cancelRole="neutral"
         confirmLoading={loading}
         visible={logoutConfirmVisible}
@@ -2644,7 +2623,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         accessibilityBodyLines={
           accountStatusNoticeConfig?.accessibilityBodyLines
         }
-        accentColor={petTheme.primary}
+        accentColor={NEUTRAL_UI_PALETTE.primary}
         confirmAccessibilityLabel="계정 삭제 상태 안내 닫기"
         onClose={() => setAccountStatusNotice(null)}
       />

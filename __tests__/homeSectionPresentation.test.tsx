@@ -105,11 +105,13 @@ describe('Home section rhythm and material', () => {
     );
   });
 
-  it('uses effective season color and a trailing chevron for the pet profile entry', () => {
+  it('uses seasonal glass with neutral text and preserves the profile entry action', () => {
     const hero = source.slice(source.indexOf('const HeroProfileSection'), source.indexOf('const RecommendationTipsSection'));
-    expect(hero).toContain('const profileEntryPalette = SEASON_CTA[useEffectiveSeason()]');
-    expect(hero).toContain('backgroundColor: profileEntryPalette.subtle');
-    expect(hero).toContain('borderColor: profileEntryPalette.border');
+    expect(hero).toContain('const effectiveSeason = useEffectiveSeason()');
+    expect(hero).toContain('const profileEntryPalette = NEUTRAL_UI_PALETTE');
+    expect(hero).toContain('<HomeFrostedGlass season={effectiveSeason} borderRadius={8}');
+    expect(hero).not.toContain('backgroundColor: profileEntryPalette.subtle');
+    expect(source).toContain('const brandColor = SEASON_CTA[useEffectiveSeason()].primary');
     expect(hero).toContain('color: profileEntryPalette.primary');
     expect(hero).toContain('color={profileEntryPalette.primary}');
     expect(hero).toContain('onPress={onPressProfileInfo}');

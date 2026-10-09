@@ -556,6 +556,17 @@ const FeedPostCard = memo(function FeedPostCardView({
           </View>
         ) : null}
 
+        {item.category === 'health' && item.metadata?.health?.care ? (
+          <View style={{ gap: 8, marginTop: 16 }}>
+            {[
+              ['병원', item.metadata.health.care.hospitalName],
+              ['진단·진료', item.metadata.health.care.diagnosis],
+              ['약·복약', item.metadata.health.care.medication],
+            ].filter(([, value]) => Boolean(value)).map(([label, value]) => (
+              <AppText key={label} preset="unifiedBody" style={styles.postTagsText}>{label} · {value}</AppText>
+            ))}
+          </View>
+        ) : null}
         {priceText ? (
           <AppText preset="unifiedMeta" style={styles.postTagsText}>
             {item.category === 'health' || item.subCategory === 'hospital' ? '병원·건강 비용' : '구매 가격'} {priceText}
@@ -747,7 +758,7 @@ export default function RecordDetailScreen() {
     [pets, resolvedPetId],
   );
   const petName = useMemo(
-    () => selectedPet?.name?.trim() || '우리 아이',
+    () => selectedPet?.name?.trim() || '반려동물',
     [selectedPet?.name],
   );
   const petAvatarUrl = useMemo(

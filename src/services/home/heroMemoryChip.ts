@@ -78,7 +78,7 @@ export function buildHomeHeroMemoryChip(
   petName: string | null | undefined,
   now = new Date(),
 ): HomeHeroMemoryChip {
-  const normalizedPetName = petName?.trim() || '우리 아이';
+  const normalizedPetName = petName?.trim() || '반려동물';
   const latestRecord = selectLatestRecord(records);
   if (!latestRecord) {
     const label = '오늘의 첫 순간을 남겨볼까요?';

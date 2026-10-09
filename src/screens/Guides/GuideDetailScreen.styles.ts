@@ -1,11 +1,11 @@
 import { StyleSheet } from 'react-native';
 
 const BG = '#FFFFFF';
-const SURFACE = '#FFFFFF';
+const SURFACE = 'transparent';
 const TEXT = '#0B1220';
 const MUTED = '#556070';
 const BORDER = 'rgba(0,0,0,0.06)';
-const BRAND = '#6D6AF8';
+const BRAND = '#374151';
 
 export const styles = StyleSheet.create({
   screen: {
@@ -22,8 +22,8 @@ export const styles = StyleSheet.create({
     gap: 12,
   },
   headerSideSlot: {
-    width: 40,
-    minHeight: 40,
+    width: 48,
+    minHeight: 48,
     justifyContent: 'center',
     alignItems: 'flex-start',
   },
@@ -31,8 +31,8 @@ export const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   headerBackButton: {
-    width: 40,
-    height: 40,
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -45,14 +45,15 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   scrollContent: {
-    paddingHorizontal: 16,
-    paddingBottom: 32,
-    gap: 14,
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 40,
+    gap: 24,
   },
   heroCard: {
-    borderRadius: 26,
+    borderRadius: 0,
     backgroundColor: SURFACE,
-    borderWidth: 1,
+    borderBottomWidth: StyleSheet.hairlineWidth,
     borderColor: BORDER,
     overflow: 'hidden',
   },
@@ -72,16 +73,12 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
   },
   heroBody: {
-    paddingHorizontal: 18,
-    paddingVertical: 18,
-    gap: 10,
+    paddingBottom: 24,
+    gap: 14,
   },
   categoryBadge: {
     alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: 'rgba(109,106,248,0.10)',
+    paddingVertical: 2,
   },
   categoryText: {
     color: BRAND,
@@ -89,19 +86,18 @@ export const styles = StyleSheet.create({
   },
   title: {
     color: TEXT,
-    fontWeight: '900',
-    lineHeight: 30,
+    fontWeight: '700',
+    fontSize: 22,
+    lineHeight: 32,
   },
   summary: {
     color: MUTED,
     lineHeight: 21,
   },
   metaCard: {
-    borderRadius: 22,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 4,
     backgroundColor: SURFACE,
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: BORDER,
     gap: 10,
   },
@@ -115,33 +111,28 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   metaChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: '#F3F5FA',
+    paddingVertical: 2,
   },
   metaChipText: {
     color: MUTED,
     fontWeight: '800',
   },
   bodyCard: {
-    borderRadius: 22,
-    paddingHorizontal: 16,
-    paddingVertical: 18,
+    paddingVertical: 4,
     backgroundColor: SURFACE,
-    borderWidth: 1,
+    borderWidth: 0,
     borderColor: BORDER,
-    gap: 12,
+    gap: 24,
   },
   bodyText: {
     color: TEXT,
-    lineHeight: 24,
+    lineHeight: 27,
   },
   contentBlock: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 10,
-    borderRadius: 14,
+    borderRadius: 8,
     borderWidth: 1,
     paddingHorizontal: 14,
     paddingVertical: 13,
@@ -154,22 +145,21 @@ export const styles = StyleSheet.create({
   },
   contentBlockCopy: {
     flex: 1,
-    gap: 5,
+    minWidth: 0,
+    gap: 12,
   },
   contentBlockTitle: {
     fontWeight: '900',
   },
   sourceCard: {
-    borderRadius: 22,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
+    paddingVertical: 20,
     backgroundColor: SURFACE,
-    borderWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderColor: BORDER,
     gap: 12,
   },
   sourceRow: {
-    minHeight: 44,
+    minHeight: 48,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,

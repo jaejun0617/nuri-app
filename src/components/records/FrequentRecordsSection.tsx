@@ -1,9 +1,12 @@
+import { usePetDisplayName } from '../../hooks/usePetDisplayName';
+import { formatPetCopy } from '../../utils/petDisplayName';
 // 파일: src/components/records/FrequentRecordsSection.tsx
 // 목적:
 // - 홈에서 빠른 기록 진입과 선택된 반려동물의 최신 기록 요약을 함께 제공한다.
 // - 유리 패널 위의 위젯은 공통 반사광과 베벨 재질로 구분한다.
 
 import AppText from '../../app/ui/AppText';
+import MarkerText from '../../app/ui/MarkerText';
 import React, { memo, useMemo } from 'react';
 import { AppState, Pressable, useWindowDimensions, View, type AppStateStatus } from 'react-native';
 import NuriSemanticIcon from '../icons/NuriSemanticIcon';
@@ -112,15 +115,14 @@ function RecordSummaryCard({
             <View
               style={[
                 styles.relativeTimeMarker,
-                { backgroundColor: `${accentColor}18` },
               ]}
             >
-              <AppText
+              <MarkerText
                 preset="unifiedBody"
-                style={[styles.relativeTimeText, { color: accentColor }]}
+                style={styles.relativeTimeText}
               >
                 {item.relativeTimeLabel}
-              </AppText>
+              </MarkerText>
             </View>
           ) : (
             <View style={styles.relativeTimePlaceholder} />
@@ -149,6 +151,7 @@ function FrequentRecordsSectionBase({
   onPressCategory,
   onPressAll,
 }: FrequentRecordsSectionProps) {
+  const petName = usePetDisplayName();
   const isScreenFocused = useIsFocused();
   const [currentTime, setCurrentTime] = React.useState(() => now ?? new Date());
 
@@ -194,7 +197,7 @@ function FrequentRecordsSectionBase({
       <View style={styles.headerRow}>
         <HomeSectionHeader
           title="자주 쓰는 기록"
-          description="우리 아이의 일상을 빠르게 기록해보세요"
+          description={formatPetCopy("우리 아이의 일상을 빠르게 기록해보세요", petName)}
           color={petTheme.primary}
           hideAction={isHomeSectionConfirmedEmpty(
             recordStatus === 'ready',

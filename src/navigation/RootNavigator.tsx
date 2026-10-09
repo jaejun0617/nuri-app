@@ -21,7 +21,6 @@ import type { NativeStackHeaderProps } from '@react-navigation/native-stack';
 import HomeScreen from '../screens/Home/HomeScreen';
 
 import SignInScreen from '../screens/Auth/SignInScreen';
-import SignUpScreen from '../screens/Auth/SignUpScreen';
 import NicknameSetupScreen from '../screens/Auth/NicknameSetupScreen';
 import WelcomeTransitionScreen from '../screens/Auth/WelcomeTransitionScreen';
 import PasswordResetRequestScreen from '../screens/Auth/PasswordResetRequestScreen';
@@ -102,7 +101,6 @@ export type RootStackParamList = {
 
   // Auth
   SignIn: { notice?: RouteSignInNotice } | undefined;
-  SignUp: undefined;
   NicknameSetup: { after?: 'signin' | 'signup' } | undefined;
   WelcomeTransition: { petName?: string } | undefined;
   PasswordResetRequest:
@@ -256,6 +254,7 @@ export type RootStackParamList = {
         petId?: string;
         returnTo?: RecordCreateReturnTo;
         initialMainCategory?: RecordMainCategoryKey;
+        initialHealthRecordKind?: import('../services/records/metadata').HealthCareKind;
         initialOtherSubCategory?: RecordOtherSubCategoryKey | null;
       }
     | undefined;
@@ -359,11 +358,6 @@ export default function RootNavigator() {
       <Stack.Screen
         name="SignIn"
         component={SignInScreen}
-        options={{ headerShown: false }}
-      />
-      <Stack.Screen
-        name="SignUp"
-        component={SignUpScreen}
         options={{ headerShown: false }}
       />
       <Stack.Screen

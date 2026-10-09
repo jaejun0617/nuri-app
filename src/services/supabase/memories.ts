@@ -857,6 +857,7 @@ export async function updateMemoryFields(input: {
   category?: string | null;
   subCategory?: string | null;
   price?: number | null;
+  metadata?: MemoryRecordMetadata | null;
   occurredAt?: string | null;
 }) {
   const { error } = await supabase
@@ -869,6 +870,7 @@ export async function updateMemoryFields(input: {
       category: input.category ?? null,
       sub_category: input.subCategory ?? null,
       price: input.price ?? null,
+      ...(input.metadata !== undefined ? { metadata: input.metadata ?? {} } : {}),
       occurred_at: input.occurredAt ?? null,
     })
     .eq('id', input.memoryId);

@@ -268,8 +268,41 @@ describe('health redesign preserves feature ownership', () => {
         glassPanels()[2].findAllByProps({ logs: mockData.weightTimeline })
           .length,
       ).toBeGreaterThan(0);
+      expect(
+        glassPanels()[2].findAllByProps({ logs: mockData.weightTimeline })[0]
+          .props.accentColor,
+      ).toBe(createTheme('light').colors.textPrimary);
     },
   );
+
+  it.each([
+    ['병원·진단 기록', 'hospital'], ['약·복약 기록', 'medicine'],
+  ])('opens %s as an actual health record instead of a schedule', async (label, kind) => {
+    await mount();
+    await act(async () => button('건강 기록하기')?.props.onPress());
+    const target = renderer.root.findAllByType(RN.TouchableOpacity).find(node =>
+      node.findAll(child => child.props.children === label).length > 0,
+    );
+    expect(target).toBeDefined();
+    await act(async () => target?.props.onPress());
+    expect(mockNavigate).toHaveBeenCalledWith('RecordCreate', expect.objectContaining({
+      petId: 'qa', initialMainCategory: 'health', initialHealthRecordKind: kind,
+    }));
+  });
+
+  it('shows hundredths of a kilogram without rounding a small increase to zero', async () => {
+    mockTab = 'weight';
+    mockData.weightSummary = {
+      ...mockData.weightSummary,
+      latestWeightKg: 5.31,
+      deltaKg: 0.01,
+      deltaRate: 0.2,
+    };
+    await mount();
+    expect(output()).toContain('5.31kg');
+    expect(output()).toContain('+0.01kg');
+    expect(output()).not.toContain('+0.0kg');
+  });
 
   it('groups weight summary/chart and editable history in two glass panels', async () => {
     mockTab = 'weight';
@@ -281,6 +314,10 @@ describe('health redesign preserves feature ownership', () => {
     expect(
       glassPanels()[0].findAllByProps({ logs: mockData.weightTimeline }).length,
     ).toBeGreaterThan(0);
+    expect(
+      glassPanels()[0].findAllByProps({ logs: mockData.weightTimeline })[0]
+        .props.accentColor,
+    ).toBe(createTheme('light').colors.textPrimary);
     expect(button('2026-10-09, 5.3kg, 체중 기록 수정')).toBeDefined();
     const addWeight = renderer.root
       .findAllByProps({ accessibilityLabel: '체중 기록 추가' })
@@ -381,8 +418,10 @@ describe('health redesign preserves feature ownership', () => {
       mockSeason = season;
       await mount();
       await act(async () => button('건강 기록하기')?.props.onPress());
-      expect(output()).toContain('병원/검진');
-      expect(output()).toContain('투약/복약');
+      expect(output()).toContain('병원·진단 기록');
+      expect(output()).toContain('약·복약 기록');
+      expect(output()).toContain('병원·검진 일정');
+      expect(output()).toContain('투약·복약 알림');
       expect(output()).not.toContain('HEALTH MANAGEMENT');
       expect(usePetStore.getState().selectedPetId).toBe('qa');
     },
@@ -614,11 +653,14 @@ describe('weight chart uses actual measured values', () => {
   });
   it('renders readable date/value alternatives without changing the data', async () => {
     let renderer!: TestRenderer.ReactTestRenderer;
-    const logs = [{ id: 'a', measuredOn: '2026-10-09', weightKg: 5.3 }];
+    const logs = [
+      { id: 'a', measuredOn: '2026-10-08', weightKg: 5.2 },
+      { id: 'b', measuredOn: '2026-10-09', weightKg: 5.3 },
+    ];
     await act(async () => {
       renderer = TestRenderer.create(
         <ThemeProvider theme={createTheme('light')}>
-          <WeightTrendChart logs={logs} accentColor="#B95000" />
+          <WeightTrendChart logs={logs} accentColor={createTheme('light').colors.textPrimary} />
         </ThemeProvider>,
       );
     });
@@ -628,7 +670,15 @@ describe('weight chart uses actual measured values', () => {
       }).length,
     ).toBeGreaterThan(0);
     expect(JSON.stringify(renderer.toJSON())).toContain('5.3');
-    expect(logs).toHaveLength(1);
+    const segments = renderer.root.findAllByType(RN.View).filter(node => {
+      const style = RN.StyleSheet.flatten(node.props.style);
+      return style?.position === 'absolute' && style?.height === 3;
+    });
+    expect(segments).toHaveLength(1);
+    expect(RN.StyleSheet.flatten(segments[0].props.style).backgroundColor).toBe(
+      createTheme('light').colors.textPrimary,
+    );
+    expect(logs).toHaveLength(2);
     await act(async () => renderer.unmount());
   });
 });

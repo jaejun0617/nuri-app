@@ -219,7 +219,8 @@ describe('seasonal Home ambient material', () => {
       for (const color of edgeWash.props.colors) {
         expect(color).toMatch(/^#[0-9A-F]{6}$/);
         const channels = [1, 3, 5].map(start => parseInt(color.slice(start, start + 2), 16));
-        expect(Math.max(...channels) - Math.min(...channels)).toBeGreaterThanOrEqual(18);
+        expect(Math.max(...channels) - Math.min(...channels)).toBeGreaterThanOrEqual(14);
+        expect(Math.min(...channels)).toBeGreaterThanOrEqual(180);
       }
       expect(
         ReactNative.StyleSheet.flatten(edgeWash.props.style).backgroundColor,

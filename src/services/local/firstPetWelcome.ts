@@ -41,7 +41,7 @@ export function buildFirstPetWelcomeCopy(
   const normalizedPetName = normalizePetName(petName);
   const nameWithParticle = normalizedPetName
     ? appendKoreanParticle(normalizedPetName, '와', '과')
-    : '우리 아이와';
+    : '반려동물과';
 
   return {
     body: `${nameWithParticle} 함께할 소중한 공간이 준비됐어요.`,

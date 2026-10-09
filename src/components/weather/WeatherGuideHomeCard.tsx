@@ -209,7 +209,7 @@ export default React.memo(function WeatherGuideHomeCard({
   const isCompact = width <= 370;
   const hasLiveData = weather.dataSource === 'live';
   const isPreview = weather.dataSource === 'preview';
-  const notice = getWeatherAdvice(weather);
+  const notice = getWeatherAdvice(weather, petName);
   const textPrimary =
     visualTheme?.primaryText ?? (isNightCard ? '#FFFFFF' : '#1F2940');
   const detailMetricColor =

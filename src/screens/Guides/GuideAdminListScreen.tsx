@@ -25,7 +25,7 @@ import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import { useManagedPetCareGuideCatalog } from '../../hooks/useManagedPetCareGuideCatalog';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import { formatGuideStatusLabel } from '../../services/guides/presentation';
 import {
   filterManagedPetCareGuidesByStatus,
@@ -33,7 +33,7 @@ import {
 } from '../../services/guides/service';
 import type { GuideContentStatus } from '../../services/guides/types';
 import { useAuthStore } from '../../store/authStore';
-import { usePetStore } from '../../store/petStore';
+
 import { openMoreDrawer } from '../../store/uiStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'GuideAdminList'>;
@@ -54,8 +54,8 @@ export default function GuideAdminListScreen() {
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const role = useAuthStore(s => s.profile.role ?? 'user');
-  const pets = usePetStore(s => s.pets);
-  const selectedPetId = usePetStore(s => s.selectedPetId);
+
+
   const catalogState = useManagedPetCareGuideCatalog();
   const refreshCatalog = catalogState.refresh;
 
@@ -76,14 +76,8 @@ export default function GuideAdminListScreen() {
     );
     return filterPetCareGuidesBySearch(statusApplied, deferredSearchQuery);
   }, [catalogState.guides, deferredSearchQuery, statusFilter]);
-  const selectedPet = useMemo(
-    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
-    [pets, selectedPetId],
-  );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+
+  const petTheme = NEUTRAL_UI_PALETTE;
 
   const headerTopInset = Math.max(insets.top, 12);
   const isGuideAdmin = role === 'admin' || role === 'super_admin';

@@ -1,4 +1,6 @@
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
+import { SeasonalFormBackground, SeasonalFormPanel } from '../../components/common/SeasonalFormSurface';
+import MedicalRecordFields from '../../components/records/MedicalRecordFields';
 // 파일: src/screens/Records/RecordCreateScreen.tsx
 // 파일 목적:
 // - 반려동물 기록을 작성하고, 저장 직후 홈/타임라인에 즉시 반영하는 작성 화면이다.
@@ -53,6 +55,7 @@ import { spacing } from '../../app/theme/tokens/spacing';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import PremiumRewardModal from '../../components/common/PremiumRewardModal';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
+import RecordChoiceGrid from '../../components/records/RecordChoiceGrid';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import RecordImageGallery from '../../components/records/RecordImageGallery';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -84,6 +87,8 @@ import {
 import {
   buildGroomingRecordMetadata,
   buildHealthRecordMetadata,
+  emptyHealthCareDetails,
+  normalizeHealthCareDetails,
   buildMealRecordMetadata,
   GROOMING_CARE_OPTIONS,
   HEALTH_CONDITION_OPTIONS,
@@ -132,7 +137,7 @@ import { useAuthStore } from '../../store/authStore';
 import { useRecordStore } from '../../store/recordStore';
 import { showToast } from '../../store/uiStore';
 import { openMoreDrawer } from '../../store/uiStore';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import { recordTimelineCreateActivity } from '../../services/activity/timelineActivity';
 import RecordTagModal from './components/RecordTagModal';
 import { styles } from './RecordCreateScreen.styles';
@@ -193,10 +198,7 @@ export default function RecordCreateScreen() {
     () => pets.find(item => item.id === petId) ?? null,
     [petId, pets],
   );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+  const petTheme = NEUTRAL_UI_PALETTE;
 
   const todayYmd = useMemo(() => toRecordYmd(new Date()), []);
 
@@ -218,6 +220,7 @@ export default function RecordCreateScreen() {
   const [healthCondition, setHealthCondition] =
     useState<HealthCondition | null>(null);
   const [healthWeightText, setHealthWeightText] = useState('');
+  const [healthCare, setHealthCare] = useState(() => emptyHealthCareDetails(route.params?.initialHealthRecordKind));
   const [groomingCareTypes, setGroomingCareTypes] = useState<
     GroomingCareType[]
   >([]);
@@ -250,6 +253,7 @@ export default function RecordCreateScreen() {
     null,
   );
   const scrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
+  const formPanelOffsetRef = useRef(0);
   const composerFieldOffsetsRef = useRef<
     Partial<Record<ComposerFocusTarget, number>>
   >({});
@@ -261,7 +265,7 @@ export default function RecordCreateScreen() {
     mainCategoryKey === 'other' && otherSubCategoryKey === 'grooming';
   const hasValidCategoryFields =
     (!isMealCategory || hasPositiveRecordNumber(mealAmountText)) &&
-    (!isHealthCategory || healthCondition !== null) &&
+    (!isHealthCategory || healthCare.kind !== 'condition' || healthCondition !== null) &&
     (!isGroomingCategory || groomingCareTypes.length > 0);
   const disabled =
     saving ||
@@ -318,6 +322,8 @@ export default function RecordCreateScreen() {
       mealAmountText.trim().length > 0 ||
       healthCondition !== null ||
       healthWeightText.trim().length > 0 ||
+      healthCare.kind !== (route.params?.initialHealthRecordKind ?? 'condition') ||
+      Boolean(healthCare.hospitalName || healthCare.diagnosis || healthCare.medication) ||
       groomingCareTypes.length > 0
     );
   }, [
@@ -334,6 +340,8 @@ export default function RecordCreateScreen() {
     mealAmountText,
     healthCondition,
     healthWeightText,
+    healthCare,
+    route.params?.initialHealthRecordKind,
     groomingCareTypes.length,
     title,
     todayYmd,
@@ -359,7 +367,7 @@ export default function RecordCreateScreen() {
       }
       scrollRef.current?.scrollTo({
         x: 0,
-        y: resolveComposerFocusOffset(offsetY),
+        y: resolveComposerFocusOffset(formPanelOffsetRef.current + offsetY),
         animated: true,
       });
     });
@@ -379,6 +387,7 @@ export default function RecordCreateScreen() {
     setSaveMealAmountAsDefault(false);
     setHealthCondition(null);
     setHealthWeightText('');
+    setHealthCare(emptyHealthCareDetails(route.params?.initialHealthRecordKind));
     setGroomingCareTypes([]);
     setDateModalVisible(false);
     setSelectedEmotion(null);
@@ -386,7 +395,7 @@ export default function RecordCreateScreen() {
     setActiveImageIndex(0);
     setSaving(false);
     setDraftHydrated(true);
-  }, [initialMainCategoryKey, initialOtherSubCategoryKey, todayYmd]);
+  }, [initialMainCategoryKey, initialOtherSubCategoryKey, todayYmd, route.params?.initialHealthRecordKind]);
 
   useEffect(() => {
     if (selectedImages.length === 0 && activeImageIndex !== 0) {
@@ -479,6 +488,7 @@ export default function RecordCreateScreen() {
           setSaveMealAmountAsDefault(draft.saveMealAmountAsDefault ?? false);
           setHealthCondition(draft.healthCondition ?? null);
           setHealthWeightText(draft.healthWeightText ?? '');
+          setHealthCare(normalizeHealthCareDetails(draft.healthCare) ?? emptyHealthCareDetails(route.params?.initialHealthRecordKind));
           setGroomingCareTypes(
             Array.isArray(draft.groomingCareTypes)
               ? draft.groomingCareTypes
@@ -516,6 +526,7 @@ export default function RecordCreateScreen() {
     draftScope,
     scheduleContext,
     navigation,
+    route.params?.initialHealthRecordKind,
   ]);
 
   useEffect(() => {
@@ -535,6 +546,8 @@ export default function RecordCreateScreen() {
       mealAmountText.trim().length > 0 ||
       healthCondition !== null ||
       healthWeightText.trim().length > 0 ||
+      healthCare.kind !== (route.params?.initialHealthRecordKind ?? 'condition') ||
+      Boolean(healthCare.hospitalName || healthCare.diagnosis || healthCare.medication) ||
       groomingCareTypes.length > 0 ||
       selectedImages.length > 0;
 
@@ -558,6 +571,7 @@ export default function RecordCreateScreen() {
         saveMealAmountAsDefault,
         healthCondition,
         healthWeightText,
+        healthCare,
         groomingCareTypes,
         selectedEmotion,
         selectedImages,
@@ -583,6 +597,8 @@ export default function RecordCreateScreen() {
     title,
     healthCondition,
     healthWeightText,
+    healthCare,
+    route.params?.initialHealthRecordKind,
     groomingCareTypes,
     draftScope,
     scheduleSourceReady,
@@ -946,10 +962,11 @@ export default function RecordCreateScreen() {
       const metadata =
         isMealCategory && mealAmount
           ? buildMealRecordMetadata({ amountGrams: mealAmount })
-          : isHealthCategory && healthCondition
+          : isHealthCategory
           ? buildHealthRecordMetadata({
               condition: healthCondition,
               weightKg: healthWeight,
+              care: healthCare,
             })
           : isGroomingCategory
           ? buildGroomingRecordMetadata(groomingCareTypes)
@@ -1188,6 +1205,7 @@ export default function RecordCreateScreen() {
     groomingCareTypes,
     healthCondition,
     healthWeightText,
+    healthCare,
     isExpenseCategory,
     isMealCategory,
     isHealthCategory,
@@ -1216,6 +1234,7 @@ export default function RecordCreateScreen() {
 
   return (
     <View style={styles.screen}>
+      <SeasonalFormBackground />
       <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
@@ -1233,11 +1252,12 @@ export default function RecordCreateScreen() {
           preset="unifiedTitle"
           style={styles.headerTitle}
         >
-          기록하기
+          {isHealthCategory ? '건강 기록하기' : '기록하기'}
         </AppText>
 
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
           <HeaderTextActionButton
+            appearance="seasonalText"
             role="primarySubtle"
             loading={saving}
             accessibilityLabel={saving ? '기록 저장 중' : '기록 등록'}
@@ -1264,6 +1284,8 @@ export default function RecordCreateScreen() {
         keyboardDismissMode="none"
         showsVerticalScrollIndicator={false}
       >
+        <SeasonalFormPanel style={styles.formPanel}
+          onLayout={event => { formPanelOffsetRef.current = event.nativeEvent.layout.y; }}>
         <TouchableOpacity
           activeOpacity={0.9}
           style={[
@@ -1425,51 +1447,18 @@ export default function RecordCreateScreen() {
         ) : null}
 
         {mainCategoryKey === 'other' ? (
-          <View style={styles.otherSubRow}>
-            {RECORD_WRITE_OTHER_SUBCATEGORIES.map(sub => {
-              const active = sub.key === otherSubCategoryKey;
-              return (
-                <TouchableOpacity
-                  key={sub.key}
-                  activeOpacity={0.88}
-                  style={[
-                    styles.otherSubChip,
-                    active ? styles.otherSubChipActive : null,
-                    active
-                      ? {
-                          borderColor: petTheme.border,
-                          backgroundColor: petTheme.tint,
-                        }
-                      : null,
-                  ]}
-                  onPress={() => onSelectOtherSubCategory(sub.key)}
-                >
-                  <AppText
-                    preset="unifiedMeta"
-                    style={[
-                      styles.otherSubChipText,
-                      active ? styles.otherSubChipTextActive : null,
-                      active ? { color: petTheme.deep } : null,
-                    ]}
-                  >
-                    {sub.label}
-                  </AppText>
-                </TouchableOpacity>
-              );
-            })}
-
-            {otherSubCategoryKey ? (
-              <TouchableOpacity
-                activeOpacity={0.88}
-                style={styles.otherSubClearBtn}
-                onPress={clearOtherSubCategory}
-              >
-                <Feather name="x" size={14} color="#9AA4B6" />
-              </TouchableOpacity>
-            ) : null}
-          </View>
+          <RecordChoiceGrid
+            options={RECORD_WRITE_OTHER_SUBCATEGORIES}
+            selected={otherSubCategoryKey ? [otherSubCategoryKey] : []}
+            onSelect={onSelectOtherSubCategory}
+            onClear={clearOtherSubCategory}
+            disabled={saving}
+          />
         ) : null}
 
+        {isHealthCategory ? (
+          <MedicalRecordFields value={healthCare} onChange={setHealthCare} onFocus={handleFocusField} disabled={saving} />
+        ) : null}
         {isExpenseCategory ? (
           <View style={styles.field}>
             <AppText preset="unifiedBody" style={styles.fieldLabel}>
@@ -1624,38 +1613,13 @@ export default function RecordCreateScreen() {
             <AppText preset="unifiedBody" style={styles.fieldLabel}>
               관리 항목 (1개 이상)
             </AppText>
-            <View style={styles.optionGrid}>
-              {GROOMING_CARE_OPTIONS.map(option => {
-                const active = groomingCareTypes.includes(option.value);
-                return (
-                  <TouchableOpacity
-                    key={option.value}
-                    activeOpacity={0.88}
-                    style={[
-                      styles.optionChip,
-                      active ? styles.optionChipActive : null,
-                      active
-                        ? {
-                            backgroundColor: petTheme.tint,
-                            borderColor: petTheme.border,
-                          }
-                        : null,
-                    ]}
-                    onPress={() => onToggleGroomingCareType(option.value)}
-                  >
-                    <AppText
-                      preset="unifiedMeta"
-                      style={[
-                        styles.optionChipText,
-                        active ? { color: petTheme.deep } : null,
-                      ]}
-                    >
-                      {option.label}
-                    </AppText>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
+            <RecordChoiceGrid
+              options={GROOMING_CARE_OPTIONS.map(option => ({ key: option.value, label: option.label }))}
+              selected={groomingCareTypes}
+              onSelect={onToggleGroomingCareType}
+              multiple
+              disabled={saving}
+            />
           </View>
         ) : null}
 
@@ -1814,6 +1778,7 @@ export default function RecordCreateScreen() {
             완료
           </CtaText>
         </CtaButton>
+        </SeasonalFormPanel>
       </KeyboardAwareScrollView>
 
       <DatePickerModal
@@ -1824,6 +1789,7 @@ export default function RecordCreateScreen() {
       />
 
       <PremiumRewardModal
+        petName={selectedPet?.name}
         roleBasedActions
         visible={rewardNotice !== null}
         xpAwarded={rewardNotice?.xpAwarded ?? 0}

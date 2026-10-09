@@ -353,7 +353,7 @@ export default memo(function TimelineSeasonalHeader({
             {dailyStatus?.todayCompleted
               ? `오늘 산책 완료 · ${dailyStatus.currentStreak}일 연속`
               : `${appendKoreanParticle(
-                  petName?.trim() || '우리 아이',
+                  petName?.trim() || '반려동물',
                   '와의',
                   '과의',
                 )} 오늘 산책을 기록해 보세요.`}

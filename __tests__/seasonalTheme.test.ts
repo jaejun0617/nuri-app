@@ -6,8 +6,10 @@ import {
   getSeasonalSplashVisual,
   SEASONAL_SPLASH_VISUALS,
 } from '../src/theme/seasonal/assets';
-import { getSeasonalLoginVisual } from '../src/theme/seasonal/login';
-import { getSeasonalSignupVisual } from '../src/theme/seasonal/signup';
+import {
+  getSeasonalLoginVisual,
+  getSocialLoginLayout,
+} from '../src/theme/seasonal/login';
 import {
   getSeasonalHomeVisual,
   SEASONAL_HOME_COPY,
@@ -128,126 +130,41 @@ describe('seasonal theme', () => {
     expect(new Set(sources).size).toBe(4);
   });
 
-  it('maps all four approved seasonal login visuals', () => {
-    expect(getSeasonalLoginVisual('spring')).toEqual(
-      expect.objectContaining({
-        season: 'spring',
-        backgroundColor: '#FBEDEB',
-        ctaColor: '#E77F9A',
-        headlineAccentColor: '#E86F88',
-        heroHeightOffset: 8,
-        policyLinkColor: '#A83F68',
-        subtitleColor: '#59483F',
-        socialLabel: '소셜로 로그인',
-      }),
-    );
-
-    expect(getSeasonalLoginVisual('summer')).toEqual(
-      expect.objectContaining({
-        season: 'summer',
-        backgroundColor: '#EAF6D8',
-        ctaColor: '#4F91D8',
-        headlineAccentColor: '#438EDC',
-        heroHeightOffset: 8,
-        policyLinkColor: '#2F6EB8',
-        subtitleColor: '#3F5260',
-        socialLabel: '소셜로 로그인',
-      }),
-    );
-
-    expect(getSeasonalLoginVisual('autumn')).toEqual(
-      expect.objectContaining({
-        season: 'autumn',
-        backgroundColor: '#E99B54',
-        accentColor: '#D95C2B',
-        heroHeightOffset: 0,
-        socialLabel: '소셜 계정으로 시작하기',
-      }),
-    );
-
-    expect(getSeasonalLoginVisual('winter')).toEqual(
-      expect.objectContaining({
-        season: 'winter',
-        backgroundColor: '#EAF0FB',
-        ctaColor: '#9297F2',
-        headlineAccentColor: '#A84F3B',
-        heroHeightOffset: 40,
-        policyLinkColor: '#5961C8',
-        subtitleColor: '#2F4266',
-        socialLabel: 'SNS 계정으로 시작하기',
-      }),
-    );
-  });
-
-  it('supports bounded seasonal QA overrides and returns to AUTO', () => {
-    expect(getSeasonalLoginVisual('autumn', 'spring')?.season).toBe('spring');
-    expect(getSeasonalLoginVisual('autumn', 'summer')?.season).toBe('summer');
-    expect(getSeasonalLoginVisual('autumn', 'winter')?.season).toBe('winter');
-    expect(getSeasonalLoginVisual('autumn', 'auto')?.season).toBe('autumn');
-  });
-
-  it.each([
-    ['spring', '#873458'],
-    ['summer', '#285C99'],
-    ['autumn', '#833D24'],
-    ['winter', '#454C9B'],
-  ] as const)(
-    'uses a distinct readable %s signup secondary tone',
-    (season, textColor) => {
-      const visual = getSeasonalLoginVisual(season);
-      expect(visual?.signupTonalTextColor).toBe(textColor);
-      expect(visual?.signupTonalBackgroundColor).not.toBe(visual?.ctaColor);
-      expect(visual?.signupTonalBorderColor).toBeTruthy();
-    },
-  );
-
-  it('maps all four approved signup visuals with distinct bundled assets', () => {
-    expect(getSeasonalSignupVisual('spring')).toEqual(
-      expect.objectContaining({
-        season: 'spring',
-        backgroundColor: '#FBEDEB',
-        accentColor: '#E77F9A',
-        policyLinkColor: '#A83F68',
-      }),
-    );
-    expect(getSeasonalSignupVisual('summer')).toEqual(
-      expect.objectContaining({
-        season: 'summer',
-        backgroundColor: '#EAF6D8',
-        accentColor: '#4F91D8',
-        policyLinkColor: '#2F6EB8',
-      }),
-    );
-    expect(getSeasonalSignupVisual('autumn')).toEqual(
-      expect.objectContaining({
-        season: 'autumn',
-        backgroundColor: '#E99B54',
-        accentColor: '#E9693A',
-        policyLinkColor: '#8C351C',
-      }),
-    );
-    expect(getSeasonalSignupVisual('winter')).toEqual(
-      expect.objectContaining({
-        season: 'winter',
-        backgroundColor: '#EAF0FB',
-        accentColor: '#9297F2',
-        policyLinkColor: '#5961C8',
-      }),
-    );
+  it('maps the supplied social login art without duplicating its baked logo or copy', () => {
     const sources = (['spring', 'summer', 'autumn', 'winter'] as const).map(
-      season => getSeasonalSignupVisual(season).source,
+      season => {
+        const visual = getSeasonalLoginVisual(season);
+        expect(visual.season).toBe(season);
+        expect(visual.accessibilityLabel).toContain('함께한 순간을, 오래도록');
+        return visual.source;
+      },
     );
     expect(new Set(sources).size).toBe(4);
   });
 
-  it('supports bounded signup overrides and resets to AUTO', () => {
-    expect(getSeasonalSignupVisual('autumn', 'spring').season).toBe('spring');
-    expect(getSeasonalSignupVisual('autumn', 'summer').season).toBe('summer');
-    expect(getSeasonalSignupVisual('spring', 'autumn')?.season).toBe('autumn');
-    expect(getSeasonalSignupVisual('autumn', 'winter')?.season).toBe('winter');
-    expect(getSeasonalSignupVisual('winter', 'autumn')?.season).toBe('autumn');
-    expect(getSeasonalSignupVisual('spring', 'auto').season).toBe('spring');
-    expect(getSeasonalSignupVisual('summer', 'auto').season).toBe('summer');
-    expect(getSeasonalSignupVisual('autumn', 'auto')?.season).toBe('autumn');
+  it('keeps seasonal overrides and automatic resolution', () => {
+    expect(getSeasonalLoginVisual('autumn', 'spring').season).toBe('spring');
+    expect(getSeasonalLoginVisual('autumn', 'summer').season).toBe('summer');
+    expect(getSeasonalLoginVisual('autumn', 'winter').season).toBe('winter');
+    expect(getSeasonalLoginVisual('autumn', 'auto').season).toBe('autumn');
   });
+
+  it.each([
+    [360, 640],
+    [384, 760],
+    [430, 880],
+    [740, 320],
+  ])(
+    'fills %i x %i width at the original ratio with a scrollable short-screen fallback',
+    (width, height) => {
+      const layout = getSocialLoginLayout(width, height);
+      expect(layout.heroHeight).toBeCloseTo((width * 1350) / 836);
+      expect(layout.actionsMinHeight).toBeCloseTo(
+        Math.max(0, height - layout.heroHeight),
+      );
+      expect(layout.imageWidth).toBe(width);
+      expect(layout.imageWidth / layout.imageHeight).toBeCloseTo(836 / 1881);
+      expect(layout.heroHeight / layout.imageHeight).toBeCloseTo(1350 / 1881);
+    },
+  );
 });

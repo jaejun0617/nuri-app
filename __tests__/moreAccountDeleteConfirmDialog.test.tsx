@@ -694,10 +694,7 @@ describe('More account deletion confirmation', () => {
     });
   });
 
-  it('scrolls the settings shortcut to the measured section without navigating or saving', async () => {
-    const scrollTo = jest
-      .spyOn(ScrollView.prototype, 'scrollTo')
-      .mockImplementation(() => {});
+  it('removes the header gear while preserving every settings entry and the fixed backdrop', async () => {
     let renderer!: TestRenderer.ReactTestRenderer;
     try {
       await TestRenderer.act(async () => {
@@ -718,28 +715,19 @@ describe('More account deletion confirmation', () => {
         expect(ancestor).not.toBe(scroll);
         ancestor = ancestor.parent;
       }
-      TestRenderer.act(() => {
-        scroll.props.onLayout({ nativeEvent: { layout: { height: 600 } } });
-        scroll.props.onContentSizeChange(384, 1800);
-        renderer.root
-          .findByProps({ testID: 'more-settings-section' })
-          .props.onLayout({ nativeEvent: { layout: { y: 820 } } });
-      });
-      TestRenderer.act(() =>
-        renderer.root
-          .findByProps({ testID: 'more-settings-shortcut' })
-          .props.onPress(),
+      expect(renderer.root.findAllByProps({ testID: 'more-settings-shortcut' })).toHaveLength(0);
+      expect(renderer.root.findByProps({ testID: 'more-settings-section' }).props.items).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ key: 'theme', label: '펫 강조색', onPress: expect.any(Function) }),
+          expect.objectContaining({ key: 'app-font', label: '앱 글꼴', onPress: expect.any(Function) }),
+          expect.objectContaining({ key: 'notification', label: '알림 설정', onPress: expect.any(Function) }),
+          expect.objectContaining({ key: 'user-notifications', label: '알림함', onPress: expect.any(Function) }),
+        ]),
       );
-      expect(scrollTo).toHaveBeenLastCalledWith({
-        x: 0,
-        y: 820,
-        animated: true,
-      });
       expect(mockNavigation.navigate).not.toHaveBeenCalled();
       expect(mockPerformAccountDeletion).not.toHaveBeenCalled();
     } finally {
       await TestRenderer.act(async () => renderer?.unmount());
-      scrollTo.mockRestore();
     }
   });
 });

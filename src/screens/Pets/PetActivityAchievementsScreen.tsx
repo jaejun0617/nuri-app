@@ -26,7 +26,7 @@ import {
 } from '../../services/activity/activityDashboard';
 import { LEVEL_THRESHOLDS } from '../../services/activity/progressPolicy';
 import { TIMELINE_MAIN_CATEGORY_OPTIONS } from '../../services/memories/categoryMeta';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { buildPetThemePalette, NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import { openMoreDrawer, showToast } from '../../store/uiStore';
 import { usePetStore } from '../../store/petStore';
 
@@ -184,7 +184,7 @@ function GrowthCard({
   const levelSummary = dashboard.levelSummary ?? DEFAULT_LEVEL;
 
   return (
-    <View style={[styles.growthCard, { borderColor: `${accentColor}28` }]}>
+    <View style={[styles.growthCard, { borderColor: NEUTRAL_UI_PALETTE.border }]}>
       <View style={styles.growthTopRow}>
         <View>
           <AppText preset="unifiedMeta" style={styles.growthEyebrow}>
@@ -205,7 +205,7 @@ function GrowthCard({
         <View
           style={[
             styles.progressFill,
-            { width: `${progressPercent}%`, backgroundColor: accentColor },
+            { width: `${progressPercent}%`, backgroundColor: NEUTRAL_UI_PALETTE.primary },
           ]}
         />
       </View>
@@ -550,12 +550,12 @@ export default function PetActivityAchievementsScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={accentPalette.primary}
+            tintColor={NEUTRAL_UI_PALETTE.primary}
           />
         }
       >
         {loading && !dashboard ? (
-          <DashboardSkeleton accentColor={accentPalette.primary} />
+          <DashboardSkeleton accentColor={NEUTRAL_UI_PALETTE.primary} />
         ) : dashboard ? (
           <>
             <GrowthCard dashboard={dashboard} accentColor={accentPalette.primary} />
@@ -565,13 +565,13 @@ export default function PetActivityAchievementsScreen() {
                 pets={dashboard.petSummaries}
                 selectedPetId={activePetId}
                 onSelect={setSelectedDashboardPetId}
-                accentColor={accentPalette.primary}
+                accentColor={NEUTRAL_UI_PALETTE.primary}
               />
             </SectionCard>
 
             <PetActivityCards
               pet={selectedPetSummary}
-              accentColor={accentPalette.primary}
+              accentColor={NEUTRAL_UI_PALETTE.primary}
             />
             <CommonActivityCard summary={dashboard.commonSummary} />
             <AchievementVault achievements={dashboard.allAchievements} />

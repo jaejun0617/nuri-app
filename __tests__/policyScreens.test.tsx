@@ -7,7 +7,7 @@ import { createTheme } from '../src/app/theme/theme';
 import PolicyCenterScreen from '../src/screens/Policy/PolicyCenterScreen';
 import PolicyDetailScreen from '../src/screens/Policy/PolicyDetailScreen';
 import { POLICY_DOCUMENT_ORDER } from '../src/services/legal/presentation';
-import { buildPetThemePalette } from '../src/services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE } from '../src/services/pets/themePalette';
 import { usePetStore } from '../src/store/petStore';
 
 const mockNavigation = {
@@ -99,7 +99,7 @@ describe('policy presentation screens', () => {
       ),
     ).toEqual(
       expect.objectContaining({
-        color: buildPetThemePalette('#4F7BCB').deep,
+        color: NEUTRAL_UI_PALETTE.deep,
       }),
     );
 
@@ -153,7 +153,7 @@ describe('policy presentation screens', () => {
       ),
     ).toEqual(
       expect.objectContaining({
-        color: buildPetThemePalette('#4F7BCB').deep,
+        color: NEUTRAL_UI_PALETTE.deep,
       }),
     );
 

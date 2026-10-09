@@ -243,7 +243,7 @@ const HOME_AMBIENT_VISUALS: Record<SeasonKey, HomeAmbientVisual> = {
     primaryColor: AUTUMN.apricot,
     baseColor: HOME_AMBIENT_MESH_BASE_COLOR,
     baseGradient: HOME_AMBIENT_BASE_GRADIENT,
-    canvasGradient: ['#F7D5B1', '#F8DEC2', '#F3D0AC'],
+    canvasGradient: ['#F9E2CA', '#FAE9D6', '#F7DEC7'],
     fields: HOME_AMBIENT_MESH_FIELDS,
     heroFields: [],
     // Keep colored variation while the edge wash covers gaps between radial fields.
@@ -272,7 +272,7 @@ const HOME_AMBIENT_VISUALS: Record<SeasonKey, HomeAmbientVisual> = {
     primaryColor: WINTER.ice,
     baseColor: '#F6FBFF',
     baseGradient: ['#F6FBFF', '#F3F9FF', '#F9FCFF', '#F6F8FE', '#F6FBFF'],
-    canvasGradient: ['#D2E5F8', '#DEEAF8', '#DCDCF3'],
+    canvasGradient: ['#E2EEF9', '#E9F1FA', '#E8E8F7'],
     fields: [],
     heroFields: [
       field(0.86, 0.12, 1.6, 0.85, WINTER.ice, 0.68),
@@ -304,7 +304,7 @@ const HOME_AMBIENT_VISUALS: Record<SeasonKey, HomeAmbientVisual> = {
     primaryColor: SPRING.rose,
     baseColor: '#FFFCF6',
     baseGradient: ['#FFFCF6', '#FFF9F4', '#FFFCF7', '#FFFAF7', '#FFFCF6'],
-    canvasGradient: ['#FAD5E2', '#FFE0E8', '#F1CFDF'],
+    canvasGradient: ['#FCE4EC', '#FFEAF0', '#F6E0EA'],
     fields: [],
     heroFields: [
       field(1.0, 0.1, 1.6, 0.8, SPRING.petal, 0.44),
@@ -336,7 +336,7 @@ const HOME_AMBIENT_VISUALS: Record<SeasonKey, HomeAmbientVisual> = {
     primaryColor: SUMMER.aqua,
     baseColor: '#F6FFF9',
     baseGradient: ['#F6FFF9', '#F2FDFC', '#FAFFF7', '#F1FCFD', '#F6FFF9'],
-    canvasGradient: ['#C5EDE3', '#D2F0ED', '#C4E7F0'],
+    canvasGradient: ['#D9F2EC', '#E1F5F3', '#D8EFF5'],
     fields: [],
     heroFields: [
       field(0.0, 0.14, 1.6, 0.8, SUMMER.mint, 0.64),

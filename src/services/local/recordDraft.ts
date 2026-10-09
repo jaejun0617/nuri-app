@@ -10,7 +10,7 @@ import type {
   RecordMainCategoryKey,
   RecordOtherSubCategoryKey,
 } from '../records/form';
-import type { GroomingCareType, HealthCondition } from '../records/metadata';
+import type { GroomingCareType, HealthCondition, HealthCareDetails } from '../records/metadata';
 import type { EmotionTag } from '../supabase/memories';
 
 const RECORD_DRAFT_STORAGE_KEY = 'nuri.record-create-draft.v1';
@@ -61,6 +61,7 @@ export type RecordCreateDraft = {
   saveMealAmountAsDefault?: boolean;
   healthCondition?: HealthCondition | null;
   healthWeightText?: string;
+  healthCare?: HealthCareDetails;
   groomingCareTypes?: GroomingCareType[];
   selectedEmotion: EmotionTag | null;
   selectedImages: PickedRecordImage[];

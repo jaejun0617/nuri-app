@@ -51,7 +51,7 @@ import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 import type { PetSchedule } from '../../services/supabase/schedules';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import { isHealthSchedule } from '../../services/health-report/viewModel';
 import { mapScheduleIconName } from '../../services/schedules/presentation';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
@@ -87,10 +87,7 @@ export default function ScheduleListScreen() {
     () => pets.find(candidate => candidate.id === petId) ?? pets[0] ?? null,
     [petId, pets],
   );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+  const petTheme = NEUTRAL_UI_PALETTE;
 
   const bootstrap = useScheduleStore(s => s.bootstrap);
   const refresh = useScheduleStore(s => s.refresh);
@@ -240,7 +237,7 @@ export default function ScheduleListScreen() {
               color={theme.colors.textPrimary}
               style={styles.subtitle}
             >
-              {selectedPet?.name ?? '우리 아이'}의 일정·기념일
+              {selectedPet?.name ?? '반려동물'}의 일정·기념일
             </AppText>
             <View style={styles.search}>
               <Feather
@@ -434,7 +431,7 @@ export default function ScheduleListScreen() {
               style={styles.centered}
             >
               {!petId
-                ? '우리 아이를 먼저 선택해 주세요'
+                ? '반려동물을 먼저 선택해 주세요'
                 : isInitialLoading || status === 'idle'
                 ? '일정을 불러오는 중이에요'
                 : isError

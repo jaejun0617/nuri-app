@@ -1,3 +1,4 @@
+import { formatPetCopy } from '../../utils/petDisplayName';
 // 파일: src/components/common/PremiumRewardModal.tsx
 // 역할:
 // - XP/포인트 획득 결과를 NURI 톤의 프리미엄 모달로 표시한다.
@@ -22,10 +23,11 @@ import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import { useOptionalSafeAreaInsets } from '../../hooks/useOptionalSafeAreaInsets';
 import { buildPremiumRewardLevelStatus } from '../../services/activity/rewardNoticePresentation';
 import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
-import { usePetStore } from '../../store/petStore';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
+
 
 type Props = {
+  petName?: string | null;
   visible: boolean;
   xpAwarded: number;
   totalXp: number;
@@ -45,6 +47,7 @@ function formatXp(value: number): string {
 }
 
 function PremiumRewardModalBase({
+  petName,
   visible,
   xpAwarded,
   totalXp,
@@ -67,17 +70,9 @@ function PremiumRewardModalBase({
     bottomInset: insets.bottom,
     verticalMargin: 20,
   });
-  const pets = usePetStore(s => s.pets);
-  const selectedPetId = usePetStore(s => s.selectedPetId);
-  const selectedPet = useMemo(
-    () =>
-      pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
-    [pets, selectedPetId],
-  );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor ?? theme.colors.brand),
-    [selectedPet?.themeColor, theme.colors.brand],
-  );
+
+
+  const petTheme = NEUTRAL_UI_PALETTE;
   const primaryColor = accentColor ?? petTheme.primary;
   const safeAwarded = Math.max(0, xpAwarded);
   const levelStatus = useMemo(
@@ -267,7 +262,7 @@ function PremiumRewardModalBase({
                     { color: theme.colors.textSecondary },
                   ]}
                 >
-                  우리 아이와 {streakDays}일 연속 산책 중이에요
+                  {formatPetCopy(`우리 아이와 ${streakDays}일 연속 산책 중이에요`, petName)}
                 </AppText>
               </View>
             ) : null}

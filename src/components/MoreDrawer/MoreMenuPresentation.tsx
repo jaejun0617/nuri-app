@@ -12,6 +12,7 @@ import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider
 import AppText from '../../app/ui/AppText';
 import NuriIcon, { type NuriIconName } from '../icons/NuriIcon';
 import NuriSemanticIcon from '../icons/NuriSemanticIcon';
+import { HomeFrostedGlass } from '../home/HomeFrostedGlass';
 import {
   getMoreMenuColors,
   isMoreMenuStacked,
@@ -62,10 +63,8 @@ function Chevron() {
 
 export const MoreMenuHeader = memo(function MoreMenuHeaderContent({
   onClose,
-  onSettings,
 }: {
   onClose: () => void;
-  onSettings?: () => void;
 }) {
   const theme = useTheme();
   return (
@@ -78,20 +77,6 @@ export const MoreMenuHeader = memo(function MoreMenuHeaderContent({
       >
         전체메뉴
       </AppText>
-      {onSettings ? (
-        <TouchableOpacity
-          testID="more-settings-shortcut"
-          accessibilityRole="button"
-          accessibilityLabel="앱 설정으로 이동"
-          onPress={onSettings}
-          activeOpacity={0.65}
-          style={styles.tool}
-        >
-          <Decoration>
-            <NuriSemanticIcon family="feather" name="settings" size={20} />
-          </Decoration>
-        </TouchableOpacity>
-      ) : null}
       <TouchableOpacity
         testID="more-close"
         accessibilityRole="button"
@@ -137,6 +122,7 @@ export const MoreIdentityBand = memo(function MoreIdentityBandContent({
 }) {
   const theme = useTheme();
   const [failedUri, setFailedUri] = useState<string | null>(null);
+  const season = useEffectiveSeason();
   const userLabel = loggedIn ? nickname ?? '닉네임 설정' : '로그인';
   const petLabel = loggedIn && petName ? petName : '아이들 프로필 관리';
   const petStatus = !loggedIn
@@ -145,7 +131,7 @@ export const MoreIdentityBand = memo(function MoreIdentityBandContent({
     ? '등록된 아이가 없어요'
     : `${petSelected ? '선택된 아이' : '등록된 아이'} · 총 ${petCount}마리`;
   return (
-    <View testID="more-identity-band" style={styles.identityBand}>
+    <HomeFrostedGlass season={season} borderRadius={8} testID="more-identity-band" style={styles.identityBand}>
       <TouchableOpacity
         testID={loggedIn ? 'more-entry-my-profile' : 'more-entry-login'}
         accessibilityRole="button"
@@ -235,7 +221,7 @@ export const MoreIdentityBand = memo(function MoreIdentityBandContent({
         </AppText>
         <Chevron />
       </TouchableOpacity>
-    </View>
+    </HomeFrostedGlass>
   );
 });
 
@@ -358,6 +344,7 @@ export const MoreMenuSection = memo(function MoreMenuSectionContent({
   const theme = useTheme();
   const { width, fontScale } = useWindowDimensions();
   const stacked = isMoreMenuStacked(width, fontScale);
+  const season = useEffectiveSeason();
   return (
     <View testID={testID} onLayout={onLayout} style={styles.section}>
       <AppText
@@ -368,6 +355,7 @@ export const MoreMenuSection = memo(function MoreMenuSectionContent({
       >
         {title}
       </AppText>
+      <HomeFrostedGlass season={season} borderRadius={8} style={styles.sectionGlass}>
       <View
         testID={quick ? 'more-quick-grid' : undefined}
         style={quick && !stacked ? styles.grid : undefined}
@@ -381,6 +369,7 @@ export const MoreMenuSection = memo(function MoreMenuSectionContent({
           />
         ))}
       </View>
+      </HomeFrostedGlass>
     </View>
   );
 });
@@ -407,7 +396,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  identityBand: { minHeight: 88 },
+  identityBand: { minHeight: 88, marginTop: 0, paddingHorizontal: 12, paddingVertical: 8 },
   identityRow: {
     minHeight: 64,
     flexDirection: 'row',
@@ -439,6 +428,7 @@ const styles = StyleSheet.create({
   },
   avatarImage: { width: '100%', height: '100%' },
   section: { gap: MORE_MENU.titleGap },
+  sectionGlass: { marginTop: 0, paddingHorizontal: 8, paddingVertical: 4 },
   sectionTitle: {
     paddingHorizontal: 4,
     fontSize: 13,

@@ -3,6 +3,7 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Feather from '../icons/NuriFeatherIcon';
 
 import AppText from '../../app/ui/AppText';
+import MarkerText from '../../app/ui/MarkerText';
 import { HomeFrostedGlass } from '../home/HomeFrostedGlass';
 import type { SeasonKey } from '../../theme/seasonal/season';
 import {
@@ -18,9 +19,6 @@ type Props = {
   season: SeasonKey;
   onPress: (guideId: string) => void;
   debugBadgeText?: string | null;
-  accentColor: string;
-  accentTint: string;
-  accentBorder: string;
 };
 
 function GuideListCardBase({
@@ -28,9 +26,6 @@ function GuideListCardBase({
   season,
   onPress,
   debugBadgeText,
-  accentColor,
-  accentTint,
-  accentBorder,
 }: Props) {
   return (
     <TouchableOpacity
@@ -39,22 +34,19 @@ function GuideListCardBase({
       accessibilityLabel={`${guide.title}, 가이드 상세 보기`}
       onPress={() => onPress(guide.id)}
     >
-      <HomeFrostedGlass season={season} borderRadius={24} style={styles.card}>
+      <HomeFrostedGlass season={season} borderRadius={8} style={styles.card}>
         <View style={styles.headerRow}>
           <View
-            style={[
-              styles.categoryBadge,
-              { backgroundColor: accentTint, borderColor: accentBorder },
-            ]}
+            style={styles.categoryBadge}
           >
             <Feather
               name={getGuideCategoryIconName(guide.category)}
               size={14}
-              color={accentColor}
+              color="#556070"
             />
             <AppText
               preset="unifiedMeta"
-              style={[styles.categoryText, { color: accentColor }]}
+              style={styles.categoryText}
             >
               {getGuideCategoryLabel(guide.category)}
             </AppText>
@@ -62,9 +54,9 @@ function GuideListCardBase({
           <Feather name="chevron-right" size={18} color="#98A1B2" />
         </View>
 
-        <AppText preset="unifiedTitle" style={styles.title}>
-          {guide.title}
-        </AppText>
+        <MarkerText preset="unifiedTitle" style={styles.title}>
+          {`“${guide.title}”`}
+        </MarkerText>
         {debugBadgeText ? (
           <View style={styles.debugBadge}>
             <AppText preset="unifiedMeta" style={styles.debugBadgeText}>
@@ -108,7 +100,7 @@ export default React.memo(GuideListCardBase);
 const styles = StyleSheet.create({
   card: {
     marginTop: 0,
-    borderRadius: 24,
+    borderRadius: 8,
     paddingHorizontal: 18,
     paddingVertical: 18,
     gap: 10,
@@ -122,13 +114,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    borderWidth: 1,
+    paddingVertical: 2,
   },
   categoryText: {
-    fontWeight: '900',
+    color: '#556070',
+    fontWeight: '500',
   },
   title: {
     color: '#0B1220',
@@ -155,10 +145,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   metaChip: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    borderRadius: 999,
-    backgroundColor: '#F3F5FA',
+    paddingVertical: 2,
   },
   metaChipText: {
     color: '#556070',
@@ -170,10 +157,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   tagChip: {
-    paddingHorizontal: 9,
-    paddingVertical: 5,
-    borderRadius: 999,
-    backgroundColor: '#F7F8FD',
+    paddingVertical: 2,
   },
   tagText: {
     color: '#7A8495',

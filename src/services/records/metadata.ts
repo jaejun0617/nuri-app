@@ -27,7 +27,28 @@ export type MealRecordMetadata = {
 export type HealthRecordMetadata = {
   condition: HealthCondition | null;
   weightKg: number | null;
+  care?: HealthCareDetails;
 };
+
+export type HealthCareKind = 'condition' | 'hospital' | 'medicine';
+export type HealthCareDetails = {
+  kind: HealthCareKind;
+  hospitalName: string;
+  diagnosis: string;
+  medication: string;
+};
+
+export function emptyHealthCareDetails(kind: HealthCareKind = 'condition'): HealthCareDetails {
+  return { kind, hospitalName: '', diagnosis: '', medication: '' };
+}
+
+export function normalizeHealthCareDetails(value: unknown): HealthCareDetails | undefined {
+  if (!isObject(value)) return undefined;
+  const kind = value.kind;
+  if (kind !== 'condition' && kind !== 'hospital' && kind !== 'medicine') return undefined;
+  const text = (key: string, limit: number) => typeof value[key] === 'string' ? value[key].trim().slice(0, limit) : '';
+  return { kind, hospitalName: text('hospitalName', 100), diagnosis: text('diagnosis', 240), medication: text('medication', 240) };
+}
 
 export type GroomingRecordMetadata = {
   careTypes: GroomingCareType[];
@@ -114,8 +135,9 @@ function toHealthMetadata(value: unknown): HealthRecordMetadata | undefined {
     ? (value.condition as HealthCondition)
     : null;
   const weightKg = toPositiveNumberOrNull(value.weightKg);
-  if (!condition && weightKg === null) return undefined;
-  return { condition, weightKg };
+  const care = normalizeHealthCareDetails(value.care);
+  if (!condition && weightKg === null && !care) return undefined;
+  return { condition, weightKg, ...(care ? { care } : {}) };
 }
 
 function toGroomingMetadata(
@@ -162,14 +184,16 @@ export function buildMealRecordMetadata(input: {
 }
 
 export function buildHealthRecordMetadata(input: {
-  condition: HealthCondition;
+  condition: HealthCondition | null;
   weightKg: number | null;
+  care?: HealthCareDetails;
 }): MemoryRecordMetadata {
   return {
     version: 1,
     health: {
       condition: input.condition,
       weightKg: input.weightKg,
+      ...(input.care ? { care: normalizeHealthCareDetails(input.care) } : {}),
     },
   };
 }

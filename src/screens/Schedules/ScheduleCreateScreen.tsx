@@ -44,7 +44,7 @@ import {
   SCHEDULE_REPEAT_OPTIONS,
 } from '../../services/schedules/form';
 import { useScheduleCreateForm } from '../../hooks/useScheduleCreateForm';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import { styles } from './ScheduleCreateScreen.styles';
 
@@ -70,14 +70,8 @@ export default function ScheduleCreateScreen() {
   const petId = useMemo(() => {
     return resolveSelectedPetId(pets, selectedPetId, routePetId);
   }, [pets, routePetId, selectedPetId]);
-  const selectedPet = useMemo(
-    () => pets.find(candidate => candidate.id === petId) ?? pets[0] ?? null,
-    [petId, pets],
-  );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+
+  const petTheme = NEUTRAL_UI_PALETTE;
 
   const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
   const onSaved = useCallback(

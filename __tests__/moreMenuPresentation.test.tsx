@@ -225,13 +225,12 @@ describe('More presentation contracts (not native pixel QA)', () => {
     await TestRenderer.act(async () => tree.unmount());
   });
 
-  it('provides 48dp settings and close controls and a quiet destructive entry', async () => {
+  it('keeps a 48dp close control without the redundant settings shortcut', async () => {
     const close = jest.fn(),
-      settings = jest.fn(),
       remove = jest.fn();
     const tree = await render(
       <>
-        <MoreMenuHeader onClose={close} onSettings={settings} />
+        <MoreMenuHeader onClose={close} />
         <MoreMenuSection
           title="계정"
           items={[
@@ -246,7 +245,8 @@ describe('More presentation contracts (not native pixel QA)', () => {
         />
       </>,
     );
-    for (const id of ['more-close', 'more-settings-shortcut']) {
+    expect(tree.root.findAllByProps({ testID: 'more-settings-shortcut' })).toHaveLength(0);
+    for (const id of ['more-close']) {
       const button = tree.root.findByProps({ testID: id });
       expect(RN.StyleSheet.flatten(button.props.style)).toEqual(
         expect.objectContaining({ width: MORE_MENU.toolTarget, height: 48 }),
@@ -254,7 +254,6 @@ describe('More presentation contracts (not native pixel QA)', () => {
       TestRenderer.act(() => button.props.onPress());
     }
     expect(close).toHaveBeenCalledTimes(1);
-    expect(settings).toHaveBeenCalledTimes(1);
     const deletion = tree.root.findByProps({ testID: 'more-entry-delete' });
     expect(
       RN.StyleSheet.flatten(deletion.props.style).backgroundColor,

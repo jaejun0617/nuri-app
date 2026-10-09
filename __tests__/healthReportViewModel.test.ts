@@ -5,6 +5,17 @@ import {
 } from '../src/services/health-report/viewModel';
 
 describe('healthReport view model', () => {
+  it.each(['hospital', 'medicine'] as const)('classifies recorded %s care without turning it into an appointment', kind => {
+    const items = buildHealthActivityItems([{
+      id: 'medical', petId: 'p', title: '건강 기록', category: 'health', tags: [],
+      occurredAt: '2026-10-09', createdAt: '2026-10-09T00:00:00Z', imagePaths: [],
+      metadata: { version: 1, health: { condition: null, weightKg: null, care: {
+        kind, hospitalName: '누리병원', diagnosis: '정기 검진', medication: '복약 메모',
+      } } },
+    }], []);
+    expect(items).toHaveLength(1);
+    expect(items[0]).toMatchObject({ source: 'memory', memoryId: 'medical', kind, subtitle: '누리병원 · 정기 검진 · 복약 메모' });
+  });
   it('체중 증감 방향과 비율을 계산한다', () => {
     const timeline = buildWeightTimelineItems({
       previousLog: {

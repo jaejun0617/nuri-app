@@ -26,8 +26,8 @@ describe('first pet welcome copy', () => {
     '유효하지 않은 펫 이름 %p은 안전한 문구로 대체한다',
     petName => {
       expect(buildFirstPetWelcomeCopy(petName)).toEqual({
-        body: '우리 아이와 함께할 소중한 공간이 준비됐어요.',
-        cta: '우리 아이와 함께하기',
+        body: '반려동물과 함께할 소중한 공간이 준비됐어요.',
+        cta: '반려동물과 함께하기',
       });
     },
   );

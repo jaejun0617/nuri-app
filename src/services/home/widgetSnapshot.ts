@@ -21,7 +21,7 @@ export function buildHomeWidgetSnapshot(input: {
   recentRecord?: MemoryRecord | null;
   recordCount?: number;
 }) {
-  const petName = trimOrFallback(input.petName, '우리 아이');
+  const petName = trimOrFallback(input.petName, '반려동물');
   const schedules = input.schedules ?? [];
   const records = input.records ?? [];
   const nextSchedule = input.nextSchedule ?? schedules[0] ?? null;

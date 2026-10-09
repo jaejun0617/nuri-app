@@ -2,7 +2,7 @@
 // 목적:
 // - "더보기"를 탭 이동이 아니라 오버레이(drawer)로 표시
 // - ✅ 오른쪽에서 슬라이드 + 배경 페이드
-// - ✅ 버벅임 개선: 컨텐츠 지연 마운트 + spring + HW 텍스처 힌트
+// - 닫힘 애니메이션 완료 후 unmount. 실시간 블러는 화면 텍스처로 캐시하지 않는다.
 
 import React, {
   useEffect,
@@ -137,9 +137,6 @@ export default function MoreDrawer({ open, onClose }: Props) {
             transform: [{ translateX }],
           },
         ]}
-        // ✅ GPU 합성 힌트(특히 Android에서 체감)
-        renderToHardwareTextureAndroid
-        shouldRasterizeIOS
       >
         <MoreDrawerContent onRequestClose={onClose} />
       </Animated.View>

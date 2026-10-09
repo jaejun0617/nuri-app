@@ -158,7 +158,7 @@ function HealthText({
   );
 }
 
-type HealthWriteActionKey = 'hospital' | 'medicine' | 'symptom' | 'weight';
+type HealthWriteActionKey = 'hospital-record' | 'medicine-record' | 'hospital' | 'medicine' | 'symptom' | 'weight';
 
 const HEALTH_WRITE_ACTIONS: Array<{
   key: HealthWriteActionKey;
@@ -166,15 +166,17 @@ const HEALTH_WRITE_ACTIONS: Array<{
   description: string;
   icon: string;
 }> = [
+  { key: 'hospital-record', title: '병원·진단 기록', description: '진료 내용과 병원비를 기록해요', icon: 'file-text' },
+  { key: 'medicine-record', title: '약·복약 기록', description: '복약 내용과 약값을 기록해요', icon: 'file-text' },
   {
     key: 'hospital',
-    title: '병원/검진',
+    title: '병원·검진 일정',
     description: '진료, 검진, 접종처럼 날짜가 중요한 건강 일정을 남겨요',
     icon: 'calendar',
   },
   {
     key: 'medicine',
-    title: '투약/복약',
+    title: '투약·복약 알림',
     description: '챙겨야 할 약 시간을 건강관리 일정으로 남겨요',
     icon: 'clock',
   },
@@ -211,7 +213,7 @@ function formatWeightKg(value: number | null | undefined) {
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     return '--';
   }
-  return `${value.toFixed(1)}kg`;
+  return `${Number(value.toFixed(2))}kg`;
 }
 
 function formatDeltaText(
@@ -239,7 +241,7 @@ function formatDeltaText(
 
   return {
     icon,
-    text: `${prefix}${Math.abs(deltaKg).toFixed(1)}kg (${Math.abs(
+    text: `${prefix}${Number(Math.abs(deltaKg).toFixed(2))}kg (${Math.abs(
       deltaRate,
     ).toFixed(1)}%) ${verb}`,
   };
@@ -870,10 +872,11 @@ export default function HealthReportScreen() {
         return;
       }
 
-      if (action === 'symptom') {
+      if (action === 'symptom' || action === 'hospital-record' || action === 'medicine-record') {
         navigation.navigate('RecordCreate', {
           petId: pet.id,
           initialMainCategory: 'health',
+          initialHealthRecordKind: action === 'hospital-record' ? 'hospital' : action === 'medicine-record' ? 'medicine' : 'condition',
           returnTo: {
             tab: 'HealthReport',
             petId: pet.id,
@@ -1225,7 +1228,7 @@ export default function HealthReportScreen() {
             role="primary"
             activeOpacity={0.9}
             onPress={() => navigation.navigate('PetCreate', { from: 'cta' })}
-            style={[styles.primaryCta, {}]}
+            style={styles.primaryCta}
           >
             <CtaText preset="unifiedLabel">아이 프로필 등록하기</CtaText>
           </CtaButton>
@@ -1615,7 +1618,7 @@ export default function HealthReportScreen() {
             </View>
             <WeightTrendChart
               logs={monthQuery.data?.weightTimeline ?? []}
-              accentColor={healthPalette.primary}
+              accentColor={theme.colors.textPrimary}
             />
           </HomeFrostedGlass>
 
@@ -1841,7 +1844,7 @@ export default function HealthReportScreen() {
             {insightWeightTimeline.length > 0 ? (
               <WeightTrendChart
                 logs={insightWeightTimeline}
-                accentColor={healthPalette.primary}
+                accentColor={theme.colors.textPrimary}
               />
             ) : (
               <HealthText preset="unifiedMeta" color={theme.colors.textMuted}>
@@ -1854,7 +1857,7 @@ export default function HealthReportScreen() {
             role="primary"
             activeOpacity={0.9}
             onPress={openHealthWriteActions}
-            style={[styles.primaryCta, {}]}
+            style={[styles.primaryCta, { marginTop: 24 }]}
           >
             <CtaText preset="unifiedLabel">건강 기록 더하기</CtaText>
           </CtaButton>

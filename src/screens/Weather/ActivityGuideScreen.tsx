@@ -23,12 +23,12 @@ import MaterialCommunityIcons from '../../components/icons/NuriMaterialIcon';
 import ActivityGuideHeroCard from '../../components/weather/ActivityGuideHeroCard';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import {
   getIndoorActivityGuide,
   type IndoorActivityKey,
 } from '../../services/weather/guide';
-import { usePetStore } from '../../store/petStore';
+
 import { openMoreDrawer } from '../../store/uiStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ActivityGuide'>;
@@ -48,15 +48,8 @@ export default function ActivityGuideScreen() {
   const guideKey = route.params?.guideKey ?? 'nosework';
   const district = route.params?.district?.trim() || '현재 위치';
   const guide = useMemo(() => getIndoorActivityGuide(guideKey), [guideKey]);
-  const selectedPet = usePetStore(s => {
-    if (s.pets.length === 0) return null;
-    if (!s.selectedPetId) return s.pets[0];
-    return s.pets.find(pet => pet.id === s.selectedPetId) ?? s.pets[0];
-  });
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+
+  const petTheme = NEUTRAL_UI_PALETTE;
   const onPressBack = useEntryAwareBackAction({
     entrySource: route.params?.entrySource,
     onHome: () => {

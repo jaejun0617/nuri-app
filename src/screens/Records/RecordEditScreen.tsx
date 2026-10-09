@@ -1,4 +1,9 @@
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
+import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
+import { usePetDisplayName } from '../../hooks/usePetDisplayName';
+import RecordChoiceGrid from '../../components/records/RecordChoiceGrid';
+import MedicalRecordFields from '../../components/records/MedicalRecordFields';
+import { emptyHealthCareDetails, type HealthCareDetails } from '../../services/records/metadata';
 // 파일: src/screens/Records/RecordEditScreen.tsx
 // 목적:
 // - 기존 memory 수정(완전체)
@@ -136,6 +141,7 @@ export default function RecordEditScreen() {
   const toolbarHeight = useContext(ToolbarHeightContext);
   const insets = useSafeAreaInsets();
   const petId = route.params.petId;
+  const petName = usePetDisplayName(petId);
   const memoryId = route.params.memoryId;
   const isHealthEntry = route.params.entrySource === 'health_report';
 
@@ -193,9 +199,11 @@ export default function RecordEditScreen() {
   const [otherSubCategoryKey, setOtherSubCategoryKey] =
     useState<RecordOtherSubCategoryKey | null>(null);
   const [priceText, setPriceText] = useState('');
+  const [healthCare, setHealthCare] = useState<HealthCareDetails>(emptyHealthCareDetails);
   const [dateModalVisible, setDateModalVisible] = useState(false);
 
   const [saving, setSaving] = useState(false);
+  const submitInFlightRef = useRef(false);
   const [dirty, setDirty] = useState(false);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [rewardNotice, setRewardNotice] = useState<RewardNoticeState | null>(
@@ -213,6 +221,7 @@ export default function RecordEditScreen() {
     if (dirty) return;
 
     setTitle(record.title ?? '');
+    setHealthCare(record.metadata?.health?.care ?? emptyHealthCareDetails());
     setContent(record.content ?? '');
     setOccurredAt(record.occurredAt ?? '');
     setTagsText(record.tags?.join(' ') ?? '');
@@ -517,6 +526,7 @@ export default function RecordEditScreen() {
   // 8) submit (text + image replace) ✅ 즉시 반영
   // ---------------------------------------------------------
   const onSubmit = useCallback(async () => {
+    if (submitInFlightRef.current) return;
     if (!petId || !memoryId) return;
     if (!record) return;
 
@@ -532,6 +542,7 @@ export default function RecordEditScreen() {
     }
 
     try {
+      submitInFlightRef.current = true;
       setSaving(true);
 
       // 1) 텍스트 저장
@@ -539,6 +550,13 @@ export default function RecordEditScreen() {
       const nextContent = content.trim() || null;
       const nextTags = parseRecordTags(tagsText);
       const nextPrice = isExpenseCategory ? parseRecordPrice(priceText) : null;
+      const nextMetadata = mainCategoryKey === 'health'
+        ? { ...record.metadata, version: 1 as const, health: {
+            condition: record.metadata?.health?.condition ?? null,
+            weightKg: record.metadata?.health?.weightKg ?? null,
+            care: healthCare,
+          } }
+        : record.metadata;
 
       await updateMemoryFields({
         memoryId,
@@ -549,6 +567,7 @@ export default function RecordEditScreen() {
         category: mainCategoryKey,
         subCategory: otherSubCategoryKey,
         price: nextPrice,
+        metadata: nextMetadata,
         occurredAt: occurred,
       });
       const activityResult = await recordTimelineCategoryChangeActivity({
@@ -592,6 +611,7 @@ export default function RecordEditScreen() {
         category: mainCategoryKey,
         subCategory: otherSubCategoryKey,
         price: nextPrice,
+        metadata: nextMetadata,
         occurredAt: occurred,
       });
       setFocusedMemoryId(petId, memoryId);
@@ -630,6 +650,7 @@ export default function RecordEditScreen() {
               category: mainCategoryKey,
               subCategory: otherSubCategoryKey,
               price: nextPrice,
+              metadata: nextMetadata,
               occurredAt: occurred,
             });
             setFocusedMemoryId(petId, memoryId);
@@ -674,6 +695,7 @@ export default function RecordEditScreen() {
       );
       Alert.alert(alertTitle, message);
     } finally {
+      submitInFlightRef.current = false;
       setSaving(false);
     }
   }, [
@@ -687,6 +709,7 @@ export default function RecordEditScreen() {
     mainCategoryKey,
     otherSubCategoryKey,
     priceText,
+    healthCare,
     emotion,
     tagsText,
     userId,
@@ -778,7 +801,11 @@ export default function RecordEditScreen() {
           {isHealthEntry ? '건강 기록 수정' : '기록 수정'}
         </AppText>
 
-        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
+        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
+          <HeaderTextActionButton appearance="seasonalText" label="수정" role="primarySubtle" compact
+            loading={saving} disabled={saving || !title.trim()} onPress={onSubmit}
+            accessibilityLabel="기록 수정 저장" />
+        </View>
       </View>
 
       <KeyboardAwareScrollView
@@ -817,7 +844,7 @@ export default function RecordEditScreen() {
                   preset="unifiedMeta"
                   style={styles.heroPlaceholderText}
                 >
-                  NO IMAGE
+                  사진
                 </AppText>
               </View>
             }
@@ -832,7 +859,7 @@ export default function RecordEditScreen() {
                     preset="unifiedMeta"
                     style={styles.heroPlaceholderText}
                   >
-                    NO IMAGE
+                    사진
                   </AppText>
                 </View>
               ) : (
@@ -944,75 +971,28 @@ export default function RecordEditScreen() {
           <AppText preset="unifiedMeta" style={styles.label}>
             분류
           </AppText>
-          <View style={styles.categoryGrid}>
-            {visibleMainCategories.map(category => {
-              const active = category.key === mainCategoryKey;
-              return (
-                <TouchableOpacity
-                  key={category.key}
-                  style={[
-                    styles.categoryChip,
-                    active ? styles.categoryChipActive : null,
-                  ]}
-                  onPress={() => onSelectMainCategory(category.key)}
-                  disabled={saving}
-                  activeOpacity={0.9}
-                >
-                  <AppText
-                    preset="unifiedMeta"
-                    style={[
-                      styles.categoryChipText,
-                      active ? styles.categoryChipTextActive : null,
-                    ]}
-                  >
-                    {category.label}
-                  </AppText>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+          <RecordChoiceGrid
+            options={visibleMainCategories}
+            selected={[mainCategoryKey]}
+            onSelect={onSelectMainCategory}
+            disabled={saving}
+          />
 
           {mainCategoryKey === 'other' ? (
-            <View style={styles.subCategoryGrid}>
-              {RECORD_WRITE_OTHER_SUBCATEGORIES.map(sub => {
-                const active = sub.key === otherSubCategoryKey;
-                return (
-                  <TouchableOpacity
-                    key={sub.key}
-                    style={[
-                      styles.subCategoryChip,
-                      active ? styles.subCategoryChipActive : null,
-                    ]}
-                    onPress={() => onSelectOtherSubCategory(sub.key)}
-                    disabled={saving}
-                    activeOpacity={0.9}
-                  >
-                    <AppText
-                      preset="unifiedMeta"
-                      style={[
-                        styles.subCategoryChipText,
-                        active ? styles.subCategoryChipTextActive : null,
-                      ]}
-                    >
-                      {sub.label}
-                    </AppText>
-                  </TouchableOpacity>
-                );
-              })}
-
-              {otherSubCategoryKey ? (
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  style={styles.subCategoryClearBtn}
-                  onPress={clearOtherSubCategory}
-                  disabled={saving}
-                >
-                  <Feather name="x" size={14} color="#9AA4B6" />
-                </TouchableOpacity>
-              ) : null}
-            </View>
+            <RecordChoiceGrid
+              options={RECORD_WRITE_OTHER_SUBCATEGORIES}
+              selected={otherSubCategoryKey ? [otherSubCategoryKey] : []}
+              onSelect={onSelectOtherSubCategory}
+              onClear={clearOtherSubCategory}
+              disabled={saving}
+            />
           ) : null}
 
+          {mainCategoryKey === 'health' ? (
+            <MedicalRecordFields value={healthCare} disabled={saving}
+              onChange={value => { setDirty(true); setHealthCare(value); }}
+              onFocus={() => scrollRef.current?.assureFocusedInputVisible()} />
+          ) : null}
           {isExpenseCategory ? (
             <>
               <AppText preset="unifiedMeta" style={styles.label}>
@@ -1143,6 +1123,7 @@ export default function RecordEditScreen() {
       />
 
       <PremiumRewardModal
+        petName={petName}
         roleBasedActions
         visible={rewardNotice !== null}
         xpAwarded={rewardNotice?.xpAwarded ?? 0}

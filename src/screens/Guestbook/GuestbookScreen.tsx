@@ -35,7 +35,7 @@ import {
 } from '../../domains/privateLetters';
 import { usePrivateLetters } from '../../hooks/usePrivateLetters';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import { useAuthStore } from '../../store/authStore';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
@@ -60,10 +60,7 @@ export default function GuestbookScreen() {
     () => pets.find(pet => pet.id === resolvedPetId) ?? null,
     [pets, resolvedPetId],
   );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+  const petTheme = NEUTRAL_UI_PALETTE;
 
   const lettersState = usePrivateLetters({
     petId: selectedPet?.id ?? null,
@@ -100,7 +97,7 @@ export default function GuestbookScreen() {
       showToast({
         tone: 'success',
         title: '편지를 남겼어요',
-        message: `${selectedPet?.name ?? '우리 아이'}에게 조용히 보관했어요.`,
+        message: `${selectedPet?.name ?? '반려동물'}에게 조용히 보관했어요.`,
         durationMs: 2400,
       });
     } catch (error: unknown) {
@@ -130,14 +127,14 @@ export default function GuestbookScreen() {
           <PrivateLettersHeader
             eyebrow="PRIVATE LETTERS"
             title="편지함"
-            subtitle="로그인하면 우리 아이에게 남긴 사적인 편지를 이어서 보관할 수 있어요."
+            subtitle="로그인하면 반려동물에게 남긴 사적인 편지를 이어서 보관할 수 있어요."
           />
           <View style={styles.stateWrap}>
             <GuestLockedState
               eyebrow="GUEST EXPERIENCE"
               titleLines={['NURI의 모든 기능을', '경험해 보세요.']}
               bodyLines={[
-                '로그인 후 우리 아이와 함께한 시간을',
+                '로그인 후 반려동물과 함께한 시간을',
                 '더 깊고 자연스럽게 이어서 남길 수 있어요.',
               ]}
               buttonLabel="로그인하고 기록하기"

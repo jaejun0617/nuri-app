@@ -84,7 +84,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  heroPlaceholderText: { color: '#8A94A6', fontWeight: '800' },
+  heroPlaceholderText: { color: '#66717F', fontWeight: '500', textAlign: 'center' },
   thumbRow: {
     marginTop: 10,
     gap: 8,
@@ -126,8 +126,8 @@ export const styles = StyleSheet.create({
     borderColor: 'rgba(255,77,79,0.20)',
     backgroundColor: 'rgba(255,77,79,0.10)',
   },
-  imgBtnText: { color: TEXT, fontWeight: '900' },
-  imgBtnDangerText: { color: '#FF4D4F', fontWeight: '900' },
+  imgBtnText: { color: TEXT, fontWeight: '600', textAlign: 'center' },
+  imgBtnDangerText: { color: '#B93645', fontWeight: '600', textAlign: 'center' },
 
   // form
   label: {

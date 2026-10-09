@@ -26,7 +26,7 @@ import {
   captureMonitoringException,
   captureMonitoringMessage,
 } from '../../services/monitoring/sentry';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import {
   deletePetSafely,
   fetchMyPets,
@@ -104,10 +104,7 @@ export default function PetManagementScreen() {
     () => pets.find(pet => pet.id === selectedPetId) ?? pets[0] ?? null,
     [pets, selectedPetId],
   );
-  const accentPalette = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+  const accentPalette = NEUTRAL_UI_PALETTE;
 
   const onPressBack = useEntryAwareBackAction({
     entrySource: route.params?.entrySource,

@@ -87,8 +87,7 @@ describe('Guide controlled search composition contract', () => {
     const guide = PET_CARE_GUIDES[0];
     await TestRenderer.act(async () => {
       tree = TestRenderer.create(<ThemeProvider theme={createTheme('light')}>
-        <GuideListCard guide={guide} season="summer" onPress={onPress}
-          accentColor="#247264" accentTint="#E2F4EF" accentBorder="#BADDD3" />
+        <GuideListCard guide={guide} season="summer" onPress={onPress} />
       </ThemeProvider>);
     });
     expect(tree.root.findAllByType(BlurView)).toHaveLength(1);
@@ -96,7 +95,7 @@ describe('Guide controlled search composition contract', () => {
     expect(button.props.accessibilityLabel).toBe(`${guide.title}, 가이드 상세 보기`);
     button.props.onPress();
     expect(onPress).toHaveBeenCalledWith(guide.id);
-    expect(tree.root.findAllByProps({ children: guide.title }).length).toBeGreaterThan(0);
+    expect(tree.root.findAllByProps({ children: `“${guide.title}”` }).length).toBeGreaterThan(0);
     expect(tree.root.findAllByProps({ children: guide.summary }).length).toBeGreaterThan(0);
   });
 

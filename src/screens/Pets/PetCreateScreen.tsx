@@ -1,3 +1,4 @@
+import { formatPetCopy } from '../../utils/petDisplayName';
 // 파일: src/screens/Pets/PetCreateScreen.tsx
 // 파일 목적:
 // - 로그인 직후 또는 추가 등록 시 반려동물 프로필을 생성하는 온보딩 핵심 화면이다.
@@ -92,6 +93,7 @@ import {
 import { captureMonitoringException } from '../../services/monitoring/sentry';
 import {
   buildPetThemePalette,
+  NEUTRAL_UI_PALETTE,
   recommendPetThemeColor,
 } from '../../services/pets/themePalette';
 import {
@@ -533,11 +535,11 @@ const StepOneForm = memo(function StepOneFormComponent({
             ]}
             editButtonStyle={[
               styles.avatarEditButton,
-              { backgroundColor: selectedTheme.primary },
+              { backgroundColor: NEUTRAL_UI_PALETTE.primary },
             ]}
             editIconName="camera"
             editIconSize={14}
-            editIconColor={selectedTheme.onPrimary}
+            editIconColor={NEUTRAL_UI_PALETTE.onPrimary}
             showEditButton={false}
           />
         </View>
@@ -545,7 +547,7 @@ const StepOneForm = memo(function StepOneFormComponent({
           preset="unifiedTitle"
           style={[styles.heroCopy, seasonalStyles.primaryText]}
         >
-          우리 아이의 첫 프로필을 만들어볼까요?
+          {formatPetCopy('우리 아이의 첫 프로필을 만들어볼까요?', name)}
         </AppText>
         <AppText
           preset="unifiedBody"
@@ -582,7 +584,7 @@ const StepOneForm = memo(function StepOneFormComponent({
             preset="unifiedBody"
             style={[styles.sectionHelper, seasonalStyles.secondaryText]}
           >
-            우리 아이와 함께하는 방식을 선택해 주세요.
+            {formatPetCopy('우리 아이와 함께하는 방식을 선택해 주세요.', name)}
           </AppText>
         </View>
         <View style={styles.memorialOptionRow}>
@@ -600,8 +602,8 @@ const StepOneForm = memo(function StepOneFormComponent({
                   styles.memorialOption,
                   active
                     ? {
-                        backgroundColor: selectedTheme.tint,
-                        borderColor: selectedTheme.primary,
+                        backgroundColor: NEUTRAL_UI_PALETTE.tint,
+                        borderColor: NEUTRAL_UI_PALETTE.primary,
                       }
                     : seasonalStyles.control,
                 ]}
@@ -612,7 +614,7 @@ const StepOneForm = memo(function StepOneFormComponent({
                   size={18}
                   color={
                     active
-                      ? selectedTheme.primary
+                      ? NEUTRAL_UI_PALETTE.primary
                       : seasonalStyles.neutralIconColor
                   }
                 />
@@ -620,7 +622,7 @@ const StepOneForm = memo(function StepOneFormComponent({
                   preset="unifiedLabel"
                   style={[
                     styles.memorialTitle,
-                    active ? { color: selectedTheme.deep } : null,
+                    active ? { color: NEUTRAL_UI_PALETTE.deep } : null,
                   ]}
                 >
                   {copy.title}
@@ -690,7 +692,7 @@ const StepOneForm = memo(function StepOneFormComponent({
             preset="unifiedBody"
             style={[styles.sectionHelper, seasonalStyles.secondaryText]}
           >
-            우리 아이의 기본 정보를 알려주세요.
+            {formatPetCopy('우리 아이의 기본 정보를 알려주세요.', name)}
           </AppText>
         </View>
 
@@ -795,8 +797,8 @@ const StepOneForm = memo(function StepOneFormComponent({
                     styles.segmentChipWide,
                     active
                       ? {
-                          backgroundColor: selectedTheme.tint,
-                          borderColor: selectedTheme.primary,
+                          backgroundColor: NEUTRAL_UI_PALETTE.tint,
+                          borderColor: NEUTRAL_UI_PALETTE.primary,
                         }
                       : seasonalStyles.control,
                   ]}
@@ -806,7 +808,7 @@ const StepOneForm = memo(function StepOneFormComponent({
                     preset="unifiedLabel"
                     style={[
                       styles.segmentChipText,
-                      active ? { color: selectedTheme.deep } : null,
+                      active ? { color: NEUTRAL_UI_PALETTE.deep } : null,
                     ]}
                   >
                     {option.label}
@@ -842,8 +844,8 @@ const StepOneForm = memo(function StepOneFormComponent({
                       styles.quickChip,
                       active
                         ? {
-                            backgroundColor: selectedTheme.tint,
-                            borderColor: selectedTheme.primary,
+                            backgroundColor: NEUTRAL_UI_PALETTE.tint,
+                            borderColor: NEUTRAL_UI_PALETTE.primary,
                           }
                         : seasonalStyles.control,
                     ]}
@@ -853,7 +855,7 @@ const StepOneForm = memo(function StepOneFormComponent({
                       preset="unifiedLabel"
                       style={[
                         styles.quickChipText,
-                        active ? { color: selectedTheme.deep } : null,
+                        active ? { color: NEUTRAL_UI_PALETTE.deep } : null,
                       ]}
                     >
                       {option.label}
@@ -902,8 +904,8 @@ const StepOneForm = memo(function StepOneFormComponent({
                       styles.segmentChip,
                       active
                         ? {
-                            backgroundColor: selectedTheme.tint,
-                            borderColor: selectedTheme.primary,
+                            backgroundColor: NEUTRAL_UI_PALETTE.tint,
+                            borderColor: NEUTRAL_UI_PALETTE.primary,
                           }
                         : seasonalStyles.control,
                     ]}
@@ -913,7 +915,7 @@ const StepOneForm = memo(function StepOneFormComponent({
                       preset="unifiedLabel"
                       style={[
                         styles.segmentChipText,
-                        active ? { color: selectedTheme.deep } : null,
+                        active ? { color: NEUTRAL_UI_PALETTE.deep } : null,
                       ]}
                     >
                       {value === 'female' ? '여아' : '남아'}
@@ -942,8 +944,8 @@ const StepOneForm = memo(function StepOneFormComponent({
                       styles.segmentChip,
                       active
                         ? {
-                            backgroundColor: selectedTheme.tint,
-                            borderColor: selectedTheme.primary,
+                            backgroundColor: NEUTRAL_UI_PALETTE.tint,
+                            borderColor: NEUTRAL_UI_PALETTE.primary,
                           }
                         : seasonalStyles.control,
                     ]}
@@ -953,7 +955,7 @@ const StepOneForm = memo(function StepOneFormComponent({
                       preset="unifiedLabel"
                       style={[
                         styles.segmentChipText,
-                        active ? { color: selectedTheme.deep } : null,
+                        active ? { color: NEUTRAL_UI_PALETTE.deep } : null,
                       ]}
                     >
                       {value ? '예' : '아니오'}
@@ -970,6 +972,7 @@ const StepOneForm = memo(function StepOneFormComponent({
 });
 
 type StepTwoFormProps = RegistrationFontFieldProps & {
+  name: string;
   weightKg: string;
   onWeightChange: (value: string) => void;
   onFieldFocus: () => void;
@@ -997,6 +1000,7 @@ type StepTwoFormProps = RegistrationFontFieldProps & {
 };
 
 const StepTwoForm = memo(function StepTwoFormComponent({
+  name,
   fontLabel,
   fontSettingsDisabled,
   onOpenFontSettings,
@@ -1034,7 +1038,7 @@ const StepTwoForm = memo(function StepTwoFormComponent({
           preset="unifiedTitle"
           style={[styles.continuationTitle, seasonalStyles.primaryText]}
         >
-          마지막으로, 우리 아이의 취향을 알려주세요
+          {formatPetCopy('마지막으로, 우리 아이의 취향을 알려주세요', name)}
         </AppText>
         <AppText
           preset="unifiedBody"
@@ -1141,7 +1145,7 @@ const StepTwoForm = memo(function StepTwoFormComponent({
             preset="unifiedBody"
             style={[styles.sectionHelper, seasonalStyles.secondaryText]}
           >
-            우리 아이를 잘 보여주는 키워드를 남겨주세요.
+            {formatPetCopy('우리 아이를 잘 보여주는 키워드를 남겨주세요.', name)}
           </AppText>
         </View>
         <MultiInputSection
@@ -1153,7 +1157,7 @@ const StepTwoForm = memo(function StepTwoFormComponent({
           onItemsAdded={onItemsAdded}
           onAdd={onAddTag}
           onRemove={onRemoveTag}
-          placeholder="우리 아이를 표현해 주세요"
+          placeholder={formatPetCopy("우리 아이를 표현해 주세요", name)}
           hint="태그는 저장 시 #이 자동으로 붙습니다."
         />
       </View>
@@ -1425,10 +1429,7 @@ export default function PetCreateScreen() {
       }),
     [themeColor, trimmedName],
   );
-  const selectedTheme = useMemo(
-    () => buildPetThemePalette(selectedThemeColor),
-    [selectedThemeColor],
-  );
+
   const effectiveSeason = useEffectiveSeason();
   const registrationPresentation = useMemo(
     () =>
@@ -2224,6 +2225,7 @@ export default function PetCreateScreen() {
             />
           ) : (
             <StepTwoForm
+              name={name}
               fontLabel={getAppFontModeLabel(appFontMode)}
               fontSettingsDisabled={!fontPreferenceHydrated || saving}
               onOpenFontSettings={handleOpenFontSettings}
@@ -2320,8 +2322,8 @@ export default function PetCreateScreen() {
                 style={[
                   styles.primaryButton,
                   {
-                    backgroundColor: selectedTheme.primary,
-                    shadowColor: selectedTheme.primary,
+                    backgroundColor: NEUTRAL_UI_PALETTE.primary,
+                    shadowColor: NEUTRAL_UI_PALETTE.primary,
                   },
                   (step === 1 ? !canGoNext : !canSubmit)
                     ? styles.buttonDisabled
@@ -2333,7 +2335,7 @@ export default function PetCreateScreen() {
                   preset="unifiedLabel"
                   style={[
                     styles.primaryButtonText,
-                    { color: selectedTheme.onPrimary },
+                    { color: NEUTRAL_UI_PALETTE.onPrimary },
                   ]}
                 >
                   {step === 1 ? '다음으로' : '등록 완료'}
@@ -2380,7 +2382,7 @@ export default function PetCreateScreen() {
                   등록이 완료되었어요!
                 </AppText>
                 <AppText preset="unifiedBody" style={styles.successBody}>
-                  우리 아이와 함께할 소중한 추억들을
+                  {formatPetCopy('우리 아이와 함께할 소중한 추억들을', createdPetName || name)}
                 </AppText>
                 <AppText preset="unifiedBody" style={styles.successBody}>
                   차곡차곡 쌓아보세요.
@@ -2392,8 +2394,8 @@ export default function PetCreateScreen() {
                 style={[
                   styles.successPrimaryButton,
                   {
-                    backgroundColor: selectedTheme.primary,
-                    shadowColor: selectedTheme.primary,
+                    backgroundColor: NEUTRAL_UI_PALETTE.primary,
+                    shadowColor: NEUTRAL_UI_PALETTE.primary,
                   },
                 ]}
                 onPress={goToWelcomeTransition}
@@ -2402,7 +2404,7 @@ export default function PetCreateScreen() {
                   preset="unifiedTitle"
                   style={[
                     styles.successPrimaryButtonText,
-                    { color: selectedTheme.onPrimary },
+                    { color: NEUTRAL_UI_PALETTE.onPrimary },
                   ]}
                 >
                   시작하기
@@ -2432,7 +2434,7 @@ export default function PetCreateScreen() {
           cancelLabel="계속 작성하기"
           confirmLabel="나가기"
           tone="warning"
-          accentColor={selectedThemeColor}
+          accentColor={NEUTRAL_UI_PALETTE.primary}
           onCancel={() => setExitConfirmVisible(false)}
           onConfirm={() => {
             setExitConfirmVisible(false);

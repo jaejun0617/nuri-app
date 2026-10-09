@@ -30,8 +30,8 @@ import type {
   LocationDiscoverySortOption,
 } from '../../services/locationDiscovery/types';
 import { compareNullableDistanceMeters } from '../../services/locationDiscovery/travelMetrics';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
-import { usePetStore } from '../../store/petStore';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
+
 import { openMoreDrawer } from '../../store/uiStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -125,8 +125,8 @@ function WalkLoadingSkeleton() {
 export default function LocationDiscoveryListScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<WalkRoute>();
-  const pets = usePetStore(s => s.pets);
-  const selectedPetId = usePetStore(s => s.selectedPetId);
+
+
   const recentSearches = useRecentPersonalSearches('walk');
   const listRef = useRef<FlatList<LocationDiscoveryItem> | null>(null);
   const [searchInput, setSearchInput] = useState('');
@@ -143,15 +143,8 @@ export default function LocationDiscoveryListScreen() {
     query: submittedQuery,
     coordinateOverride,
   });
-  const selectedPet = useMemo(
-    () =>
-      pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
-    [pets, selectedPetId],
-  );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+
+  const petTheme = NEUTRAL_UI_PALETTE;
   const sortedItems = useMemo(
     () => sortWalkItems(discoveryState.items, sortOrder),
     [discoveryState.items, sortOrder],

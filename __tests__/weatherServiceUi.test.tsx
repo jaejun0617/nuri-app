@@ -466,7 +466,7 @@ describe('weather service presentation UI', () => {
     },
   );
 
-  it('does not personalize the generic copy into our pet-name', async () => {
+  it('personalizes owned pet copy without replacing species labels', async () => {
     const renderer = await render(
       <WeatherGuideHomeCard
         weather={buildWeatherGuideBundleForScenario('fresh')}
@@ -476,7 +476,7 @@ describe('weather service presentation UI', () => {
       />,
     );
     expect(texts(renderer)).toContain(
-      '우리 아이의 컨디션에 맞춰 외출을 준비해 주세요.',
+      '누리의 컨디션에 맞춰 외출을 준비해 주세요.',
     );
     expect(texts(renderer).join('\n')).not.toContain('누리의 종류');
     const frame = StyleSheet.flatten(

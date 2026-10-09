@@ -1,11 +1,10 @@
 import React, { useMemo } from 'react';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Feather from '../icons/NuriFeatherIcon';
-import LinearGradient from 'react-native-linear-gradient';
 
 import AppText from '../../app/ui/AppText';
+import MarkerText from '../../app/ui/MarkerText';
 import {
-  getGuideCategoryIconName,
   getGuideCategoryLabel,
 } from '../../services/guides/presentation';
 import type { PetCareGuide } from '../../services/guides/types';
@@ -27,7 +26,6 @@ function GuideRecommendationCardBase({
   guide,
   accentColor,
   accentDeepColor,
-  tintColor,
   onPress,
   debugBadgeText,
 }: Props) {
@@ -53,21 +51,6 @@ function GuideRecommendationCardBase({
     >
       <HomeWidgetSheen radius={22} />
       <View style={styles.header}>
-        <LinearGradient
-          colors={[tintColor, 'rgba(255, 255, 255, 0.24)']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.thumb}
-          pointerEvents="none"
-          accessible={false}
-          importantForAccessibility="no-hide-descendants"
-        >
-          <Feather
-            name={getGuideCategoryIconName(guide.category)}
-            size={22}
-            color={accentColor}
-          />
-        </LinearGradient>
         <View style={styles.content}>
           <AppText
             preset="unifiedMeta"
@@ -75,14 +58,13 @@ function GuideRecommendationCardBase({
           >
             {getGuideCategoryLabel(guide.category)}
           </AppText>
-          <AppText
+          <MarkerText
             preset="unifiedBody"
             styleOverridesPreset
             style={styles.title}
-            numberOfLines={3}
           >
-            {guide.title}
-          </AppText>
+            {`“${guide.title}”`}
+          </MarkerText>
         </View>
         <View style={styles.chevron} pointerEvents="none">
           <Feather name="chevron-right" size={20} color={accentDeepColor} />
@@ -103,7 +85,7 @@ function GuideRecommendationCardBase({
           {tags.map(tag => (
             <View
               key={tag}
-              style={[styles.tag, { backgroundColor: tintColor }]}
+              style={styles.tag}
             >
               <AppText
                 preset="unifiedMeta"
@@ -192,11 +174,7 @@ const styles = StyleSheet.create({
   },
   tag: {
     maxWidth: '100%',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.80)',
+    paddingVertical: 2,
   },
   tagText: {
     flexShrink: 1,

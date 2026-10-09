@@ -1,3 +1,4 @@
+import { usePetDisplayName } from '../../hooks/usePetDisplayName';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, { memo, useEffect, useMemo, useState } from 'react';
 import {
@@ -56,6 +57,7 @@ export const HomeScheduleCalendar = memo(function HomeScheduleCalendarView({
   onPressAll,
   onPressDetail,
 }: Props) {
+  const petName = usePetDisplayName(petId);
   const theme = useTheme();
   const { fontScale } = useWindowDimensions();
   const [today, setToday] = useState(() => getKstYmd());
@@ -180,7 +182,7 @@ export const HomeScheduleCalendar = memo(function HomeScheduleCalendarView({
             fontScale >= 1.3 && styles.stackedHeaderTitle,
           ]}
         >
-          우리 아이 일정
+          {`${petName} 일정`}
         </AppText>
         {!(canConfirmEmpty && items.length === 0) ? (
           <SectionHeaderAction

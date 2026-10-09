@@ -36,7 +36,7 @@ import { resolveScheduleReturnTarget } from '../../navigation/scheduleReturn';
 import type { RootScreenRoute } from '../../navigation/types';
 import { createLatestRequestController } from '../../services/app/async';
 import { getErrorMessage } from '../../services/app/errors';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import {
   deleteSchedule,
   fetchScheduleById,
@@ -180,10 +180,7 @@ export default function ScheduleDetailScreen() {
       null,
     [petId, pets, schedule?.petId],
   );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+  const petTheme = NEUTRAL_UI_PALETTE;
   const draftScope = useMemo(
     () =>
       userId && schedule
@@ -650,7 +647,7 @@ export default function ScheduleDetailScreen() {
                 >
                   {selectedPet?.name?.trim()
                     ? `${selectedPet.name.trim()}의 일정`
-                    : '우리 아이의 일정'}
+                    : '반려동물의 일정'}
                 </AppText>
                 <AppText
                   preset="cardTitle"

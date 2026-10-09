@@ -31,7 +31,7 @@ import { usePetCareGuideSearch } from '../../hooks/usePetCareGuideSearch';
 import { useRecentPetCareGuideSearches } from '../../hooks/useRecentPetCareGuideSearches';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import { deriveCanonicalPetSpeciesKey } from '../../services/pets/species';
 import { getAgeInMonthsFromBirthDate } from '../../services/guides/agePolicy';
 import { buildGuideEventMetadata } from '../../services/guides/analytics';
@@ -91,10 +91,7 @@ export default function GuideListScreen() {
         : null,
     [selectedPet],
   );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+  const petTheme = NEUTRAL_UI_PALETTE;
   const speciesDetailKey = selectedPet?.speciesDetailKey ?? null;
   const speciesDisplayName = selectedPet?.speciesDisplayName ?? null;
   const birthDate = selectedPet?.birthDate ?? null;
@@ -305,9 +302,6 @@ export default function GuideListScreen() {
         guide={item}
         season={season}
         onPress={onPressGuide}
-        accentColor={petTheme.primary}
-        accentTint={petTheme.tint}
-        accentBorder={petTheme.border}
         debugBadgeText={
           __DEV__ && catalogState.source === 'local-seed' && isLocalGuideSeedGuide(item)
             ? '테스트 seed'
@@ -318,9 +312,6 @@ export default function GuideListScreen() {
     [
       catalogState.source,
       onPressGuide,
-      petTheme.border,
-      petTheme.primary,
-      petTheme.tint,
       season,
     ],
   );
@@ -349,10 +340,7 @@ export default function GuideListScreen() {
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={searchVisible ? '가이드 검색 닫기' : '가이드 검색 열기'}
-            style={[
-              styles.searchToggleButton,
-              { backgroundColor: petTheme.tint },
-            ]}
+            style={styles.searchToggleButton}
             onPress={() => {
               startTransition(() => {
                 setSearchVisible(prev => !prev);
@@ -491,10 +479,6 @@ export default function GuideListScreen() {
                         style={[
                           styles.chipButton,
                           styles.chipButtonActive,
-                          {
-                            backgroundColor: petTheme.tint,
-                            borderColor: petTheme.border,
-                          },
                         ]}
                         onPress={() => {
                           applySearchKeyword(keyword);
@@ -636,7 +620,6 @@ export default function GuideListScreen() {
               activeOpacity={0.88}
               style={[
                 styles.resetSearchButton,
-                { backgroundColor: petTheme.tint },
               ]}
               onPress={() => {
                 setSearchQuery('');

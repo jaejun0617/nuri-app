@@ -1,3 +1,5 @@
+import { usePetDisplayName } from '../../hooks/usePetDisplayName';
+import { formatPetCopy } from '../../utils/petDisplayName';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, {
   memo,
@@ -208,6 +210,7 @@ const CategoryChipButton = memo(function CategoryChipButtonComponent({
 });
 
 export default function CommunityListScreen() {
+  const petName = usePetDisplayName();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
@@ -673,21 +676,27 @@ export default function CommunityListScreen() {
           testID="community-pagination-controls"
           style={styles.paginationControls}
         >
-          <CtaButton
-            role="neutral"
-            compact
+          <Pressable
             accessibilityRole="button"
             accessibilityLabel="이전 페이지"
             accessibilityState={{ disabled: !hasPreviousPage || blocked }}
-            activeOpacity={0.84}
             disabled={!hasPreviousPage || blocked}
-            style={styles.paginationButton}
+            style={({ pressed }) => [styles.paginationButton, { opacity: !hasPreviousPage || blocked ? 0.45 : pressed ? 0.65 : 1 }]}
             onPress={handleLoadPreviousPage}
           >
-            <CtaText preset="caption" style={styles.paginationButtonText}>
+            <NuriSemanticIcon
+              family="feather"
+              name="chevron-left"
+              preserveOriginal
+              size={14}
+              color={styles.paginationButtonText.color}
+              style={{ lineHeight: 18, includeFontPadding: false }}
+              accessible={false}
+            />
+            <AppText preset="caption" style={styles.paginationButtonText}>
               이전
-            </CtaText>
-          </CtaButton>
+            </AppText>
+          </Pressable>
 
           <View
             accessibilityLabel={`현재 ${currentPage}페이지`}
@@ -706,21 +715,27 @@ export default function CommunityListScreen() {
             )}
           </View>
 
-          <CtaButton
-            role="neutral"
-            compact
+          <Pressable
             accessibilityRole="button"
             accessibilityLabel="다음 페이지"
             accessibilityState={{ disabled: !hasNextPage || blocked }}
-            activeOpacity={0.84}
             disabled={!hasNextPage || blocked}
-            style={styles.paginationButton}
+            style={({ pressed }) => [styles.paginationButton, { opacity: !hasNextPage || blocked ? 0.45 : pressed ? 0.65 : 1 }]}
             onPress={handleLoadNextPage}
           >
-            <CtaText preset="caption" style={styles.paginationButtonText}>
+            <AppText preset="caption" style={styles.paginationButtonText}>
               다음
-            </CtaText>
-          </CtaButton>
+            </AppText>
+            <NuriSemanticIcon
+              family="feather"
+              name="chevron-right"
+              preserveOriginal
+              size={14}
+              color={styles.paginationButtonText.color}
+              style={{ lineHeight: 18, includeFontPadding: false }}
+              accessible={false}
+            />
+          </Pressable>
         </View>
       </View>
     );
@@ -790,7 +805,7 @@ export default function CommunityListScreen() {
                           preset="headline"
                           style={{ color: seasonal.primary }}
                         >
-                          우리 아이들의 이야기
+                          {formatPetCopy('우리 아이들의 이야기', petName)}
                         </AppText>
                         <AppText preset="body" style={styles.emptyBody}>
                           누리에서 소중한 이야기를 나눠보세요.

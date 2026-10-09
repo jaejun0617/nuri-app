@@ -31,7 +31,7 @@ import {
   type FirstPetWelcomePending,
 } from '../../services/local/firstPetWelcome';
 import { captureMonitoringException } from '../../services/monitoring/sentry';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
@@ -63,10 +63,7 @@ export default function MainScreen() {
       pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
     [pets, selectedPetId],
   );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+  const petTheme = NEUTRAL_UI_PALETTE;
 
   useEffect(() => {
     let cancelled = false;
@@ -189,7 +186,7 @@ export default function MainScreen() {
     <>
       {isLoggedIn && !isPasswordRecoveryActive ? <LoggedInHome /> : null}
       <ConfirmDialog
-        confirmRole="neutral"
+        confirmRole="primary"
         cancelRole="neutral"
         visible={exitConfirmVisible}
         typographyMode="unified"

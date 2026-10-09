@@ -1,3 +1,5 @@
+import { usePetDisplayName } from '../../../../hooks/usePetDisplayName';
+import { formatPetCopy } from '../../../../utils/petDisplayName';
 import CtaButton, { CtaText } from '../../../../app/ui/CtaButton';
 import React, { memo } from 'react';
 import {
@@ -36,6 +38,7 @@ export const MonthlyDiaryEmptyState = memo(function MonthlyDiaryEmptyStateView({
   accentDeepColor,
   onPressRecord,
 }: Props) {
+  const petName = usePetDisplayName();
   // An unavailable list is not evidence that this month's diary is empty.
   if (recordStatus !== 'ready') {
     const failed = recordStatus === 'error';
@@ -91,7 +94,7 @@ export const MonthlyDiaryEmptyState = memo(function MonthlyDiaryEmptyStateView({
           style={styles.description}
         >
           {
-            '산책, 식사, 놀이, 소소한 일상까지\n우리 아이의 소중한 순간을 기록해보세요.'
+            formatPetCopy('산책, 식사, 놀이, 소소한 일상까지\n우리 아이의 소중한 순간을 기록해보세요.', petName)
           }
         </AppText>
       </View>

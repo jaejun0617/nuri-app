@@ -2,7 +2,7 @@ import { StyleSheet } from 'react-native';
 
 const TEXT = '#0B1220';
 const MUTED = '#556070';
-const BRAND = '#6D6AF8';
+const BRAND = '#374151';
 
 export const styles = StyleSheet.create({
   screen: {
@@ -19,8 +19,8 @@ export const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   headerSideSlot: {
-    width: 40,
-    minHeight: 40,
+    width: 48,
+    minHeight: 48,
     justifyContent: 'center',
     alignItems: 'flex-start',
   },
@@ -28,8 +28,8 @@ export const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   headerBackButton: {
-    width: 40,
-    height: 40,
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -40,12 +40,11 @@ export const styles = StyleSheet.create({
     fontWeight: '900',
   },
   searchToggleButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(109,106,248,0.10)',
+    backgroundColor: 'transparent',
   },
   searchCard: {
     width: undefined,
@@ -182,16 +181,15 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   chipButton: {
-    minHeight: 34,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: '#F7F8FD',
-    borderWidth: 1,
-    borderColor: 'rgba(109,106,248,0.12)',
+    minHeight: 48,
+    paddingHorizontal: 4,
+    paddingVertical: 12,
+    backgroundColor: 'transparent',
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: '#C7CDD4',
   },
   chipButtonActive: {
-    backgroundColor: 'rgba(109,106,248,0.10)',
+    backgroundColor: 'transparent',
   },
   chipButtonText: {
     color: TEXT,
@@ -234,8 +232,9 @@ export const styles = StyleSheet.create({
     marginTop: 2,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: 'rgba(109,106,248,0.10)',
+    minHeight: 48,
+    justifyContent: 'center',
+    backgroundColor: 'transparent',
   },
   resetSearchButtonText: {
     color: BRAND,

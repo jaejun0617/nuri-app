@@ -8,7 +8,8 @@ import AppText from '../../app/ui/AppText';
 import React, { memo, useEffect, useRef } from 'react';
 import { Animated, Easing, Image, StatusBar, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
+import { formatPetCopy } from '../../utils/petDisplayName';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { ASSETS } from '../../assets';
@@ -75,6 +76,7 @@ const LoadingDot = memo(function LoadingDotView({
 });
 
 export default function WelcomeTransitionScreen() {
+  const route = useRoute<RouteProp<RootStackParamList, 'WelcomeTransition'>>();
   const season = useEffectiveSeason();
   const seasonalVisual = getSeasonalOnboardingVisual(season);
   const navigation = useNavigation<Nav>();
@@ -213,7 +215,7 @@ export default function WelcomeTransitionScreen() {
               누리의 공간을 준비하고 있어요
             </AppText>
             <AppText style={styles.description}>
-              우리 아이를 위한 첫 화면을 만들고 있어요
+              {formatPetCopy('우리 아이를 위한 첫 화면을 만들고 있어요', route.params?.petName)}
             </AppText>
           </View>
 

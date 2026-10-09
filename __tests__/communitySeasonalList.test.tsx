@@ -191,11 +191,11 @@ describe('community seasonal list candidate', () => {
     'uses the global %s artwork and seasonal accent, independent of pet theme',
     async season => {
       mockSeason = season;
-      usePetStore.setState({
-        pets: [{ id: 'pet', name: '누리', themeColor: '#6741D9' }],
-        selectedPetId: 'pet',
-      });
       await TestRenderer.act(async () => {
+        usePetStore.setState({
+          pets: [{ id: 'pet', name: '누리', themeColor: '#6741D9' }],
+          selectedPetId: 'pet',
+        });
         renderer.update(tree());
       });
       const hero = heroImage(renderer);
@@ -595,6 +595,7 @@ describe('community seasonal list candidate', () => {
     const labels = footer.findAllByType(Text).map(node => node.props.children);
     expect(labels).toContain('이전');
     expect(labels).toContain('다음');
+    expect(footer.findAllByType(NativeFeather).map(node => node.props.name)).toEqual(['chevron-left', 'chevron-right']);
     for (const label of ['이전 페이지', '다음 페이지']) {
       const button = footer
         .findAll(node => typeof node.props.style === 'function')
@@ -604,12 +605,16 @@ describe('community seasonal list candidate', () => {
         button?.props.style({ pressed: false }),
       );
       expect(buttonStyle).toMatchObject({
-        minWidth: 44,
-        minHeight: 44,
-        paddingHorizontal: 14,
+        flexDirection: 'row',
+        alignItems: 'center',
+        minWidth: 48,
+        minHeight: 48,
+        paddingHorizontal: 8,
         paddingVertical: 0,
         borderRadius: 6,
-        opacity: 1,
+        opacity: button?.props.disabled ? 0.45 : 1,
+        borderWidth: 0,
+        backgroundColor: 'transparent',
       });
       expect(buttonStyle).not.toHaveProperty('width');
       expect(buttonStyle).not.toHaveProperty('flex');
@@ -925,7 +930,7 @@ describe('community seasonal list candidate', () => {
     });
     expect(
       StyleSheet.flatten(previous()?.props.style({ pressed: false })),
-    ).toMatchObject({ opacity: 1, backgroundColor: '#E8EBEF' });
+    ).toMatchObject({ opacity: 0.45, backgroundColor: 'transparent' });
     await TestRenderer.act(async () => {
       next()?.props.onPress();
     });
@@ -950,7 +955,7 @@ describe('community seasonal list candidate', () => {
     expect(next()?.props.accessibilityState).toMatchObject({ disabled: true });
     expect(
       StyleSheet.flatten(next()?.props.style({ pressed: false })),
-    ).toMatchObject({ opacity: 1, backgroundColor: '#E8EBEF' });
+    ).toMatchObject({ opacity: 0.45, backgroundColor: 'transparent' });
   });
 
   it('preserves page-size selection and refresh callbacks', async () => {
@@ -1011,13 +1016,14 @@ describe('community seasonal list candidate', () => {
 
   it('falls back without losing navigation when an image cannot decode', async () => {
     await TestRenderer.act(async () => {
+      usePetStore.setState({ pets: [{ id: 'qa-pet', name: '누리' }], selectedPetId: 'qa-pet' });
       heroImage(renderer).props.onError();
     });
     expect(renderer.root.findAllByType(Image)).toHaveLength(0);
     expect(
       renderer.root
         .findAllByType(Text)
-        .some(node => node.props.children === '우리 아이들의 이야기'),
+        .some(node => node.props.children === '누리의 이야기'),
     ).toBe(true);
     expect(
       renderer.root.findAllByProps({ testID: 'community-list-pagination' })
@@ -1161,7 +1167,7 @@ describe('community seasonal artwork and responsive source contract', () => {
         styles.paginationControls.gap * 2 +
         pageLabelBound;
       expect(controlsWidth).toBeGreaterThanOrEqual(controlsBound);
-      expect(styles.paginationButton.minWidth).toBe(44);
+      expect(styles.paginationButton.minWidth).toBe(48);
       expect(styles.paginationPageIndicator).not.toHaveProperty('height');
     },
   );

@@ -21,10 +21,7 @@ import catalog from '../src/assets/icons/nuri-icons.catalog.json';
 import { getGuideCategoryIconName } from '../src/services/guides/presentation';
 import AppNavigationToolbar from '../src/components/navigation/AppNavigationToolbar';
 import { createTheme } from '../src/app/theme/theme';
-import {
-  buildPetThemePalette,
-  PET_THEME_OPTIONS,
-} from '../src/services/pets/themePalette';
+import { PET_THEME_OPTIONS } from '../src/services/pets/themePalette';
 
 jest.mock('@react-native-masked-view/masked-view', () => 'MaskedView');
 jest.mock('react-native-safe-area-context', () => ({
@@ -390,7 +387,7 @@ describe('NURI custom icon candidate', () => {
   });
 
   it.each(PET_THEME_OPTIONS)(
-    'uses pet theme %s for the selected navigation icon without recoloring inactive tabs',
+    'keeps navigation neutral when pet theme is %s without changing inactive tabs',
     async color => {
       mockColor = color;
       const renderer = await render(
@@ -407,7 +404,7 @@ describe('NURI custom icon candidate', () => {
         'menu',
       ]);
       expect(icons[0].props).toMatchObject({
-        color: buildPetThemePalette(color).primary,
+        color: createTheme('light').colors.textPrimary,
         colorMode: 'theme',
         variant: 'glass',
         size: 18,
@@ -416,8 +413,8 @@ describe('NURI custom icon candidate', () => {
         renderer.root.findAllByType(LinearGradient)[0].props.colors,
       ).toEqual([
         '#FFFFFF',
-        buildPetThemePalette(color).primary,
-        buildPetThemePalette(color).primary,
+        createTheme('light').colors.textPrimary,
+        createTheme('light').colors.textPrimary,
       ]);
       for (const icon of icons.slice(1))
         expect(icon.props).toMatchObject({

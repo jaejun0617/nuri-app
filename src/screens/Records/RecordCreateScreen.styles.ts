@@ -1,9 +1,9 @@
 import { StyleSheet } from 'react-native';
 
-const BRAND = '#6D6AF8';
-const BRAND_DARK = '#5753E6';
+const BRAND = '#4B5563';
+const BRAND_DARK = '#303840';
 const TEXT = '#111827';
-const MUTED = '#97A2B6';
+const MUTED = '#66717F';
 const BORDER = '#E5EAF3';
 const BG = '#FFFFFF';
 const CARD = '#FFFFFF';
@@ -22,7 +22,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: CARD,
+    backgroundColor: 'transparent',
     borderBottomWidth: 1,
     borderBottomColor: 'rgba(17,24,39,0.04)',
   },
@@ -66,14 +66,15 @@ export const styles = StyleSheet.create({
   },
   content: {
     flexGrow: 1,
-    paddingHorizontal: 20,
+    paddingHorizontal: 16,
     paddingTop: 16,
     paddingBottom: 28,
   },
+  formPanel: { padding: 16 },
 
   dateCard: {
-    height: 46,
-    borderRadius: 16,
+    minHeight: 48,
+    borderRadius: 8,
     backgroundColor: '#F1F4F9',
     paddingHorizontal: 14,
     flexDirection: 'row',
@@ -110,12 +111,13 @@ export const styles = StyleSheet.create({
     marginTop: 20,
   },
   photoStage: {
-    height: 222,
-    borderRadius: 28,
-    borderWidth: 2,
-    borderStyle: 'dashed',
+    minHeight: 168,
+    height: 180,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderStyle: 'solid',
     borderColor: '#D9E1EE',
-    backgroundColor: '#F6F8FC',
+    backgroundColor: 'rgba(255,255,255,0.55)',
     overflow: 'hidden',
     justifyContent: 'center',
     alignItems: 'center',
@@ -135,13 +137,14 @@ export const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 18,
-    backgroundColor: '#EEF2F8',
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
   photoPlaceholderTitle: {
-    color: '#B0B9C8',
-    fontWeight: '800',
+    color: '#66717F',
+    fontWeight: '500',
+    textAlign: 'center',
   },
   photoImage: {
     width: '100%',
@@ -209,10 +212,10 @@ export const styles = StyleSheet.create({
   quickTagIconWrapActive: {
     backgroundColor: BRAND,
     shadowColor: BRAND_DARK,
-    shadowOpacity: 0.18,
+    shadowOpacity: 0,
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
+    elevation: 0,
   },
   quickTagLabel: {
     color: MUTED,

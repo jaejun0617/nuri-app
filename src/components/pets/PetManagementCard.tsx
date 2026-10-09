@@ -5,7 +5,7 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import AppText from '../../app/ui/AppText';
 import { formatPetAgeLabelFromBirthDate } from '../../services/pets/age';
 import { getPetSpeciesGroupLabel } from '../../services/pets/species';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { buildPetThemePalette, NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import type { Pet } from '../../store/petStore';
 import PetAvatar from './PetAvatar';
 import PetSelectedBadge from './PetSelectedBadge';
@@ -62,8 +62,8 @@ function PetManagementCardComponent({
       style={[
         styles.card,
         {
-          borderColor: isSelected ? petTheme.border : '#E5EAF2',
-          backgroundColor: isSelected ? petTheme.soft : '#FFFFFF',
+          borderColor: isSelected ? NEUTRAL_UI_PALETTE.border : '#E5EAF2',
+          backgroundColor: isSelected ? NEUTRAL_UI_PALETTE.soft : '#FFFFFF',
         },
       ]}
     >
@@ -76,10 +76,10 @@ function PetManagementCardComponent({
       </View>
 
       <View style={styles.info}>
-        <AppText preset="unifiedBody" style={styles.name}>
+        <AppText preset="unifiedBody" style={[styles.name, { color: petTheme.deep }]}>
           {pet.name}
         </AppText>
-        <AppText preset="unifiedMeta" style={styles.meta}>
+        <AppText preset="unifiedMeta" style={[styles.meta, { color: petTheme.deep }]}>
           {summary}
         </AppText>
         {pet.deathDate ? (
@@ -94,8 +94,8 @@ function PetManagementCardComponent({
       <View style={styles.actions}>
         {isSelected ? (
           <PetSelectedBadge
-            accentColor={petTheme.primary}
-            accentTint={petTheme.tint}
+            accentColor={NEUTRAL_UI_PALETTE.primary}
+            accentTint={NEUTRAL_UI_PALETTE.tint}
           />
         ) : (
           <TouchableOpacity
@@ -103,15 +103,15 @@ function PetManagementCardComponent({
             style={[
               styles.selectButton,
               {
-                backgroundColor: petTheme.primary,
-                shadowColor: petTheme.primary,
+                backgroundColor: NEUTRAL_UI_PALETTE.primary,
+                shadowColor: NEUTRAL_UI_PALETTE.primary,
               },
             ]}
             onPress={handleSelect}
           >
             <AppText
               preset="unifiedMeta"
-              style={[styles.selectButtonText, { color: petTheme.onPrimary }]}
+              style={[styles.selectButtonText, { color: NEUTRAL_UI_PALETTE.onPrimary }]}
             >
               선택
             </AppText>

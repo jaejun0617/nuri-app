@@ -1,3 +1,5 @@
+import { usePetDisplayName } from '../../../../hooks/usePetDisplayName';
+import { formatPetCopy } from '../../../../utils/petDisplayName';
 import CtaButton, { CtaText } from '../../../../app/ui/CtaButton';
 import React, { memo } from 'react';
 import {
@@ -87,6 +89,7 @@ export const HomeEmptySectionState = memo(function HomeEmptySectionStateView({
   accentDeepColor,
   onPressAction,
 }: Props) {
+  const petName = usePetDisplayName();
   const { width, fontScale } = useWindowDimensions();
   const copy = HOME_EMPTY_SECTION_COPY[kind];
   const horizontal =
@@ -166,7 +169,7 @@ export const HomeEmptySectionState = memo(function HomeEmptySectionStateView({
               kind === 'schedule' ? styles.centered : null,
             ]}
           >
-            {copy.description}
+            {formatPetCopy(copy.description, petName)}
           </AppText>
         </View>
       </View>

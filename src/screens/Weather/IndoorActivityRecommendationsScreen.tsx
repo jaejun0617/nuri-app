@@ -23,7 +23,7 @@ import IndoorActivityCard from '../../components/weather/IndoorActivityCard';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import { useWeatherGuide } from '../../hooks/useWeatherGuide';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import type { DeviceCoordinates } from '../../services/location/currentPosition';
 import {
   ALL_INDOOR_ACTIVITY_KEYS,
@@ -79,10 +79,7 @@ export default function IndoorActivityRecommendationsScreen() {
       pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
     [pets, selectedPetId],
   );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+  const petTheme = NEUTRAL_UI_PALETTE;
   const weatherState = useWeatherGuide(district, route.params?.initialBundle, {
     initialCoordinates: route.params?.initialCoordinates,
     autoRefreshOnMount: !route.params?.initialBundle,

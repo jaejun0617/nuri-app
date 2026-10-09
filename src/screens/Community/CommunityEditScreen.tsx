@@ -38,10 +38,10 @@ import {
   pickPhotoAssets,
   type PickedPhotoAsset,
 } from '../../services/media/photoPicker';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import { flushPendingCommunityImageCleanup } from '../../services/supabase/storageCommunity';
 import { useCommunityStore } from '../../store/communityStore';
-import { usePetStore } from '../../store/petStore';
+
 import { showToast } from '../../store/uiStore';
 import type { CommunityPostCategory } from '../../types/community';
 import CommunityPostEditorForm, {
@@ -66,16 +66,8 @@ export default function CommunityEditScreen() {
   const hydratedRef = useRef(false);
   const scrollViewRef = useRef<KeyboardAwareScrollViewRef | null>(null);
 
-  const pets = usePetStore(s => s.pets);
-  const selectedPetId = usePetStore(s => s.selectedPetId);
-  const selectedPet = useMemo(
-    () => pets.find(pet => pet.id === selectedPetId) ?? pets[0] ?? null,
-    [pets, selectedPetId],
-  );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+
+  const petTheme = NEUTRAL_UI_PALETTE;
   const { isLoggedIn, currentUserId } = useCommunityAuth();
   const postId = route.params.postId;
   const post = useCommunityStore(s => s.postsById[postId] ?? null);

@@ -1,3 +1,5 @@
+import { usePetDisplayName } from '../../hooks/usePetDisplayName';
+import { formatPetCopy } from '../../utils/petDisplayName';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -80,6 +82,7 @@ export function ScheduleCalendarSheet({
   onSaved,
   onDetail,
 }: Props) {
+  const petName = usePetDisplayName(petId);
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const { height, fontScale } = useWindowDimensions();
@@ -438,7 +441,7 @@ export function ScheduleCalendarSheet({
                           color={theme.colors.textMuted}
                         >
                           {dataState === 'ready'
-                            ? '우리 아이의 일정을 남겨보세요'
+                            ? formatPetCopy('우리 아이의 일정을 남겨보세요', petName)
                             : dataState === 'error'
                             ? '일정을 불러오지 못했어요'
                             : '일정을 불러오고 있어요'}

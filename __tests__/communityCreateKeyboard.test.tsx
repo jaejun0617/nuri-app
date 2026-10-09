@@ -185,7 +185,7 @@ describe('CommunityCreate keyboard visibility contract', () => {
     expect(
       renderer.root
         .findByProps({
-          placeholder: '우리 아이의 일상과 이야기를 나눠 주세요.',
+          placeholder: 'QA의 일상과 이야기를 나눠 주세요.',
         })
         .findByType(TextInput),
     ).toBeDefined();

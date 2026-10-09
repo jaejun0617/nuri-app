@@ -1,7 +1,4 @@
-import {
-  isInvalidCredentialSignInError,
-  resolveSignInNotice,
-} from '../src/services/auth/notices';
+import { resolveSignInNotice } from '../src/services/auth/notices';
 
 describe('auth notices', () => {
   it('logout success modal 문구를 premium line config로 반환한다', () => {
@@ -30,29 +27,16 @@ describe('auth notices', () => {
     });
   });
 
-  it('invalid credentials는 중립 로그인 실패 모달과 보조 액션을 반환한다', () => {
-    expect(resolveSignInNotice('invalid-credentials')).toEqual({
-      eyebrow: 'SIGN IN',
-      iconName: 'shield',
-      titleLines: ['로그인 정보를 다시 확인해 주세요'],
+  it('keeps recovery completion without offering a removed credential form', () => {
+    expect(resolveSignInNotice('password-reset-success')).toEqual({
+      eyebrow: 'PASSWORD UPDATED',
+      iconName: 'check',
+      titleLines: ['비밀번호가 변경되었습니다.'],
       bodyLines: [
-        '입력하신 이메일 또는 비밀번호가 일치하지 않습니다.',
-        'NURI가 처음이시라면 회원가입 후 특별한 여정을 시작해 보세요.',
+        '보안을 위해 임시 세션을 종료했어요.',
+        '로그인 홈에서 연결된 소셜 계정으로 계속할 수 있어요.',
       ],
-      confirmLabel: '다시 입력하기',
-      secondaryActions: [
-        { label: '비밀번호 재설정', kind: 'password-reset' },
-        { label: '회원가입', kind: 'signup' },
-      ],
+      confirmLabel: '확인',
     });
-  });
-
-  it('invalid credential helper는 Supabase 기본 메시지를 잡아낸다', () => {
-    expect(
-      isInvalidCredentialSignInError(new Error('Invalid login credentials')),
-    ).toBe(true);
-    expect(
-      isInvalidCredentialSignInError(new Error('Email rate limit exceeded')),
-    ).toBe(false);
   });
 });

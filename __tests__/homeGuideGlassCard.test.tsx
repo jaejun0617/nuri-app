@@ -55,15 +55,11 @@ async function renderCard(value: PetCareGuide = guide) {
 }
 
 describe('Home nested guide glass', () => {
-  it('reduces only the glyph by 21 percent while retaining the 60dp container', async () => {
+  it('uses a quoted marker heading without the former decorative image area', async () => {
     const { renderer } = await renderCard();
     const glyphs = renderer.root.findAllByType(Text).filter(node => StyleSheet.flatten(node.props.style)?.fontFamily === 'NuriIcons');
-    expect(glyphs.length).toBeGreaterThan(0);
-    for (const glyph of glyphs) {
-      expect(StyleSheet.flatten(glyph.props.style)?.fontSize).toBe(22);
-      expect(glyph.props.allowFontScaling).toBe(false);
-    }
-    expect(renderer.root.findAll(node => StyleSheet.flatten(node.props.style)?.width === 60).length).toBeGreaterThan(0);
+    expect(glyphs).toHaveLength(0);
+    expect(renderer.root.findAll(node => StyleSheet.flatten(node.props.style)?.width === 60)).toHaveLength(0);
     expect(StyleSheet.flatten(renderer.root.findByType(TouchableOpacity).props.style).padding).toBe(16);
     await act(async () => renderer.unmount());
   });
@@ -107,7 +103,7 @@ describe('Home nested guide glass', () => {
         node => node.props.preset && typeof node.props.children === 'string',
       )
       .map(node => node.props.children);
-    expect(texts).toContain(guide.title);
+    expect(texts).toContain(`“${guide.title}”`);
     expect(texts).toContain(guide.summary);
     expect(texts).not.toContain(caption);
     expect(
@@ -149,8 +145,9 @@ describe('Home nested guide glass', () => {
       .findAll(
         node => node.props.preset && typeof node.props.children === 'string',
       )
-      .find(node => node.props.children.startsWith('우리 아이의'));
-    expect(title?.props.numberOfLines).toBe(3);
+      .find(node => node.props.children.startsWith('“우리 아이의'));
+    expect(title).toBeDefined();
+    expect(title?.props.numberOfLines).toBeUndefined();
     await act(async () => renderer.unmount());
   });
 });

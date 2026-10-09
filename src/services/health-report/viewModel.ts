@@ -81,6 +81,15 @@ function buildMemorySubtitle(record: MemoryRecord): string {
   const content = `${record.content ?? ''}`.trim();
   if (content) return content;
 
+  if (normalizeCategoryKey(readRecordCategoryRaw(record)) === 'health') {
+    const care = record.metadata?.health?.care;
+    const detail = [care?.hospitalName, care?.diagnosis, care?.medication]
+      .map(value => value?.trim()).filter(Boolean).join(' · ');
+    if (detail) return detail;
+    if (care?.kind === 'medicine') return '약·복약 기록';
+    if (care?.kind === 'hospital') return '병원·진단 기록';
+  }
+
   const subKey = normalizeOtherSubKey(readOtherSubCategoryRaw(record));
   if (subKey === 'hospital') return '병원/약 기록';
 
@@ -93,7 +102,11 @@ function mapMemoryKind(record: MemoryRecord): HealthActivityItem['kind'] {
   const mainCategory = normalizeCategoryKey(readRecordCategoryRaw(record));
   const otherSubCategory = normalizeOtherSubKey(readOtherSubCategoryRaw(record));
 
-  if (mainCategory === 'health') return 'health';
+  if (mainCategory === 'health') {
+    const kind = record.metadata?.health?.care?.kind;
+    if (kind === 'hospital' || kind === 'medicine') return kind;
+    return 'health';
+  }
   if (otherSubCategory === 'hospital') return 'hospital';
   return 'symptom';
 }

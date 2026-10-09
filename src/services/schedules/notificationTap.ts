@@ -25,7 +25,6 @@ type ScheduleTapRouteInput = {
 
 const ROUTES_THAT_MUST_NOT_BE_INTERRUPTED = new Set([
   'SignIn',
-  'SignUp',
   'PasswordResetRequest',
   'PasswordResetRecovery',
   'PasswordResetForm',

@@ -1,3 +1,5 @@
+import { usePetDisplayName } from '../../hooks/usePetDisplayName';
+import { formatPetCopy } from '../../utils/petDisplayName';
 import React, { memo, useCallback, useState } from 'react';
 import {
   ActivityIndicator,
@@ -41,6 +43,7 @@ function AppFontSettingsModalComponent({
   bottomInset,
   onClose,
 }: Props) {
+  const petName = usePetDisplayName();
   const theme = useTheme();
   const { height: windowHeight } = useWindowDimensions();
   const { mode, setMode } = useAppFontPreference();
@@ -172,7 +175,7 @@ function AppFontSettingsModalComponent({
                         { color: theme.colors.textSecondary },
                       ]}
                     >
-                      {PREVIEW_COPY[optionMode]}
+                      {formatPetCopy(PREVIEW_COPY[optionMode], petName)}
                     </AppText>
                   </View>
                   {saving ? (

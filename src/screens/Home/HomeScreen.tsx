@@ -24,12 +24,9 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import LinearGradient from 'react-native-linear-gradient';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import AppText from '../../app/ui/AppText';
 import * as S from './HomeScreen.styles';
-import { textStyles } from './HomeScreen.styles';
 import { getBootSplashHoldMs, resolveBootRoute } from '../../services/app/boot';
 import {
   loadCommunityRouteStateSnapshot,
@@ -39,7 +36,10 @@ import {
 import { useAuthStore } from '../../store/authStore';
 import { useCommunityStore } from '../../store/communityStore';
 import { usePetStore } from '../../store/petStore';
-import { getSeasonalSplashVisual } from '../../theme/seasonal/assets';
+import {
+  getSeasonalSplashVisual,
+  getSplashArtworkSize,
+} from '../../theme/seasonal/assets';
 import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Splash'>;
@@ -72,7 +72,7 @@ export default function HomeScreen() {
   const startedAtRef = useRef<number>(Date.now());
   const movedRef = useRef(false);
 
-  const { height } = useWindowDimensions();
+  const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
 
   const season = useEffectiveSeason();
@@ -81,26 +81,11 @@ export default function HomeScreen() {
     [season],
   );
 
-  const cardTopPadding = useMemo(() => {
-    const ratioBase = height * 0.055;
-    const safeTop = insets.top + 8;
-    const raw = ratioBase + safeTop;
-
-    const min = 48 + safeTop;
-    const max = 112 + safeTop;
-
-    return Math.max(min, Math.min(max, raw));
-  }, [height, insets.top]);
-  // Preserve the established wordmark anchor after removing the decorative
-  // symbol from the four seasonal compositions.
-  const brandTopPadding = cardTopPadding + 68;
-
+  const artworkSize = getSplashArtworkSize(
+    width - insets.left - insets.right,
+    height - insets.top - insets.bottom,
+  );
   const imageOpacity = useRef(new Animated.Value(0.96)).current;
-  const imageScale = useRef(new Animated.Value(1.025)).current;
-  const wordmarkTranslateY = useRef(new Animated.Value(5)).current;
-  const wordmarkOpacity = useRef(new Animated.Value(0)).current;
-  const copyTranslateY = useRef(new Animated.Value(4)).current;
-  const copyOpacity = useRef(new Animated.Value(0)).current;
   const nextRoute = useMemo(() => {
     return resolveBootRoute({
       isLoggedIn,
@@ -192,7 +177,11 @@ export default function HomeScreen() {
             routes: [
               { name: 'AppTabs', params: { screen: 'CommunityTab' } },
               {
-                name: communityRouteSnapshot.route.name === 'comments' || communityRouteSnapshot.route.commentId ? 'CommunityComments' : 'CommunityDetail',
+                name:
+                  communityRouteSnapshot.route.name === 'comments' ||
+                  communityRouteSnapshot.route.commentId
+                    ? 'CommunityComments'
+                    : 'CommunityDetail',
                 params: {
                   postId: communityRouteSnapshot.route.postId,
                   ...(communityRouteSnapshot.route.commentId
@@ -229,163 +218,41 @@ export default function HomeScreen() {
     splashHoldMs,
   ]);
 
-  // ---------------------------------------------------------
-  // Splash motion stays deliberately shallow so image decode and boot work do
-  // not compete with decorative animation on Android devices.
-  // ---------------------------------------------------------
+  // The supplied bitmap owns the complete branding. Fade only: scaling would
+  // crop the right-aligned wordmark and the pets at the bottom.
   useEffect(() => {
     if (reduceMotionEnabled === null) return;
-
     if (reduceMotionEnabled) {
       imageOpacity.setValue(1);
-      imageScale.setValue(1);
-      wordmarkTranslateY.setValue(0);
-      copyTranslateY.setValue(0);
-
-      const reducedMotionAnimation = Animated.parallel([
-        Animated.timing(wordmarkOpacity, {
-          toValue: 1,
-          duration: 450,
-          delay: 100,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-        Animated.timing(copyOpacity, {
-          toValue: 1,
-          duration: 450,
-          delay: 240,
-          easing: Easing.out(Easing.cubic),
-          useNativeDriver: true,
-        }),
-      ]);
-
-      reducedMotionAnimation.start();
-      return () => reducedMotionAnimation.stop();
+      return;
     }
-
-    const animation = Animated.parallel([
-      Animated.timing(imageOpacity, {
-        toValue: 1,
-        duration: 520,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(imageScale, {
-        toValue: 1,
-        duration: 1650,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(wordmarkOpacity, {
-        toValue: 1,
-        duration: 520,
-        delay: 120,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(wordmarkTranslateY, {
-        toValue: 0,
-        duration: 520,
-        delay: 120,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(copyOpacity, {
-        toValue: 1,
-        duration: 500,
-        delay: 280,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.timing(copyTranslateY, {
-        toValue: 0,
-        duration: 500,
-        delay: 280,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-    ]);
-
+    const animation = Animated.timing(imageOpacity, {
+      toValue: 1,
+      duration: 520,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    });
     animation.start();
     return () => animation.stop();
-  }, [
-    copyOpacity,
-    copyTranslateY,
-    imageOpacity,
-    imageScale,
-    wordmarkOpacity,
-    wordmarkTranslateY,
-    reduceMotionEnabled,
-  ]);
+  }, [imageOpacity, reduceMotionEnabled]);
 
   return (
     <S.Background $backgroundColor={seasonalVisual.backgroundColor}>
       <StatusBar barStyle="dark-content" />
       <Animated.Image
+        testID="seasonal-splash-artwork"
         source={seasonalVisual.source}
-        resizeMode="cover"
+        resizeMode="contain"
         fadeDuration={0}
+        accessible
+        accessibilityRole="image"
         accessibilityLabel={seasonalVisual.accessibilityLabel}
         accessibilityIgnoresInvertColors
         style={[
-          textStyles.seasonalImage,
-          {
-            opacity: imageOpacity,
-            transform: [{ scale: imageScale }],
-          },
+          artworkSize,
+          { opacity: imageOpacity, marginBottom: insets.bottom },
         ]}
       />
-      <LinearGradient
-        pointerEvents="none"
-        colors={[...seasonalVisual.overlayColors]}
-        locations={[0, 0.3, 0.58]}
-        style={textStyles.seasonalOverlay}
-      />
-
-      <S.Container $pt={brandTopPadding}>
-        <S.Card>
-          <Animated.View
-            style={{
-              opacity: wordmarkOpacity,
-              transform: [{ translateY: wordmarkTranslateY }],
-            }}
-          >
-            <S.BrandRow>
-              <AppText
-                preset="unifiedTitle"
-                color="#ffffff"
-                weight="700"
-                style={[textStyles.shadow, textStyles.wordmark]}
-              >
-                NURI
-              </AppText>
-            </S.BrandRow>
-          </Animated.View>
-
-          <S.Spacer $h={10} />
-
-          <Animated.View
-            style={{
-              opacity: copyOpacity,
-              transform: [{ translateY: copyTranslateY }],
-            }}
-          >
-            <S.CopyWrap>
-              <AppText
-                preset="body"
-                color="#ffffff"
-                align="center"
-                weight="500"
-                allowFontScaling
-                maxFontSizeMultiplier={1.15}
-                style={[textStyles.shadow, textStyles.copy]}
-              >
-                {'함께한 모든 순간이,\n오래도록 따뜻한 기억이 되도록'}
-              </AppText>
-            </S.CopyWrap>
-          </Animated.View>
-        </S.Card>
-      </S.Container>
     </S.Background>
   );
 }

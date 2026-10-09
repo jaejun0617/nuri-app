@@ -5,9 +5,9 @@
 // - AppTabsNavigator의 커스텀 탭바와 More 드로어/일부 상세 화면 하단 툴바에서 사용된다.
 // 핵심 역할:
 // - 홈, 타임라인, 커뮤니티, 편지함, 전체메뉴 이동을 제공한다.
-// - 현재 선택 펫 테마를 읽어 아이콘과 강조색을 맞춘다.
+// - 펫 프로필 색과 분리한 중립색으로 현재 탭을 표시한다.
 // 데이터·상태 흐름:
-// - selectedPetId와 pets는 petStore에서 읽고, More 오픈 상태는 uiStore를 사용한다.
+// - More 오픈 상태는 uiStore를 사용한다.
 // 수정 시 주의:
 // - 탭 라벨이나 target route를 바꿀 때는 AppTabsNavigator와 RootNavigator 타입까지 같이 확인해야 한다.
 
@@ -28,9 +28,8 @@ import NuriIcon, { type NuriIconName } from '../icons/NuriIcon';
 import AppText from '../../app/ui/AppText';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { ScreenEntrySource } from '../../navigation/entry';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
 import { useAuthStore } from '../../store/authStore';
-import { usePetStore } from '../../store/petStore';
+
 import { openMoreDrawer } from '../../store/uiStore';
 
 type ActiveTabKey = 'home' | 'timeline' | 'community' | 'guestbook' | 'more';
@@ -56,17 +55,8 @@ export default function AppNavigationToolbar({
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
-  const pets = usePetStore(s => s.pets);
-  const selectedPetId = usePetStore(s => s.selectedPetId);
 
-  const selectedPet = useMemo(
-    () => pets.find(pet => pet.id === selectedPetId) ?? pets[0] ?? null,
-    [pets, selectedPetId],
-  );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+
   const bottomInset = useMemo(
     () =>
       Platform.OS === 'android'
@@ -74,7 +64,7 @@ export default function AppNavigationToolbar({
         : Math.max(insets.bottom, 10),
     [insets.bottom],
   );
-  const activeColor = isLoggedIn ? petTheme.primary : theme.colors.brand;
+  const activeColor = isLoggedIn ? theme.colors.textPrimary : theme.colors.brand;
 
   const navigateTo = useCallback(
     (target: ActiveTabKey) => {

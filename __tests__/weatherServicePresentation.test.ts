@@ -182,7 +182,7 @@ describe('production weather display contract', () => {
   it('uses the PO generic copy without changing condition-specific advice', () => {
     const weather = buildWeatherGuideBundleForScenario('fresh');
     expect(getWeatherAdvice(weather).message).toBe(
-      '우리 아이의 컨디션에 맞춰 외출을 준비해 주세요.',
+      '반려동물의 컨디션에 맞춰 외출을 준비해 주세요.',
     );
     expect(getWeatherAdvice({ ...weather, windSpeed: 10 })).toMatchObject({
       caution: true,

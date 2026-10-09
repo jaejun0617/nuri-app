@@ -1,255 +1,51 @@
 import type { ImageSourcePropType } from 'react-native';
-
 import type { SeasonKey } from './season';
 
 export type SeasonalLoginVisual = {
   season: SeasonKey;
   source: ImageSourcePropType;
-  backgroundColor: string;
-  backgroundWashColor: string;
-  accentColor: string;
-  headlineAccentColor: string;
-  heroHeightOffset: number;
   accessibilityLabel: string;
-  headlineColor: string;
-  headlineFirstLine: string;
-  headlineSecondLinePrefix: string;
-  headlineAccent: string;
-  headlineSecondLineSuffix: string;
-  headlineShadowColor: string;
-  ornamentIcon: 'flower' | 'leaf' | 'leaf-maple' | 'snowflake';
-  subtitle: string;
-  subtitleColor: string;
-  englishCopy: string;
-  englishCopyColor: string;
-  fieldBackgroundColor: string;
-  fieldBorderColor: string;
-  fieldShadowColor: string;
-  fieldIconColor: string;
-  fieldPlaceholderColor: string;
-  fieldTextColor: string;
-  ctaColor: string;
-  ctaShadowColor: string;
-  signupTonalBackgroundColor: string;
-  signupTonalBorderColor: string;
-  signupTonalTextColor: string;
-  inlineTextColor: string;
-  inlineDividerColor: string;
-  socialDividerColor: string;
-  socialLabel: string;
-  socialTextColor: string;
-  googleBackgroundColor: string;
-  googleBorderColor: string;
-  policyTextColor: string;
-  policyLinkColor: string;
-  policyShadowColor: string;
-  recentLoginBackgroundColor: string;
-  recentLoginBorderColor: string;
-  recentLoginTextColor: string;
 };
 
-const SPRING_LOGIN_VISUAL: SeasonalLoginVisual = {
-  season: 'spring',
-  source: require('../../assets/seasonal/login/spring.jpg'),
-  backgroundColor: '#FBEDEB',
-  backgroundWashColor: 'rgba(255, 250, 246, 0.04)',
-  accentColor: '#E98AA1',
-  headlineAccentColor: '#E86F88',
-  heroHeightOffset: 8,
-  accessibilityLabel:
-    '봄꽃 들판에서 여러 반려동물이 함께 있는 누리 로그인 배경',
-  headlineColor: '#5A453A',
-  headlineFirstLine: '함께한 모든 계절이',
-  headlineSecondLinePrefix: '',
-  headlineAccent: '따뜻한 추억',
-  headlineSecondLineSuffix: '으로 남도록',
-  headlineShadowColor: 'rgba(255, 255, 255, 0.9)',
-  ornamentIcon: 'flower',
-  subtitle: '사랑하는 아이와, 언제나 누리와 함께',
-  subtitleColor: '#59483F',
-  englishCopy: 'Better\nDays\nTogether ♥',
-  englishCopyColor: '#E7839B',
-  fieldBackgroundColor: 'rgba(255, 252, 249, 0.9)',
-  fieldBorderColor: 'rgba(226, 183, 189, 0.42)',
-  fieldShadowColor: '#B66F78',
-  fieldIconColor: '#6D687B',
-  fieldPlaceholderColor: '#777184',
-  fieldTextColor: '#433C48',
-  ctaColor: '#E77F9A',
-  ctaShadowColor: '#B85B76',
-  signupTonalBackgroundColor: 'rgba(255, 232, 238, 0.94)',
-  signupTonalBorderColor: 'rgba(168, 63, 104, 0.36)',
-  signupTonalTextColor: '#873458',
-  inlineTextColor: '#614D58',
-  inlineDividerColor: '#9B7A89',
-  socialDividerColor: 'rgba(145, 101, 122, 0.48)',
-  socialLabel: '소셜로 로그인',
-  socialTextColor: '#654F5A',
-  googleBackgroundColor: 'rgba(255, 255, 255, 0.94)',
-  googleBorderColor: '#DED4DE',
-  policyTextColor: '#66545E',
-  policyLinkColor: '#A83F68',
-  policyShadowColor: 'rgba(255, 255, 255, 0.96)',
-  recentLoginBackgroundColor: 'rgba(255, 252, 252, 0.96)',
-  recentLoginBorderColor: 'rgba(168, 63, 104, 0.24)',
-  recentLoginTextColor: '#A83F68',
+const LOGIN_VISUALS: Record<SeasonKey, SeasonalLoginVisual> = {
+  spring: {
+    season: 'spring',
+    source: require('../../assets/seasonal/login/social/spring-aligned.png'),
+    accessibilityLabel: '누리. 함께한 순간을, 오래도록. 봄 로그인 배경',
+  },
+  summer: {
+    season: 'summer',
+    source: require('../../assets/seasonal/login/social/summer-aligned.png'),
+    accessibilityLabel: '누리. 함께한 순간을, 오래도록. 여름 로그인 배경',
+  },
+  autumn: {
+    season: 'autumn',
+    source: require('../../assets/seasonal/login/social/autumn.png'),
+    accessibilityLabel: '누리. 함께한 순간을, 오래도록. 가을 로그인 배경',
+  },
+  winter: {
+    season: 'winter',
+    source: require('../../assets/seasonal/login/social/winter.png'),
+    accessibilityLabel: '누리. 함께한 순간을, 오래도록. 겨울 로그인 배경',
+  },
 };
 
-const SUMMER_LOGIN_VISUAL: SeasonalLoginVisual = {
-  season: 'summer',
-  source: require('../../assets/seasonal/login/summer.jpg'),
-  backgroundColor: '#EAF6D8',
-  backgroundWashColor: 'rgba(244, 252, 238, 0.03)',
-  accentColor: '#4D8FD8',
-  headlineAccentColor: '#438EDC',
-  heroHeightOffset: 8,
-  accessibilityLabel:
-    '여름 수국 들판에서 여러 반려동물이 함께 있는 누리 로그인 배경',
-  headlineColor: '#3E4C4F',
-  headlineFirstLine: '함께한 모든 여름이',
-  headlineSecondLinePrefix: '',
-  headlineAccent: '더 특별한 추억',
-  headlineSecondLineSuffix: '으로 남도록',
-  headlineShadowColor: 'rgba(255, 255, 255, 0.9)',
-  ornamentIcon: 'leaf',
-  subtitle: '사랑하는 아이와, 언제나 누리와 함께',
-  subtitleColor: '#3F5260',
-  englishCopy: 'Brighter\nDays\nTogether ♥',
-  englishCopyColor: '#3E8EE4',
-  fieldBackgroundColor: 'rgba(255, 255, 250, 0.9)',
-  fieldBorderColor: 'rgba(87, 148, 211, 0.3)',
-  fieldShadowColor: '#4D7AA5',
-  fieldIconColor: '#536684',
-  fieldPlaceholderColor: '#6C7B8F',
-  fieldTextColor: '#304258',
-  ctaColor: '#4F91D8',
-  ctaShadowColor: '#2F6EA8',
-  signupTonalBackgroundColor: 'rgba(229, 242, 255, 0.94)',
-  signupTonalBorderColor: 'rgba(47, 110, 184, 0.34)',
-  signupTonalTextColor: '#285C99',
-  inlineTextColor: '#43566E',
-  inlineDividerColor: '#6B8098',
-  socialDividerColor: 'rgba(73, 105, 139, 0.48)',
-  socialLabel: '소셜로 로그인',
-  socialTextColor: '#40566E',
-  googleBackgroundColor: 'rgba(255, 255, 255, 0.94)',
-  googleBorderColor: '#C9D8E5',
-  policyTextColor: '#52687A',
-  policyLinkColor: '#2F6EB8',
-  policyShadowColor: 'rgba(255, 255, 255, 0.96)',
-  recentLoginBackgroundColor: 'rgba(250, 253, 255, 0.96)',
-  recentLoginBorderColor: 'rgba(47, 110, 184, 0.24)',
-  recentLoginTextColor: '#2F6EB8',
-};
-
-const AUTUMN_LOGIN_VISUAL: SeasonalLoginVisual = {
-  season: 'autumn',
-  source: require('../../assets/seasonal/login/autumn.jpg'),
-  backgroundColor: '#E99B54',
-  backgroundWashColor: 'rgba(255, 248, 240, 0.08)',
-  accentColor: '#D95C2B',
-  headlineAccentColor: '#D95C2B',
-  heroHeightOffset: 0,
-  accessibilityLabel: '가을 숲에서 여러 반려동물이 함께 있는 누리 로그인 배경',
-  headlineColor: '#4B3527',
-  headlineFirstLine: '함께하는 오늘이',
-  headlineSecondLinePrefix: '오래도록 ',
-  headlineAccent: '따뜻한 기억',
-  headlineSecondLineSuffix: '이 되기를',
-  headlineShadowColor: 'rgba(255, 249, 241, 0.72)',
-  ornamentIcon: 'leaf-maple',
-  subtitle: '사랑하는 아이와, 언제나 누리와 함께',
-  subtitleColor: '#5A4031',
-  englishCopy: 'Warm Moments\nTogether ♥',
-  englishCopyColor: '#C94F27',
-  fieldBackgroundColor: 'rgba(255, 250, 245, 0.92)',
-  fieldBorderColor: 'rgba(255, 255, 255, 0.8)',
-  fieldShadowColor: '#7B3E1C',
-  fieldIconColor: '#5C554F',
-  fieldPlaceholderColor: '#746C65',
-  fieldTextColor: '#3E342F',
-  ctaColor: '#E9693A',
-  ctaShadowColor: '#9E3D1B',
-  signupTonalBackgroundColor: 'rgba(255, 232, 218, 0.94)',
-  signupTonalBorderColor: 'rgba(169, 76, 39, 0.36)',
-  signupTonalTextColor: '#833D24',
-  inlineTextColor: '#51473F',
-  inlineDividerColor: '#856F61',
-  socialDividerColor: 'rgba(91, 72, 60, 0.46)',
-  socialLabel: '소셜 계정으로 시작하기',
-  socialTextColor: '#4E4741',
-  googleBackgroundColor: 'rgba(255, 255, 255, 0.94)',
-  googleBorderColor: '#E5D8CC',
-  policyTextColor: '#596574',
-  policyLinkColor: '#5B2A18',
-  policyShadowColor: 'rgba(255, 249, 240, 0.96)',
-  recentLoginBackgroundColor: 'rgba(255, 250, 245, 0.94)',
-  recentLoginBorderColor: 'rgba(218, 91, 43, 0.22)',
-  recentLoginTextColor: '#D4572C',
-};
-
-const WINTER_LOGIN_VISUAL: SeasonalLoginVisual = {
-  season: 'winter',
-  source: require('../../assets/seasonal/login/winter.jpg'),
-  backgroundColor: '#EAF0FB',
-  backgroundWashColor: 'rgba(235, 241, 255, 0.04)',
-  accentColor: '#7182C6',
-  headlineAccentColor: '#A84F3B',
-  heroHeightOffset: 40,
-  accessibilityLabel:
-    '눈 내린 겨울 숲에서 여러 반려동물이 함께 있는 누리 로그인 배경',
-  headlineColor: '#35415F',
-  headlineFirstLine: '차가운 계절에도,',
-  headlineSecondLinePrefix: '함께한 순간은 ',
-  headlineAccent: '늘 따뜻해요',
-  headlineSecondLineSuffix: '',
-  headlineShadowColor: 'rgba(255, 255, 255, 0.92)',
-  ornamentIcon: 'snowflake',
-  subtitle: '사랑하는 아이와, 언제나 누리와 함께',
-  subtitleColor: '#2F4266',
-  englishCopy: 'A Warmer\nTomorrow\nTogether ♥',
-  englishCopyColor: '#FFFFFF',
-  fieldBackgroundColor: 'rgba(250, 252, 255, 0.9)',
-  fieldBorderColor: 'rgba(126, 143, 190, 0.34)',
-  fieldShadowColor: '#66749D',
-  fieldIconColor: '#60719A',
-  fieldPlaceholderColor: '#7180A0',
-  fieldTextColor: '#2D3C59',
-  ctaColor: '#9297F2',
-  ctaShadowColor: '#6670C8',
-  signupTonalBackgroundColor: 'rgba(237, 238, 255, 0.94)',
-  signupTonalBorderColor: 'rgba(89, 97, 200, 0.34)',
-  signupTonalTextColor: '#454C9B',
-  inlineTextColor: '#465778',
-  inlineDividerColor: '#7F8CAA',
-  socialDividerColor: 'rgba(91, 112, 153, 0.56)',
-  socialLabel: 'SNS 계정으로 시작하기',
-  socialTextColor: '#4B5D7E',
-  googleBackgroundColor: 'rgba(255, 255, 255, 0.94)',
-  googleBorderColor: '#CBD3E5',
-  policyTextColor: '#5D6E8D',
-  policyLinkColor: '#5961C8',
-  policyShadowColor: 'rgba(255, 255, 255, 0.96)',
-  recentLoginBackgroundColor: 'rgba(250, 251, 255, 0.96)',
-  recentLoginBorderColor: 'rgba(112, 119, 220, 0.28)',
-  recentLoginTextColor: '#6268D7',
-};
-
-const APPROVED_LOGIN_VISUALS: Partial<Record<SeasonKey, SeasonalLoginVisual>> =
-  {
-    spring: SPRING_LOGIN_VISUAL,
-    summer: SUMMER_LOGIN_VISUAL,
-    autumn: AUTUMN_LOGIN_VISUAL,
-    winter: WINTER_LOGIN_VISUAL,
-  };
-
-/**
- * Resolves the approved login presentation for the active KST season.
- */
 export function getSeasonalLoginVisual(
   season: SeasonKey,
   override: 'auto' | SeasonKey = 'auto',
-): SeasonalLoginVisual | null {
-  const resolvedSeason = override === 'auto' ? season : override;
-  return APPROVED_LOGIN_VISUALS[resolvedSeason] ?? null;
+): SeasonalLoginVisual {
+  return LOGIN_VISUALS[override === 'auto' ? season : override];
+}
+
+// All four 836x1881 assets share the same artwork boundary. Clip only the trailing
+// white space so season changes cannot move the CTA or distort the illustration.
+export function getSocialLoginLayout(width: number, height: number) {
+  const imageHeight = width * (1881 / 836);
+  const heroHeight = width * (1350 / 836);
+  return {
+    heroHeight,
+    imageHeight,
+    imageWidth: width,
+    actionsMinHeight: Math.max(0, height - heroHeight),
+  };
 }

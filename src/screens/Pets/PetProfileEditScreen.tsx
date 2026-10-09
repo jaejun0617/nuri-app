@@ -1,3 +1,4 @@
+import { formatPetCopy } from '../../utils/petDisplayName';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // 파일: src/screens/Pets/PetProfileEditScreen.tsx
 // 역할:
@@ -74,6 +75,7 @@ import {
 } from '../../services/pets/species';
 import {
   buildPetThemePalette,
+  NEUTRAL_UI_PALETTE,
   recommendPetThemeColor,
 } from '../../services/pets/themePalette';
 import { supabase } from '../../services/supabase/client';
@@ -882,7 +884,7 @@ export default function PetProfileEditScreen() {
               placeholderIconSize={28}
               editButtonStyle={[
                 styles.avatarCameraBtn,
-                { backgroundColor: petTheme.primary },
+                { backgroundColor: NEUTRAL_UI_PALETTE.primary },
               ]}
               editIconName="camera"
               editIconSize={16}
@@ -892,7 +894,7 @@ export default function PetProfileEditScreen() {
             preset="unifiedTitle"
             style={[styles.profileName, { color: petTheme.deep }]}
           >
-            {trimmedName || pet.name || '우리 아이'}
+            {trimmedName || pet.name || '반려동물'}
           </AppText>
           {profileSummaryLine ? (
             <AppText
@@ -943,8 +945,8 @@ export default function PetProfileEditScreen() {
                     seasonalStyles.control,
                     active
                       ? {
-                          backgroundColor: petTheme.tint,
-                          borderColor: petTheme.primary,
+                          backgroundColor: NEUTRAL_UI_PALETTE.tint,
+                          borderColor: NEUTRAL_UI_PALETTE.primary,
                         }
                       : null,
                   ]}
@@ -953,7 +955,7 @@ export default function PetProfileEditScreen() {
                   <Feather
                     color={
                       active
-                        ? petTheme.primary
+                        ? NEUTRAL_UI_PALETTE.primary
                         : profileEditVisual.palette.neutralIconColor
                     }
                     name="heart"
@@ -964,7 +966,7 @@ export default function PetProfileEditScreen() {
                     style={[
                       styles.memorialTitle,
                       seasonalStyles.primaryText,
-                      active ? { color: petTheme.deep } : null,
+                      active ? { color: NEUTRAL_UI_PALETTE.deep } : null,
                     ]}
                   >
                     {copy.title}
@@ -1043,7 +1045,7 @@ export default function PetProfileEditScreen() {
               preset="unifiedMeta"
               style={[styles.sectionHelper, seasonalStyles.secondaryText]}
             >
-              우리 아이의 기본 정보를 알려주세요.
+              {formatPetCopy('우리 아이의 기본 정보를 알려주세요.', trimmedName || pet.name)}
             </AppText>
           </View>
 
@@ -1162,7 +1164,7 @@ export default function PetProfileEditScreen() {
                       styles.segmentChipWide,
                       seasonalStyles.control,
                       active ? styles.segmentChipActive : null,
-                      active ? { backgroundColor: petTheme.tint } : null,
+                      active ? { backgroundColor: NEUTRAL_UI_PALETTE.tint } : null,
                     ]}
                     onPress={() =>
                       handleRepresentativeSpeciesChange(option.key)
@@ -1174,7 +1176,7 @@ export default function PetProfileEditScreen() {
                         styles.segmentChipText,
                         seasonalStyles.secondaryText,
                         active ? styles.segmentChipTextActive : null,
-                        active ? { color: petTheme.deep } : null,
+                        active ? { color: NEUTRAL_UI_PALETTE.deep } : null,
                       ]}
                     >
                       {option.label}
@@ -1210,7 +1212,7 @@ export default function PetProfileEditScreen() {
                         styles.quickChip,
                         seasonalStyles.control,
                         active ? styles.quickChipActive : null,
-                        active ? { backgroundColor: petTheme.tint } : null,
+                        active ? { backgroundColor: NEUTRAL_UI_PALETTE.tint } : null,
                       ]}
                       onPress={() => setSpeciesDetailKey(option.label)}
                     >
@@ -1220,7 +1222,7 @@ export default function PetProfileEditScreen() {
                           styles.quickChipText,
                           seasonalStyles.secondaryText,
                           active ? styles.quickChipTextActive : null,
-                          active ? { color: petTheme.deep } : null,
+                          active ? { color: NEUTRAL_UI_PALETTE.deep } : null,
                         ]}
                       >
                         {option.label}
@@ -1274,7 +1276,7 @@ export default function PetProfileEditScreen() {
                         styles.segmentChip,
                         seasonalStyles.control,
                         active ? styles.segmentChipActive : null,
-                        active ? { backgroundColor: petTheme.tint } : null,
+                        active ? { backgroundColor: NEUTRAL_UI_PALETTE.tint } : null,
                       ]}
                       onPress={() => setGender(item.value)}
                     >
@@ -1284,7 +1286,7 @@ export default function PetProfileEditScreen() {
                           styles.segmentChipText,
                           seasonalStyles.secondaryText,
                           active ? styles.segmentChipTextActive : null,
-                          active ? { color: petTheme.deep } : null,
+                          active ? { color: NEUTRAL_UI_PALETTE.deep } : null,
                         ]}
                       >
                         {item.label}
@@ -1316,7 +1318,7 @@ export default function PetProfileEditScreen() {
                         styles.segmentChip,
                         seasonalStyles.control,
                         active ? styles.segmentChipActive : null,
-                        active ? { backgroundColor: petTheme.tint } : null,
+                        active ? { backgroundColor: NEUTRAL_UI_PALETTE.tint } : null,
                       ]}
                       onPress={() => setNeutered(item.value)}
                     >
@@ -1326,7 +1328,7 @@ export default function PetProfileEditScreen() {
                           styles.segmentChipText,
                           seasonalStyles.secondaryText,
                           active ? styles.segmentChipTextActive : null,
-                          active ? { color: petTheme.deep } : null,
+                          active ? { color: NEUTRAL_UI_PALETTE.deep } : null,
                         ]}
                       >
                         {item.label}
@@ -1391,19 +1393,19 @@ export default function PetProfileEditScreen() {
               preset="unifiedTitle"
               style={[styles.sectionTitle, seasonalStyles.primaryText]}
             >
-              우리 아이 이야기
+              {formatPetCopy('우리 아이 이야기', trimmedName || pet.name)}
             </AppText>
             <AppText
               preset="unifiedMeta"
               style={[styles.sectionHelper, seasonalStyles.secondaryText]}
             >
-              {trimmedName || pet.name || '우리 아이'}의 성격과 취향을
+              {trimmedName || pet.name || '반려동물'}의 성격과 취향을
               기록해보세요.
             </AppText>
           </View>
           <View style={styles.fieldBlock}>
             <View style={styles.inlineLabel}>
-              <Feather name="home" size={13} color={petTheme.primary} />
+              <Feather name="home" size={13} color={NEUTRAL_UI_PALETTE.primary} />
               <AppText
                 preset="unifiedMeta"
                 style={[styles.labelInlineText, seasonalStyles.secondaryText]}
@@ -1513,7 +1515,7 @@ export default function PetProfileEditScreen() {
         >
           <View style={styles.sectionHeader}>
             <View style={styles.inlineLabel}>
-              <Feather name="hash" size={18} color={petTheme.primary} />
+              <Feather name="hash" size={18} color={NEUTRAL_UI_PALETTE.primary} />
               <AppText
                 typographyRole="sectionTitle"
                 preset="unifiedTitle"
@@ -1528,11 +1530,11 @@ export default function PetProfileEditScreen() {
             {tags.map(tag => (
               <View
                 key={tag}
-                style={[styles.tagChip, { backgroundColor: petTheme.tint }]}
+                style={[styles.tagChip, { backgroundColor: NEUTRAL_UI_PALETTE.tint }]}
               >
                 <AppText
                   preset="unifiedMeta"
-                  style={[styles.tagChipText, { color: petTheme.deep }]}
+                  style={[styles.tagChipText, { color: NEUTRAL_UI_PALETTE.deep }]}
                 >
                   {tag}
                 </AppText>
@@ -1543,7 +1545,7 @@ export default function PetProfileEditScreen() {
                 >
                   <AppText
                     preset="unifiedMeta"
-                    style={[styles.tagChipX, { color: petTheme.muted }]}
+                    style={[styles.tagChipX, { color: NEUTRAL_UI_PALETTE.muted }]}
                   >
                     ×
                   </AppText>
@@ -1572,12 +1574,12 @@ export default function PetProfileEditScreen() {
 
             <TouchableOpacity
               activeOpacity={0.92}
-              style={[styles.tagAddButton, { backgroundColor: petTheme.tint }]}
+              style={[styles.tagAddButton, { backgroundColor: NEUTRAL_UI_PALETTE.tint }]}
               onPress={() => addTag(draftTag)}
             >
               <AppText
                 preset="unifiedMeta"
-                style={[styles.tagAddButtonText, { color: petTheme.deep }]}
+                style={[styles.tagAddButtonText, { color: NEUTRAL_UI_PALETTE.deep }]}
               >
                 추가
               </AppText>
@@ -1610,7 +1612,7 @@ export default function PetProfileEditScreen() {
                     styles.recommendChip,
                     styles[RECOMMEND_STYLES[index % RECOMMEND_STYLES.length]],
                     index === RECOMMENDED_TAGS.length - 1
-                      ? { backgroundColor: petTheme.tint }
+                      ? { backgroundColor: NEUTRAL_UI_PALETTE.tint }
                       : null,
                   ]}
                   onPress={() => addTag(tag)}
@@ -1623,7 +1625,7 @@ export default function PetProfileEditScreen() {
                     style={[
                       styles.recommendChipText,
                       index === RECOMMENDED_TAGS.length - 1
-                        ? { color: petTheme.deep }
+                        ? { color: NEUTRAL_UI_PALETTE.deep }
                         : null,
                     ]}
                   >
@@ -1695,7 +1697,7 @@ export default function PetProfileEditScreen() {
           visible={weightSheetVisible}
           petId={pet.id}
           petName={pet.name}
-          accentColor={petTheme.primary}
+          accentColor={NEUTRAL_UI_PALETTE.primary}
           entrySource="pet_profile"
           initialWeightKg={pet.weightKg ?? null}
           initialMeasuredOn={getKstYmd()}

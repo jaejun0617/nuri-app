@@ -1,3 +1,4 @@
+import { formatPetCopy } from '../../utils/petDisplayName';
 // 파일: src/services/home/weeklySummary.ts
 // 역할:
 // - 홈 요약 카드의 주간 호환 집계와 전체 누적 집계를 계산한다.
@@ -304,7 +305,7 @@ export function buildWeeklySummaryLine(summary: WeeklySummary): string {
   return '이번 주의 기록을 차곡차곡 남겨보세요.';
 }
 
-export function buildTotalSummaryLine(summary: TotalSummary): string {
+export function buildTotalSummaryLine(summary: TotalSummary, petName?: string | null): string {
   if (summary.totalRecords === 0) return '아직 남긴 기록이 없어요.';
   if (summary.walkCount > 0 && summary.mealCount > 0) {
     return '산책과 식사 기록이 차곡차곡 쌓였어요!';
@@ -312,5 +313,5 @@ export function buildTotalSummaryLine(summary: TotalSummary): string {
   if (summary.walkCount > 0) return '산책 기록이 차곡차곡 쌓였어요!';
   if (summary.mealCount > 0) return '식사 기록이 차곡차곡 쌓였어요!';
   if (summary.lifeCount > 0) return '소중한 생활 기록이 쌓였어요.';
-  return '우리 아이의 기록을 차곡차곡 남겨보세요.';
+  return formatPetCopy('우리 아이의 기록을 차곡차곡 남겨보세요.', petName);
 }

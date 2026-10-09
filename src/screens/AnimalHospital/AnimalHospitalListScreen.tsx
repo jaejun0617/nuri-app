@@ -31,8 +31,8 @@ import {
 import type { AnimalHospitalPublicHospital } from '../../domains/animalHospital/types';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
-import { usePetStore } from '../../store/petStore';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
+
 import { openMoreDrawer } from '../../store/uiStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -42,8 +42,8 @@ export default function AnimalHospitalListScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const theme = useTheme();
-  const pets = usePetStore(s => s.pets);
-  const selectedPetId = usePetStore(s => s.selectedPetId);
+
+
   const [searchInput, setSearchInput] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const listMode: AnimalHospitalListMode = 'nearby';
@@ -57,15 +57,8 @@ export default function AnimalHospitalListScreen() {
     () => selectAnimalHospitalListItems(discoveryState.items, listMode),
     [discoveryState.items, listMode],
   );
-  const selectedPet = useMemo(
-    () =>
-      pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
-    [pets, selectedPetId],
-  );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+
+  const petTheme = NEUTRAL_UI_PALETTE;
 
   const onPressBack = useEntryAwareBackAction({
     entrySource: route.params?.entrySource,

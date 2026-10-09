@@ -1,3 +1,5 @@
+import { usePetDisplayName } from '../../../hooks/usePetDisplayName';
+import { formatPetCopy } from '../../../utils/petDisplayName';
 import CtaButton, { CtaText } from '../../../app/ui/CtaButton';
 import React, { memo } from 'react';
 import { Image, TextInput, TouchableOpacity, View } from 'react-native';
@@ -66,6 +68,7 @@ function CommunityPostEditorFormBase({
   onImageError,
   onSubmit,
 }: Props) {
+  const petName = usePetDisplayName();
   const theme = useTheme();
   const thumbnailUris =
     imageUris && imageUris.length > 0
@@ -289,7 +292,7 @@ function CommunityPostEditorFormBase({
             multiline
             value={content}
             onChangeText={onChangeContent}
-            placeholder="우리 아이의 소중한 일상과 고민을 자유롭게 나누어 보세요. (욕설, 비방 등 불쾌감을 주는 내용은 운영정책에 따라 숨김 처리될 수 있습니다.)"
+            placeholder={formatPetCopy("우리 아이의 소중한 일상과 고민을 자유롭게 나누어 보세요. (욕설, 비방 등 불쾌감을 주는 내용은 운영정책에 따라 숨김 처리될 수 있습니다.)", petName)}
             placeholderTextColor={theme.colors.textMuted}
             style={[
               styles.input,

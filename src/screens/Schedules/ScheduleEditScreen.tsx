@@ -82,8 +82,8 @@ import {
   upsertScheduleNotification,
 } from '../../services/schedules/notifications';
 import { useScheduleNotificationSettings } from '../../hooks/useScheduleNotificationSettings';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
-import { usePetStore } from '../../store/petStore';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
+
 import { useScheduleStore } from '../../store/scheduleStore';
 import { showToast } from '../../store/uiStore';
 import { styles } from './ScheduleCreateScreen.styles';
@@ -104,16 +104,10 @@ export default function ScheduleEditScreen() {
     returnTo,
     route.params.entrySource,
   );
-  const pets = usePetStore(s => s.pets);
+
   const refresh = useScheduleStore(s => s.refresh);
-  const selectedPet = useMemo(
-    () => pets.find(candidate => candidate.id === petId) ?? pets[0] ?? null,
-    [petId, pets],
-  );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+
+  const petTheme = NEUTRAL_UI_PALETTE;
 
   const [schedule, setSchedule] = useState<PetSchedule | null>(null);
   const [title, setTitle] = useState('');

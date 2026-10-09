@@ -1,3 +1,4 @@
+import { formatPetCopy } from '../../utils/petDisplayName';
 import {
   OTHER_SUBCATEGORY_OPTIONS,
   type MemoryMainCategory,
@@ -7,6 +8,7 @@ import {
 export function getTimelineEmptyCopy(
   category: MemoryMainCategory,
   subcategory: MemoryOtherSubCategory | null,
+  petName?: string | null,
 ): { title: string; description: string } {
   switch (category) {
     case 'walk':
@@ -18,7 +20,7 @@ export function getTimelineEmptyCopy(
     case 'meal':
       return {
         title: '아직 식사 기록이 없어요',
-        description: '우리 아이의 식사와 간식 시간을 차곡차곡 기록해 보세요.',
+        description: formatPetCopy('우리 아이의 식사와 간식 시간을 차곡차곡 기록해 보세요.', petName),
       };
     case 'diary':
       return {
@@ -41,13 +43,13 @@ export function getTimelineEmptyCopy(
     case 'health':
       return {
         title: '아직 건강 기록이 없어요',
-        description: '우리 아이의 건강 기록을 남겨 보세요.',
+        description: formatPetCopy('우리 아이의 건강 기록을 남겨 보세요.', petName),
       };
     default:
       return {
         title: '아직 남겨진 추억이 없어요',
         description:
-          '우리 아이와 함께한 반짝이는 순간을 첫 기록으로 천천히 시작해 보세요.',
+          formatPetCopy('우리 아이와 함께한 반짝이는 순간을 첫 기록으로 천천히 시작해 보세요.', petName),
       };
   }
 }

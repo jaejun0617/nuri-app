@@ -225,3 +225,7 @@ export function buildPetThemePalette(themeColor: string | null | undefined) {
     ] as [string, string, string],
   };
 }
+
+// UI actions are independent of the pet's identity color. Profile/theme editors
+// still use buildPetThemePalette; this never changes the stored preference.
+export const NEUTRAL_UI_PALETTE = buildPetThemePalette('#4B5563');

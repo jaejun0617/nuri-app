@@ -67,12 +67,12 @@ describe('CTA source safety guards', () => {
       elements('src/screens/More/MoreDrawerContent.tsx', 'ConfirmDialog').find(
         n => n.includes('logoutConfirmVisible'),
       ),
-    ).toContain('confirmRole="secondary"');
+    ).toContain('confirmRole="primary"');
     expect(
       elements('src/screens/Main/MainScreen.tsx', 'ConfirmDialog').find(n =>
         n.includes('앱 종료'),
       ),
-    ).toContain('confirmRole="neutral"');
+    ).toContain('confirmRole="primary"');
   });
   it('all active final custom delete dialogs declare the destructive role', () => {
     for (const file of [

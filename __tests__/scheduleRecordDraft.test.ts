@@ -60,6 +60,16 @@ it('keeps pending record recovery separate from editable draft clearing', async 
   await clearScheduleRecordRecovery(scope);
   expect(await loadScheduleRecordRecovery(scope)).toBeNull();
 });
+it('restores medical details and the single expense total without changing other draft fields', async () => {
+  const medicalDraft: RecordCreateDraft = {
+    ...draft,
+    mainCategoryKey: 'health',
+    priceText: '24000',
+    healthCare: { kind: 'hospital', hospitalName: '누리병원', diagnosis: '검진', medication: '복약 메모' },
+  };
+  await saveRecordCreateDraft(medicalDraft);
+  expect(await loadRecordCreateDraft()).toEqual(medicalDraft);
+});
 it('propagates storage failures instead of treating unknown recovery state as no record', async () => {
   jest.mocked(AsyncStorage.getItem).mockRejectedValueOnce(new Error('disk'));
   await expect(loadScheduleRecordRecovery(scope)).rejects.toThrow('disk');

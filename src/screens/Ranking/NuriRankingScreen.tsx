@@ -34,9 +34,9 @@ import {
   ACTIVITY_RANKING_QUERY_STALE_TIME_MS,
   buildActivityRankingQueryKey,
 } from '../../services/ranking/activityRankingQuery';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import { openMoreDrawer, showToast } from '../../store/uiStore';
-import { usePetStore } from '../../store/petStore';
+
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'NuriRanking'>;
 type Route = RootScreenRoute<'NuriRanking'>;
@@ -147,16 +147,9 @@ export default function NuriRankingScreen() {
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const queryClient = useQueryClient();
-  const pets = usePetStore(s => s.pets);
-  const selectedPetId = usePetStore(s => s.selectedPetId);
-  const selectedPet = useMemo(
-    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
-    [pets, selectedPetId],
-  );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor ?? theme.colors.brand),
-    [selectedPet?.themeColor, theme.colors.brand],
-  );
+
+
+  const petTheme = NEUTRAL_UI_PALETTE;
   const [selectedCategory, setSelectedCategory] = useState<ActivityRankingCategoryKey>('overall');
   const rankingQueryKey = useMemo(
     () =>

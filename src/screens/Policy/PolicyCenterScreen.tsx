@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
@@ -16,8 +16,8 @@ import {
   POLICY_PRESENTATION_DOCUMENTS,
   type PolicyDocumentId,
 } from '../../services/legal/presentation';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
-import { usePetStore } from '../../store/petStore';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
+
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'PolicyCenter'>;
 type PolicyCenterRoute = RouteProp<RootStackParamList, 'PolicyCenter'>;
@@ -27,16 +27,9 @@ export default function PolicyCenterScreen() {
   const route = useRoute<PolicyCenterRoute>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const pets = usePetStore(state => state.pets);
-  const selectedPetId = usePetStore(state => state.selectedPetId);
-  const selectedPet = useMemo(
-    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
-    [pets, selectedPetId],
-  );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor ?? theme.colors.brand),
-    [selectedPet?.themeColor, theme.colors.brand],
-  );
+
+
+  const petTheme = NEUTRAL_UI_PALETTE;
 
   const onBack = useEntryAwareBackAction({
     entrySource: route.params?.entrySource,

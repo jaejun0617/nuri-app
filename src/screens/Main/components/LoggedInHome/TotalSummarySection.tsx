@@ -1,3 +1,4 @@
+import { usePetDisplayName } from '../../../../hooks/usePetDisplayName';
 import React, { memo, useMemo } from 'react';
 import {
   ActivityIndicator,
@@ -73,13 +74,14 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
   onPressLife,
   onPressAllRecords,
 }: Props) {
+  const petName = usePetDisplayName();
   const { width, fontScale } = useWindowDimensions();
   const summary = useMemo(
     () => (records === null ? null : buildTotalSummary(records)),
     [records],
   );
   const summaryLine = summary
-    ? buildTotalSummaryLine(summary)
+    ? buildTotalSummaryLine(summary, petName)
     : isLoading
     ? '전체 기록을 불러오는 중이에요.'
     : '전체 기록을 확인할 수 없어요.';

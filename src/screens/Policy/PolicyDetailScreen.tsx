@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
@@ -14,8 +14,8 @@ import {
   getPolicyPresentationDocument,
   type PolicySemanticRole,
 } from '../../services/legal/presentation';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
-import { usePetStore } from '../../store/petStore';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
+
 import { openMoreDrawer } from '../../store/uiStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'PolicyDetail'>;
@@ -26,16 +26,9 @@ export default function PolicyDetailScreen() {
   const route = useRoute<PolicyDetailRoute>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const pets = usePetStore(state => state.pets);
-  const selectedPetId = usePetStore(state => state.selectedPetId);
-  const selectedPet = useMemo(
-    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
-    [pets, selectedPetId],
-  );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor ?? theme.colors.brand),
-    [selectedPet?.themeColor, theme.colors.brand],
-  );
+
+
+  const petTheme = NEUTRAL_UI_PALETTE;
   const document = getPolicyPresentationDocument(route.params?.documentId);
 
   const getSemanticPresentation = (role: PolicySemanticRole) => {

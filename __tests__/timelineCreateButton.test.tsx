@@ -98,8 +98,11 @@ describe('Timeline fixed foreground control', () => {
       'implementation("com.github.qmdeve.qmblurview:core:v1.3.0")',
     );
     const owner = read('src/screens/Records/TimelineCreateButton.tsx');
-    expect(owner).toContain("Platform.OS === 'android'");
-    expect(owner).toContain(
+    expect(owner).toContain("from '../../components/common/BlurCaptureExclusion'");
+    expect(owner).not.toContain('requireNativeComponent');
+    const shared = read('src/components/common/BlurCaptureExclusion.tsx');
+    expect(shared).toContain("Platform.OS === 'android'");
+    expect(shared).toContain(
       "requireNativeComponent<ViewProps>('NuriBlurCaptureExclusion')",
     );
   });

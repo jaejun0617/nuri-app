@@ -19,7 +19,7 @@ import AppText from '../../app/ui/AppText';
 import { useManagedPetCareGuideDetail } from '../../hooks/useManagedPetCareGuideDetail';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
-import { buildPetThemePalette } from '../../services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import {
   buildGuideAdminUpsertInput,
   buildGuideSlug,
@@ -43,7 +43,7 @@ import type {
   PetGuideSpecies,
 } from '../../services/guides/types';
 import { useAuthStore } from '../../store/authStore';
-import { usePetStore } from '../../store/petStore';
+
 import { showToast } from '../../store/uiStore';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'GuideAdminEditor'>;
@@ -109,20 +109,14 @@ export default function GuideAdminEditorScreen() {
   const keyboardVisible = useKeyboardState(state => state.isVisible);
   const queryClient = useQueryClient();
   const role = useAuthStore(s => s.profile.role ?? 'user');
-  const pets = usePetStore(s => s.pets);
-  const selectedPetId = usePetStore(s => s.selectedPetId);
+
+
   const detailState = useManagedPetCareGuideDetail(
     route.params.mode === 'edit' ? route.params.guideId : null,
   );
   const isGuideAdmin = role === 'admin' || role === 'super_admin';
-  const selectedPet = useMemo(
-    () => pets.find(candidate => candidate.id === selectedPetId) ?? pets[0] ?? null,
-    [pets, selectedPetId],
-  );
-  const petTheme = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
-  );
+
+  const petTheme = NEUTRAL_UI_PALETTE;
   const headerTopInset = Math.max(insets.top, 12);
 
   const [formValues, setFormValues] = useState<GuideAdminFormValues>(

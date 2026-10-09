@@ -1,18 +1,8 @@
 import React from 'react';
-import {
-  Platform,
-  View,
-  requireNativeComponent,
-  type ViewProps,
-} from 'react-native';
 import CtaButton from '../../app/ui/CtaButton';
+import BlurCaptureExclusion from '../../components/common/BlurCaptureExclusion';
 import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 import { styles } from './TimelineScreen.styles';
-
-const CaptureBoundary =
-  Platform.OS === 'android'
-    ? requireNativeComponent<ViewProps>('NuriBlurCaptureExclusion')
-    : View;
 
 /** The fixed button must not be captured as a backdrop by scrolling glass rows. */
 export default function TimelineCreateButton({
@@ -25,7 +15,7 @@ export default function TimelineCreateButton({
   onPress: () => void;
 }) {
   return (
-    <CaptureBoundary
+    <BlurCaptureExclusion
       testID="timeline-create-capture-boundary"
       collapsable={false}
       pointerEvents="box-none"
@@ -52,6 +42,6 @@ export default function TimelineCreateButton({
           preserveOriginal
         />
       </CtaButton>
-    </CaptureBoundary>
+    </BlurCaptureExclusion>
   );
 }

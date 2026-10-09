@@ -1295,7 +1295,7 @@ export default function TimelineScreen() {
       );
     }
 
-    const emptyCopy = getTimelineEmptyCopy(mainCategory, otherSubCategory);
+    const emptyCopy = getTimelineEmptyCopy(mainCategory, otherSubCategory, selectedPet?.name);
     return (
       <View style={styles.empty}>
         <AppText
@@ -1322,6 +1322,7 @@ export default function TimelineScreen() {
     );
   }, [
     filteredIds.length,
+    selectedPet?.name,
     mainCategory,
     otherSubCategory,
     isApplyingHomeTotalSummaryEntry,
@@ -1481,7 +1482,7 @@ export default function TimelineScreen() {
               NURI의 모든 기능을 경험해 보세요
             </AppText>
             <AppText preset="unifiedBody" style={styles.emptyDesc}>
-              로그인 후 우리 아이의 기록과 시간을
+              로그인 후 반려동물의 기록과 시간을
             </AppText>
             <AppText preset="unifiedBody" style={styles.emptyDesc}>
               타임라인으로 차분하게 모아볼 수 있어요
