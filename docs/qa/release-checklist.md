@@ -1,5 +1,13 @@
 # V1.0 Remaining Task/Risk Closeout
 
+<!-- NURI_SEASON_GUIDE_RELEASE_20261009_BEGIN -->
+## 2026-10-09 Seasonal Glass / Guide QA Release
+
+- [전달 보고서](nuri-seasonal-guide-release-2026-10-09.md): source `a2b3da4`, 타입 PASS, lint 0 errors/기존 23 warnings, 전체 203 suites/2,127 tests PASS.
+- 증분 Release/install-r 각 1회. APK `4e09ade58a15c1f6f117d86cd0f6bc7b0ab469ba6e025da3989975e2f4463574` 설치 일치, release/non-debuggable/내장 JS/기존 signer 검증 PASS. runtime/config 709개 build 전후 동일.
+- UID·최초 설치·기기 설정 유지, uninstall/clear/DB/cleanup 없음. 최신 네 계절 외관은 PO 확인 대기. HQA-01/02 OPEN. Store clean-checkout provenance나 전역 native 재검증으로 확대하지 않는다. STORE HOLD.
+<!-- NURI_SEASON_GUIDE_RELEASE_20261009_END -->
+
 ## 2026-10-09 Approved Community Release
 
 - [최종 전달](nuri-community-approved-release-2026-10-09.md): source `7eafa38` 커밋·푸시, APK `5d48cb86` install-r 완료, 동일 signer/설치 hash/UID/최초 설치 시각/기기 설정 확인.

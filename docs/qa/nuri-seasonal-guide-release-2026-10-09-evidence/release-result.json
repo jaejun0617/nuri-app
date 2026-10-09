@@ -1,0 +1,127 @@
+{
+  "sourceCommit": "a2b3da4d3d2ff8037b9fda1fc8c96a82759f024b",
+  "branch": "codex/task6-community-content-policy",
+  "sourcePushRemoteVerified": "a2b3da4d3d2ff8037b9fda1fc8c96a82759f024b",
+  "validation": {
+    "typescript": "PASS",
+    "eslintErrors": 0,
+    "eslintExistingWarnings": 23,
+    "targetedSuites": 2,
+    "targetedTests": 80,
+    "fullSuites": 203,
+    "fullTests": 2127,
+    "scopedDiffCheck": "PASS",
+    "relativeInputs": {
+      "files": 477,
+      "references": 2267,
+      "missing": [],
+      "untracked": [],
+      "allowedPrivateConfig": [
+        "src/services/supabase/config.ts"
+      ]
+    }
+  },
+  "build": {
+    "count": 1,
+    "variant": "release",
+    "sourceHead": "a2b3da4d3d2ff8037b9fda1fc8c96a82759f024b",
+    "exitCode": 0,
+    "startedAt": "2026-10-09T09:18:04.742Z",
+    "finishedAt": "2026-10-09T09:20:40.647Z",
+    "clean": false,
+    "inputCount": 709,
+    "changedInputs": [],
+    "qaRelease": true,
+    "storeProvenance": "NOT_CLAIMED",
+    "duration": "2m34s",
+    "tasks": 1004,
+    "executed": 75,
+    "fromCache": 1,
+    "upToDate": 928
+  },
+  "artifacts": [
+    {
+      "path": "/private/tmp/nuri-season-guide-release-hNhSfq/nuri-a2b3da4-seasonal-release.apk",
+      "sha256": "4e09ade58a15c1f6f117d86cd0f6bc7b0ab469ba6e025da3989975e2f4463574",
+      "bytes": 282101180
+    },
+    {
+      "path": "/private/tmp/nuri-season-guide-release-hNhSfq/nuri-a2b3da4-seasonal-release.aab",
+      "sha256": "c7e7ea5fef726f6fd7de25ef241b07fba57cc7fc14e4b881af3c447d577dd4f4",
+      "bytes": 247453175
+    }
+  ],
+  "signer": "08efb41ea4729792ce9fc3d242be9704e84a8ea3eadcbbcf1c8426884db689d3",
+  "install": {
+    "count": 1,
+    "result": "Performing Streamed Install\nSuccess",
+    "checks": {
+      "installedMatch": true,
+      "uidPreserved": true,
+      "firstInstallPreserved": true,
+      "settingsPreserved": true,
+      "releaseInstalled": true
+    },
+    "after": {
+      "capturedAt": "2026-10-09T09:22:00.815Z",
+      "identity": [
+        "versionCode=1 minSdk=24 targetSdk=36",
+        "versionName=1.0",
+        "lastUpdateTime=2026-10-09 18:21:44",
+        "pkgFlags=[ HAS_CODE ALLOW_CLEAR_USER_DATA ]",
+        "firstInstallTime=2026-06-02 19:16:57",
+        "firstInstallTime=2026-06-02 19:16:57"
+      ],
+      "apkSha256": "4e09ade58a15c1f6f117d86cd0f6bc7b0ab469ba6e025da3989975e2f4463574",
+      "uid": "package:com.nuri.app uid:10402",
+      "size": "Physical size: 1080x2340",
+      "density": "Physical density: 450",
+      "fontScale": "1.0",
+      "navigationMode": "0"
+    }
+  },
+  "preservation": {
+    "checkedFiles": 1836,
+    "changed": [
+      "docs/qa/nuri-health-redesign-2026-10-09.md",
+      "docs/qa/nuri-health-visual-review-2026-10-09.md",
+      "__tests__/guideSearchKeyboard.test.tsx",
+      "__tests__/homeSectionPresentation.test.tsx",
+      "docs/project-memory/다음-작업-우선순위.md",
+      "docs/project-memory/최근-작업-로그.md",
+      "docs/project-memory/핵심-결정사항.md",
+      "docs/project-memory/현재-프로젝트-상태.md",
+      "docs/qa/release-checklist.md",
+      "src/components/guides/GuideListCard.tsx",
+      "src/screens/Guides/GuideListScreen.styles.ts",
+      "src/screens/Guides/GuideListScreen.tsx",
+      "src/screens/Main/components/LoggedInHome/LoggedInHome.tsx"
+    ],
+    "missing": [],
+    "unexpected": [],
+    "runtimeChanged": []
+  },
+  "logHashes": {
+    "typescript-final.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "eslint.log": "da04ff7967b04c9de2a0795eb8ac25fa0e9f64c8857d1308453c6a53e311d2ef",
+    "eslint-final-test.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "targeted-final.log": "6cc1c3f608e6333bf07ed409ad52f070c293640a83a2b2247a4fb84320cb1b72",
+    "full-suite-final.log": "5c290ef5d2028372337d5dced1f2a28354f86fbd037981899172dd82550bddb8",
+    "build.log": "77dec164a06ddd4af2a3e1989a0430eaca1be5a33651363820c2f58946f94802",
+    "install.log": "781a31c82430c97897af612ece5e0ca2205e301cb5ff121ce2660541ea5182c7",
+    "apk-verification.txt": "7a842b6b62d9609b89bc9cc6f1a3893246073f25b31bf6dbe5c5e66bafcf341d"
+  },
+  "currentGuideTaskUiActions": 0,
+  "finalNativeVisualQa": "PO_PENDING",
+  "authAndPetUiAfterInstall": "NOT_REVALIDATED",
+  "metro": "EXISTING_SERVER_PRESERVED_PID_15799",
+  "releaseMetroDependency": "NONE",
+  "knownOpen": [
+    "HQA-01_TAB_SCROLL_CONTEXT",
+    "HQA-02_SMALL_WEIGHT_DELTA_PRECISION"
+  ],
+  "directDbMutation": 0,
+  "contentWrite": 0,
+  "cleanup": 0,
+  "store": "HOLD"
+}

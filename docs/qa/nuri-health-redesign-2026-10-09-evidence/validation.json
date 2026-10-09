@@ -1,0 +1,34 @@
+{
+  "capturedAt": "2026-10-09T06:43:38.863Z",
+  "files": {
+    "src/app/ui/SectionHeaderAction.tsx": "fb1bbeb79c3c5bad74f4cce6e86f77dbda354cf097a76de68d466dd299a61de2",
+    "src/app/ui/SectionHeaderAction.styles.ts": "1b2277f52027b0d4e5c93c7d9aecec4aff77c316fc54f1bb7e0ed214b56eb275",
+    "src/components/home/HomeSectionHeader.tsx": "4fabd97229a533a7ec9c369a7c19b1706a450cb0d435ce86da51c5a9653d429b",
+    "src/screens/Main/components/LoggedInHome/HomePopulatedLists.tsx": "88d5f66db3d963434a8e1ab77b97861e1fe0da854c9bc5f8a5e45018aab3583f",
+    "src/screens/HealthReport/HealthReportScreen.tsx": "6344aebcd0086c7ff4fb7b6595c1708ec17836604c58bcba218714df9ba3514d",
+    "src/components/health/WeightTrendChart.tsx": "98e783901640c0f3628829aa5a4bff1a1805e0337dafc6cc1e16c986cbb84f8f",
+    "src/components/health/weightChartModel.ts": "89c0f2bcaccfcbb87a393c3d614a313f0c789ca377fc7fa3e11b34590d1ff2ca",
+    "src/components/health/WeightLogEntrySheet.tsx": "f1904f599358699a76c04ba6cf17dcbf55bedcc7d531e2f4334223135da6849a",
+    "__tests__/healthRedesign.test.tsx": "e16d4aa57f356168cfc33afe8772d9c533a722b34c990fc4d94253721cfeaf2a",
+    "__tests__/homeSectionPresentation.test.tsx": "455818aa91db510d0e0880300d23f5bda58eba9b9f638db951f05e804c4872f6",
+    "__tests__/keyboardModalOwnership.test.tsx": "8ef8e87afd059a47054f4107c9be20a8c145be8300cb6855aed75629a40a2b97"
+  },
+  "typescript": "PASS",
+  "eslint": {
+    "errors": 0,
+    "warnings": 0
+  },
+  "targeted": {
+    "suites": 5,
+    "tests": 113
+  },
+  "fullSuite": {
+    "suites": 201,
+    "tests": 2083,
+    "runs": 1
+  },
+  "gitDiffCheck": "PASS",
+  "nativeVisualQa": "NOT_RUN",
+  "nativeKeyboardQa": "NOT_RUN",
+  "poReview": "PENDING"
+}

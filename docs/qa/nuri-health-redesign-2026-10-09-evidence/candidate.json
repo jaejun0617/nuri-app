@@ -1,0 +1,44 @@
+{
+  "apk": "/private/tmp/nuri-health-redesign-20261009-wuUODJ/nuri-health-metro.apk",
+  "sha256": "58cd2c3bc47fdba0aaee4aea9492b18488d48f6c1cd92b88a4a4d894f915f8a1",
+  "certificateSha256": "08efb41ea4729792ce9fc3d242be9704e84a8ea3eadcbbcf1c8426884db689d3",
+  "signatureMatch": true,
+  "bytes": 252764009,
+  "signingMethod": "Existing release key applied to the completed debug artifact; no rebuild",
+  "device": {
+    "package": "com.nuri.app",
+    "identity": [
+      "    versionCode=1 minSdk=24 targetSdk=36",
+      "    versionName=1.0",
+      "    lastUpdateTime=2026-10-09 15:48:39",
+      "    pkgFlags=[ DEBUGGABLE HAS_CODE ALLOW_CLEAR_USER_DATA ]",
+      "      firstInstallTime=2026-06-02 19:16:57",
+      "      firstInstallTime=2026-06-02 19:16:57"
+    ],
+    "path": "/data/app/~~waFmrpU1VdP-L9W7dzfBBQ==/com.nuri.app-BUTNNlDA2JcTR3qIHcNlwQ==/base.apk",
+    "apkSha256": "58cd2c3bc47fdba0aaee4aea9492b18488d48f6c1cd92b88a4a4d894f915f8a1",
+    "uid": "package:com.nuri.app uid:10402",
+    "size": "Physical size: 1080x2340",
+    "density": "Physical density: 450",
+    "fontScale": "1.0",
+    "navigationMode": "0",
+    "checks": {
+      "installedMatch": true,
+      "uidPreserved": true,
+      "firstInstallTimePreserved": true,
+      "settingsPreserved": true,
+      "debuggable": true
+    }
+  },
+  "buildInvocations": 2,
+  "configurationFailures": 1,
+  "successfulDebugBuilds": 1,
+  "resignCompletedApk": 1,
+  "installCount": 1,
+  "gradle": {
+    "duration": "7m17s",
+    "executed": 66,
+    "upToDate": 471
+  },
+  "releaseBuild": 0
+}

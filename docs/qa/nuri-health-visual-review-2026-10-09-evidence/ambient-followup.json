@@ -1,0 +1,34 @@
+{
+  "task": "health-seasonal-background-and-pet-context",
+  "head": "ff6e4de1a8fec90410e8570ae3de4889efdb8d2b",
+  "branch": "codex/task6-community-content-policy",
+  "validation": {
+    "typescript": "PASS",
+    "eslintErrors": 0,
+    "eslintWarnings": 0,
+    "targetedSuites": 2,
+    "targetedTests": 39,
+    "fullSuites": 202,
+    "fullTests": 2108,
+    "scopeDiffCheck": "PASS",
+    "initialTargetedFailure": "13 circular JSON serialization failures after maskElement introduction; corrected native component test mock"
+  },
+  "preservation": {
+    "missing": [],
+    "headUnchanged": true,
+    "branchUnchanged": true,
+    "stagedUnchanged": true,
+    "unrelatedChanges": []
+  },
+  "nativeObservation": "Passive current-screen capture only; spring before/after, no tap/swipe or settings changes",
+  "deviceOwner": "PO",
+  "metro": "RUNNING_CONNECTED",
+  "openIssues": ["HQA-01", "HQA-02"],
+  "build": 0,
+  "install": 0,
+  "agentDbMutation": 0,
+  "commit": 0,
+  "push": 0,
+  "cleanup": 0,
+  "logs": "/private/tmp/nuri-health-ambient-DcI2Xu"
+}

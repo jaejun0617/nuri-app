@@ -1,0 +1,19 @@
+{
+  "capturedAt": "2026-10-09T06:52:22.988Z",
+  "status": "packager-status:running",
+  "host": "127.0.0.1",
+  "port": 8081,
+  "usbReverse": "tcp:8081 -> tcp:8081",
+  "targets": [
+    {
+      "title": "com.nuri.app (samsung SM-S937N)",
+      "appId": "com.nuri.app",
+      "deviceName": "SM-S937N - 16 - API 36"
+    }
+  ],
+  "fastRefresh": "DEFAULT_ON",
+  "preferenceOverride": "FILE_ABSENT",
+  "defaultSource": "node_modules/react-native/ReactAndroid/src/main/java/com/facebook/react/devsupport/DevInternalSettings.kt:83",
+  "livePatchProbe": "NOT_RUN",
+  "nativeUiQa": "NOT_RUN_PO_OWNED"
+}

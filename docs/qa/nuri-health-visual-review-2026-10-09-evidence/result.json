@@ -1,0 +1,206 @@
+{
+  "completedAt": "2026-10-09T07:32:16.134Z",
+  "evidenceRoot": "/private/tmp/nuri-health-visual-20261009-flDBVl",
+  "mode": "DEV_READ_ONLY_SAMPLES",
+  "sampleCounts": {
+    "home": 5,
+    "activity": 18,
+    "today": 6,
+    "weight": 8
+  },
+  "device": {
+    "model": "SM-S937N",
+    "serial": "R5CY613NMSY",
+    "display": "1080x2340",
+    "density": 450,
+    "fontScale": 1,
+    "navigation": "THREE_BUTTON",
+    "selectedPet": "누리",
+    "auth": "EXISTING_QA_ACCOUNT_PRESERVED",
+    "settingsChanged": 0
+  },
+  "candidate": {
+    "sha256": "58cd2c3bc47fdba0aaee4aea9492b18488d48f6c1cd92b88a4a4d894f915f8a1",
+    "identityProvenance": "Prior installed candidate.json, same package update time; no APK extraction this turn",
+    "lastUpdateTime": "2026-10-09 15:48:39",
+    "versionName": "1.0",
+    "versionCode": 1,
+    "buildCount": 0,
+    "installCount": 0,
+    "metro": "ON",
+    "latestJs": "METRO_NOT_RELEASE_EMBEDDED"
+  },
+  "validation": {
+    "typescript": "PASS",
+    "eslintErrors": 0,
+    "existingLintWarnings": 16,
+    "targetedSuites": 4,
+    "targetedTests": 112,
+    "fullSuiteRuns": 1,
+    "fullSuites": 202,
+    "fullTests": 2089,
+    "scopedDiff": "PASS",
+    "globalDiff": "2_EXISTING_EOF_WHITESPACE_FINDINGS"
+  },
+  "findings": [
+    {
+      "id": "HQA-01",
+      "status": "OPEN_REPRODUCED",
+      "cause": "Adjacent conditional ScrollViews have no tab identity/offset policy; node identity mechanism inferred, not instrumented",
+      "evidence": [
+        "08-weight-filled.png",
+        "13-insights-entry.png"
+      ]
+    },
+    {
+      "id": "HQA-02",
+      "status": "OPEN_REPRODUCED",
+      "cause": "toFixed(1) for history/delta versus two decimal chart values",
+      "evidence": [
+        "09-weight-top.png",
+        "10-weight-chart-end.png",
+        "11-weight-history.png"
+      ]
+    }
+  ],
+  "designMatch": "NEEDS_CORRECTIVE",
+  "runtimeQa": "POPULATED_LISTS_COMPLETE_WITH_FINDINGS",
+  "corrective": "NOT_STARTED",
+  "dbMutation": 0,
+  "contentWrites": 0,
+  "cleanup": 0,
+  "sourceHashes": {
+    "src/components/health/healthVisualQa.ts": "a3476cce491cf8f7faf2a68259cc3d862a10be25e114727d87d837815de78ad9",
+    "src/components/health/HealthVisualQaControl.tsx": "e3127a20060e5ca112c9ed7d49d40ae36cb6140751a574a6909431aa96f61fe2",
+    "src/screens/HealthReport/HealthReportScreen.tsx": "04a7ad9e3c152a9f5fd2cdb2c4638d5a2296825978264ae825735b6fe6c1bb97",
+    "src/screens/Main/components/LoggedInHome/LoggedInHome.tsx": "7aa5f1dc72d83888235264cbd84619ab424d1286c1623eb481bdfe20c3093385",
+    "__tests__/healthVisualQa.test.tsx": "e0318247f1e4ff54582de8f51818f15928b6e2aa7d17beea8890ad82254b9888",
+    "__tests__/healthRedesign.test.tsx": "c7f77d61f800e06a4ab6bdf0418f934f3845f450e0d6cd2628aec09b9fe23651"
+  },
+  "preservation": {
+    "baselineFiles": 219,
+    "missing": [],
+    "changed": [
+      "__tests__/healthRedesign.test.tsx",
+      "docs/qa/nuri-health-redesign-2026-10-09.md",
+      "docs/project-memory/다음-작업-우선순위.md",
+      "docs/project-memory/최근-작업-로그.md",
+      "docs/project-memory/핵심-결정사항.md",
+      "docs/project-memory/현재-프로젝트-상태.md",
+      "docs/qa/release-checklist.md",
+      "src/screens/HealthReport/HealthReportScreen.tsx"
+    ],
+    "unexpected": [],
+    "preservedDocBodies": {
+      "docs/project-memory/현재-프로젝트-상태.md": true,
+      "docs/project-memory/핵심-결정사항.md": true,
+      "docs/project-memory/다음-작업-우선순위.md": true,
+      "docs/project-memory/최근-작업-로그.md": true,
+      "docs/qa/release-checklist.md": true,
+      "docs/qa/nuri-health-redesign-2026-10-09.md": true
+    },
+    "headSame": true,
+    "branchSame": true,
+    "stagedSame": true
+  },
+  "evidence": {
+    "01-records-before.png": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/01-records-before.png",
+      "sha256": "01ce71772576e7aa17c92b023fcee63bfe6334c73d83ced213e8d99a0b07718b"
+    },
+    "06-records-filled.png": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/06-records-filled.png",
+      "sha256": "c8ade70da4a63ada4feb0e0871a2f9b6e5ab7f8a5d91a8685ae0d40b199448a2"
+    },
+    "07-records-bottom.png": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/07-records-bottom.png",
+      "sha256": "7024fbade96e63ba227b82c75cbe2366f334ddd0ff3eea39cc122b1f892086d0"
+    },
+    "08-weight-filled.png": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/08-weight-filled.png",
+      "sha256": "7a37deb1166996bd49f679e3806eb0dd02fbc34875f4f8c0f53984ebc83c71f7"
+    },
+    "09-weight-top.png": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/09-weight-top.png",
+      "sha256": "30131d59dd398dc86711468bf4b4b7130adf31eb9c05291a62739b2b09eca95f"
+    },
+    "10-weight-chart-end.png": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/10-weight-chart-end.png",
+      "sha256": "d4fe4b524ac14d80ec0dbfa096c8d1c4f5ae401a09ac2b6fcccc8ddf00057f0e"
+    },
+    "11-weight-history.png": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/11-weight-history.png",
+      "sha256": "cbdc79477445201e5fe72b77d0124aabeaeeb5ebdc18490c9dd7810b24fd6479"
+    },
+    "12-weight-bottom.png": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/12-weight-bottom.png",
+      "sha256": "699d75220982057bbb6fc96a5079fdbf83802750d48b9540c4d4cca25cb5ab00"
+    },
+    "13-insights-entry.png": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/13-insights-entry.png",
+      "sha256": "173bfaadcd051bb4856be4e5f8a8a24e3ee5804f88755f3a180c1fd46cfab818"
+    },
+    "15-insights-summary.png": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/15-insights-summary.png",
+      "sha256": "af529ae2f5fa70333171bc95b02bab2edb794c18b3be257dbe496e5a6eb497cd"
+    },
+    "16-insight-detail.png": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/16-insight-detail.png",
+      "sha256": "2bb815f607b61eb8f68b318e94d5ffd4c5989c7bf50b3f89af0369080fefc995"
+    },
+    "18-insight-detail-bottom.png": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/18-insight-detail-bottom.png",
+      "sha256": "ed73a49fa6cac1a3eabc478f4cf60320a090a2c4a9e67f7b27e7eef5e79a286f"
+    },
+    "19-real-data-restored.xml": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/19-real-data-restored.xml",
+      "sha256": "0d4b4d688e29bf42b776f4dc989dcce86fb0a1ed09557e3a6381e822b96bfd99"
+    },
+    "31-reminder-blocked.png": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/31-reminder-blocked.png",
+      "sha256": "888246bb9d177f31b9da00fcbf9c328f36ddc109234ba8bcd4913e339fd6dee8"
+    },
+    "35-home-position.xml": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/35-home-position.xml",
+      "sha256": "de1b5586ef5c992859adbf2cb2f0c90830ccbfed19eb4dc256e2b77cdf7b0785"
+    },
+    "36-home-diverse-final.png": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/36-home-diverse-final.png",
+      "sha256": "8b7f360bde2f174a05bd64923b513b89a6cabcffcbdfa1290fb5e94c767a4ca4"
+    },
+    "37-home-row-route.xml": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/37-home-row-route.xml",
+      "sha256": "d29ee8383d9d199899456fee48fcabd753b559f2a021473b190822a818565859"
+    },
+    "38-home-handoff.png": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/38-home-handoff.png",
+      "sha256": "3f2cd620c51b6de88b192ce0c4512eae561a5939eea08a88710561dcd3ecb92c"
+    },
+    "typescript-final.log": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/typescript-final.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "eslint-final.log": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/eslint-final.log",
+      "sha256": "d9327af67e007cd2db4bcb971b96e09ddca7ac6057bcfdb6f8718e38a1cc8618"
+    },
+    "targeted-final-pass.log": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/targeted-final-pass.log",
+      "sha256": "63e1a04055ae24d70ebaa8ce99ef5e6bbf3ea6d8d2f933deee8fba36084b8392"
+    },
+    "full-suite.log": {
+      "path": "/private/tmp/nuri-health-visual-20261009-flDBVl/full-suite.log",
+      "sha256": "8b359c405b53fca692b2bed8b94a093386de3a3176c1cf22814fb98a84abe487"
+    }
+  },
+  "finalState": {
+    "deviceOwner": "PO",
+    "screen": "HOME_HEALTH_RECENT_ACTIVITIES",
+    "sampleMode": "ON",
+    "keyboard": "CLOSED",
+    "modal": "CLOSED",
+    "commit": "NO",
+    "push": "NO",
+    "store": "HOLD"
+  }
+}
