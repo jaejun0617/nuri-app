@@ -1,0 +1,38 @@
+[
+  {
+    "season": "autumn",
+    "file": "src/assets/seasonal/login/social/autumn.png",
+    "width": 836,
+    "height": 1881,
+    "bytes": 1793487,
+    "sha256": "8d26b45d87ce08b661cf306543a21ab6bbef0105e16dec0ddd3e71e63f720172",
+    "matchesSuppliedImage": true
+  },
+  {
+    "season": "winter",
+    "file": "src/assets/seasonal/login/social/winter.png",
+    "width": 836,
+    "height": 1881,
+    "bytes": 1610741,
+    "sha256": "1d3eb2d44c312b4b9ae9a4db7a0cc9e1a4a4361459245555dbcd4aced420ea9a",
+    "matchesSuppliedImage": true
+  },
+  {
+    "season": "spring",
+    "file": "src/assets/seasonal/login/social/spring.png",
+    "width": 836,
+    "height": 1881,
+    "bytes": 1721048,
+    "sha256": "8e139a4467a89d61cc47a6f46e9386099b812edfefaf8aab960b1825b0245e19",
+    "matchesSuppliedImage": true
+  },
+  {
+    "season": "summer",
+    "file": "src/assets/seasonal/login/social/summer.png",
+    "width": 836,
+    "height": 1881,
+    "bytes": 1956409,
+    "sha256": "20163313a8f1aa66a7e8be47ab4c91d32ed55b270102545408baaef14443d6ea",
+    "matchesSuppliedImage": true
+  }
+]

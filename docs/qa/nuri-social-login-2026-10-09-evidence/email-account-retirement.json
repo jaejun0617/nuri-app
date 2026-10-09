@@ -1,0 +1,59 @@
+{
+  "project": "NURI",
+  "projectRef": "grmekesqoydylqmyvfke",
+  "date": "2026-10-09",
+  "authorization": "PO explicitly approved email-only immediate retirement and cascade deletion of social-authored comments on removed content.",
+  "selector": "auth.identities includes email and contains no non-email provider; frozen set of 52 IDs.",
+  "auditOrigin": "po_email_only_retirement_20261009",
+  "before": {
+    "totalAccounts": 56,
+    "emailOnly": 52,
+    "socialOrLinked": 4,
+    "targetPets": 10,
+    "targetMemories": 44,
+    "targetPosts": 872,
+    "targetAuthoredComments": 213,
+    "socialAuthoredCascadeComments": 140,
+    "approvedCommentClosure": 353,
+    "targetSessions": 108
+  },
+  "execution": {
+    "firstAttempt": "FULL_ROLLBACK",
+    "firstError": "enforce_community_comment_reply_target rejected FK SET NULL during per-user deletion",
+    "correctedOrder": "Delete the approved 353-comment cascade set in one statement, then existing execute_account_deletion_request for each target, all in one atomic transaction.",
+    "globalTriggersDisabled": false,
+    "serverFunctionsModified": false,
+    "workerHttpRequestId": 50495,
+    "workerStatus": 200,
+    "storageCleanup": {
+      "claimed": 27,
+      "succeeded": 27,
+      "failed": 0
+    },
+    "accountRequestsCompleted": 52
+  },
+  "verification": {
+    "completed_requests": 52,
+    "preserved_accounts": 4,
+    "preserved_pet_count": 6,
+    "preserved_pet_match": true,
+    "remaining_target_pets": 0,
+    "preserved_memory_count": 27,
+    "preserved_memory_match": true,
+    "remaining_target_posts": 0,
+    "preserved_profile_match": true,
+    "cleanup_pending_requests": 0,
+    "preserved_identity_match": true,
+    "remaining_cleanup_objects": 0,
+    "remaining_target_accounts": 0,
+    "remaining_target_comments": 0,
+    "remaining_target_memories": 0,
+    "remaining_target_profiles": 0,
+    "remaining_target_sessions": 0,
+    "global_grace_period_unchanged": true,
+    "remaining_target_owned_storage": 0
+  },
+  "knownRisk": "Normal per-account hard deletion can still conflict with the immutable reply-target trigger. Not fixed globally.",
+  "limitations": "No physical-device logout was performed. Already issued access JWTs are not retroactively invalidated by deleting auth sessions; refresh sessions and auth users are absent.",
+  "sensitiveDataStored": false
+}

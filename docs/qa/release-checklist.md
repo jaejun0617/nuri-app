@@ -1,5 +1,13 @@
 # V1.0 Remaining Task/Risk Closeout
 
+<!-- NURI_UI_APPROVED_RELEASE_20261009_BEGIN -->
+## 2026-10-09 Approved Social Login and Seasonal UI Release
+
+- [최종 전달](nuri-ui-approved-release-2026-10-09.md): PO FINAL_APPROVED, source `f6d284d`, 승인 범위 동결. 타입 PASS, lint 오류 0/기존 경고 30, 전체 210 suites/2,191 tests PASS.
+- 증분 Release/install-r 각 1회, APK `ccf759ca28c51aa7b034b49b2511037840203c22da37c6fd42937c28b674f98b` 설치 일치. 기존 signer/UID/최초 설치/설정 유지. debuggable false, cleartext false, embedded JS YES, runtime 입력 723개 불변.
+- Source 푸시 완료, 무관한 dirty/증거 보존. 새 앱 UI QA·DB·cleanup 없음, Metro ON 유지. 기존 HQA/탈퇴 OPEN과 시나리오별 native 미확인 유지, clean Store RC provenance 미주장, STORE HOLD.
+<!-- NURI_UI_APPROVED_RELEASE_20261009_END -->
+
 <!-- NURI_SEASON_GUIDE_RELEASE_20261009_BEGIN -->
 ## 2026-10-09 Seasonal Glass / Guide QA Release
 

@@ -1,5 +1,22 @@
 # Social Login v1.0
 
+## 2026-10-09 승인 디자인 Release 기준
+
+- 소셜 전용 로그인과 스플래시는 source `f6d284d`의 승인 Release APK `ccf759ca`에 포함됐다. [최종 전달 및 미확인 경계](../../qa/nuri-ui-approved-release-2026-10-09.md). 아래 후보/미설치 표기는 이전 단계 이력이다.
+- 실제 OAuth native·다른 기종·일반 탈퇴 충돌의 기존 검증 상태는 유지한다. 이번 전달에서 서버 인증 정책·계정·DB 변경은 없으며 STORE HOLD다.
+
+## 2026-10-09 후속 시각 전달 상태
+
+- 승인된 개발 빌드·덮어 설치 후 Metro 연결 완료. 스플래시 문구는 `너와 함께, 모든 계절`, 로그인은 `함께한 순간을, 오래도록`이다. 봄·여름 로그인 이미지는 가을 구도로 재생성하고 원본 비율/CTA 위치/흰 상태바 계약을 통일했다.
+- 전체 205 suites/2,156 tests와 타입/lint PASS, Galaxy S24 네 계절 현재 외관 확인. 실제 OAuth native 및 다른 기종·확대 글꼴 확인은 별도 미실행이다. [최신 경계](../../qa/nuri-social-login-2026-10-09.md). 아래 미설치 표기는 최초 단계 이력이다.
+
+## 2026-10-09 소셜 전용 로그인 홈 후보
+
+- 공개 로그인 UI는 Google/Kakao만 제공한다. 이메일 입력·비밀번호 찾기·회원가입 진입과 SignUp 화면/route는 제거했다. 닉네임 온보딩, OAuth callback/session, 계정 복구, 정책 문서 열람은 유지한다.
+- PO 제공 4계절 이미지와 공식 공급자 로고를 사용한다. source/로컬 검증 완료이며 이번 후보의 build/install/native OAuth 확인은 미실행이다. [검증 결과](../../qa/nuri-social-login-2026-10-09.md).
+- PO 추가 승인으로 remote 이메일 단독 52개를 즉시 탈퇴 처리했다. 소셜 연결 4개(이메일+Google 포함)는 유지했다. 기존 7일 정책/Email Provider 설정/복구 deep link는 변경하지 않았다.
+- 일회성 삭제에서 확인된 댓글 FK SET NULL/불변 검사 충돌은 일반 탈퇴 경로의 별도 OPEN이다. 전체 탈퇴 서비스가 수정된 것으로 보지 않는다.
+
 ## 2026-08-18 AUTH-001 current app/source closeout
 
 - 현재 Auth 정책은 Google ON, Kakao ON, Naver 완전 제거, Apple OFF다.
