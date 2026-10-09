@@ -184,27 +184,24 @@ export const HomeHealthActivityList = memo(function HomeHealthActivityListView({
             accessibilityLabel={`${date}, ${kind.label}, ${title}, ${item.subtitle}, 건강 활동 보기`}
             onPress={() => onPress(item.ymd)}
             activeOpacity={0.9}
-            style={styles.activityRow}
+            style={[
+              styles.activityRow,
+              index > 0 && styles.divider,
+              { borderColor: theme.colors.border },
+            ]}
           >
-            {index < items.length - 1 ? (
-              <View
-                style={[
-                  styles.timelineLine,
-                  { backgroundColor: `${accentColor}24` },
-                ]}
-                pointerEvents="none"
+            <View style={[styles.activityIcon]} pointerEvents="none">
+              <NuriSemanticIcon
+                family="feather"
+                name={kind.icon}
+                size={18}
+                color={accentColor}
               />
-            ) : null}
+            </View>
             <View
-              style={[
-                styles.activityIcon,
-                { backgroundColor: `${accentColor}14` },
-              ]}
+              style={[styles.body, styles.activityBody]}
               pointerEvents="none"
             >
-              <NuriSemanticIcon family="feather" name={kind.icon} size={18} color={accentColor} />
-            </View>
-            <View style={styles.body} pointerEvents="none">
               <View
                 style={[
                   styles.activityMetadata,
@@ -224,14 +221,16 @@ export const HomeHealthActivityList = memo(function HomeHealthActivityListView({
               </View>
               <AppText
                 preset="cardTitle"
-                style={styles.title}
+                style={styles.activityTitle}
                 color={theme.colors.textPrimary}
               >
                 {title}
               </AppText>
               <AppText
                 preset="unifiedBody"
-                numberOfLines={2}
+                styleOverridesPreset
+                style={styles.activitySubtitle}
+                numberOfLines={1}
                 color={theme.colors.textMuted}
               >
                 {item.subtitle}
@@ -275,27 +274,21 @@ const styles = StyleSheet.create({
   scheduleLeadTitle: { fontSize: 21, lineHeight: 29, fontWeight: '600' },
   title: { fontSize: 17, lineHeight: 24, fontWeight: '600' },
   activityRow: {
-    minHeight: 100,
-    paddingTop: 6,
-    paddingBottom: 20,
+    minHeight: 76,
+    paddingVertical: 12,
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
+    alignItems: 'center',
+    gap: 10,
   },
+  activityBody: { gap: 3 },
+  activityTitle: { fontSize: 16, lineHeight: 23, fontWeight: '600' },
+  activitySubtitle: { fontSize: 13, lineHeight: 19 },
   activityIcon: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 24,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-  },
-  timelineLine: {
-    position: 'absolute',
-    left: 18.5,
-    width: 1,
-    top: 44,
-    bottom: 0,
   },
   activityMetadata: {
     flexDirection: 'row',

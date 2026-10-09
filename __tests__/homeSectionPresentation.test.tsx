@@ -76,8 +76,10 @@ describe('Home section rhythm and material', () => {
       typeof button.props.style === 'function'
         ? button.props.style({ pressed: false }) : button.props.style,
     );
-    expect(buttonStyle.width).toBe(Math.ceil(80 * fontScale));
-    expect(buttonStyle.minHeight).toBe(Math.ceil(28 * fontScale));
+    expect(buttonStyle.width).toBeUndefined();
+    expect(buttonStyle.minHeight).toBe(48);
+    expect(buttonStyle.borderWidth).toBe(0);
+    expect(buttonStyle.maxWidth).toBe('100%');
     expect(StyleSheet.flatten(header?.props.style).flexDirection).toBe(
       fontScale >= 1.3 ? 'column' : 'row',
     );
@@ -101,6 +103,20 @@ describe('Home section rhythm and material', () => {
     expect(source).toMatch(
       /style=\{usesCanonicalHeroGeometry \? styles\.autumnHeroBodyGroup : null\}[\s\S]*?<HeroProfileIdentity[\s\S]*?accessibilityLabel=\{`\$\{profilePetName\} 더 알아보기`\}/,
     );
+  });
+
+  it('uses effective season color and a trailing chevron for the pet profile entry', () => {
+    const hero = source.slice(source.indexOf('const HeroProfileSection'), source.indexOf('const RecommendationTipsSection'));
+    expect(hero).toContain('const profileEntryPalette = SEASON_CTA[useEffectiveSeason()]');
+    expect(hero).toContain('backgroundColor: profileEntryPalette.subtle');
+    expect(hero).toContain('borderColor: profileEntryPalette.border');
+    expect(hero).toContain('color: profileEntryPalette.primary');
+    expect(hero).toContain('color={profileEntryPalette.primary}');
+    expect(hero).toContain('onPress={onPressProfileInfo}');
+    expect(hero).toMatch(/name="chevron-right"[\s\S]*style=\{styles.autumnProfileEntryChevron\}[\s\S]*accessible=\{false\}/);
+    expect(homeStyles.autumnProfileEntryChevron).toMatchObject({ position: 'absolute', right: 16 });
+    expect(homeStyles.autumnProfileEntryText.textAlign).toBe('center');
+    expect(homeStyles.autumnProfileEntry.paddingHorizontal).toBeGreaterThan(16 + 18);
   });
 
   it('lets record tiles grow with enlarged copy instead of painting outside a square', async () => {
@@ -362,26 +378,23 @@ describe('Home section rhythm and material', () => {
     expect(action.props.accessibilityLabel).toBe('추천 팁 전체 보기');
     expect(actionStyles.text).toMatchObject({
       textAlign: 'center',
-      flex: 1,
-      marginHorizontal: 6,
-    });
-    expect(actionStyles.compactIconSlot).toMatchObject({
-      position: 'absolute',
-      right: 5,
+      flexShrink: 1,
+      fontSize: 14,
     });
     expect(actionStyles.compactButton).toMatchObject({
-      width: 80,
-      flexShrink: 0,
+      minHeight: 48,
+      borderWidth: 0,
+      flexShrink: 1,
     });
     expect(
       renderer.root.findAll(node => node.props.name === 'chevron-right'),
-    ).toHaveLength(0);
+    ).not.toHaveLength(0);
     const header = renderer.root.findAll(
       node => node.type === View && node.props.testID === 'home-section-header',
     )[0];
     expect(StyleSheet.flatten(header.props.style)).toMatchObject({
       width: '100%',
-      alignItems: 'flex-start',
+      alignItems: 'center',
     });
     action.props.onPress();
     expect(onPress).toHaveBeenCalledTimes(1);

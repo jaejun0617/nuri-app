@@ -98,6 +98,8 @@ android {
 
 dependencies {
   implementation("com.facebook.react:react-android")
+  // Match react-native-blur's pinned capture engine for local foreground exclusion.
+  implementation("com.github.qmdeve.qmblurview:core:v1.3.0")
 
   if (project.hasProperty('hermesEnabled') && hermesEnabled.toBoolean()) {
     implementation("com.facebook.react:hermes-android")

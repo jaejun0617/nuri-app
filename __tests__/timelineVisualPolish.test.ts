@@ -9,7 +9,7 @@ describe('Timeline visual polish', () => {
   it('matches the Community circular seasonal compose control without changing its callback', () => {
     const button = StyleSheet.flatten(styles.floatingCreateButton);
     expect(button).toMatchObject(communityStyles.createButton);
-    expect(button).toMatchObject({ position: 'absolute', right: 16 });
+    expect(styles.floatingCreatePosition).toMatchObject({ position: 'absolute', right: 16 });
     expect(button).not.toHaveProperty('height');
     expect(button).not.toHaveProperty('elevation');
     expect(button).not.toHaveProperty('shadowOpacity');
@@ -17,14 +17,19 @@ describe('Timeline visual polish', () => {
       join(process.cwd(), 'src/screens/Records/TimelineScreen.tsx'),
       'utf8',
     );
-    const create = source.match(
+    const buttonSource = readFileSync(join(process.cwd(), 'src/screens/Records/TimelineCreateButton.tsx'), 'utf8');
+    const create = buttonSource.match(
       /<CtaButton\s+testID="timeline-fixed-create"[\s\S]*?<\/CtaButton>/,
     )?.[0];
     expect(create).toContain('role="primary"');
-    expect(create).toContain('onPress={onPressCreate}');
+    expect(create).toContain('onPress={onPress}');
+    expect(source).toContain('onPress={onPressCreate}');
     expect(create).toContain('accessibilityLabel="기록하기"');
-    expect(create).toContain('>기록</CtaText>');
-    expect(create).not.toContain('name="plus"');
+    expect(create).not.toContain('>기록</CtaText>');
+    expect(create).toContain('name="plus"');
+    expect(create).toContain('color="#FFFFFF"');
+    expect(create).toContain('size={24}');
+    expect(create).toContain('preserveOriginal');
     expect(source).toContain('useContext(ToolbarHeightContext)');
     expect(source).toContain('(toolbarHeight ?? insets.bottom) + 12');
     expect(source).not.toContain('insets.bottom + 74');

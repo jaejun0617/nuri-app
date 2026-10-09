@@ -97,7 +97,7 @@ const styles = StyleSheet.create({
     width: '100%',
     minHeight: 36,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: 10,
   },
   heading: { flex: 1, minWidth: 0, gap: 4 },

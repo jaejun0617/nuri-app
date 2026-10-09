@@ -15,6 +15,8 @@ import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // - 계정 액션과 일반 메뉴 이동이 섞여 있어, 모달 상태와 navigation 호출 순서를 함부로 바꾸면 드로어 닫힘/복귀 UX가 어긋날 수 있다.
 
 import AppTextInput from '../../app/ui/AppTextInput';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
+import SeasonalAmbientBackground from '../../components/common/SeasonalAmbientBackground';
 import AppFontSettingsModal from '../../components/settings/AppFontSettingsModal';
 import { useAppFontPreference } from '../../app/providers/AppFontPreferenceProvider';
 import { getAppFontModeLabel } from '../../app/typography/appFontMode';
@@ -1204,6 +1206,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
+  const season = useEffectiveSeason();
   const { mode: appFontMode } = useAppFontPreference();
   const nicknameRaw = useAuthStore(s => s.profile.nickname);
   const role = useAuthStore(s => s.profile.role ?? 'user');
@@ -2285,9 +2288,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       style={[styles.safe, { backgroundColor: theme.colors.background }]}
       edges={['top']}
     >
-      <View
-        style={[styles.screen, { backgroundColor: theme.colors.background }]}
-      >
+      <SeasonalAmbientBackground season={season} />
+      <View style={styles.screen}>
         <MoreMenuHeader
           onClose={onRequestClose}
           onSettings={isLoggedIn ? scrollToSettings : undefined}
@@ -2657,7 +2659,6 @@ const styles = StyleSheet.create({
   },
   screen: {
     flex: 1,
-    backgroundColor: '#F7F8FB',
   },
   scroll: { flex: 1 },
   content: {

@@ -25,6 +25,8 @@ import {
   resolveTimelineDaySubtitleColor,
 } from '../src/screens/Records/timelinePresentation';
 import { useTimelineInitialMonth } from '../src/screens/Records/useTimelineInitialMonth';
+import { styles as timelineStyles } from '../src/screens/Records/TimelineScreen.styles';
+import { resolveHomeFrostedMaterial } from '../src/components/home/HomeFrostedGlass';
 import {
   buildTimelineCategoryCounts,
   buildTimelineView,
@@ -34,6 +36,10 @@ import type { MemoryRecord } from '../src/services/supabase/memories';
 
 jest.mock('../src/hooks/useSignedMemoryImage', () => ({
   useSignedMemoryImage: () => ({ signedUrl: null }),
+}));
+let mockEffectiveSeason: SeasonKey = 'autumn';
+jest.mock('../src/app/providers/SeasonPreferenceProvider', () => ({
+  useEffectiveSeason: () => mockEffectiveSeason,
 }));
 
 const expected = {
@@ -96,6 +102,9 @@ function text(tree: TestRenderer.ReactTestRenderer) {
 }
 
 describe('Timeline seasonal design', () => {
+  beforeEach(() => {
+    mockEffectiveSeason = 'autumn';
+  });
   it.each(Object.keys(expected) as SeasonKey[])(
     '%s renders separate exact tokens, original hero and white selected chip contents',
     season => {
@@ -138,10 +147,14 @@ describe('Timeline seasonal design', () => {
       expect(StyleSheet.flatten(stats.props.style)).toMatchObject({
         paddingVertical: 8,
         backgroundColor: 'rgba(255,255,255,0.65)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.85)',
         marginTop:
           -192 * (1 - TIMELINE_STATS_ANCHOR[season]) -
           (season === 'summer' ? 8 : 4),
       });
+      expect(stats.props.blurAmount).toBeUndefined();
+      expect(tree.root.findAllByProps({ testID: 'home-frosted-tint' })).toHaveLength(0);
       const titleXp = tree.root
         .findAll(node => node.props.testID === 'timeline-title-xp-row')
         .at(-1)!;
@@ -578,7 +591,8 @@ describe('Timeline seasonal design', () => {
     TestRenderer.act(() => tree.unmount());
   });
 
-  it('opts in without changing default cards, taps, or image behavior', () => {
+  it.each(Object.keys(expected) as SeasonKey[])('%s opts into row blur without changing default cards, taps, or image behavior', season => {
+    mockEffectiveSeason = season;
     const press = jest.fn();
     const tree = render(
       <MemoryCard
@@ -592,6 +606,18 @@ describe('Timeline seasonal design', () => {
       />,
     );
     const button = tree.root.findByType(TouchableOpacity);
+    const glass = tree.root.findAllByProps({ testID: 'timeline-record-glass' }).at(-1)!;
+    expect(glass.props.blurAmount).toBe(18);
+    expect(glass.props.blurRounds).toBe(2);
+    expect(StyleSheet.flatten(glass.props.style)).toMatchObject({
+      marginTop: 0, padding: 8, borderRadius: 8, backgroundColor: 'transparent',
+    });
+    const material = resolveHomeFrostedMaterial(season);
+    expect(glass.props.reducedTransparencyFallbackColor).toBe(material.reducedTransparencyFallbackColor);
+    const tint = tree.root.findAllByProps({ testID: 'home-frosted-tint' }).at(-1)!;
+    expect(StyleSheet.flatten(tint.props.style)).toMatchObject({
+      backgroundColor: material.backgroundColor, borderColor: material.borderColor,
+    });
     const chip = tree.root
       .findAll(node => node.props.testID === 'timeline-record-category')
       .at(-1)!;
@@ -619,6 +645,7 @@ describe('Timeline seasonal design', () => {
         node => node.props.testID === 'timeline-seasonal-record',
       ),
     ).toHaveLength(0);
+    expect(tree.root.findAllByProps({ testID: 'timeline-record-glass' })).toHaveLength(0);
     TestRenderer.act(() => tree.unmount());
   });
 
@@ -646,6 +673,15 @@ describe('Timeline seasonal design', () => {
     );
     expect(guest).toContain('backgroundColor: theme.colors.brand');
     expect(guest).not.toContain('<TimelineSeasonalHeader');
+    const background = '<SeasonalAmbientBackground season={season} appearance="light" />';
+    expect(source.split(background)).toHaveLength(3);
+    expect(guest).toContain(background);
+    const loggedIn = source.slice(source.indexOf('onLayout={onListLayout}'));
+    expect(loggedIn.indexOf(background)).toBeLessThan(loggedIn.indexOf('<FlashList'));
+    expect(StyleSheet.flatten(timelineStyles.header)).not.toHaveProperty('backgroundColor');
+    expect(StyleSheet.flatten(timelineStyles.controlsWrap)).not.toHaveProperty('backgroundColor');
+    expect(timelineStyles.seasonalCard).not.toHaveProperty('backgroundColor');
+    expect(timelineStyles.seasonalCardContent).toMatchObject({ padding: 8, marginTop: 0 });
     const tokenSource = fs.readFileSync(
       path.join(process.cwd(), 'src/theme/seasonal/timeline.ts'),
       'utf8',

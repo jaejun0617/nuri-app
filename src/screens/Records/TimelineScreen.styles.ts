@@ -23,7 +23,6 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: '#FFFFFF',
   },
   headerSideSlot: {
     width: 88,
@@ -63,7 +62,6 @@ export const styles = StyleSheet.create({
 
   // sticky controls
   controlsWrap: {
-    backgroundColor: '#FFFFFF',
     borderBottomWidth: 0,
     paddingHorizontal: 18,
     paddingTop: SCREEN_TOP_SPACING,
@@ -406,11 +404,11 @@ export const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
     marginBottom: 8,
-    padding: 8,
-    backgroundColor: '#FFFFFF',
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#EEF0F4',
+  },
+  seasonalCardContent: {
+    marginTop: 0,
+    padding: 8,
     flexDirection: 'row',
     gap: 10,
     alignItems: 'center',
@@ -690,9 +688,11 @@ export const styles = StyleSheet.create({
   },
   manualMoreText: { color: TEXT, fontWeight: '900' },
 
-  floatingCreateButton: {
+  floatingCreatePosition: {
     position: 'absolute',
     right: 16,
+  },
+  floatingCreateButton: {
     width: 48,
     minHeight: 48,
     borderRadius: 24,

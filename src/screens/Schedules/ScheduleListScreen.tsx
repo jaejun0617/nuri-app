@@ -35,7 +35,8 @@ import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 import AppTextInput from '../../app/ui/AppTextInput';
 import { useTheme } from 'styled-components/native';
 import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
-import { HomeAmbientBubbleCanvas } from '../Main/components/LoggedInHome/HomeAmbientBubbleCanvas';
+import SeasonalAmbientBackground from '../../components/common/SeasonalAmbientBackground';
+import { HomeFrostedGlass } from '../../components/home/HomeFrostedGlass';
 import { getKstYmd } from '../../utils/date';
 import {
   buildScheduleListSections,
@@ -66,7 +67,7 @@ Object.freeze(EMPTY_SCHEDULE_ITEMS);
 export default function ScheduleListScreen() {
   const theme = useTheme();
   const season = useEffectiveSeason();
-  const { height, width, fontScale } = useWindowDimensions();
+  const { width, fontScale } = useWindowDimensions();
   const compactFilters = width < 380 || fontScale >= 1.3;
   const [filter, setFilter] = useState<ScheduleListFilter>('all');
   const [query, setQuery] = useState('');
@@ -187,14 +188,7 @@ export default function ScheduleListScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
-      <View pointerEvents="none" style={styles.ambient}>
-        <HomeAmbientBubbleCanvas
-          heroHeight={height}
-          season={season}
-          decorationMode="reading"
-          showDecorations={false}
-        />
-      </View>
+      <SeasonalAmbientBackground season={season} />
       <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <TouchableOpacity
           accessibilityRole="button"
@@ -378,44 +372,51 @@ export default function ScheduleListScreen() {
               onPress={() => onPressItem(item.id)}
               style={styles.card}
             >
-              <NuriSemanticIcon
-                family="material"
-                name={mapScheduleIconName(item.iconKey)}
-                size={30}
-                color={petTheme.primary}
-              />
-              <View style={styles.cardTextCol}>
-                <AppText
-                  preset="unifiedMicro"
-                  color={theme.colors.textSecondary}
-                >
-                  {timeLabel}
-                </AppText>
-                <AppText preset="cardTitle" color={theme.colors.textPrimary}>
-                  {item.title}
-                </AppText>
-                {item.repeatRule !== 'none' || item.completedAt ? (
+              <HomeFrostedGlass
+                testID={`schedule-hub-glass-${item.id}`}
+                season={season}
+                borderRadius={12}
+                style={styles.cardContent}
+              >
+                <NuriSemanticIcon
+                  family="material"
+                  name={mapScheduleIconName(item.iconKey)}
+                  size={30}
+                  color={petTheme.primary}
+                />
+                <View style={styles.cardTextCol}>
                   <AppText
                     preset="unifiedMicro"
                     color={theme.colors.textSecondary}
                   >
-                    {[
-                      item.repeatRule !== 'none' ? '반복 일정' : '',
-                      item.completedAt ? '완료' : '',
-                    ]
-                      .filter(Boolean)
-                      .join(' · ')}
+                    {timeLabel}
                   </AppText>
+                  <AppText preset="cardTitle" color={theme.colors.textPrimary}>
+                    {item.title}
+                  </AppText>
+                  {item.repeatRule !== 'none' || item.completedAt ? (
+                    <AppText
+                      preset="unifiedMicro"
+                      color={theme.colors.textSecondary}
+                    >
+                      {[
+                        item.repeatRule !== 'none' ? '반복 일정' : '',
+                        item.completedAt ? '완료' : '',
+                      ]
+                        .filter(Boolean)
+                        .join(' · ')}
+                    </AppText>
+                  ) : null}
+                </View>
+                {item.reminderMinutes.length ? (
+                  <Feather name="bell" size={18} color={theme.colors.textMuted} />
                 ) : null}
-              </View>
-              {item.reminderMinutes.length ? (
-                <Feather name="bell" size={18} color={theme.colors.textMuted} />
-              ) : null}
-              <Feather
-                name="chevron-right"
-                size={19}
-                color={petTheme.primary}
-              />
+                <Feather
+                  name="chevron-right"
+                  size={19}
+                  color={petTheme.primary}
+                />
+              </HomeFrostedGlass>
             </TouchableOpacity>
           );
         }}

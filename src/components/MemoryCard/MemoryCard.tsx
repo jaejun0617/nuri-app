@@ -24,6 +24,8 @@ import { getTimelineCategoryTone } from '../../services/timeline/categoryTone';
 import type { MemoryRecord } from '../../services/supabase/memories';
 import type { MemoryImageVariant } from '../../services/supabase/storageMemories';
 import AppText from '../../app/ui/AppText';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
+import { HomeFrostedGlass } from '../home/HomeFrostedGlass';
 
 // ✅ 기존 TimelineScreen.styles 그대로 사용 (UI 유지)
 import { styles } from '../../screens/Records/TimelineScreen.styles';
@@ -96,6 +98,7 @@ function MemoryCardComponent({
   metaTextStyle,
   hideBottomRail = false,
 }: MemoryCardProps) {
+  const season = useEffectiveSeason();
   const timelineImage = getTimelinePrimaryMemoryImageSource(item);
   const effectiveVariant = imageVariant ?? timelineImage.variant;
   const { signedUrl } = useSignedMemoryImage(timelineImage.value, {
@@ -224,74 +227,81 @@ function MemoryCardComponent({
             onPress={handlePress}
             style={styles.seasonalCard}
           >
-            <View style={styles.seasonalThumb}>
-              {hasImage && signedUrl ? (
-                <OptimizedImage
-                  uri={signedUrl}
-                  style={styles.seasonalThumbImage}
-                  resizeMode="cover"
-                  priority={deferImageLoad ? 'low' : 'normal'}
-                />
-              ) : (
-                <View
-                  style={[
-                    styles.seasonalThumbPlaceholder,
-                    { backgroundColor: categoryTone.placeholderColor },
-                  ]}
-                >
-                  <NuriSemanticIcon
-                    family="material"
-                    name={categoryMeta.icon}
-                    size={24}
-                    color={categoryTone.textColor}
+            <HomeFrostedGlass
+              testID="timeline-record-glass"
+              season={season}
+              borderRadius={8}
+              style={styles.seasonalCardContent}
+            >
+              <View style={styles.seasonalThumb}>
+                {hasImage && signedUrl ? (
+                  <OptimizedImage
+                    uri={signedUrl}
+                    style={styles.seasonalThumbImage}
+                    resizeMode="cover"
+                    priority={deferImageLoad ? 'low' : 'normal'}
                   />
-                </View>
-              )}
-            </View>
-            <View style={styles.seasonalBody}>
-              <View
-                testID="timeline-record-category"
-                style={[
-                  styles.seasonalCategory,
-                  { backgroundColor: categoryTone.backgroundColor },
-                ]}
-              >
-                <AppText
-                  preset="unifiedMeta"
-                  styleOverridesPreset
+                ) : (
+                  <View
+                    style={[
+                      styles.seasonalThumbPlaceholder,
+                      { backgroundColor: categoryTone.placeholderColor },
+                    ]}
+                  >
+                    <NuriSemanticIcon
+                      family="material"
+                      name={categoryMeta.icon}
+                      size={24}
+                      color={categoryTone.textColor}
+                    />
+                  </View>
+                )}
+              </View>
+              <View style={styles.seasonalBody}>
+                <View
+                  testID="timeline-record-category"
                   style={[
-                    styles.seasonalCategoryText,
-                    { color: categoryTone.textColor },
+                    styles.seasonalCategory,
+                    { backgroundColor: categoryTone.backgroundColor },
                   ]}
                 >
-                  {categoryMeta.label}
-                </AppText>
-              </View>
-              <AppText
-                preset="unifiedBody"
-                numberOfLines={1}
-                styleOverridesPreset
-                style={styles.seasonalTitle}
-              >
-                {titleText}
-              </AppText>
-              {metaText ? (
+                  <AppText
+                    preset="unifiedMeta"
+                    styleOverridesPreset
+                    style={[
+                      styles.seasonalCategoryText,
+                      { color: categoryTone.textColor },
+                    ]}
+                  >
+                    {categoryMeta.label}
+                  </AppText>
+                </View>
                 <AppText
-                  preset="unifiedMeta"
+                  preset="unifiedBody"
+                  numberOfLines={1}
                   styleOverridesPreset
-                  style={styles.seasonalMeta}
+                  style={styles.seasonalTitle}
                 >
-                  {metaText}
+                  {titleText}
                 </AppText>
-              ) : null}
-            </View>
-            <NuriSemanticIcon
-              family="feather"
-              name="chevron-right"
-              size={18}
-              color="#748096"
-              preserveOriginal
-            />
+                {metaText ? (
+                  <AppText
+                    preset="unifiedMeta"
+                    styleOverridesPreset
+                    style={styles.seasonalMeta}
+                  >
+                    {metaText}
+                  </AppText>
+                ) : null}
+              </View>
+              <NuriSemanticIcon
+                family="feather"
+                name="chevron-right"
+                size={18}
+                color="#748096"
+                preserveOriginal
+              />
+            </HomeFrostedGlass>
           </TouchableOpacity>
         </View>
       </View>

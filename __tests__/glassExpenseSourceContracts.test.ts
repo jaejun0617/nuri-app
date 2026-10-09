@@ -25,8 +25,13 @@ describe('glass form and expense integration contracts', () => {
       );
     }
     expect(source('src/screens/Schedules/ScheduleListScreen.tsx')).toContain(
-      'showDecorations={false}',
+      '<SeasonalAmbientBackground season={season} />',
     );
+    expect(source('src/screens/Schedules/ScheduleListScreen.tsx')).not.toContain('HomeAmbientBubbleCanvas');
+    const ambient = source('src/components/common/SeasonalAmbientBackground.tsx');
+    expect(ambient).not.toContain('HomeAmbientBubbleCanvas');
+    expect(ambient).not.toContain('<Image');
+    expect(ambient).toContain('pointerEvents="none"');
   });
   it('retains safe money in both create and edit payloads', () => {
     for (const screen of ['RecordCreateScreen', 'RecordEditScreen']) {

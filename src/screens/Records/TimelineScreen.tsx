@@ -115,6 +115,8 @@ import { styles } from './TimelineScreen.styles';
 import TimelineSeasonalHeader, {
   TimelineSeasonalControls,
 } from './TimelineSeasonalHeader';
+import SeasonalAmbientBackground from '../../components/common/SeasonalAmbientBackground';
+import TimelineCreateButton from './TimelineCreateButton';
 import {
   buildTimelineDayCounts,
   buildTimelineDayHeader,
@@ -1432,6 +1434,7 @@ export default function TimelineScreen() {
   if (!isLoggedIn) {
     return (
       <View style={[styles.screen, { paddingTop: insets.top }]}>
+        <SeasonalAmbientBackground season={season} appearance="light" />
         <View style={styles.header}>
           <View style={styles.headerSideSlot}>
             <TouchableOpacity
@@ -1503,6 +1506,7 @@ export default function TimelineScreen() {
       onLayout={onListLayout}
       style={[styles.screen, { paddingTop: insets.top }]}
     >
+      <SeasonalAmbientBackground season={season} appearance="light" />
       <FlashList
         key={
           isHomeTotalSummaryEntry
@@ -1533,23 +1537,11 @@ export default function TimelineScreen() {
         keyboardShouldPersistTaps="handled"
       />
 
-      <CtaButton
-        testID="timeline-fixed-create"
-        role="primary"
-        activeOpacity={0.92}
-        accessibilityRole="button"
-        accessibilityLabel="기록하기"
-        style={[
-          styles.floatingCreateButton,
-          {
-            bottom: floatingCreateButtonBottom,
-            right: styles.floatingCreateButton.right + insets.right,
-          },
-        ]}
+      <TimelineCreateButton
+        bottom={floatingCreateButtonBottom}
+        rightInset={insets.right}
         onPress={onPressCreate}
-      >
-        <CtaText preset="unifiedMeta" style={{ fontWeight: '800' }}>기록</CtaText>
-      </CtaButton>
+      />
 
       <Modal
         visible={ymModalOpen}

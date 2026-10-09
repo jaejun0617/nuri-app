@@ -1,16 +1,13 @@
 import { StyleSheet } from 'react-native';
 
-const BG = '#FFFFFF';
-const SURFACE = '#FFFFFF';
 const TEXT = '#0B1220';
 const MUTED = '#556070';
-const BORDER = 'rgba(0,0,0,0.06)';
 const BRAND = '#6D6AF8';
 
 export const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: BG,
+    backgroundColor: 'transparent',
   },
   header: {
     paddingHorizontal: 18,
@@ -19,7 +16,7 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    backgroundColor: BG,
+    backgroundColor: 'transparent',
   },
   headerSideSlot: {
     width: 40,
@@ -51,14 +48,13 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(109,106,248,0.10)',
   },
   searchCard: {
+    width: undefined,
+    alignSelf: 'stretch',
     marginHorizontal: 16,
     marginTop: 12,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: BORDER,
     gap: 8,
   },
   searchInputWrap: {
@@ -125,14 +121,13 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
   },
   suggestionCard: {
+    width: undefined,
+    alignSelf: 'stretch',
     marginHorizontal: 16,
     marginTop: 12,
     borderRadius: 20,
     paddingHorizontal: 16,
     paddingVertical: 16,
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: BORDER,
     gap: 14,
   },
   suggestionSection: {
@@ -215,14 +210,13 @@ export const styles = StyleSheet.create({
     height: 12,
   },
   emptyCard: {
+    width: undefined,
+    alignSelf: 'stretch',
     marginHorizontal: 16,
     marginTop: 18,
     borderRadius: 24,
     paddingHorizontal: 20,
     paddingVertical: 26,
-    backgroundColor: SURFACE,
-    borderWidth: 1,
-    borderColor: BORDER,
     alignItems: 'center',
     gap: 10,
   },

@@ -7,6 +7,7 @@ import CtaButton, { CtaText } from '../../../../app/ui/CtaButton';
 
 import AppText from '../../../../app/ui/AppText';
 import { SEASON_CTA } from '../../../../app/theme/ctaPalette';
+import { useEffectiveSeason } from '../../../../app/providers/SeasonPreferenceProvider';
 import { FixedTypographyBoundary } from '../../../../app/providers/AppFontPreferenceProvider';
 import React, {
   useEffect,
@@ -63,6 +64,7 @@ import Animated, {
 import Screen from '../../../../components/layout/Screen';
 import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
 import MonthlyExpenseSection from './MonthlyExpenseSection';
+import { useHealthVisualQa } from '../../../../components/health/healthVisualQa';
 import { HomeScheduleCalendar } from '../../../../components/home/HomeScheduleCalendar';
 import { HomeSeasonProvider } from '../../../../components/home/HomeSeasonContext';
 import {
@@ -2348,6 +2350,7 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
   season: SeasonalHomeVisual['season'] | null;
   avatarDiameter: number;
 }) {
+  const profileEntryPalette = SEASON_CTA[useEffectiveSeason()];
   const isAutumn = season === 'autumn';
   const isWinter = season === 'winter';
   const isSpring = season === 'spring';
@@ -2445,11 +2448,10 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
             accessibilityRole="button"
             style={[
               styles.autumnProfileEntry,
-              isAutumn ? styles.autumnProfileEntryReadable : null,
-              isWinter ? styles.winterProfileEntry : null,
-              isSpring ? styles.springProfileEntry : null,
-              isSummer ? styles.summerProfileEntry : null,
-              { borderColor: SEASON_CTA[season].border },
+              {
+                borderColor: profileEntryPalette.border,
+                backgroundColor: profileEntryPalette.subtle,
+              },
             ]}
             onPress={onPressProfileInfo}
           >
@@ -2457,14 +2459,19 @@ const HeroProfileSection = React.memo(function HeroProfileSection({
               preset="unifiedLabel"
               style={[
                 styles.autumnProfileEntryText,
-                isWinter ? styles.winterProfileEntryText : null,
-                isSpring ? styles.springProfileEntryText : null,
-                isSummer ? styles.summerProfileEntryText : null,
-                { color: SEASON_CTA[season].primary },
+                { color: profileEntryPalette.primary },
               ]}
             >
               {profilePetName} 더 알아보기
             </AppText>
+            <NuriSemanticIcon
+              family="feather"
+              name="chevron-right"
+              size={18}
+              color={profileEntryPalette.primary}
+              style={styles.autumnProfileEntryChevron}
+              accessible={false}
+            />
           </TouchableOpacity>
         ) : null}
       </View>
@@ -2752,13 +2759,22 @@ const HealthRecentActivitiesSection = React.memo(
     accentColor: string;
     accentDeepColor: string;
   }) {
+    const visualQa = useHealthVisualQa();
     const recentActivities = useMemo(
-      () => activityItems.slice(0, 5),
-      [activityItems],
+      () => {
+        const samples = visualQa.data?.activityItems;
+        return samples
+          ? [4, 7, 9, 12, 17].map(index => samples[index])
+          : activityItems.slice(0, 5);
+      },
+      [activityItems, visualQa.data],
     );
 
     return (
       <HomeSectionGlass testID="home-glass-health" style={styles.section}>
+        {visualQa.enabled ? (
+          <AppText preset="caption" color="#475569">QA 샘플 · 읽기 전용</AppText>
+        ) : null}
         <HomeSectionHeader
           title="건강관리 최근 활동"
           color={accentDeepColor}

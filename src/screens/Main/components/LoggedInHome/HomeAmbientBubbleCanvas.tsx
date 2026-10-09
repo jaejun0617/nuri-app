@@ -25,6 +25,7 @@ import {
   type HomeAmbientAnchoredField,
 } from '../../../../theme/home/seasonalAmbient';
 import type { SeasonKey } from '../../../../theme/seasonal/season';
+import { SeasonalAmbientLighting } from '../../../../components/common/SeasonalAmbientBackground';
 
 const SOFT_RADIAL_GLOW = require('../../../../assets/seasonal/home/autumn/bubbles/soft-radial-glow-v1.png');
 const FADE_LOCATIONS = [0, 0.12, 0.3, 0.5, 0.7, 0.88, 1];
@@ -198,7 +199,8 @@ const AmbientLight = memo(function AmbientLightView({
         resizeMode="stretch"
         accessible={false}
         fadeDuration={0}
-        style={[styles.lightHalo, { tintColor: haloColor }]}
+        // Override the bundled image's intrinsic 192dp dimensions.
+        style={[styles.lightHalo, { width: size, height: size, tintColor: haloColor }]}
       />
       <LinearGradient
         colors={colors}
@@ -248,24 +250,33 @@ export const HomeAmbientBubbleCanvas = memo(
         style={[
           styles.canvas,
           decorationMode === 'reading' && styles.readingCanvas,
-          { backgroundColor: visual.baseColor },
+          {
+            backgroundColor:
+              decorationMode === 'home'
+                ? visual.canvasGradient[0]
+                : visual.baseColor,
+          },
         ]}
       >
-        <LinearGradient
-          colors={[...visual.baseGradient]}
-          locations={[0, 0.26, 0.54, 0.78, 1]}
-          style={StyleSheet.absoluteFill}
-        />
-
-        {visual.fields.map((field, index) => (
-          <DiffuseField
-            key={`field-${index}`}
-            field={field}
-            windowWidth={windowWidth}
+        {decorationMode === 'reading' ? (
+          <LinearGradient
+            colors={[...visual.baseGradient]}
+            locations={[0, 0.26, 0.54, 0.78, 1]}
+            style={StyleSheet.absoluteFill}
           />
-        ))}
+        ) : null}
 
-        {heroHeight > 0
+        {decorationMode === 'reading'
+          ? visual.fields.map((field, index) => (
+              <DiffuseField
+                key={`field-${index}`}
+                field={field}
+                windowWidth={windowWidth}
+              />
+            ))
+          : null}
+
+        {heroHeight > 0 && decorationMode === 'reading'
           ? visual.heroFields.map((field, index) => (
               <AnchoredDiffuseField
                 key={`hero-field-${index}`}
@@ -278,82 +289,26 @@ export const HomeAmbientBubbleCanvas = memo(
             ))
           : null}
 
-        <LinearGradient
-          testID="home-ambient-hero-center-wash"
-          colors={[
-            'rgba(255, 255, 255, 0)',
-            `rgba(255, 255, 255, ${visual.centerWashOpacity})`,
-            'rgba(255, 255, 255, 0)',
-          ]}
-          locations={[0, 0.5, 1]}
-          start={{ x: 0, y: 0.5 }}
-          end={{ x: 1, y: 0.5 }}
-          style={[styles.heroWash, { height: heroHeight }]}
+        <SeasonalAmbientLighting
+          season={season}
+          viewportHeight={heroHeight}
+          colorCoverage={decorationMode === 'home' ? 'full' : 'edges'}
         />
-
-        {heroHeight > 0 && decorationMode === 'home' ? (
-          <>
-            {/* Edge-only color persists between fields; the center stays transparent. */}
-            <LinearGradient
-              testID="home-ambient-lower-edge-wash"
-              colors={[...visual.lowerEdgeWash]}
-              locations={[0, 0.24, 0.5, 0.76, 1]}
-              start={{ x: 0, y: 0.5 }}
-              end={{ x: 1, y: 0.5 }}
-              style={[styles.lowerLayer, lowerLayerStyle]}
-            />
-            <LinearGradient
-              testID="home-ambient-edge-handoff"
-              colors={[visual.baseColor, `${visual.baseColor}00`]}
-              style={[
-                styles.heroWash,
-                { top: heroHeight, height: Math.round(windowWidth * 0.42) },
-              ]}
-            />
-            {/* Transparent field overlap preserves color movement across the Hero tail. */}
-            {sectionOrigin > heroHeight
-              ? visual.sectionFields
-                  .slice(0, 2)
-                  .map((field, index) => (
-                    <AnchoredDiffuseField
-                      key={`weather-field-${index}`}
-                      testID={`home-ambient-weather-field-${index}`}
-                      field={field}
-                      origin={heroHeight}
-                      referenceHeight={sectionOrigin - heroHeight}
-                      windowWidth={windowWidth}
-                    />
-                  ))
-              : null}
-            {visual.sectionFields.map((field, index) => {
-              const layout = sectionLayouts[field.zone];
-              if (!layout) return null;
-              return (
-                <AnchoredDiffuseField
-                  key={`section-field-${index}`}
-                  testID={`home-ambient-section-field-${index}`}
-                  field={field}
-                  origin={sectionOrigin + layout.y}
-                  referenceHeight={layout.height}
-                  windowWidth={windowWidth}
-                />
-              );
-            })}
-          </>
-        ) : null}
 
         {heroHeight > 0 && decorationMode === 'home' && showDecorations ? (
           <>
-            {HOME_AMBIENT_HERO_BUBBLES.map((bubble, index) => (
-              <AmbientBubble
-                key={`hero-bubble-${index}`}
-                testID={`home-ambient-hero-bubble-${index}`}
-                bubble={bubble}
-                top={Math.round(heroHeight * bubble.topRatio)}
-                windowWidth={windowWidth}
-                texture={visual.bubbleTexture}
-              />
-            ))}
+            {HOME_AMBIENT_HERO_BUBBLES.map((bubble, index) =>
+              bubble.kind === 'small' ? (
+                <AmbientBubble
+                  key={`hero-bubble-${index}`}
+                  testID={`home-ambient-hero-bubble-${index}`}
+                  bubble={bubble}
+                  top={Math.round(heroHeight * bubble.topRatio)}
+                  windowWidth={windowWidth}
+                  texture={visual.bubbleTexture}
+                />
+              ) : null,
+            )}
             {HOME_AMBIENT_HERO_LIGHTS.map((light, index) => (
               <AmbientLight
                 key={`hero-light-${index}`}
@@ -369,6 +324,8 @@ export const HomeAmbientBubbleCanvas = memo(
               style={[styles.lowerLayer, lowerLayerStyle]}
             >
               {HOME_AMBIENT_SCROLL_BUBBLES.map((bubble, index) => {
+                // Existing small spheres remain supporting accents, never large backdrops.
+                if (bubble.kind !== 'small') return null;
                 const layout = sectionLayouts[bubble.zone];
                 if (!layout && bubble.zone !== 'weather') return null;
                 if (bubble.zone === 'weather' && sectionOrigin <= heroHeight) {
@@ -379,17 +336,9 @@ export const HomeAmbientBubbleCanvas = memo(
                 const height = layout
                   ? layout.height
                   : sectionOrigin - heroHeight;
-                let centerY =
+                const centerY =
                   (height * parseFloat(bubble.top)) / 100 +
                   (bubble.offsetY ?? 0);
-                // Complete Weather spheres stay inside the measured handoff space.
-                if (bubble.zone === 'weather' && bubble.kind === 'medium') {
-                  if (height < size + 16) return null;
-                  centerY = Math.min(
-                    height - size / 2 - 8,
-                    Math.max(size / 2 + 8, centerY),
-                  );
-                }
                 const top = Math.round(
                   origin + centerY - heroHeight - size / 2,
                 );
@@ -504,6 +453,7 @@ const styles = StyleSheet.create({
   },
   light: {
     position: 'absolute',
+    overflow: 'hidden',
   },
   lightHalo: {
     position: 'absolute',

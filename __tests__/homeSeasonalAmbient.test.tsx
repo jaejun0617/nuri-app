@@ -139,7 +139,7 @@ describe('seasonal Home ambient material', () => {
         left: -16,
         right: -16,
         overflow: 'hidden',
-        backgroundColor: getHomeAmbientVisual(season).baseColor,
+        backgroundColor: getHomeAmbientVisual(season).canvasGradient[0],
       });
       const lowerBubbles = root.findAll(
         node =>
@@ -147,10 +147,11 @@ describe('seasonal Home ambient material', () => {
           node.props.testID.startsWith('home-ambient-lower-bubble-') &&
           (node.type === ReactNative.View || node.type === ReactNative.Image),
       );
-      expect(lowerBubbles).toHaveLength(HOME_AMBIENT_SCROLL_BUBBLES.length);
+      const smallLowerBubbles = HOME_AMBIENT_SCROLL_BUBBLES.filter(bubble => bubble.kind === 'small');
+      expect(lowerBubbles).toHaveLength(smallLowerBubbles.length);
       lowerBubbles.forEach((node, index) => {
         const style = ReactNative.StyleSheet.flatten(node.props.style);
-        const bubble = HOME_AMBIENT_SCROLL_BUBBLES[index];
+        const bubble = smallLowerBubbles[index];
         expect(style.width).toBeGreaterThanOrEqual(bubble.minimumSize);
         expect(style.width).toBeLessThanOrEqual(bubble.maximumSize);
         expect(style.left).toBe(
@@ -163,7 +164,7 @@ describe('seasonal Home ambient material', () => {
           /home-ambient-(hero|lower)-bubble-/.test(node.props.testID ?? ''),
         );
       expect(spheres).toHaveLength(
-        HOME_AMBIENT_HERO_BUBBLES.length + HOME_AMBIENT_SCROLL_BUBBLES.length,
+        HOME_AMBIENT_HERO_BUBBLES.filter(bubble => bubble.kind === 'small').length + smallLowerBubbles.length,
       );
       spheres.forEach(node => {
         const style = ReactNative.StyleSheet.flatten(node.props.style);
@@ -171,7 +172,7 @@ describe('seasonal Home ambient material', () => {
           getHomeAmbientVisual(season).bubbleTexture,
         );
         expect(style.tintColor).toBeUndefined();
-        expect(style.width).toBeLessThanOrEqual(290);
+        expect(style.width).toBeLessThanOrEqual(42);
         expect(style.height).toBe(style.width);
       });
       const heroFields = root
@@ -179,34 +180,13 @@ describe('seasonal Home ambient material', () => {
         .filter(node =>
           /home-ambient-hero-field-/.test(node.props.testID ?? ''),
         );
-      heroFields.forEach((node, index) => {
-        const descriptor = getHomeAmbientVisual(season).heroFields[index];
-        const style = ReactNative.StyleSheet.flatten(node.props.style);
-        expect(style.top + style.height / 2).toBeCloseTo(
-          704 * descriptor.centerYRatio,
-          0,
-        );
-      });
+      expect(heroFields).toHaveLength(0);
       const anchored = root
         .findAllByType(ReactNative.Image)
         .filter(node =>
           /home-ambient-section-field-/.test(node.props.testID ?? ''),
         );
-      expect(anchored).toHaveLength(20);
-      anchored.forEach((node, index) => {
-        const descriptor = getHomeAmbientVisual(season).sectionFields[index];
-        const layout = layouts[descriptor.zone];
-        if (!layout) throw new Error('Field has no measured anchor');
-        const style = ReactNative.StyleSheet.flatten(node.props.style);
-        expect(style.top).toBe(
-          Math.round(
-            940 +
-              layout.y +
-              layout.height * descriptor.centerYRatio -
-              style.height / 2,
-          ),
-        );
-      });
+      expect(anchored).toHaveLength(0);
       expect(
         root.findAll(node =>
           [
@@ -217,35 +197,34 @@ describe('seasonal Home ambient material', () => {
         ),
       ).toHaveLength(0);
       const wash = root.findAll(
-        node => node.props.testID === 'home-ambient-hero-center-wash',
+        node => node.props.testID === 'seasonal-ambient-center-light',
       )[0];
-      expect(ReactNative.StyleSheet.flatten(wash.props.style).height).toBe(704);
+      expect(ReactNative.StyleSheet.flatten(wash.props.style)).toMatchObject({
+        left: '43%', right: '43%', top: 704 * 0.38, height: 704 * 0.24,
+      });
       const edgeWash = root.findAll(
-        node => node.props.testID === 'home-ambient-lower-edge-wash',
+        node => node.props.testID === 'seasonal-ambient-season-wash',
       )[0];
       expect(
         ReactNative.StyleSheet.flatten(edgeWash.props.style),
       ).toMatchObject({
         position: 'absolute',
-        top: 704,
+        top: 0,
         bottom: 0,
+        opacity: 1,
       });
       expect(edgeWash.props.colors).toEqual([
-        ...getHomeAmbientVisual(season).lowerEdgeWash,
+        ...getHomeAmbientVisual(season).canvasGradient,
       ]);
-      expect(edgeWash.props.colors[2]).toMatch(/, 0\)$/);
+      for (const color of edgeWash.props.colors) {
+        expect(color).toMatch(/^#[0-9A-F]{6}$/);
+        const channels = [1, 3, 5].map(start => parseInt(color.slice(start, start + 2), 16));
+        expect(Math.max(...channels) - Math.min(...channels)).toBeGreaterThanOrEqual(18);
+      }
       expect(
         ReactNative.StyleSheet.flatten(edgeWash.props.style).backgroundColor,
       ).toBeUndefined();
-      const handoff = root.findAll(
-        node => node.props.testID === 'home-ambient-edge-handoff',
-      )[0];
-      expect(ReactNative.StyleSheet.flatten(handoff.props.style)).toMatchObject(
-        {
-          top: 704,
-          height: Math.round(width * 0.42),
-        },
-      );
+      expect(root.findAll(node => node.props.testID === 'home-ambient-edge-handoff')).toHaveLength(0);
       const lights = root.findAll(
         node =>
           node.type === ReactNative.View &&

@@ -2,7 +2,6 @@ import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
   screen: { flex: 1 },
-  ambient: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
   header: {
     paddingHorizontal: 18,
     paddingBottom: 8,
@@ -79,15 +78,15 @@ export const styles = StyleSheet.create({
   dayTitle: { marginTop: 12, marginBottom: 8 },
   card: {
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.75)',
+    marginBottom: 8,
+  },
+  cardContent: {
+    marginTop: 0,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: 'rgba(255,255,255,0.52)',
     flexDirection: 'row',
     gap: 10,
     alignItems: 'center',
-    marginBottom: 8,
   },
   cardTextCol: { flex: 1, minWidth: 0, gap: 4 },
   empty: { paddingVertical: 36, gap: 12, alignItems: 'center' },

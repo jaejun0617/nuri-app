@@ -495,6 +495,14 @@ describe('calendar registration and schedule hub completion', () => {
       },
     });
     await mount(<ScheduleListScreen />);
+    const canvas = byId('seasonal-ambient-background');
+    expect(canvas.props.pointerEvents).toBe('none');
+    expect(canvas.props.accessibilityElementsHidden).toBe(true);
+    let ancestor = canvas.parent;
+    while (ancestor) {
+      expect(ancestor.type).not.toBe(SectionList);
+      ancestor = ancestor.parent;
+    }
     expect(byId('schedule-hub-search').props.placeholderTextColor).toBe(
       '#556070',
     );
@@ -517,6 +525,14 @@ describe('calendar registration and schedule hub completion', () => {
     const item = renderer.root
       .findByType(SectionList)
       .props.renderItem({ item: { key: row.id, schedule: row, startsAt: row.startsAt, startDay: '2026-10-05' }, section: { day: '2026-10-05' } });
+    expect(StyleSheet.flatten(item.props.style)).not.toHaveProperty('backgroundColor');
+    const glass = item.props.children;
+    expect(glass.props.testID).toBe('schedule-hub-glass-qa');
+    expect(glass.props.season).toBe('autumn');
+    expect(glass.props.borderRadius).toBe(12);
+    expect(StyleSheet.flatten(glass.props.style)).toMatchObject({
+      marginTop: 0, paddingHorizontal: 12, paddingVertical: 12,
+    });
     await act(async () => item.props.onPress());
     expect(mockNavigation.navigate).toHaveBeenCalledWith(
       'ScheduleDetail',

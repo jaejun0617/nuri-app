@@ -1,6 +1,7 @@
 import AppText from './AppText';
 import React, { memo } from 'react';
-import { Pressable, useWindowDimensions } from 'react-native';
+import { Pressable, View } from 'react-native';
+import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 
 import type { TypographyPresetName } from '../theme/tokens/typography';
 import { styles } from './SectionHeaderAction.styles';
@@ -22,36 +23,32 @@ function SectionHeaderActionBase({
   textPreset = 'unifiedLabel',
   size = 'default',
 }: Props) {
-  const { width, fontScale } = useWindowDimensions();
-  const enlarged = fontScale > 1;
-  const baseWidth = size === 'compact' ? 80 : 88;
-  const baseHeight = size === 'compact' ? 28 : 34;
-
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      hitSlop={8}
       onPress={onPress}
       style={({ pressed }) => [
         size === 'compact' ? styles.compactButton : styles.button,
-        enlarged
-          ? {
-              width: Math.min(
-                Math.max(44, width - 32),
-                Math.ceil(baseWidth * fontScale),
-              ),
-              minHeight: Math.ceil(baseHeight * fontScale),
-              paddingVertical: 4,
-            }
-          : null,
-        { borderColor: `${color}26` },
         pressed ? styles.pressed : null,
       ]}
     >
-      <AppText preset={textPreset} style={[styles.text, { color }]}>
+      <AppText
+        preset={textPreset}
+        styleOverridesPreset
+        style={[styles.text, { color }]}
+      >
         {label}
       </AppText>
+      <View accessible={false} importantForAccessibility="no-hide-descendants">
+        <NuriSemanticIcon
+          family="feather"
+          name="chevron-right"
+          size={15}
+          color={color}
+          preserveOriginal
+        />
+      </View>
     </Pressable>
   );
 }

@@ -708,6 +708,16 @@ describe('More account deletion confirmation', () => {
         );
       });
       const scroll = renderer.root.findByProps({ testID: 'more-menu-scroll' });
+      const canvas = renderer.root.findAllByProps({
+        testID: 'seasonal-ambient-background',
+      })[0];
+      expect(canvas.props.pointerEvents).toBe('none');
+      expect(canvas.props.accessibilityElementsHidden).toBe(true);
+      let ancestor = canvas.parent;
+      while (ancestor) {
+        expect(ancestor).not.toBe(scroll);
+        ancestor = ancestor.parent;
+      }
       TestRenderer.act(() => {
         scroll.props.onLayout({ nativeEvent: { layout: { height: 600 } } });
         scroll.props.onContentSizeChange(384, 1800);

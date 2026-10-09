@@ -21,6 +21,9 @@ import Feather from '../../components/icons/NuriFeatherIcon';
 
 import AppText from '../../app/ui/AppText';
 import GuideListCard from '../../components/guides/GuideListCard';
+import { HomeFrostedGlass } from '../../components/home/HomeFrostedGlass';
+import SeasonalAmbientBackground from '../../components/common/SeasonalAmbientBackground';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import { useGuidePopularSearches } from '../../hooks/useGuidePopularSearches';
 import { usePetCareGuideCatalog } from '../../hooks/usePetCareGuideCatalog';
@@ -55,6 +58,7 @@ export default function GuideListScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
+  const season = useEffectiveSeason();
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const sessionUserId = useAuthStore(s => s.session?.user.id ?? null);
@@ -299,6 +303,7 @@ export default function GuideListScreen() {
     ({ item }: { item: (typeof visibleGuides)[number] }) => (
       <GuideListCard
         guide={item}
+        season={season}
         onPress={onPressGuide}
         accentColor={petTheme.primary}
         accentTint={petTheme.tint}
@@ -316,6 +321,7 @@ export default function GuideListScreen() {
       petTheme.border,
       petTheme.primary,
       petTheme.tint,
+      season,
     ],
   );
 
@@ -323,6 +329,7 @@ export default function GuideListScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+      <SeasonalAmbientBackground season={season} appearance="light" />
       <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
@@ -358,7 +365,7 @@ export default function GuideListScreen() {
       </View>
 
       {searchVisible ? (
-        <View style={styles.searchCard}>
+        <HomeFrostedGlass season={season} borderRadius={20} style={styles.searchCard}>
           <View style={styles.searchInputWrap}>
             <Feather name="search" size={16} color="#98A1B2" />
             <AppTextInput
@@ -420,11 +427,11 @@ export default function GuideListScreen() {
               </AppText>
             ) : null}
           </View>
-        </View>
+        </HomeFrostedGlass>
       ) : null}
 
       {searchVisible && !hasSearchQuery ? (
-        <View style={styles.suggestionCard}>
+        <HomeFrostedGlass season={season} borderRadius={20} style={styles.suggestionCard}>
           <View style={styles.suggestionSection}>
             <Pressable
               style={styles.suggestionToggleButton}
@@ -575,11 +582,11 @@ export default function GuideListScreen() {
               )
             ) : null}
           </View>
-        </View>
+        </HomeFrostedGlass>
       ) : null}
 
       {catalogState.loading ? (
-        <View style={styles.emptyCard}>
+        <HomeFrostedGlass season={season} borderRadius={24} style={styles.emptyCard}>
           <Feather name="loader" size={28} color={petTheme.primary} />
           <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
             가이드를 불러오는 중이에요
@@ -587,9 +594,9 @@ export default function GuideListScreen() {
           <AppText preset="unifiedBody" style={styles.emptyDesc}>
             공개된 콘텐츠를 정리해서 보여드리고 있어요.
           </AppText>
-        </View>
+        </HomeFrostedGlass>
       ) : catalogState.error && rankedGuides.length === 0 ? (
-        <View style={styles.emptyCard}>
+        <HomeFrostedGlass season={season} borderRadius={24} style={styles.emptyCard}>
           <Feather name="alert-circle" size={28} color={petTheme.primary} />
           <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
             가이드를 불러오지 못했어요
@@ -597,9 +604,9 @@ export default function GuideListScreen() {
           <AppText preset="unifiedBody" style={styles.emptyDesc}>
             {catalogState.error}
           </AppText>
-        </View>
+        </HomeFrostedGlass>
       ) : visibleGuides.length === 0 ? (
-        <View style={styles.emptyCard}>
+        <HomeFrostedGlass season={season} borderRadius={24} style={styles.emptyCard}>
           <Feather
             name={hasSearchQuery ? 'search' : 'book-open'}
             size={28}
@@ -643,7 +650,7 @@ export default function GuideListScreen() {
               </AppText>
             </TouchableOpacity>
           ) : null}
-        </View>
+        </HomeFrostedGlass>
       ) : (
         <FlatList
           data={visibleGuides}

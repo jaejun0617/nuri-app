@@ -266,11 +266,11 @@ export default function WeightLogEntrySheet({
               <View style={styles.headerTextWrap}>
                 <AppText preset="unifiedTitle">{title}</AppText>
                 <AppText
-                  preset="unifiedBody"
+                  preset="unifiedMeta"
                   color={theme.colors.textMuted}
                   style={styles.headerHelper}
                 >
-                  {petName}의 최신 체중과 리포트를 같은 기준으로 맞춥니다.
+                  {petName}
                 </AppText>
               </View>
               <TouchableOpacity
@@ -282,7 +282,7 @@ export default function WeightLogEntrySheet({
                 onPress={handleClose}
                 style={[
                   styles.closeButton,
-                  { backgroundColor: theme.colors.background },
+                  { backgroundColor: 'transparent' },
                 ]}
               >
                 <NuriSemanticIcon
@@ -368,7 +368,7 @@ export default function WeightLogEntrySheet({
                     onFocus={() => revealInput(noteRef)}
                     value={note}
                     onChangeText={setNote}
-                    placeholder="식단 변화, 병원 방문, 컨디션 메모를 남겨둘 수 있어요."
+                    placeholder="식단이나 컨디션을 남겨 주세요"
                     placeholderTextColor="#A0A7B4"
                     multiline
                     maxLength={500}
@@ -390,7 +390,7 @@ export default function WeightLogEntrySheet({
                   style={[styles.deleteButton, {}]}
                 >
                   <CtaText preset="unifiedLabel">
-                    {deleting ? '삭제 중...' : '삭제'}
+                    {deleting ? '삭제 중...' : '삭제하기'}
                   </CtaText>
                 </CtaButton>
               ) : null}
@@ -405,7 +405,7 @@ export default function WeightLogEntrySheet({
                 style={[styles.primaryButton, {}]}
               >
                 <CtaText preset="unifiedLabel">
-                  {saving ? '저장 중...' : '저장'}
+                  {initialLog ? '수정하기' : '기록하기'}
                 </CtaText>
               </CtaButton>
             </View>
@@ -443,8 +443,8 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 620,
     alignSelf: 'center',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
     overflow: 'hidden',
     flexShrink: 1,
     minHeight: 0,
@@ -468,9 +468,8 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   closeButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -483,9 +482,8 @@ const styles = StyleSheet.create({
   },
   valueInputWrap: {
     minHeight: 52,
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 0,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -498,16 +496,15 @@ const styles = StyleSheet.create({
     paddingVertical: 0,
   },
   noteWrap: {
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 14,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 0,
     paddingVertical: 12,
   },
   noteInput: {
     minHeight: 92,
     textAlignVertical: 'top',
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: 16,
+    lineHeight: 24,
   },
   actionRow: {
     flexShrink: 0,

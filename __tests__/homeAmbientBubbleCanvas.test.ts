@@ -18,7 +18,7 @@ import {
   type HomeAmbientSectionLayouts,
   type HomeAmbientBubbleZone,
 } from '../src/theme/home/ambientMesh';
-import { HOME_AMBIENT_SECTION_LIGHTS } from '../src/theme/home/seasonalAmbient';
+import { getHomeAmbientVisual, HOME_AMBIENT_SECTION_LIGHTS } from '../src/theme/home/seasonalAmbient';
 
 const canvasSource = fs.readFileSync(
   path.join(
@@ -37,6 +37,56 @@ const homeSource = fs.readFileSync(
 
 describe('Home glossy bubble atmosphere', () => {
   afterEach(() => jest.restoreAllMocks());
+
+  it.each(['autumn', 'winter', 'spring', 'summer'] as const)(
+    'bounds every %s glint halo instead of inheriting the 192dp image size',
+    season => {
+      const layouts: HomeAmbientSectionLayouts = {};
+      HOME_AMBIENT_SECTION_ZONES.forEach((zone, index) => {
+        layouts[zone] = { y: index * 400, height: 360 };
+      });
+      for (const width of [360, 384, 430]) {
+        jest.spyOn(ReactNative, 'useWindowDimensions').mockReturnValue({
+          width, height: 800, scale: 3, fontScale: 1,
+        });
+        for (const decorationMode of ['home', 'reading'] as const) {
+          let renderer!: ReactTestRenderer.ReactTestRenderer;
+          ReactTestRenderer.act(() => {
+            renderer = ReactTestRenderer.create(
+              React.createElement(HomeAmbientBubbleCanvas, {
+                heroHeight: 704,
+                sectionOrigin: 940,
+                sectionLayouts: layouts,
+                season,
+                decorationMode,
+              }),
+            );
+          });
+          const halos = renderer.root.findAllByType(ReactNative.Image).filter(
+            node => node.props.resizeMode === 'stretch' &&
+              ReactNative.StyleSheet.flatten(node.props.style).opacity === 0.8,
+          );
+          expect(halos).toHaveLength(
+            decorationMode === 'home'
+              ? HOME_AMBIENT_HERO_LIGHTS.length + HOME_AMBIENT_SECTION_LIGHTS.length
+              : 2,
+          );
+          for (const halo of halos) {
+            // RN Image supplies asset dimensions before the caller's style.
+            const nativeStyle = ReactNative.StyleSheet.flatten([
+              { width: 192, height: 192 }, halo.props.style,
+            ]);
+            const frame = ReactNative.StyleSheet.flatten(halo.parent?.props.style);
+            expect(nativeStyle.width).toBe(frame.width);
+            expect(nativeStyle.height).toBe(frame.height);
+            expect(nativeStyle.width).toBeLessThanOrEqual(22);
+            expect(frame.overflow).toBe('hidden');
+          }
+          ReactTestRenderer.act(() => renderer.unmount());
+        }
+      }
+    },
+  );
 
   it.each(['autumn', 'winter', 'spring', 'summer'] as const)(
     'keeps %s schedule reading decorations small and outside the title column',
@@ -64,6 +114,10 @@ describe('Home glossy bubble atmosphere', () => {
             node.props.testID.startsWith('home-ambient-hero-bubble-'),
         ),
       ).toHaveLength(0);
+      const wash = renderer.root.findAllByProps({ testID: 'seasonal-ambient-season-wash' })[0];
+      expect(wash.props.colors).toEqual(getHomeAmbientVisual(season).lowerEdgeWash);
+      const light = renderer.root.findAllByProps({ testID: 'seasonal-ambient-center-light' })[0];
+      expect(light.props.children.props.colors[1]).toBe('rgba(255,255,255,0.22)');
       for (let index = 0; index < 2; index++) {
         const bubble = renderer.root.findByProps({
           testID: `schedule-ambient-edge-bubble-${index}`,
@@ -290,10 +344,8 @@ describe('Home glossy bubble atmosphere', () => {
       bottom: 0,
     });
     expect(renderer.root.findAllByType(ReactNative.Image)).toHaveLength(
-      HOME_AMBIENT_HERO_BUBBLES.length +
-        HOME_AMBIENT_SCROLL_BUBBLES.length +
-        HOME_AMBIENT_MESH_FIELDS.length +
-        22 +
+      HOME_AMBIENT_HERO_BUBBLES.filter(bubble => bubble.kind === 'small').length +
+        HOME_AMBIENT_SCROLL_BUBBLES.filter(bubble => bubble.kind === 'small').length +
         HOME_AMBIENT_HERO_LIGHTS.length +
         HOME_AMBIENT_SECTION_LIGHTS.length,
     );
@@ -345,10 +397,10 @@ describe('Home glossy bubble atmosphere', () => {
     expect(resized.summary).toEqual({ y: 600, height: 540 });
   });
 
-  it('keeps Summary corner decoration attached when content above it grows', async () => {
+  it('keeps small Summary accents attached when content above it grows', async () => {
     let renderer: ReactTestRenderer.ReactTestRenderer | undefined;
     const bubble = HOME_AMBIENT_SCROLL_BUBBLES.find(
-      item => item.zone === 'summary' && item.kind === 'large',
+      item => item.zone === 'summary' && item.kind === 'small',
     );
     if (!bubble) throw new Error('Summary sphere missing');
     await ReactTestRenderer.act(async () => {
@@ -375,7 +427,7 @@ describe('Home glossy bubble atmosphere', () => {
       findSphere()?.props.style,
     );
     expect(firstStyle.top).toBe(
-      Math.round(940 + 500 + 360 * 0.12 - 704 - firstStyle.width / 2),
+      Math.round(940 + 500 + 360 * parseFloat(bubble.top) / 100 - 704 - firstStyle.width / 2),
     );
     await ReactTestRenderer.act(async () => {
       renderer?.update(
@@ -388,12 +440,12 @@ describe('Home glossy bubble atmosphere', () => {
     });
     const nextStyle = ReactNative.StyleSheet.flatten(findSphere()?.props.style);
     expect(nextStyle.top).toBe(
-      Math.round(940 + 700 + 540 * 0.12 - 704 - nextStyle.width / 2),
+      Math.round(940 + 700 + 540 * parseFloat(bubble.top) / 100 - 704 - nextStyle.width / 2),
     );
     await ReactTestRenderer.act(async () => renderer?.unmount());
   });
 
-  it('keeps full spheres in panel gaps and beside the recommendation emphasis as content grows', async () => {
+  it('does not restore medium spheres in panel gaps when content grows', async () => {
     for (const height of [240, 620, 1100]) {
       let renderer: ReactTestRenderer.ReactTestRenderer | undefined;
       await ReactTestRenderer.act(async () => {
@@ -409,10 +461,7 @@ describe('Home glossy bubble atmosphere', () => {
         );
       });
       if (!renderer) throw new Error('Home canvas did not render');
-      for (const [zone, offset] of [
-        ['frequent', -14],
-        ['recommendation', 98],
-      ] as const) {
+      for (const zone of ['frequent', 'recommendation'] as const) {
         const bubble = HOME_AMBIENT_SCROLL_BUBBLES.find(
           item => item.zone === zone && item.kind === 'medium',
         );
@@ -426,20 +475,7 @@ describe('Home glossy bubble atmosphere', () => {
                 bubble,
               )}`,
           );
-        const style = ReactNative.StyleSheet.flatten(sphere?.props.style);
-        expect(style.top).toBe(
-          Math.round(
-            940 +
-              (zone === 'frequent' ? 0 : 1600) +
-              offset -
-              704 -
-              style.width / 2,
-          ),
-        );
-        if (zone === 'recommendation') {
-          expect(bubble.centerXRatio).toBe(0.83);
-          expect(offset - style.width / 2).toBeGreaterThan(66);
-        }
+        expect(sphere).toBeUndefined();
       }
       await ReactTestRenderer.act(async () => renderer?.unmount());
     }

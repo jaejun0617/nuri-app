@@ -96,7 +96,7 @@ describe('approved Home season contract', () => {
         testID: 'home-ambient-bubble-canvas',
       });
       expect(StyleSheet.flatten(canvas.props.style).backgroundColor).toBe(
-        getHomeAmbientVisual(season).baseColor,
+        getHomeAmbientVisual(season).canvasGradient[0],
       );
       const surface = renderer.root.findByProps({
         testID: 'home-section-glass-surface',

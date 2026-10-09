@@ -3,6 +3,8 @@ import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Feather from '../icons/NuriFeatherIcon';
 
 import AppText from '../../app/ui/AppText';
+import { HomeFrostedGlass } from '../home/HomeFrostedGlass';
+import type { SeasonKey } from '../../theme/seasonal/season';
 import {
   formatGuideAgePolicyLabel,
   formatGuideTargetSpeciesLabel,
@@ -13,6 +15,7 @@ import type { PetCareGuide } from '../../services/guides/types';
 
 type Props = {
   guide: PetCareGuide;
+  season: SeasonKey;
   onPress: (guideId: string) => void;
   debugBadgeText?: string | null;
   accentColor: string;
@@ -22,6 +25,7 @@ type Props = {
 
 function GuideListCardBase({
   guide,
+  season,
   onPress,
   debugBadgeText,
   accentColor,
@@ -31,67 +35,70 @@ function GuideListCardBase({
   return (
     <TouchableOpacity
       activeOpacity={0.92}
-      style={styles.card}
+      accessibilityRole="button"
+      accessibilityLabel={`${guide.title}, 가이드 상세 보기`}
       onPress={() => onPress(guide.id)}
     >
-      <View style={styles.headerRow}>
-        <View
-          style={[
-            styles.categoryBadge,
-            { backgroundColor: accentTint, borderColor: accentBorder },
-          ]}
-        >
-          <Feather
-            name={getGuideCategoryIconName(guide.category)}
-            size={14}
-            color={accentColor}
-          />
-          <AppText
-            preset="unifiedMeta"
-            style={[styles.categoryText, { color: accentColor }]}
+      <HomeFrostedGlass season={season} borderRadius={24} style={styles.card}>
+        <View style={styles.headerRow}>
+          <View
+            style={[
+              styles.categoryBadge,
+              { backgroundColor: accentTint, borderColor: accentBorder },
+            ]}
           >
-            {getGuideCategoryLabel(guide.category)}
-          </AppText>
-        </View>
-        <Feather name="chevron-right" size={18} color="#98A1B2" />
-      </View>
-
-      <AppText preset="unifiedTitle" style={styles.title}>
-        {guide.title}
-      </AppText>
-      {debugBadgeText ? (
-        <View style={styles.debugBadge}>
-          <AppText preset="unifiedMeta" style={styles.debugBadgeText}>
-            {debugBadgeText}
-          </AppText>
-        </View>
-      ) : null}
-      <AppText preset="unifiedBody" style={styles.summary}>
-        {guide.summary}
-      </AppText>
-
-      <View style={styles.metaRow}>
-        <View style={styles.metaChip}>
-          <AppText preset="unifiedMeta" style={styles.metaChipText}>
-            {formatGuideTargetSpeciesLabel(guide.targetSpecies)}
-          </AppText>
-        </View>
-        <View style={styles.metaChip}>
-          <AppText preset="unifiedMeta" style={styles.metaChipText}>
-            {formatGuideAgePolicyLabel(guide.agePolicy)}
-          </AppText>
-        </View>
-      </View>
-
-      <View style={styles.tagsRow}>
-        {guide.tags.slice(0, 3).map(tag => (
-          <View key={tag} style={styles.tagChip}>
-            <AppText preset="unifiedMeta" style={styles.tagText}>
-              #{tag}
+            <Feather
+              name={getGuideCategoryIconName(guide.category)}
+              size={14}
+              color={accentColor}
+            />
+            <AppText
+              preset="unifiedMeta"
+              style={[styles.categoryText, { color: accentColor }]}
+            >
+              {getGuideCategoryLabel(guide.category)}
             </AppText>
           </View>
-        ))}
-      </View>
+          <Feather name="chevron-right" size={18} color="#98A1B2" />
+        </View>
+
+        <AppText preset="unifiedTitle" style={styles.title}>
+          {guide.title}
+        </AppText>
+        {debugBadgeText ? (
+          <View style={styles.debugBadge}>
+            <AppText preset="unifiedMeta" style={styles.debugBadgeText}>
+              {debugBadgeText}
+            </AppText>
+          </View>
+        ) : null}
+        <AppText preset="unifiedBody" style={styles.summary}>
+          {guide.summary}
+        </AppText>
+
+        <View style={styles.metaRow}>
+          <View style={styles.metaChip}>
+            <AppText preset="unifiedMeta" style={styles.metaChipText}>
+              {formatGuideTargetSpeciesLabel(guide.targetSpecies)}
+            </AppText>
+          </View>
+          <View style={styles.metaChip}>
+            <AppText preset="unifiedMeta" style={styles.metaChipText}>
+              {formatGuideAgePolicyLabel(guide.agePolicy)}
+            </AppText>
+          </View>
+        </View>
+
+        <View style={styles.tagsRow}>
+          {guide.tags.slice(0, 3).map(tag => (
+            <View key={tag} style={styles.tagChip}>
+              <AppText preset="unifiedMeta" style={styles.tagText}>
+                #{tag}
+              </AppText>
+            </View>
+          ))}
+        </View>
+      </HomeFrostedGlass>
     </TouchableOpacity>
   );
 }
@@ -100,12 +107,10 @@ export default React.memo(GuideListCardBase);
 
 const styles = StyleSheet.create({
   card: {
+    marginTop: 0,
     borderRadius: 24,
     paddingHorizontal: 18,
     paddingVertical: 18,
-    backgroundColor: '#FFFFFF',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
     gap: 10,
   },
   headerRow: {
