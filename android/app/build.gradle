@@ -26,6 +26,20 @@ tasks.register("ensureGeolocationCodegen", Exec) {
 preBuild.dependsOn("ensureGeolocationCodegen")
 
 def enableProguardInReleaseBuilds = false
+def nuriReleaseSigning = [
+  'NURI_UPLOAD_STORE_FILE', 'NURI_UPLOAD_STORE_PASSWORD',
+  'NURI_UPLOAD_KEY_ALIAS', 'NURI_UPLOAD_KEY_PASSWORD'
+].collectEntries { name -> [(name): System.getenv(name)] }
+
+// Debug configuration remains usable; every Release task requires protected inputs.
+gradle.taskGraph.whenReady { graph ->
+  if (graph.allTasks.any { it.project == project && it.name.toLowerCase(Locale.ROOT).contains('release') }) {
+    def missing = nuriReleaseSigning.findAll { name, value -> value == null || value.isEmpty() }.keySet()
+    if (!missing.isEmpty()) {
+      throw new GradleException("Missing protected Release signing inputs: " + missing.join(', '))
+    }
+  }
+}
 def jscFlavor = "io.github.react-native-community:jsc-android:2026004.+"
 def localProperties = new Properties()
 def localPropertiesFile = rootProject.file("local.properties")
@@ -68,11 +82,12 @@ android {
       keyPassword "android"
     }
     release {
-      // v1.0 Play Store 제출용 upload key. CI/운영 빌드는 환경변수로 덮어쓸 수 있다.
-      storeFile file(System.getenv("NURI_UPLOAD_STORE_FILE") ?: "nuri-upload.keystore")
-      storePassword System.getenv("NURI_UPLOAD_STORE_PASSWORD") ?: "android"
-      keyAlias System.getenv("NURI_UPLOAD_KEY_ALIAS") ?: "my-key-alias"
-      keyPassword System.getenv("NURI_UPLOAD_KEY_PASSWORD") ?: "android"
+      if (nuriReleaseSigning.values().every { it != null && !it.isEmpty() }) {
+        storeFile file(nuriReleaseSigning.NURI_UPLOAD_STORE_FILE)
+        storePassword nuriReleaseSigning.NURI_UPLOAD_STORE_PASSWORD
+        keyAlias nuriReleaseSigning.NURI_UPLOAD_KEY_ALIAS
+        keyPassword nuriReleaseSigning.NURI_UPLOAD_KEY_PASSWORD
+      }
     }
   }
 

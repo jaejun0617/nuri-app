@@ -174,6 +174,17 @@ function relativeImports(root, files, declared) {
   }
 }
 
+function requireSigningEnvironment(env) {
+  for (const name of [
+    'NURI_UPLOAD_STORE_FILE', 'NURI_UPLOAD_STORE_PASSWORD',
+    'NURI_UPLOAD_KEY_ALIAS', 'NURI_UPLOAD_KEY_PASSWORD',
+  ]) {
+    if (typeof env[name] !== 'string' || !env[name]) {
+      fail(`NURI_SIGNING_ENV_MISSING:${name}`);
+    }
+  }
+}
+
 function prepareInputs(root, inputRoot, env) {
   const manifest = [];
   const configSource = path.join(inputRoot, CONFIG_PATH);
@@ -194,6 +205,7 @@ function prepareInputs(root, inputRoot, env) {
   if (config.SUPABASE_ANON_KEY?.includes('SOURCE_VALIDATION_ONLY')) {
     fail('NURI_SOURCE_VALIDATION_FIXTURE_NOT_DEPLOYABLE');
   }
+  requireSigningEnvironment(env);
   loadValidator(root)(config.SUPABASE_URL, config.SUPABASE_ANON_KEY);
   const configDestination = path.join(root, CONFIG_PATH);
   const generated =
@@ -241,7 +253,7 @@ function prepareInputs(root, inputRoot, env) {
     });
   }
   // Explicit inputs only: no recursive copying of ignored files or the source tree.
-  const store = env.NURI_UPLOAD_STORE_FILE || 'nuri-upload.keystore';
+  const store = env.NURI_UPLOAD_STORE_FILE;
   if (path.basename(store) !== store) {
     fail('NURI_SIGNING_STORE_MUST_BE_APP_LOCAL');
   }
@@ -314,8 +326,8 @@ function prepareInputs(root, inputRoot, env) {
       required: true,
       tracked: false,
       classification: 'SECRET_SIGNING_PROPERTY',
-      source: env[name] ? 'CI_ENVIRONMENT' : 'EXPLICIT_QA_GRADLE_DEFAULT',
-      sha256: env[name] ? sha(env[name]) : null,
+      source: 'PROTECTED_PROCESS_ENVIRONMENT',
+      valueRecorded: false,
     });
   }
   const google = 'android/app/google-services.json';
@@ -480,6 +492,7 @@ module.exports = {
   prepareInputs,
   loadValidator,
   resolveAndroidPlatform,
+  requireSigningEnvironment,
 };
 if (require.main === module) {
   try {

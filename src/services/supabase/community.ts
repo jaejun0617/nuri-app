@@ -305,22 +305,6 @@ function isCommunityPetRow(value: unknown): value is CommunityPetRow {
   );
 }
 
-function isCommunityReportRateLimitError(error: unknown) {
-  if (!isRecord(error)) return false;
-  if (typeof error.message !== 'string') return false;
-  return error.message.includes(COMMUNITY_REPORT_RATE_LIMIT_MESSAGE);
-}
-
-async function persistCommunityReportRateLimitTrace(reporterId: string) {
-  const { error } = await supabase.rpc('bump_community_reporter_rate_limit', {
-    target_reporter_id: reporterId,
-  });
-
-  if (error) {
-    console.warn('community_report_rate_limit_trace_failed', error);
-  }
-}
-
 function toCommunityPostRows(data: unknown): CommunityPostRow[] {
   if (!Array.isArray(data)) return [];
   return data.filter(isCommunityPostRow);
@@ -378,6 +362,7 @@ function normalizeCommunityPostViewReason(
   switch (value) {
     case 'counted':
     case 'deduped':
+    case 'view_limited':
     case 'self_view':
     case 'post_ineligible':
     case 'missing_guest_session':
@@ -1559,21 +1544,26 @@ export async function toggleCommunityCommentLike(
 
 export async function createCommunityReport(
   params: CreateCommunityReportParams,
-  reporterId: string,
+  _reporterId: string,
 ) {
-  const { error } = await supabase.from('reports').insert({
-    reporter_id: reporterId,
-    target_type: params.targetType,
-    target_id: params.targetId,
-    reason_category: params.reasonCategory,
-    reason: params.reason.trim(),
-    status: 'open',
+  // The server derives the reporter from the session and persists rejection traces.
+  const { data, error } = await supabase.rpc('community_submit_report_v1', {
+    p_target_type: params.targetType,
+    p_target_id: params.targetId,
+    p_reason_category: params.reasonCategory,
+    p_reason: params.reason.trim(),
   });
-
-  if (!error) return 'created' as const;
-  if (error.code === '23505') return 'duplicate' as const;
-  if (isCommunityReportRateLimitError(error)) {
-    await persistCommunityReportRateLimitTrace(reporterId);
+  if (error) throw error;
+  if (isRecord(data)) {
+    if (data.status === 'created') return 'created' as const;
+    if (data.status === 'duplicate') return 'duplicate' as const;
+    if (data.code === 'COMMUNITY_REPORT_RATE_LIMITED') {
+      throw Object.assign(new Error(COMMUNITY_REPORT_RATE_LIMIT_MESSAGE), {
+        code: 'COMMUNITY_REPORT_RATE_LIMITED',
+      });
+    }
   }
-  throw error;
+  throw Object.assign(new Error('신고 처리 결과를 확인하지 못했어요. 다시 시도해 주세요.'), {
+    code: 'COMMUNITY_REPORT_INVALID_RESPONSE',
+  });
 }

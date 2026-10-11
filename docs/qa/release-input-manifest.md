@@ -1,5 +1,17 @@
 # Release Deployment Input Contract
 
+## 2026-10-12 Security Gate Checkpoint
+
+- STORE HOLD. SEC-019/020 server corrective verified; 13 resolved / 7 open.
+- Required signing environment and approved signer fingerprint remain absent.
+  Do not run this procedure while the PO prohibition on key read/copy and
+  commit/push conflicts with its clean exact-source/input handling requirements.
+- Source readiness and 16-suite/106-test exact-path validation are not native
+  OAuth/session/upload or signer verification. No new APK was built or installed.
+- SEC-011 remains blocked by Vercel access and exact-source provenance; no
+  deployment or unsigned-path cutover is authorized in this phase.
+- See [remaining security checkpoint](nuri-security-remaining-2026-10-12.md).
+
 ## Source Of Truth
 
 A release candidate is identified by the exact Git HEAD, declared deployment
@@ -18,7 +30,7 @@ keys must never enter the client bundle. See the
 | --- | --- | --- | --- | --- |
 | Supabase URL and client key | Yes | Ignored | Public client input protected by current policy | Literal config from protected input root, or paired CI environment |
 | Upload keystore | Yes | Ignored | Secret signing material | Explicit keystore source into Android app directory |
-| Signing password and alias | Yes | Protected environment or existing explicit QA defaults | Secret signing properties | Existing Gradle environment contract; Store mode requires all four inputs |
+| Signing password and alias | Yes | Protected process environment only | Secret signing properties | QA and Store require all four signing inputs; no static fallback |
 | `android/local.properties` | Yes | Ignored | SDK path and restricted Maps client key | Explicit protected source |
 | `android/app/google-services.json` | Yes | Tracked | Public client descriptor | Exact commit |
 | Node, Yarn, Java, SDK, NDK, CMake | Yes | External toolchain | Installed development tools | Existing pinned installation, recorded in manifest |
@@ -46,8 +58,26 @@ yarn android:release:qa
 CI may supply `NURI_SUPABASE_URL` and `NURI_SUPABASE_CLIENT_KEY` together instead
 of a config file. `NURI_RELEASE_KEYSTORE_SOURCE` and
 `NURI_RELEASE_LOCAL_PROPERTIES_SOURCE` select explicit protected files.
-`NURI_UPLOAD_STORE_FILE` must be an app-local filename. Store mode additionally
-requires the existing signing environment inputs and must not use QA defaults.
+`NURI_UPLOAD_STORE_FILE` must be an app-local filename. Both QA and Store modes
+require `NURI_UPLOAD_STORE_FILE`, `NURI_UPLOAD_STORE_PASSWORD`,
+`NURI_UPLOAD_KEY_ALIAS` and `NURI_UPLOAD_KEY_PASSWORD` in the protected process
+environment. No QA defaults remain. The manifest records environment presence
+and source classification, not signing property values or their hashes.
+
+### Current Security Corrective Hold (2026-10-10)
+
+The four signing inputs are absent. Build and install are blocked; do not run
+the examples above until the PO prepares the existing protected environment.
+The separately required approved signer fingerprint is also absent.
+No named local secret-manager integration is documented by this pipeline.
+
+The existing preflight reads the keystore for its fingerprint and copies it
+when source and destination differ. Current PO instructions prohibit reading
+or copying that keystore, and prohibit commit/push while preserving the dirty
+worktree. Therefore secure environment preparation alone does not authorize
+this clean-checkout/input procedure. Obtain a scoped source-provenance and
+input-handling decision before resuming; do not copy the key, bypass source
+checks, fabricate inputs or reuse static signing fallbacks.
 
 The official release wrapper always runs `scripts/preflight-release-inputs.js`
 before Gradle. It rejects a dirty checkout, records file/field fingerprints,

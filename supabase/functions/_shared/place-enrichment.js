@@ -1,5 +1,6 @@
 /* global Deno, globalThis */
 import { createClient } from 'npm:@supabase/supabase-js@2.97.0';
+import { verifyWorkerCredential } from './worker-auth.js';
 import {
   isPlaceEnrichmentProviderRuntimeDisabled,
   normalizeHardCap,
@@ -106,17 +107,7 @@ export function normalizeBackgroundMaxUnits(value) {
 }
 
 export function verifyCronRequest(request, envKey) {
-  const configuredSecret = Deno.env.get(envKey)?.trim() ?? '';
-  if (!configuredSecret) {
-    return true;
-  }
-
-  const headerSecret =
-    request.headers.get('x-cron-secret')?.trim() ??
-    request.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim() ??
-    '';
-
-  return headerSecret === configuredSecret;
+  return verifyWorkerCredential(request, Deno.env.get(envKey));
 }
 
 export function normalizeTargets(rawTargets) {
@@ -340,8 +331,7 @@ async function processTarget(context, target, budgetTrack) {
     };
   }
 
-  const workerId = globalThis.crypto.randomUUID();
-  const claim = await claimJob(context.supabase, target, context.provider, workerId);
+  const claim = await claimJob(context.supabase, target, context.provider);
   if (!claim.claimGranted) {
     const polledCache = await waitForPeerResult(context.supabase, context.provider, target);
     if (polledCache && cacheCoversRequestedFields(polledCache, target.requestedFields)) {
@@ -363,7 +353,7 @@ async function processTarget(context, target, budgetTrack) {
   const requestedFields = claim.requestedFields;
 
   if (!context.googleApiKey) {
-    await completeJob(context.supabase, claim.jobId, 'failed', baseResult, 'provider_unconfigured', 'GOOGLE_PLACES_API_KEY is not configured');
+    await completeJob(context.supabase, claim.jobId, claim.leaseOwner, 'failed', baseResult, 'provider_unconfigured', 'GOOGLE_PLACES_API_KEY is not configured');
     return {
       ...baseResult,
       chargedUnits: 0,
@@ -382,7 +372,7 @@ async function processTarget(context, target, budgetTrack) {
     context.hardCap,
   );
   if (!budget.allowed) {
-    await completeJob(context.supabase, claim.jobId, 'budget_blocked', baseResult, 'budget_blocked', 'place enrichment budget exhausted');
+    await completeJob(context.supabase, claim.jobId, claim.leaseOwner, 'budget_blocked', baseResult, 'budget_blocked', 'place enrichment budget exhausted');
     return {
       ...baseResult,
       chargedUnits: 0,
@@ -401,7 +391,7 @@ async function processTarget(context, target, budgetTrack) {
     );
     const enrichment = await buildProviderResult(target, requestedFields, providerPayload, context.googleApiKey);
     await upsertProviderCache(context.supabase, context.provider, target, requestedFields, enrichment, providerPayload);
-    await completeJob(context.supabase, claim.jobId, 'completed', enrichment, null, null);
+    await completeJob(context.supabase, claim.jobId, claim.leaseOwner, 'completed', enrichment, null, null);
 
     return {
       ...baseResult,
@@ -425,6 +415,7 @@ async function processTarget(context, target, budgetTrack) {
     await completeJob(
       context.supabase,
       claim.jobId,
+      claim.leaseOwner,
       'failed',
       fallbackResult,
       normalized.code,
@@ -549,8 +540,8 @@ async function waitForPeerResult(supabase, provider, target) {
   return null;
 }
 
-async function claimJob(supabase, target, provider, workerId) {
-  const { data, error } = await supabase.rpc('claim_nuri_place_enrichment_job', {
+async function claimJob(supabase, target, provider) {
+  const { data, error } = await supabase.rpc('claim_nuri_place_enrichment_job_v2', {
     p_cache_key: buildCacheKey(target),
     p_dedupe_key: buildDedupeKey(target, provider),
     p_domain: target.domain,
@@ -558,7 +549,6 @@ async function claimJob(supabase, target, provider, workerId) {
     p_place_key: target.placeId,
     p_provider: provider,
     p_requested_fields: target.requestedFields,
-    p_worker_id: workerId,
   });
 
   if (error) {
@@ -569,11 +559,15 @@ async function claimJob(supabase, target, provider, workerId) {
   if (!row) {
     throw new Error('place enrichment job claim returned empty result');
   }
+  if (row.claim_granted && !normalizeString(row.lease_owner)) {
+    throw new Error('place enrichment job claim missing lease');
+  }
 
   return {
     cacheKey: normalizeString(row.cache_key) ?? buildCacheKey(target),
     claimGranted: Boolean(row.claim_granted),
     jobId: normalizeString(row.job_id),
+    leaseOwner: normalizeString(row.lease_owner),
     requestedFields: Array.isArray(row.requested_fields)
       ? row.requested_fields.map(normalizeString).filter(Boolean)
       : target.requestedFields,
@@ -645,15 +639,16 @@ async function fetchBackgroundTargets(supabase, provider, limit) {
     .filter(Boolean);
 }
 
-async function completeJob(supabase, jobId, status, resultSnapshot, errorCode, errorMessage) {
+async function completeJob(supabase, jobId, leaseOwner, status, resultSnapshot, errorCode, errorMessage) {
   if (!jobId) {
     return null;
   }
 
-  const { error } = await supabase.rpc('complete_nuri_place_enrichment_job', {
+  const { error } = await supabase.rpc('complete_nuri_place_enrichment_job_v2', {
     p_error_code: errorCode,
     p_error_message: errorMessage,
     p_job_id: jobId,
+    p_lease_owner: leaseOwner,
     p_result_snapshot: resultSnapshot ?? {},
     p_status: status,
   });

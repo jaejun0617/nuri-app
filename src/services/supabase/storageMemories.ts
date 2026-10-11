@@ -16,6 +16,7 @@
 import { Buffer } from 'buffer';
 import RNBlobUtil from 'react-native-blob-util';
 import { readFileAsBase64 } from '../files/readFileAsBase64';
+import { getImageUploadType, validateImageUploadSize } from '../media/imageUploadPolicy';
 import { isDirectMemoryImageUri } from '../records/imageSources';
 import { supabase } from './client';
 
@@ -106,14 +107,6 @@ function isFreshEnough(entry: CacheEntry, bufferMs = REFRESH_BUFFER_MS) {
 
 function normalizeFileUri(uri: string) {
   return uri.startsWith('file://') ? uri.replace('file://', '') : uri;
-}
-
-function inferExtFromMime(mimeType: string | null) {
-  const mt = (mimeType ?? '').toLowerCase();
-  if (mt.includes('png')) return 'png';
-  if (mt.includes('webp')) return 'webp';
-  if (mt.includes('heic') || mt.includes('heif')) return 'heic';
-  return 'jpg';
 }
 
 // ---------------------------------------------------------
@@ -342,7 +335,7 @@ export async function uploadMemoryImage({
   fileUri,
   mimeType,
 }: UploadMemoryImageParams): Promise<{ path: string }> {
-  const ext = inferExtFromMime(mimeType);
+  const { extension: ext, contentType } = getImageUploadType(mimeType);
 
   // ✅ 핵심: 매번 새로운 path (타임스탬프 + 랜덤)로 충돌 방지
   const version = Date.now();
@@ -354,12 +347,13 @@ export async function uploadMemoryImage({
     ? await readFileAsBase64(filePath)
     : await RNBlobUtil.fs.readFile(filePath, 'base64');
   const bytes = Buffer.from(base64, 'base64');
+  validateImageUploadSize(bytes.byteLength);
 
   // ✅ upsert=false (같은 path를 덮어쓰지 않음)
   const { error } = await supabase.storage
     .from('memory-images')
     .upload(path, bytes, {
-      contentType: mimeType ?? 'image/jpeg',
+      contentType,
       upsert: false,
     });
 

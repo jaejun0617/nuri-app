@@ -4,7 +4,7 @@
 // 어디서 쓰이는지:
 // - nuri://auth/callback deep link와 RootNavigator의 `OAuthCallback` 라우트에서 사용된다.
 // 핵심 역할:
-// - OAuth code flow 또는 token fragment callback을 Supabase session으로 교환한 뒤 Splash boot contract로 복귀시킨다.
+// - 이 기기에서 시작한 PKCE code만 교환한 뒤 Splash boot contract로 복귀시킨다.
 // 데이터·상태 흐름:
 // - 세션 저장은 Supabase client storage와 auth listener가 맡고, profile/nickname/pet 분기는 기존 AppProviders/Splash 흐름이 처리한다.
 // 수정 시 주의:
@@ -24,6 +24,7 @@ import {
 } from '../../services/supabase/auth';
 
 import { styles } from './PasswordResetFlow.styles';
+import { consumePendingOAuth } from '../../services/auth/pendingOAuth';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OAuthCallback'>;
 
@@ -58,10 +59,10 @@ export default function OAuthCallbackScreen({ navigation, route }: Props) {
 
     const handleCallback = async () => {
       if (error) {
+        await consumePendingOAuth(provider);
         Alert.alert(
           '소셜 로그인을 완료하지 못했어요',
-          errorDescription ||
-            '소셜 로그인 연결에 실패했어요. 이메일 로그인을 이용해 주세요.',
+          '로그인이 취소되었거나 만료됐어요. 소셜 로그인을 다시 시작해 주세요.',
           [{ text: '확인', onPress: returnToSignIn }],
         );
         return;

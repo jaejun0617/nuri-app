@@ -97,6 +97,10 @@ async function invokeLocationSeed<TDocument>(
     ]);
     const seedTask = task.then(({ data, error }) => {
       if (error) {
+        const context: unknown = 'context' in error ? error.context : null;
+        if (context && typeof context === 'object' && 'status' in context && context.status === 429) {
+          throw new Error('주변 장소 요청이 많아요. 잠시 후 다시 검색해 주세요.');
+        }
         throw new Error(error.message || '주변 장소를 불러오지 못했어요.');
       }
 

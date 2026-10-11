@@ -95,6 +95,7 @@ export type CommunityPostViewViewerType = 'user' | 'guest';
 export type CommunityPostViewRecordReason =
   | 'counted'
   | 'deduped'
+  | 'view_limited'
   | 'self_view'
   | 'post_ineligible'
   | 'missing_guest_session'

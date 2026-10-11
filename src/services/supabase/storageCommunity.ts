@@ -12,18 +12,11 @@ import { Buffer } from 'buffer';
 import RNBlobUtil from 'react-native-blob-util';
 
 import { readFileAsBase64 } from '../files/readFileAsBase64';
+import { getImageUploadType, validateImageUploadSize } from '../media/imageUploadPolicy';
 import { supabase } from './client';
 
 const COMMUNITY_BUCKET = 'community-images';
 const COMMUNITY_IMAGE_CLEANUP_QUEUE_KEY = 'nuri.community.imageCleanupQueue.v1';
-
-function inferExtFromMime(mimeType: string | null) {
-  const mt = (mimeType ?? '').toLowerCase();
-  if (mt.includes('png')) return 'png';
-  if (mt.includes('webp')) return 'webp';
-  if (mt.includes('heic') || mt.includes('heif')) return 'heic';
-  return 'jpg';
-}
 
 function normalizeFileUri(uri: string) {
   return uri.startsWith('file://') ? uri.replace('file://', '') : uri;
@@ -39,7 +32,7 @@ type UploadCommunityImageParams = {
 export async function uploadCommunityImage(
   params: UploadCommunityImageParams,
 ): Promise<string> {
-  const ext = inferExtFromMime(params.mimeType);
+  const { extension: ext, contentType } = getImageUploadType(params.mimeType);
   const timestamp = Date.now();
   const nonce = Math.random().toString(36).slice(2, 10);
   const storagePath = `${params.userId}/${params.postId}/${timestamp}_${nonce}.${ext}`;
@@ -48,11 +41,12 @@ export async function uploadCommunityImage(
     ? await readFileAsBase64(filePath)
     : await RNBlobUtil.fs.readFile(filePath, 'base64');
   const bytes = Buffer.from(base64, 'base64');
+  validateImageUploadSize(bytes.byteLength);
 
   const { error } = await supabase.storage
     .from(COMMUNITY_BUCKET)
     .upload(storagePath, bytes, {
-      contentType: params.mimeType ?? 'image/jpeg',
+      contentType,
       upsert: false,
     });
 

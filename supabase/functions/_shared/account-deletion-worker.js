@@ -1,5 +1,6 @@
 /* global Deno */
 import { createClient } from 'npm:@supabase/supabase-js@2.97.0';
+import { verifyWorkerCredential } from './worker-auth.js';
 
 export const DEFAULT_FINALIZER_LIMIT = 10;
 export const DEFAULT_CLEANUP_LIMIT = 50;
@@ -20,16 +21,7 @@ export function createWorkerContext() {
 }
 
 export function verifyCronRequest(request) {
-  const configuredSecret =
-    Deno.env.get('ACCOUNT_DELETION_WORKER_CRON_SECRET')?.trim() ?? '';
-  if (!configuredSecret) return true;
-
-  const headerSecret =
-    request.headers.get('x-cron-secret')?.trim() ??
-    request.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim() ??
-    '';
-
-  return headerSecret === configuredSecret;
+  return verifyWorkerCredential(request, Deno.env.get('ACCOUNT_DELETION_WORKER_CRON_SECRET'));
 }
 
 export async function readJsonBody(request) {
@@ -175,6 +167,7 @@ async function runCleanupPhase(input) {
     succeeded: 0,
     failed: 0,
     buckets: {},
+    skippedSecurity: 0,
     results: [],
   };
 
@@ -183,6 +176,7 @@ async function runCleanupPhase(input) {
       claimed: bucketItems.length,
       succeeded: 0,
       failed: 0,
+      skippedSecurity: 0,
     };
     summary.buckets[bucketName] = bucketSummary;
 
@@ -190,19 +184,25 @@ async function runCleanupPhase(input) {
       const chunkOutcomes = await removeCleanupChunk(input.supabase, bucketName, chunk);
 
       for (const outcome of chunkOutcomes) {
-        await completeCleanupItem(input.supabase, outcome);
+        // The authorization RPC persists rejected items as terminal security events.
+        if (!outcome.skippedSecurity) {
+          await completeCleanupItem(input.supabase, outcome);
+        }
 
         summary.results.push({
           cleanupItemId: outcome.cleanupItemId,
           requestId: outcome.requestId,
           bucketName,
           storagePath: outcome.storagePath,
-          status: outcome.success ? 'completed' : 'failed',
+          status: outcome.skippedSecurity ? 'skipped_security' : outcome.success ? 'completed' : 'failed',
           errorCode: outcome.errorCode,
           errorMessage: outcome.errorMessage,
         });
 
-        if (outcome.success) {
+        if (outcome.skippedSecurity) {
+          summary.skippedSecurity += 1;
+          bucketSummary.skippedSecurity += 1;
+        } else if (outcome.success) {
           summary.succeeded += 1;
           bucketSummary.succeeded += 1;
         } else {
@@ -239,7 +239,36 @@ async function claimCleanupItems(supabase, limit) {
   return Array.isArray(data) ? data : [];
 }
 
-async function removeCleanupChunk(supabase, bucketName, items) {
+export async function removeCleanupChunk(supabase, bucketName, items) {
+  const permitted = [];
+  const blocked = [];
+  for (const item of items) {
+    const outcome = await authorizeCleanupItem(supabase, bucketName, item);
+    if (outcome) blocked.push(outcome);
+    else permitted.push(item);
+  }
+  if (permitted.length === 0) return blocked;
+  return [...blocked, ...await removeAuthorizedCleanupChunk(supabase, bucketName, permitted)];
+}
+
+async function authorizeCleanupItem(supabase, bucketName, item) {
+  const { data } = await callRpc(supabase, 'authorize_account_deletion_cleanup_item', {
+    p_cleanup_item_id: item.cleanup_item_id,
+  });
+  if (data?.allowed === true && data.bucket_name === bucketName &&
+      data.storage_path === item.storage_path && data.owner_user_id) return null;
+  console.warn(JSON.stringify({
+    scope: 'account-deletion-worker', event: 'storage_cleanup_security_block',
+    cleanupItemId: item.cleanup_item_id,
+  }));
+  return {
+    cleanupItemId: item.cleanup_item_id, requestId: item.request_id,
+    storagePath: item.storage_path, success: false, skippedSecurity: true,
+    errorCode: 'storage_cleanup_owner_mismatch', errorMessage: 'Object deletion blocked',
+  };
+}
+
+async function removeAuthorizedCleanupChunk(supabase, bucketName, items) {
   const paths = items.map(item => `${item.storage_path ?? ''}`.trim()).filter(Boolean);
   if (paths.length === 0) {
     return items.map(item => ({
@@ -290,6 +319,11 @@ async function removeCleanupChunk(supabase, bucketName, items) {
     const storagePath = `${item.storage_path ?? ''}`.trim();
 
     try {
+      const blocked = await authorizeCleanupItem(supabase, bucketName, item);
+      if (blocked) {
+        outcomes.push(blocked);
+        continue;
+      }
       const { error: singleError } = await supabase
         .storage
         .from(bucketName)

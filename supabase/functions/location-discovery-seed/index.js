@@ -1,18 +1,23 @@
 /* global Deno, globalThis */
+import { createClient } from 'npm:@supabase/supabase-js@2.97.0';
 
 const KAKAO_KEYWORD_SEARCH_URL = 'https://dapi.kakao.com/v2/local/search/keyword.json';
 const KAKAO_ADDRESS_SEARCH_URL = 'https://dapi.kakao.com/v2/local/search/address.json';
 const KAKAO_COORD_TO_REGION_URL = 'https://dapi.kakao.com/v2/local/geo/coord2regioncode.json';
 const KAKAO_PROVIDER_CACHE_TTL_MS = 10 * 60 * 1000;
 const KAKAO_PROVIDER_CACHE_MAX_ENTRIES = 200;
+const MAX_BODY_BYTES = 4096;
+const MAX_QUERY_LENGTH = 120;
+const PROVIDER_TIMEOUT_MS = 8000;
 
 const kakaoProviderCache = new Map();
 
-function jsonResponse(body, status = 200) {
+function jsonResponse(body, status = 200, extraHeaders = {}) {
   return new globalThis.Response(JSON.stringify(body, null, 2), {
     status,
     headers: {
       'content-type': 'application/json; charset=utf-8',
+      ...extraHeaders,
     },
   });
 }
@@ -20,15 +25,44 @@ function jsonResponse(body, status = 200) {
 async function readJsonBody(request) {
   const contentType = request.headers.get('content-type') ?? '';
   if (!contentType.includes('application/json')) {
-    return {};
+    throw new Error('invalid_json_body');
   }
-
-  return request.json().catch(() => ({}));
+  if (Number(request.headers.get('content-length')) > MAX_BODY_BYTES) throw new Error('body_too_large');
+  const reader = request.body?.getReader();
+  if (!reader) throw new Error('invalid_json_body');
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      total += value.byteLength;
+      if (total > MAX_BODY_BYTES) {
+        await reader.cancel();
+        throw new Error('body_too_large');
+      }
+      chunks.push(value);
+    }
+  } finally { reader.releaseLock(); }
+  const bytes = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  try {
+    const value = JSON.parse(new globalThis.TextDecoder().decode(bytes));
+    if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error();
+    return value;
+  } catch { throw new Error('invalid_json_body'); }
 }
 
 function normalizeString(value) {
-  const normalized = `${value ?? ''}`.trim();
+  const normalized = typeof value === 'string' ? value.trim() : '';
   return normalized ? normalized : null;
+}
+
+function validCoordinates(value) {
+  return value && Number.isFinite(value.latitude) && Number.isFinite(value.longitude)
+    && value.latitude >= -90 && value.latitude <= 90
+    && value.longitude >= -180 && value.longitude <= 180;
 }
 
 function readFiniteNumber(value) {
@@ -50,7 +84,7 @@ function normalizeKeywordInput(rawInput) {
   }
 
   const query = normalizeString(rawInput.query);
-  if (!query) {
+  if (!query || query.length > MAX_QUERY_LENGTH) {
     return null;
   }
 
@@ -61,8 +95,8 @@ function normalizeKeywordInput(rawInput) {
           longitude: readFiniteNumber(rawInput.coordinates.longitude),
         }
       : null;
-  const hasCoordinates =
-    coordinates?.latitude !== null && coordinates?.longitude !== null;
+  const hasCoordinates = validCoordinates(coordinates);
+  if (rawInput.coordinates != null && !hasCoordinates) return null;
 
   return {
     coordinates: hasCoordinates ? coordinates : null,
@@ -107,7 +141,7 @@ function buildCoordToRegionUrl(rawCoordinates) {
 
   const latitude = readFiniteNumber(rawCoordinates.latitude);
   const longitude = readFiniteNumber(rawCoordinates.longitude);
-  if (latitude === null || longitude === null) {
+  if (!validCoordinates({ latitude, longitude })) {
     return null;
   }
 
@@ -123,17 +157,17 @@ async function fetchKakao(url, apiKey) {
     return cached;
   }
 
-  const response = await fetch(url, {
-    headers: {
-      Authorization: `KakaoAK ${apiKey}`,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`kakao_seed_failed:${response.status}`);
-  }
-
-  const json = await response.json();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), PROVIDER_TIMEOUT_MS);
+  let json;
+  try {
+    const response = await fetch(url, {
+      headers: { Authorization: `KakaoAK ${apiKey}` },
+      signal: controller.signal,
+    });
+    if (!response.ok) throw new Error('provider_unavailable');
+    json = await response.json();
+  } finally { clearTimeout(timeout); }
   const documents = Array.isArray(json.documents) ? json.documents : [];
   writeKakaoProviderCache(url, documents);
   return documents;
@@ -167,7 +201,7 @@ function writeKakaoProviderCache(url, documents) {
   });
 }
 
-Deno.serve(async request => {
+export async function handleLocationSeed(request) {
   if (request.method === 'GET') {
     return jsonResponse({
       ok: true,
@@ -181,8 +215,32 @@ Deno.serve(async request => {
   }
 
   try {
+    const bearer = request.headers.get('authorization')?.match(/^Bearer\s+(.+)$/i)?.[1];
+    if (!bearer) return jsonResponse({ ok: false, error: 'authentication_required' }, 401);
+    const client = createClient(Deno.env.get('SUPABASE_URL'), Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'), {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+    const { data: identity, error: authError } = await client.auth.getUser(bearer);
+    if (authError || !identity?.user || identity.user.is_anonymous) {
+      return jsonResponse({ ok: false, error: 'authentication_required' }, 401);
+    }
     const body = await readJsonBody(request);
     const action = normalizeString(body.action);
+    let providerUrl;
+    if (action === 'keyword') {
+      const input = normalizeKeywordInput(body.input);
+      if (!input) return jsonResponse({ ok: false, error: 'invalid_keyword_input' }, 400);
+      providerUrl = buildKeywordUrl(input);
+    } else if (action === 'address') {
+      const query = normalizeString(body.query);
+      if (!query || query.length > MAX_QUERY_LENGTH) return jsonResponse({ ok: false, error: 'invalid_address_query' }, 400);
+      providerUrl = buildAddressUrl(query);
+    } else if (action === 'coord2region') {
+      providerUrl = buildCoordToRegionUrl(body.coordinates);
+      if (!providerUrl) return jsonResponse({ ok: false, error: 'invalid_coordinates' }, 400);
+    } else {
+      return jsonResponse({ ok: false, error: 'unsupported_action' }, 400);
+    }
     const apiKey = normalizeString(Deno.env.get('KAKAO_REST_API_KEY'));
     if (!apiKey) {
       return jsonResponse(
@@ -194,60 +252,22 @@ Deno.serve(async request => {
       );
     }
 
-    if (action === 'keyword') {
-      const input = normalizeKeywordInput(body.input);
-      if (!input) {
-        return jsonResponse({ ok: false, error: 'invalid_keyword_input' }, 400);
-      }
-
-      return jsonResponse({
-        ok: true,
-        documents: await fetchKakao(buildKeywordUrl(input), apiKey),
-      });
+    const { data: budget, error: budgetError } = await client.rpc('claim_location_discovery_budget', { p_user_id: identity.user.id });
+    if (budgetError || !Array.isArray(budget) || !budget[0]) {
+      return jsonResponse({ ok: false, error: 'budget_unavailable' }, 503);
     }
-
-    if (action === 'address') {
-      const query = normalizeString(body.query);
-      if (!query) {
-        return jsonResponse({ ok: false, error: 'invalid_address_query' }, 400);
-      }
-
-      return jsonResponse({
-        ok: true,
-        documents: await fetchKakao(buildAddressUrl(query), apiKey),
-      });
+    if (!budget[0].allowed) {
+      return jsonResponse({ ok: false, error: 'location_rate_limited', retryAfterSeconds: budget[0].retry_after_seconds }, 429,
+        { 'Retry-After': String(budget[0].retry_after_seconds) });
     }
-
-    if (action === 'coord2region') {
-      const url = buildCoordToRegionUrl(body.coordinates);
-      if (!url) {
-        return jsonResponse({ ok: false, error: 'invalid_coordinates' }, 400);
-      }
-
-      return jsonResponse({
-        ok: true,
-        documents: await fetchKakao(url, apiKey),
-      });
-    }
-
-    return jsonResponse({ ok: false, error: 'unsupported_action' }, 400);
+    return jsonResponse({ ok: true, documents: await fetchKakao(providerUrl, apiKey) });
   } catch (error) {
-    const message = error instanceof Error ? error.message : 'unknown location seed error';
-
-    console.error(
-      JSON.stringify({
-        scope: 'location-discovery-seed',
-        event: 'request_failed',
-        message,
-      }),
-    );
-
-    return jsonResponse(
-      {
-        ok: false,
-        error: message,
-      },
-      500,
-    );
+    const code = error instanceof Error ? error.message : '';
+    if (code === 'body_too_large') return jsonResponse({ ok: false, error: code }, 413);
+    if (code === 'invalid_json_body') return jsonResponse({ ok: false, error: code }, 400);
+    const timedOut = error instanceof Error && error.name === 'AbortError';
+    return jsonResponse({ ok: false, error: timedOut ? 'provider_timeout' : 'provider_unavailable' }, timedOut ? 504 : 502);
   }
-});
+}
+
+Deno.serve(handleLocationSeed);

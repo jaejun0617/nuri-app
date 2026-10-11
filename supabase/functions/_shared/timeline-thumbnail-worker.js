@@ -1,6 +1,7 @@
 /* global Deno */
 import { createClient } from 'npm:@supabase/supabase-js@2.97.0';
 import postgres from 'npm:postgres@3.4.4';
+import { verifyWorkerCredential } from './worker-auth.js';
 
 const BUCKET = 'memory-images';
 const THUMBNAIL_WIDTH = 144;
@@ -36,15 +37,7 @@ export function normalizeBatchSize(value) {
 }
 
 export function verifyCronRequest(request) {
-  const configuredSecret = Deno.env.get('THUMBNAIL_WORKER_CRON_SECRET')?.trim() ?? '';
-  if (!configuredSecret) return true;
-
-  const headerSecret =
-    request.headers.get('x-cron-secret')?.trim() ??
-    request.headers.get('authorization')?.replace(/^Bearer\s+/i, '').trim() ??
-    '';
-
-  return headerSecret === configuredSecret;
+  return verifyWorkerCredential(request, Deno.env.get('THUMBNAIL_WORKER_CRON_SECRET'));
 }
 
 export async function lockCandidateRows(sql, limit) {

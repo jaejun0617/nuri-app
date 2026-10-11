@@ -1,5 +1,30 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-10-12 Security-Only Local Commit Boundary
+
+- Latest accepted baseline: 20 findings, 13 resolved, 7 open, Pre-Store 5, immediate blockers 0. SEC-019/020 are resolved within the scoped server boundary; older pending-approval counts below are historical. See [security checkpoint](nuri-security-remaining-2026-10-12.md).
+- PO authorizes one selective local security commit only. Exclude design, assets, caches, evidence and unrelated dirty changes. No push/tag/build/install/deployment; this is not clean Release candidate authorization.
+- Signing inputs and approved signer fingerprint are absent. Key read/copy policy remains blocked. Vercel browser production metadata now matches existing GitHub/public health source; the separate CLI metadata request returned 403. New signed-principal source/cutover provenance is not established. SEC-011 unresolved; STORE HOLD.
+
+## 2026-10-10 Security Corrective Partial Re-Audit / Signing Hold
+
+- Supersedes the earlier SEC-011 stop checkpoint below. Independent SEC-012/017/018 fixes are deployed and rollback-tested; original scoped server findings 001-005/007/009/010/012/017/018 are closed. This is not full production approval.
+- Local secure session storage, monitoring-wrapper redaction, protected signing fail-closed and four dependency updates are candidates, not installed native evidence. Crashlytics automatic exception paths and native/console gaps remain explicit.
+- TypeScript PASS; final scoped ESLint 0 errors/0 warnings; full suite exactly once: 223 suites/2,283 tests PASS. Final seven DB scripts PASS; original A/B content, derived summaries, Auth and Storage hashes match their pre-test snapshots; synthetic rows remaining 0.
+- SEC-011 `PARTIAL_BLOCKED_DEPLOYMENT_PROVENANCE`: `VERCEL_AUTH_403 + EXACT_SOURCE_PROVENANCE_REQUIRED`, next external action `PO_RESTORE_VERCEL_ACCESS`. New SEC-019/020 remain `OPEN_PENDING_PO_APPROVED_SCOPE` and unmodified.
+- Four protected signing variables are absent. Build/install counts 0. Clean exact-source and current no-commit instructions, plus existing preflight key-read/copy and current prohibition, require a PO decision before the official wrapper can run. No key/credential copied or printed. Old installed `ccf759ca` is not this candidate.
+- Remaining findings: HIGH 1, MEDIUM 6, LOW 2 (includes evidence-pending items); original immediate blockers 0, original pre-Store findings 5 plus 2 new recommended pre-Store gates. Thirteen existing gap categories and three Pro gates are not fully closed. Cross-realm same-human separation remains an additional gap.
+- STORE HOLD, production security approval NO, staged NONE, commit/push/cleanup NO. [Final report](/private/tmp/nuri-production-security-corrective-20261010-0YMxmy/FINAL_REPORT.md).
+
+## 2026-10-10 Security Corrective Incomplete / SEC-011 Deployment Gate
+
+- SEC-001~005 original scoped server boundaries have rollback-test evidence. SEC-006~010 have scoped local/remote evidence; native OAuth/upload/release regression remains unverified. Latest targeted 10 suites/81 tests, TypeScript and scoped lint PASS; this is not a full re-audit.
+- SEC-011 authenticated direct-table DML denial and audit append-only are partially applied. Immutable approval principals, signed console integration and live operations regression are NOT COMPLETE. Existing unsigned RPCs remain during coordinated cutover preparation.
+- PO explicitly required STOP if safe no-commit deployment or artifact provenance cannot be established. Existing Vercel metadata access returned HTTP 403. GitHub provenance and public health agree on d87c0c037853d600b8662a3205d77fe4ece6bbd1, but provider metadata could not be revalidated. No console deployment or unsigned-path revoke was attempted.
+- SEC-012 onward, full suite (0), Release build (0), install (0), physical security QA and final Re-Audit remain pending. New SEC-019/020 remain separate OPEN findings; no unapproved fixes. A/B fixture transactions rolled back and original 11-table hashes preserved.
+- STORE HOLD. No commit, push or cleanup. Evidence: `/private/tmp/nuri-production-security-corrective-20261010-0YMxmy/SEC-011-DEPLOYMENT-STOP.md`.
+
+<!-- NURI_UI_APPROVED_RELEASE_20261009_BEGIN -->
 <!-- NURI_UI_APPROVED_RELEASE_20261009_BEGIN -->
 ## 2026-10-09 Approved Social Login and Seasonal UI Release
 

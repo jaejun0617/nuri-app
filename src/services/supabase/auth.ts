@@ -9,6 +9,9 @@ import { supabase } from './client';
 import { isValidPasswordFormat } from './account';
 import { getOAuthRedirectTo } from '../auth/appLinks';
 import { clearExplicitLogoutAfterSignIn } from '../auth/localSession';
+import { beginPendingOAuth, clearPendingOAuth, consumePendingOAuth } from '../auth/pendingOAuth';
+import { requireS256OAuthUrl } from '../auth/pkce';
+import { SUPABASE_URL } from './config';
 import {
   ENABLE_GOOGLE_OAUTH,
   ENABLE_KAKAO_OAUTH,
@@ -52,6 +55,7 @@ type OAuthErrorCode =
   | 'provider_setup_required'
   | 'oauth_url_missing'
   | 'browser_open_failed'
+  | 'callback_not_expected'
   | 'callback_session_missing'
   | 'session_exchange_failed';
 
@@ -149,7 +153,31 @@ export function getOAuthSignInUserMessage(error: unknown): string {
   return '소셜 로그인 연결에 실패했어요. 잠시 후 다시 시도하거나 이메일 로그인을 이용해 주세요.';
 }
 
+let oauthStartInProgress = false;
+let oauthExchangeInProgress = false;
+
 export async function signInWithOAuthProvider(
+  provider: SocialOAuthProvider,
+): Promise<void> {
+  if (oauthStartInProgress || oauthExchangeInProgress) {
+    throw new OAuthSignInError({ code: 'callback_not_expected', message: '로그인을 확인 중이에요.', provider });
+  }
+  oauthStartInProgress = true;
+  try {
+    if (typeof globalThis.crypto?.getRandomValues !== 'function') {
+      throw new OAuthSignInError({ code: 'provider_setup_required', message: '안전한 로그인 연결을 시작하지 못했어요.', provider });
+    }
+    await beginPendingOAuth(provider);
+    await startOAuthProvider(provider);
+  } catch (error: unknown) {
+    await clearPendingOAuth();
+    throw error;
+  } finally {
+    oauthStartInProgress = false;
+  }
+}
+
+async function startOAuthProvider(
   provider: SocialOAuthProvider,
 ): Promise<void> {
   if (!isSocialOAuthProviderReleaseReady(provider)) {
@@ -190,7 +218,7 @@ export async function signInWithOAuthProvider(
   }
 
   try {
-    await Linking.openURL(data.url);
+    await Linking.openURL(requireS256OAuthUrl(data.url, SUPABASE_URL));
   } catch (openError: unknown) {
     logOAuthError({ provider, stage: 'open_browser', error: openError });
     throw new OAuthSignInError({
@@ -214,9 +242,16 @@ export function signInWithKakao(): Promise<void> {
 const callbackExchanges = new Map<string, { promise: Promise<void>; timer: ReturnType<typeof setTimeout> | null }>();
 
 export function completeOAuthCallbackSession(input: OAuthCallbackSessionInput): Promise<void> {
-  const key = JSON.stringify([input.code?.trim(), input.tokenHash?.trim(), input.accessToken?.trim(), input.refreshToken?.trim()]);
+  const code = input.code?.trim();
+  if (!code || code.length > 4096 || input.tokenHash || input.accessToken || input.refreshToken || input.verificationType) {
+    return Promise.reject(new OAuthSignInError({ code: 'callback_not_expected', message: '앱에서 소셜 로그인을 다시 시작해 주세요.' }));
+  }
+  const key = JSON.stringify([code, input.provider ?? null]);
   const pending = callbackExchanges.get(key);
   if (pending) return pending.promise;
+  if (oauthStartInProgress || oauthExchangeInProgress) {
+    return Promise.reject(new OAuthSignInError({ code: 'callback_not_expected', message: '로그인을 확인 중이에요.' }));
+  }
   if (callbackExchanges.size >= 4) {
     const completed = [...callbackExchanges.entries()].find(([, entry]) => entry.timer !== null);
     if (!completed) return Promise.reject(new OAuthSignInError({ code: 'session_exchange_failed', message: '로그인을 확인 중이에요. 잠시 후 다시 시도해 주세요.' }));
@@ -227,7 +262,8 @@ export function completeOAuthCallbackSession(input: OAuthCallbackSessionInput): 
     const entry = callbackExchanges.get(key);
     if (entry) entry.timer = setTimeout(() => callbackExchanges.delete(key), 60_000);
   };
-  const promise = exchangeOAuthCallbackSession(input).then(clearExplicitLogoutAfterSignIn).then(
+  oauthExchangeInProgress = true;
+  const promise = exchangeOAuthCallbackSession(input).then(clearExplicitLogoutAfterSignIn).finally(() => { oauthExchangeInProgress = false; }).then(
     () => { expireCompleted(); },
     (error: unknown) => { expireCompleted(); throw error; },
   );
@@ -239,82 +275,22 @@ async function exchangeOAuthCallbackSession(
   input: OAuthCallbackSessionInput,
 ): Promise<void> {
   const code = normalizeOptionalToken(input.code);
-  const tokenHash = normalizeOptionalToken(input.tokenHash);
-  const verificationType = normalizeOptionalToken(input.verificationType);
-  const accessToken = normalizeOptionalToken(input.accessToken);
-  const refreshToken = normalizeOptionalToken(input.refreshToken);
-
-  if (code) {
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (error) {
-      logOAuthError({
-        provider: input.provider ?? null,
-        stage: 'exchange_code',
-        error,
-      });
-      throw new OAuthSignInError({
-        code: 'session_exchange_failed',
-        message: getOAuthSignInUserMessage(error),
-        provider: input.provider ?? null,
-        sourceError: error,
-      });
-    }
-    return;
-  }
-
-  if (tokenHash) {
-    const { error } = await supabase.auth.verifyOtp({
-      type: normalizeOAuthVerificationType(verificationType),
-      token_hash: tokenHash,
-    });
-    if (error) {
-      logOAuthError({
-        provider: input.provider ?? null,
-        stage: 'verify_token_hash',
-        error,
-      });
-      throw new OAuthSignInError({
-        code: 'session_exchange_failed',
-        message: getOAuthSignInUserMessage(error),
-        provider: input.provider ?? null,
-        sourceError: error,
-      });
-    }
-    return;
-  }
-
-  if (!accessToken || !refreshToken) {
+  const provider = await consumePendingOAuth(input.provider ?? null);
+  if (!code || !provider) {
     throw new OAuthSignInError({
-      code: 'callback_session_missing',
-      message: '소셜 로그인 응답을 확인하지 못했어요.',
+      code: 'callback_not_expected',
+      message: '앱에서 소셜 로그인을 다시 시작해 주세요.',
       provider: input.provider ?? null,
     });
   }
-
-  const { error } = await supabase.auth.setSession({
-    access_token: accessToken,
-    refresh_token: refreshToken,
-  });
-  if (error) {
-    logOAuthError({
-      provider: input.provider ?? null,
-      stage: 'set_session',
-      error,
-    });
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+  if (error || !data.session) {
     throw new OAuthSignInError({
       code: 'session_exchange_failed',
       message: getOAuthSignInUserMessage(error),
-      provider: input.provider ?? null,
-      sourceError: error,
+      provider,
     });
   }
-}
-
-function normalizeOAuthVerificationType(
-  value: string | null,
-): 'magiclink' | 'signup' | 'email_change' {
-  if (value === 'signup' || value === 'email_change') return value;
-  return 'magiclink';
 }
 
 export async function signInWithEmail(email: string, password: string) {

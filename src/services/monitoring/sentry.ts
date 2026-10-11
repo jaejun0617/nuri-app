@@ -7,6 +7,12 @@ import type React from 'react';
 import type { NavigationContainerRef } from '@react-navigation/native';
 import crashlytics from '@react-native-firebase/crashlytics';
 import * as Sentry from '@sentry/react-native';
+import {
+  monitoringUserId,
+  sanitizeMonitoringException,
+  sanitizeMonitoringMessage,
+  sanitizeMonitoringMetadata,
+} from './sanitize';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
@@ -67,32 +73,32 @@ export function registerSentryNavigation(
 }
 
 export function setMonitoringUser(params: { id: string | null }): void {
+  const userId = monitoringUserId(params.id);
   if (sentryEnabled && sentryInitialized) {
     if (!params.id) {
       Sentry.setUser(null);
     } else {
       Sentry.setUser({
-        id: params.id,
+        id: userId,
       });
     }
   }
 
   if (crashlyticsEnabled && crashlyticsInitialized) {
-    crashlytics().setUserId(params.id ?? '');
+    crashlytics().setUserId(userId);
     crashlytics().setAttributes({
-      userId: params.id ?? '',
+      userId,
     });
   }
 }
 
 export function captureMonitoringException(error: unknown): void {
+  const normalized = sanitizeMonitoringException(error);
   if (sentryEnabled && sentryInitialized) {
-    Sentry.captureException(error);
+    Sentry.captureException(normalized);
   }
 
   if (crashlyticsEnabled && crashlyticsInitialized) {
-    const normalized =
-      error instanceof Error ? error : new Error(String(error ?? 'unknown'));
     crashlytics().recordError(normalized);
   }
 }
@@ -106,21 +112,24 @@ export function captureMonitoringMessage(
   },
 ): void {
   const level = options?.level ?? 'info';
+  const safeMessage = sanitizeMonitoringMessage(message);
+  const tags = sanitizeMonitoringMetadata(options?.tags);
+  const extras = sanitizeMonitoringMetadata(options?.extras);
 
   if (sentryEnabled && sentryInitialized) {
     Sentry.withScope(scope => {
       scope.setLevel(level);
 
-      for (const [key, value] of Object.entries(options?.tags ?? {})) {
+      for (const [key, value] of Object.entries(tags)) {
         if (value === null || value === undefined) continue;
         scope.setTag(key, String(value));
       }
 
-      for (const [key, value] of Object.entries(options?.extras ?? {})) {
+      for (const [key, value] of Object.entries(extras)) {
         scope.setExtra(key, value);
       }
 
-      Sentry.captureMessage(message, level);
+      Sentry.captureMessage(safeMessage, level);
     });
   }
 
@@ -128,11 +137,11 @@ export function captureMonitoringMessage(
     const payload =
       options && (options.tags || options.extras)
         ? ` ${JSON.stringify({
-            tags: options.tags ?? {},
-            extras: options.extras ?? {},
+            tags,
+            extras,
           })}`
         : '';
-    crashlytics().log(`${message}${payload}`);
+    crashlytics().log(`${safeMessage}${payload}`);
   }
 }
 

@@ -11,6 +11,7 @@
 
 import { Buffer } from 'buffer';
 import { readFileAsBase64 } from '../files/readFileAsBase64';
+import { getImageUploadType, validateImageUploadSize } from '../media/imageUploadPolicy';
 import { clearMemorySignedUrlCache } from './storageMemories';
 import { supabase } from './client';
 
@@ -92,22 +93,19 @@ export async function uploadPetAvatar(input: {
   fileUri: string; // ImagePicker asset.uri
   mimeType: string | null;
 }): Promise<{ path: string }> {
-  const ext = input.mimeType?.includes('png')
-    ? 'png'
-    : input.mimeType?.includes('webp')
-    ? 'webp'
-    : 'jpg';
+  const { extension: ext, contentType } = getImageUploadType(input.mimeType);
 
   const path = `${input.userId}/${input.petId}/avatar_${Date.now()}.${ext}`;
 
   const base64 = await readFileAsBase64(input.fileUri);
   const bytes = Buffer.from(base64, 'base64');
+  validateImageUploadSize(bytes.byteLength);
 
   const { error } = await supabase.storage
     .from(PET_PROFILE_BUCKET)
     .upload(path, bytes, {
       upsert: false,
-      contentType: input.mimeType ?? undefined,
+      contentType,
     });
 
   if (error) throw error;

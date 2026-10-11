@@ -18,7 +18,9 @@ GitHub currently has no signing secrets or environments for this repository. SIG
 
 Use a separate clean checkout of the intended commit, not the protected dirty working directory. Install the pinned toolchain and immutable dependencies. Supply protected inputs through the existing release-input contract in `docs/qa/release-input-manifest.md`.
 
-Required environment names are `NURI_RELEASE_INPUT_ROOT`, `NURI_RELEASE_INPUT_MANIFEST`, `NURI_RELEASE_PREFLIGHT_DIR` and `NURI_APPROVED_SIGNER_SHA256`. Store intent additionally requires `NURI_UPLOAD_STORE_FILE`, `NURI_UPLOAD_STORE_PASSWORD`, `NURI_UPLOAD_KEY_ALIAS` and `NURI_UPLOAD_KEY_PASSWORD`. Their values must never appear in Git, shell tracing, build logs or reports. SDK, JDK 17, NDK, CMake, wrapper, Maps input and protected signing files remain required toolchain inputs, not disposable caches.
+Required environment names are `NURI_RELEASE_INPUT_ROOT`, `NURI_RELEASE_INPUT_MANIFEST`, `NURI_RELEASE_PREFLIGHT_DIR` and `NURI_APPROVED_SIGNER_SHA256`. Both QA and Store Release additionally require `NURI_UPLOAD_STORE_FILE`, `NURI_UPLOAD_STORE_PASSWORD`, `NURI_UPLOAD_KEY_ALIAS` and `NURI_UPLOAD_KEY_PASSWORD` from a protected process environment. Static signing fallback is disabled. Their values must never appear in Git, shell tracing, build logs or reports. SDK, JDK 17, NDK, CMake, wrapper, Maps input and protected signing files remain required toolchain inputs, not disposable caches.
+
+As of the 2026-10-10 security corrective these four inputs and the approved signer fingerprint are absent. Build/install remain blocked. Current no-commit/dirty-preservation and no-keystore-read/copy instructions also conflict with the clean-checkout/fingerprint-copy procedure. Resolve those explicit PO gates without bypass before executing this path. See `release-input-manifest.md`; this is not authorization to provision credentials or change the key.
 
 ```bash
 bash scripts/verify-js-toolchain.sh

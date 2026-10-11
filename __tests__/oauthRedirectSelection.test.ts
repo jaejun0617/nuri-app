@@ -1,4 +1,5 @@
 import { Linking } from 'react-native';
+import { webcrypto } from 'crypto';
 jest.mock('../src/services/supabase/client', () => ({ supabase: { auth: { signInWithOAuth: jest.fn() } } }));
 import { supabase } from '../src/services/supabase/client';
 import { signInWithGoogle, signInWithKakao } from '../src/services/supabase/auth';
@@ -6,8 +7,9 @@ import { AUTH_APP_LINK_CALLBACK, LEGACY_AUTH_CALLBACK } from '../src/services/au
 
 describe('provider-specific redirect contract', () => {
   beforeEach(() => {
+    Object.defineProperty(globalThis, 'crypto', { value: webcrypto, configurable: true });
     jest.clearAllMocks();
-    jest.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({ data: { provider: 'kakao', url: 'https://grmekesqoydylqmyvfke.supabase.co/auth/v1/authorize?provider=kakao' }, error: null });
+    jest.mocked(supabase.auth.signInWithOAuth).mockResolvedValue({ data: { provider: 'kakao', url: `https://grmekesqoydylqmyvfke.supabase.co/auth/v1/authorize?provider=kakao&code_challenge_method=s256&code_challenge=${'A'.repeat(43)}` }, error: null });
     jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
   });
   afterEach(() => jest.restoreAllMocks());

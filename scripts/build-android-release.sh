@@ -28,8 +28,7 @@ MODE="${1:-}"
 
 "$TOOLCHAIN_SCRIPT" >/dev/null
 
-if [[ "$MODE" == "store" ]]; then
-  # Store path는 protected signing input 없이는 절대 fallback하지 않는다.
+# QA and Store use the same fail-closed protected signing inputs.
   for required_name in \
     NURI_UPLOAD_STORE_FILE \
     NURI_UPLOAD_STORE_PASSWORD \
@@ -40,7 +39,6 @@ if [[ "$MODE" == "store" ]]; then
       exit 2
     fi
   done
-fi
 
 [[ "${#EXPECTED_SIGNER}" -eq 64 && "$EXPECTED_SIGNER" != *[!0-9a-fA-F]* ]] || {
   printf '%s\n' 'FAIL: NURI_APPROVED_SIGNER_SHA256 is required for artifact verification' >&2

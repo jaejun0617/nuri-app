@@ -2,6 +2,14 @@
 
 import 'react-native-gesture-handler/jestSetup';
 
+jest.mock('react-native-keychain', () => ({
+  STORAGE_TYPE: { AES_GCM_NO_AUTH: 'KeystoreAESGCM_NoAuth' },
+  ACCESSIBLE: { AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY: 'AccessibleAfterFirstUnlockThisDeviceOnly' },
+  getGenericPassword: jest.fn(async () => false),
+  setGenericPassword: jest.fn(async () => false),
+  resetGenericPassword: jest.fn(async () => true),
+}));
+
 jest.mock('react-native-reanimated', () => {
   return {
     __esModule: true,

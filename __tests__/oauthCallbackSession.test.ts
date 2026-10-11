@@ -1,110 +1,97 @@
 jest.mock('../src/services/supabase/client', () => ({
-  supabase: {
-    auth: {
-      exchangeCodeForSession: jest.fn(),
-      setSession: jest.fn(),
-      verifyOtp: jest.fn(),
-    },
-  },
+  supabase: { auth: { exchangeCodeForSession: jest.fn(), setSession: jest.fn(), verifyOtp: jest.fn() } },
 }));
-
-const { supabase } = jest.requireMock('../src/services/supabase/client') as {
-  supabase: {
-    auth: {
-      exchangeCodeForSession: jest.Mock<Promise<{ error: null }>, [string]>;
-      setSession: jest.Mock<
-        Promise<{ error: null }>,
-        [{ access_token: string; refresh_token: string }]
-      >;
-      verifyOtp: jest.Mock<
-        Promise<{ error: null }>,
-        [{ type: 'magiclink' | 'signup' | 'email_change'; token_hash: string }]
-      >;
-    };
-  };
-};
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { completeOAuthCallbackSession } from '../src/services/supabase/auth';
+import { beginPendingOAuth, consumePendingOAuth, PENDING_OAUTH_KEY } from '../src/services/auth/pendingOAuth';
+const { supabase } = jest.requireMock('../src/services/supabase/client') as {
+  supabase: { auth: { exchangeCodeForSession: jest.Mock; setSession: jest.Mock; verifyOtp: jest.Mock } };
+};
+const storage = new Map<string, string>();
+const success = { data: { session: { user: { id: 'isolated-test-user' } } }, error: null };
 
-describe('completeOAuthCallbackSession', () => {
-  beforeAll(() => jest.useFakeTimers());
-  beforeEach(() => {
-    jest.advanceTimersByTime(60_001);
-    jest.clearAllMocks();
-    supabase.auth.exchangeCodeForSession.mockResolvedValue({ error: null });
-    supabase.auth.setSession.mockResolvedValue({ error: null });
-    supabase.auth.verifyOtp.mockResolvedValue({ error: null });
-  });
-  afterAll(() => jest.useRealTimers());
+beforeAll(() => jest.useFakeTimers());
+beforeEach(() => {
+  jest.advanceTimersByTime(60_001);
+  jest.clearAllMocks();
+  storage.clear();
+  jest.mocked(AsyncStorage.getItem).mockImplementation(async key => storage.get(key) ?? null);
+  jest.mocked(AsyncStorage.setItem).mockImplementation(async (key, value) => { storage.set(key, value); });
+  jest.mocked(AsyncStorage.removeItem).mockImplementation(async key => { storage.delete(key); });
+  supabase.auth.exchangeCodeForSession.mockResolvedValue(success);
+});
+afterAll(() => jest.useRealTimers());
 
-  it('Supabase token_hash callback은 앱 안에서 magiclink 세션으로 교환한다', async () => {
-    await completeOAuthCallbackSession({
-      tokenHash: 'hashed-token',
-      verificationType: 'magiclink',
-      provider: 'google',
-    });
-
-    expect(supabase.auth.verifyOtp).toHaveBeenCalledWith({
-      type: 'magiclink',
-      token_hash: 'hashed-token',
-    });
-    expect(supabase.auth.setSession).not.toHaveBeenCalled();
-    expect(supabase.auth.exchangeCodeForSession).not.toHaveBeenCalled();
-  });
-
-  it('verification type이 비어 있으면 magiclink로 안전하게 처리한다', async () => {
-    await completeOAuthCallbackSession({
-      tokenHash: 'hashed-token',
-      verificationType: null,
-      provider: 'google',
-    });
-
-    expect(supabase.auth.verifyOtp).toHaveBeenCalledWith({
-      type: 'magiclink',
-      token_hash: 'hashed-token',
-    });
-  });
-
-  it('기존 access/refresh token callback은 setSession 경로를 유지한다', async () => {
-    await completeOAuthCallbackSession({
-      accessToken: 'access-token',
-      refreshToken: 'refresh-token',
-      provider: 'kakao',
-    });
-
-    expect(supabase.auth.setSession).toHaveBeenCalledWith({
-      access_token: 'access-token',
-      refresh_token: 'refresh-token',
-    });
-    expect(supabase.auth.verifyOtp).not.toHaveBeenCalled();
-  });
-
-  it('the same code callback exchanges once across concurrent and completed deliveries', async () => {
-    await Promise.all([
-      completeOAuthCallbackSession({ code: 'same-code', provider: 'kakao' }),
-      completeOAuthCallbackSession({ code: 'same-code', provider: 'kakao' }),
-    ]);
-    await completeOAuthCallbackSession({ code: 'same-code', provider: 'kakao' });
-    expect(supabase.auth.exchangeCodeForSession).toHaveBeenCalledTimes(1);
-  });
-
-  it('failed callback does not attempt a token fallback or a partial session', async () => {
-    supabase.auth.exchangeCodeForSession.mockResolvedValueOnce({ error: { status: 400 } } as unknown as { error: null });
-    await expect(completeOAuthCallbackSession({ code: 'invalid-code', provider: 'kakao' })).rejects.toMatchObject({ code: 'session_exchange_failed' });
-    expect(supabase.auth.setSession).not.toHaveBeenCalled();
-  });
-
-  it('a slow pending exchange cannot expire and run twice', async () => {
-    let finish: (() => void) | undefined;
-    supabase.auth.exchangeCodeForSession.mockReturnValueOnce(new Promise(resolve => {
-      finish = () => resolve({ error: null });
-    }));
-    const first = completeOAuthCallbackSession({ code: 'slow-code', provider: 'kakao' });
-    jest.advanceTimersByTime(120_000);
-    const second = completeOAuthCallbackSession({ code: 'slow-code', provider: 'kakao' });
-    expect(first).toBe(second);
-    expect(supabase.auth.exchangeCodeForSession).toHaveBeenCalledTimes(1);
-    finish?.();
-    await Promise.all([first, second]);
-  });
+test.each(['google', 'kakao'] as const)('device-started %s code uses PKCE exchange', async provider => {
+  await beginPendingOAuth(provider);
+  await completeOAuthCallbackSession({ code: 'valid-' + provider, provider });
+  expect(supabase.auth.exchangeCodeForSession).toHaveBeenCalledWith('valid-' + provider);
+  expect(storage.has(PENDING_OAUTH_KEY)).toBe(false);
+  expect(supabase.auth.setSession).not.toHaveBeenCalled();
+});
+test.each([
+  { tokenHash: 'untrusted-hash', verificationType: 'magiclink' },
+  { accessToken: 'untrusted-access', refreshToken: 'untrusted-refresh' },
+  { code: 'mixed', accessToken: 'untrusted-access' },
+])('rejects token callback without an implicit fallback: %j', async input => {
+  await beginPendingOAuth('google');
+  await expect(completeOAuthCallbackSession(input)).rejects.toMatchObject({ code: 'callback_not_expected' });
+  expect(supabase.auth.verifyOtp).not.toHaveBeenCalled();
+  expect(supabase.auth.setSession).not.toHaveBeenCalled();
+  expect(supabase.auth.exchangeCodeForSession).not.toHaveBeenCalled();
+});
+test('unsolicited code has no pending device flow', async () => {
+  await expect(completeOAuthCallbackSession({ code: 'unsolicited' })).rejects.toMatchObject({ code: 'callback_not_expected' });
+  expect(supabase.auth.exchangeCodeForSession).not.toHaveBeenCalled();
+});
+test('cold return reads persisted pending metadata with no bearer credentials', async () => {
+  storage.set(PENDING_OAUTH_KEY, JSON.stringify({ version: 1, provider: 'kakao', startedAt: Date.now() }));
+  await completeOAuthCallbackSession({ code: 'cold-return' });
+  expect(supabase.auth.exchangeCodeForSession).toHaveBeenCalledTimes(1);
+});
+test('expired, malformed and provider-mismatched flows are rejected', async () => {
+  await beginPendingOAuth('google');
+  await expect(completeOAuthCallbackSession({ code: 'wrong-provider', provider: 'kakao' })).rejects.toMatchObject({ code: 'callback_not_expected' });
+  jest.advanceTimersByTime(16 * 60_000);
+  await expect(completeOAuthCallbackSession({ code: 'expired' })).rejects.toMatchObject({ code: 'callback_not_expected' });
+  storage.set(PENDING_OAUTH_KEY, '{broken');
+  await expect(completeOAuthCallbackSession({ code: 'malformed' })).rejects.toMatchObject({ code: 'callback_not_expected' });
+  expect(supabase.auth.exchangeCodeForSession).not.toHaveBeenCalled();
+});
+test.each(['google', 'kakao'] as const)('%s cancellation invalidates pending metadata only', async provider => {
+  await beginPendingOAuth(provider);
+  expect(await consumePendingOAuth(provider)).toBe(provider);
+  await expect(completeOAuthCallbackSession({ code: 'cancelled-' + provider })).rejects.toMatchObject({ code: 'callback_not_expected' });
+  expect(supabase.auth.setSession).not.toHaveBeenCalled();
+});
+test('concurrent and repeated delivery exchanges the same code once', async () => {
+  await beginPendingOAuth('kakao');
+  const first = completeOAuthCallbackSession({ code: 'same-code' });
+  const second = completeOAuthCallbackSession({ code: 'same-code' });
+  expect(first).toBe(second);
+  await first;
+  await completeOAuthCallbackSession({ code: 'same-code' });
+  expect(supabase.auth.exchangeCodeForSession).toHaveBeenCalledTimes(1);
+});
+test('invalid verifier never falls back to token exchange', async () => {
+  await beginPendingOAuth('kakao');
+  supabase.auth.exchangeCodeForSession.mockResolvedValueOnce({ data: { session: null }, error: { code: 'bad_code_verifier' } });
+  await expect(completeOAuthCallbackSession({ code: 'invalid-verifier' })).rejects.toMatchObject({ code: 'session_exchange_failed' });
+  expect(supabase.auth.setSession).not.toHaveBeenCalled();
+  expect(storage.has(PENDING_OAUTH_KEY)).toBe(false);
+});
+test('slow exchange cannot expire or accept a different concurrent code', async () => {
+  await beginPendingOAuth('kakao');
+  let finish: (() => void) | undefined;
+  supabase.auth.exchangeCodeForSession.mockReturnValueOnce(new Promise(resolve => {
+    finish = () => resolve(success);
+  }));
+  const first = completeOAuthCallbackSession({ code: 'slow-code' });
+  for (let i=0; i<10; i++) await Promise.resolve();
+  jest.advanceTimersByTime(120_000);
+  expect(completeOAuthCallbackSession({ code: 'slow-code' })).toBe(first);
+  await expect(completeOAuthCallbackSession({ code: 'other-code' })).rejects.toMatchObject({ code: 'callback_not_expected' });
+  expect(supabase.auth.exchangeCodeForSession).toHaveBeenCalledTimes(1);
+  finish?.();
+  await first;
 });
