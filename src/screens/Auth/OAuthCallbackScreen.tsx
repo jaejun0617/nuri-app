@@ -4,9 +4,9 @@
 // 어디서 쓰이는지:
 // - nuri://auth/callback deep link와 RootNavigator의 `OAuthCallback` 라우트에서 사용된다.
 // 핵심 역할:
-// - 이 기기에서 시작한 PKCE code만 교환한 뒤 Splash boot contract로 복귀시킨다.
+// - 이 기기에서 시작한 PKCE code만 교환한 뒤 단일 auth owner의 route 결정을 적용한다.
 // 데이터·상태 흐름:
-// - 세션 저장은 Supabase client storage와 auth listener가 맡고, profile/nickname/pet 분기는 기존 AppProviders/Splash 흐름이 처리한다.
+// - AppProviders가 세션 및 profile/pet 준비를 확정하고 이 화면은 결정된 route만 표시한다.
 // 수정 시 주의:
 // - password reset recovery route와 섞지 않는다. `nuri://auth/reset`은 이 화면에서 처리하지 않는다.
 
@@ -25,6 +25,8 @@ import {
 
 import { styles } from './PasswordResetFlow.styles';
 import { consumePendingOAuth } from '../../services/auth/pendingOAuth';
+import { resolveAuthTransition, type AuthEntryRoute } from '../../services/auth/transition';
+import { recordAuthEvent } from '../../services/auth/trace';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OAuthCallback'>;
 
@@ -52,24 +54,38 @@ export default function OAuthCallbackScreen({ navigation, route }: Props) {
   useEffect(() => {
     let active = true;
 
-    const returnToSignIn = () => {
+    const navigateResolved = (target: AuthEntryRoute) => {
       if (!active) return;
-      navigation.replace('SignIn');
+      recordAuthEvent(target.name === 'SignIn' ? 'ROUTE_TARGET_ANONYMOUS' : 'ROUTE_TARGET_AUTHENTICATED');
+      navigation.reset({ index: 0, routes: [target] });
+    };
+
+    const recover = async () => {
+      const target = await resolveAuthTransition();
+      recordAuthEvent('CALLBACK_RECOVERY_COMPLETE');
+      navigateResolved(target);
+    };
+
+    const showFailure = (message: string) => {
+      recordAuthEvent('CALLBACK_REJECTED');
+      if (!active) return;
+      Alert.alert('소셜 로그인을 완료하지 못했어요', message, [{
+        text: '확인', onPress: () => { recover().catch(() => {
+          if (active) Alert.alert('로그인 상태를 확인하지 못했어요', '앱을 다시 열어 주세요.');
+        }); },
+      }]);
     };
 
     const handleCallback = async () => {
+      recordAuthEvent('CALLBACK_RECEIVED');
       if (error) {
         await consumePendingOAuth(provider);
-        Alert.alert(
-          '소셜 로그인을 완료하지 못했어요',
-          '로그인이 취소되었거나 만료됐어요. 소셜 로그인을 다시 시작해 주세요.',
-          [{ text: '확인', onPress: returnToSignIn }],
-        );
+        showFailure('로그인이 취소되었거나 만료됐어요. 소셜 로그인을 다시 시작해 주세요.');
         return;
       }
 
       try {
-        await completeOAuthCallbackSession({
+        const target = await completeOAuthCallbackSession({
           accessToken,
           refreshToken,
           code,
@@ -78,19 +94,15 @@ export default function OAuthCallbackScreen({ navigation, route }: Props) {
           provider,
         });
         if (!active) return;
-        navigation.reset({ index: 0, routes: [{ name: 'Splash' }] });
+        navigateResolved(target);
       } catch (sessionError: unknown) {
         if (!active) return;
-        Alert.alert(
-          '소셜 로그인을 완료하지 못했어요',
-          getOAuthSignInUserMessage(sessionError),
-          [{ text: '확인', onPress: returnToSignIn }],
-        );
+        showFailure(getOAuthSignInUserMessage(sessionError));
       }
     };
 
     handleCallback().catch(() => {
-      returnToSignIn();
+      showFailure('로그인 상태를 다시 확인해 주세요.');
     });
 
     return () => {

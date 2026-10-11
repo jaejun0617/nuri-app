@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Keychain from 'react-native-keychain';
-import { secureSessionStorage as storage } from '../src/services/auth/secureSessionStorage';
+import { getSecureStorageReceipt, secureSessionStorage as storage } from '../src/services/auth/secureSessionStorage';
 
 const encrypted = new Map<string, string>();
 const legacy = new Map<string, string>();
@@ -12,6 +12,7 @@ beforeEach(() => {
   encrypted.clear();
   legacy.clear();
   jest.mocked(AsyncStorage.getItem).mockImplementation(async name => legacy.get(name) ?? null);
+  jest.mocked(AsyncStorage.getAllKeys).mockImplementation(async () => [...legacy.keys()]);
   jest.mocked(AsyncStorage.removeItem).mockImplementation(async name => { legacy.delete(name); });
   jest.mocked(Keychain.getGenericPassword).mockImplementation(async opts => {
     const password = encrypted.get(opts?.service ?? '');
@@ -41,6 +42,9 @@ it('migrates an existing session only after secure readback and keeps cold start
     accessible: Keychain.ACCESSIBLE.AFTER_FIRST_UNLOCK_THIS_DEVICE_ONLY,
   });
   expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+  expect(getSecureStorageReceipt(key)).toEqual({
+    version: 2, secureWrite: true, readback: true, legacyAbsent: true, migrated: true,
+  });
 });
 
 it('refreshes and switches accounts without leaving a stale plaintext session', async () => {
@@ -102,4 +106,22 @@ it('reports failed native deletion instead of claiming logout persistence succee
   await storage.setItem(key, 'synthetic-session');
   jest.mocked(Keychain.resetGenericPassword).mockResolvedValueOnce(false);
   await expect(storage.removeItem(key)).rejects.toThrow('SECURE_SESSION_STORAGE_FAILED');
+});
+
+it('never issues a completed receipt if legacy removal did not take effect', async () => {
+  legacy.set(key, 'public-synthetic-fixture');
+  jest.mocked(AsyncStorage.removeItem).mockResolvedValueOnce();
+  await expect(storage.getItem(key)).rejects.toThrow('SECURE_SESSION_STORAGE_FAILED');
+  expect(getSecureStorageReceipt(key)).toEqual({
+    version: 2, secureWrite: true, readback: true, legacyAbsent: false, migrated: false,
+  });
+});
+
+it('does not reuse a successful receipt for a later failed write', async () => {
+  await storage.setItem(key, 'public-synthetic-fixture');
+  jest.mocked(Keychain.setGenericPassword).mockResolvedValueOnce(false);
+  await expect(storage.setItem(key, 'public-new-fixture')).rejects.toThrow('SECURE_SESSION_STORAGE_FAILED');
+  expect(getSecureStorageReceipt(key)).toEqual({
+    version: 2, secureWrite: false, readback: false, legacyAbsent: false, migrated: false,
+  });
 });

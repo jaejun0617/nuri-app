@@ -4,6 +4,7 @@ jest.mock('../src/services/supabase/client', () => ({
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { completeOAuthCallbackSession } from '../src/services/supabase/auth';
 import { beginPendingOAuth, consumePendingOAuth, PENDING_OAUTH_KEY } from '../src/services/auth/pendingOAuth';
+import { registerAuthTransitionOwner } from '../src/services/auth/transition';
 const { supabase } = jest.requireMock('../src/services/supabase/client') as {
   supabase: { auth: { exchangeCodeForSession: jest.Mock; setSession: jest.Mock; verifyOtp: jest.Mock } };
 };
@@ -12,6 +13,7 @@ const success = { data: { session: { user: { id: 'isolated-test-user' } } }, err
 
 beforeAll(() => jest.useFakeTimers());
 beforeEach(() => {
+  registerAuthTransitionOwner(async () => ({ name: 'AppTabs', params: undefined }));
   jest.advanceTimersByTime(60_001);
   jest.clearAllMocks();
   storage.clear();
@@ -65,6 +67,8 @@ test.each(['google', 'kakao'] as const)('%s cancellation invalidates pending met
   expect(supabase.auth.setSession).not.toHaveBeenCalled();
 });
 test('concurrent and repeated delivery exchanges the same code once', async () => {
+  const owner = jest.fn(async () => ({ name: 'AppTabs' as const, params: undefined }));
+  registerAuthTransitionOwner(owner);
   await beginPendingOAuth('kakao');
   const first = completeOAuthCallbackSession({ code: 'same-code' });
   const second = completeOAuthCallbackSession({ code: 'same-code' });
@@ -72,13 +76,17 @@ test('concurrent and repeated delivery exchanges the same code once', async () =
   await first;
   await completeOAuthCallbackSession({ code: 'same-code' });
   expect(supabase.auth.exchangeCodeForSession).toHaveBeenCalledTimes(1);
+  expect(owner).toHaveBeenCalledTimes(1);
 });
 test('invalid verifier never falls back to token exchange', async () => {
+  const owner = jest.fn(async () => ({ name: 'AppTabs' as const, params: undefined }));
+  registerAuthTransitionOwner(owner);
   await beginPendingOAuth('kakao');
   supabase.auth.exchangeCodeForSession.mockResolvedValueOnce({ data: { session: null }, error: { code: 'bad_code_verifier' } });
   await expect(completeOAuthCallbackSession({ code: 'invalid-verifier' })).rejects.toMatchObject({ code: 'session_exchange_failed' });
   expect(supabase.auth.setSession).not.toHaveBeenCalled();
   expect(storage.has(PENDING_OAUTH_KEY)).toBe(false);
+  expect(owner).not.toHaveBeenCalled();
 });
 test('slow exchange cannot expire or accept a different concurrent code', async () => {
   await beginPendingOAuth('kakao');

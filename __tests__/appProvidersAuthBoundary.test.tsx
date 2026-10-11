@@ -10,6 +10,7 @@ jest.mock('../src/services/auth/localSession', () => ({
   hasExplicitLogout: jest.fn(async () => false),
   readPersistedAuthSession: jest.fn(async () => null),
   markExplicitLogout: jest.fn(async () => undefined),
+  clearExplicitLogoutAfterSignIn: jest.fn(async () => undefined),
 }));
 
 jest.mock('../src/services/supabase/client', () => ({
@@ -19,6 +20,7 @@ jest.mock('../src/services/supabase/client', () => ({
       getUser: jest.fn(),
       signOut: jest.fn(),
       onAuthStateChange: jest.fn(),
+      exchangeCodeForSession: jest.fn(),
     },
   },
 }));
@@ -32,6 +34,7 @@ jest.mock('../src/services/supabase/pets', () => ({
 }));
 
 jest.mock('../src/services/supabase/auth', () => ({
+  ...jest.requireActual('../src/services/supabase/auth'),
   fetchMyAccountDeletionGate: jest.fn(),
 }));
 
@@ -67,14 +70,18 @@ jest.mock('../src/store/uiStore', () => ({
 jest.mock('../src/store/authStore', () => {
   const state = {
     session: null as unknown,
+    isLoggedIn: false,
+    profile: { nickname: '누리', role: 'user' },
+    profileSyncStatus: 'ready',
     passwordRecoveryFlow: { status: 'inactive', startedAt: null },
     accountDeletionGate: null as unknown,
     hydrate: jest.fn(() => Promise.resolve()),
     setSession: jest.fn(async (session: unknown) => {
       state.session = session;
+      state.isLoggedIn = Boolean(session);
     }),
     updateSessionTokens: jest.fn((session: unknown) => { state.session = session; }),
-    setProfile: jest.fn(() => Promise.resolve()),
+    setProfile: jest.fn(async (profile: { nickname: string; role: string }) => { state.profile = profile; }),
     setProfileSyncState: jest.fn(),
     setAccountDeletionGate: jest.fn((gate: unknown) => {
       state.accountDeletionGate = gate as unknown;
@@ -97,6 +104,7 @@ jest.mock('../src/store/petStore', () => {
   const state = {
     pets: [] as Array<{ id: string; name: string }>,
     selectedPetId: null as string | null,
+    errorMessage: null,
     hydrateSelectedPetId: jest.fn(() => Promise.resolve()),
     hydratePetsCache: jest.fn(() => Promise.resolve([])),
     setPets: jest.fn((pets: Array<{ id: string; name: string }>) => {
@@ -163,7 +171,11 @@ import { supabase } from '../src/services/supabase/client';
 import { fetchMyProfile } from '../src/services/supabase/profile';
 import { fetchMyPets } from '../src/services/supabase/pets';
 import { useAuthStore } from '../src/store/authStore';
-import { hasExplicitLogout, readPersistedAuthSession } from '../src/services/auth/localSession';
+import { clearExplicitLogoutAfterSignIn, hasExplicitLogout, readPersistedAuthSession } from '../src/services/auth/localSession';
+import { completeOAuthCallbackSession } from '../src/services/supabase/auth';
+import { beginPendingOAuth } from '../src/services/auth/pendingOAuth';
+import { resolveAuthTransition } from '../src/services/auth/transition';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 type AuthStateCallback = Parameters<typeof supabase.auth.onAuthStateChange>[0];
 
@@ -393,5 +405,68 @@ describe('AppProviders auth boundary notification cleanup', () => {
     await emitAuthEvent('SIGNED_OUT', null);
     expect(mockSetSession).toHaveBeenLastCalledWith(null);
     expect(useAuthStore.getState().session).toBeNull();
+  });
+
+  it.each(['google', 'kakao'] as const)('publishes a new %s session when SIGNED_IN precedes clearing explicit logout', async provider => {
+    const values = new Map<string, string>();
+    jest.mocked(AsyncStorage.getItem).mockImplementation(async key => values.get(key) ?? null);
+    jest.mocked(AsyncStorage.setItem).mockImplementation(async (key, value) => { values.set(key, value); });
+    jest.mocked(AsyncStorage.removeItem).mockImplementation(async key => { values.delete(key); });
+    let loggedOut = true;
+    jest.mocked(hasExplicitLogout).mockImplementation(async () => loggedOut);
+    jest.mocked(clearExplicitLogoutAfterSignIn).mockImplementation(async () => { loggedOut = false; });
+    mockCreateQueue.mockReturnValue(createBoundaryQueue(async () => undefined));
+    await renderProvider();
+    const session = createSession(`new-${provider}`);
+    mockGetSession.mockResolvedValue({ data: { session }, error: null });
+    const exchange = createDeferred<Awaited<ReturnType<typeof supabase.auth.exchangeCodeForSession>>>();
+    jest.mocked(supabase.auth.exchangeCodeForSession).mockImplementation(() => {
+      authStateCallback?.('SIGNED_IN', session);
+      return exchange.promise;
+    });
+    await beginPendingOAuth(provider);
+    let completion: Promise<unknown>;
+    await act(async () => {
+      completion = completeOAuthCallbackSession({ code: `synthetic-order-${provider}`, provider });
+      for (let i = 0; i < 8; i++) await Promise.resolve();
+      await jest.advanceTimersByTimeAsync(0);
+    });
+    await act(async () => {
+      exchange.resolve({ data: { session, user: session.user }, error: null });
+      await completion;
+      await jest.advanceTimersByTimeAsync(0);
+    });
+    expect(loggedOut).toBe(false);
+    expect(useAuthStore.getState().session?.user.id).toBe(session.user.id);
+    expect(mockSetSession.mock.calls.filter(([value]) => value?.user.id === session.user.id)).toHaveLength(1);
+  });
+
+  it('does not supersede route readiness when the same session refreshes during profile bootstrap', async () => {
+    mockCreateQueue.mockReturnValue(createBoundaryQueue(async () => undefined));
+    await renderProvider();
+    const session = createSession('refresh-during-bootstrap');
+    const profile = createDeferred<{ nickname: string; role: 'user' }>();
+    mockFetchMyProfile.mockReturnValue(profile.promise);
+    let completion: ReturnType<typeof resolveAuthTransition>;
+    await act(async () => {
+      completion = resolveAuthTransition(session);
+      for (let i = 0; i < 30; i++) await Promise.resolve();
+    });
+    expect(mockSetSession).toHaveBeenLastCalledWith(session);
+    await emitAuthEvent('TOKEN_REFRESHED', session);
+    await act(async () => {
+      profile.resolve({ nickname: 'QA', role: 'user' });
+      await expect(completion).resolves.toHaveProperty('name');
+    });
+  });
+
+  it('callback recovery revalidates an existing session without issuing signOut', async () => {
+    const session = createSession('existing-session');
+    mockCreateQueue.mockReturnValue(createBoundaryQueue(async () => undefined));
+    mockGetSession.mockResolvedValue({ data: { session }, error: null });
+    await renderProvider();
+    await act(async () => { await resolveAuthTransition(); });
+    expect(useAuthStore.getState().session?.user.id).toBe(session.user.id);
+    expect(supabase.auth.signOut).not.toHaveBeenCalled();
   });
 });

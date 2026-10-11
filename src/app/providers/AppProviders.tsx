@@ -27,6 +27,10 @@ import { SeasonPreferenceProvider } from './SeasonPreferenceProvider';
 
 import { supabase } from '../../services/supabase/client';
 import { resolveAuthBoot, type AuthBootDecision } from '../../services/auth/bootstrap';
+import { registerAuthTransitionOwner } from '../../services/auth/transition';
+import { recordAuthEvent } from '../../services/auth/trace';
+import { isOAuthCompletionPending } from '../../services/supabase/auth';
+import { resolveBootRoute } from '../../services/app/boot';
 import {
   hasExplicitLogout,
   markExplicitLogout,
@@ -570,13 +574,22 @@ export default function AppProviders({ children }: Props) {
 
     const { data: listener } = supabase.auth.onAuthStateChange(
       (event, nextSession) => {
+        if (event === 'SIGNED_IN') recordAuthEvent('AUTH_EVENT_SIGNED_IN');
+        if (event === 'TOKEN_REFRESHED') recordAuthEvent('TOKEN_REFRESHED');
+        // The callback completion owns this new session, including clearing
+        // logout suppression. Never publish its intermediate SDK event.
+        if (event === 'SIGNED_IN' && isOAuthCompletionPending()) return;
         // Supabase holds its auth lock while this callback runs. Defer every
         // Supabase read so OAuth SIGNED_IN cannot deadlock profile/pet bootstrap.
-        const version = ++authResolutionVersion;
-        cancelRetry();
         const sameUserRefresh = !!nextSession && event === 'TOKEN_REFRESHED' &&
           getSessionUserId(nextSession) === getSessionUserId(useAuthStore.getState().session);
-        if (!sameUserRefresh) beginTransition();
+        // Token rotation is not a new identity transition. Keep an in-flight
+        // callback's profile/pet readiness and its final route decision alive.
+        const version = sameUserRefresh ? authResolutionVersion : ++authResolutionVersion;
+        if (!sameUserRefresh) {
+          cancelRetry();
+          beginTransition();
+        }
         const timer = setTimeout(() => {
           pendingAuthTransitionTimers.delete(timer);
           if (!alive) return;
@@ -613,6 +626,29 @@ export default function AppProviders({ children }: Props) {
     );
 
     unsub = listener.subscription;
+
+    const unregisterTransitionOwner = registerAuthTransitionOwner(async provided => {
+      const version = ++authResolutionVersion;
+      cancelRetry();
+      beginTransition();
+      await localHydrationPromiseRef.current;
+      const decision = await resolveValidSession(provided);
+      if (!alive || version !== authResolutionVersion) throw new Error('AUTH_TRANSITION_SUPERSEDED');
+      await applyDecision(provided ? 'SIGNED_IN' : 'boot', decision);
+      if (!alive || version !== authResolutionVersion) throw new Error('AUTH_TRANSITION_SUPERSEDED');
+      recordAuthEvent('AUTH_BOOTSTRAP_RESOLVED');
+      const auth = useAuthStore.getState();
+      const pets = usePetStore.getState();
+      return resolveBootRoute({
+        isLoggedIn: auth.isLoggedIn,
+        nickname: auth.profile.nickname,
+        profileSyncStatus: auth.profileSyncStatus,
+        petsCount: pets.pets.length,
+        petErrorMessage: pets.errorMessage,
+        passwordRecoveryFlow: auth.passwordRecoveryFlow,
+        accountDeletionGate: auth.accountDeletionGate,
+      });
+    });
 
     const unsubscribeGate = useAuthStore.subscribe((state, prevState) => {
       if (prevState.session && !state.session) {
@@ -652,6 +688,7 @@ export default function AppProviders({ children }: Props) {
       pendingAuthTransitionTimers.forEach(timer => clearTimeout(timer));
       pendingAuthTransitionTimers.clear();
       unsubscribeGate();
+      unregisterTransitionOwner();
       if (unsub) unsub.unsubscribe();
     };
   }, [

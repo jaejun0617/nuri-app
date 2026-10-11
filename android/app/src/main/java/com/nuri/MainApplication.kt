@@ -8,6 +8,7 @@ import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.nuri.notifications.ScheduleNotificationPackage
 import com.nuri.ui.BlurCaptureExclusionPackage
+import com.nuri.qa.SecurityQaPackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -18,6 +19,7 @@ class MainApplication : Application(), ReactApplication {
         PackageList(this).packages.apply {
           add(ScheduleNotificationPackage())
           add(BlurCaptureExclusionPackage())
+          add(SecurityQaPackage())
         },
     )
   }

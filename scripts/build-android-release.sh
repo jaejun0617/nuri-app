@@ -63,6 +63,10 @@ printf 'RELEASE_INTENT: %s\n' "$MODE"
 printf '%s\n' 'BUILD_COMMAND: ./gradlew assembleRelease bundleRelease --no-daemon --console plain'
 
 cd "$REPO_ROOT/android"
+export ORG_GRADLE_PROJECT_nuriSecurityQa=false
+if [[ "$MODE" == "qa" ]]; then
+  export ORG_GRADLE_PROJECT_nuriSecurityQa=true
+fi
 ./gradlew assembleRelease bundleRelease --no-daemon --console plain
 
 DEFAULT_APK="$REPO_ROOT/android/app/build/outputs/apk/release/app-release.apk"

@@ -12,6 +12,8 @@ import { clearExplicitLogoutAfterSignIn } from '../auth/localSession';
 import { beginPendingOAuth, clearPendingOAuth, consumePendingOAuth } from '../auth/pendingOAuth';
 import { requireS256OAuthUrl } from '../auth/pkce';
 import { SUPABASE_URL } from './config';
+import { resolveAuthTransition, type AuthEntryRoute } from '../auth/transition';
+import { recordAuthEvent } from '../auth/trace';
 import {
   ENABLE_GOOGLE_OAUTH,
   ENABLE_KAKAO_OAUTH,
@@ -146,15 +148,19 @@ export function getOAuthSignInUserMessage(error: unknown): string {
       error.code === 'provider_setup_required' ||
       error.code === 'oauth_url_missing'
     ) {
-      return '소셜 로그인 연결을 준비하고 있어요. 이메일 로그인을 이용해 주세요.';
+      return '소셜 로그인 연결을 준비하고 있어요. 잠시 후 다시 시도해 주세요.';
     }
   }
 
-  return '소셜 로그인 연결에 실패했어요. 잠시 후 다시 시도하거나 이메일 로그인을 이용해 주세요.';
+  return '소셜 로그인 연결에 실패했어요. 잠시 후 다시 시도해 주세요.';
 }
 
 let oauthStartInProgress = false;
 let oauthExchangeInProgress = false;
+
+export function isOAuthCompletionPending(): boolean {
+  return oauthExchangeInProgress;
+}
 
 export async function signInWithOAuthProvider(
   provider: SocialOAuthProvider,
@@ -163,11 +169,13 @@ export async function signInWithOAuthProvider(
     throw new OAuthSignInError({ code: 'callback_not_expected', message: '로그인을 확인 중이에요.', provider });
   }
   oauthStartInProgress = true;
+  recordAuthEvent('OAUTH_INTENT_STARTED');
   try {
     if (typeof globalThis.crypto?.getRandomValues !== 'function') {
       throw new OAuthSignInError({ code: 'provider_setup_required', message: '안전한 로그인 연결을 시작하지 못했어요.', provider });
     }
     await beginPendingOAuth(provider);
+    recordAuthEvent('PENDING_FLOW_READY');
     await startOAuthProvider(provider);
   } catch (error: unknown) {
     await clearPendingOAuth();
@@ -239,9 +247,9 @@ export function signInWithKakao(): Promise<void> {
   return signInWithOAuthProvider('kakao');
 }
 
-const callbackExchanges = new Map<string, { promise: Promise<void>; timer: ReturnType<typeof setTimeout> | null }>();
+const callbackExchanges = new Map<string, { promise: Promise<AuthEntryRoute>; timer: ReturnType<typeof setTimeout> | null }>();
 
-export function completeOAuthCallbackSession(input: OAuthCallbackSessionInput): Promise<void> {
+export function completeOAuthCallbackSession(input: OAuthCallbackSessionInput): Promise<AuthEntryRoute> {
   const code = input.code?.trim();
   if (!code || code.length > 4096 || input.tokenHash || input.accessToken || input.refreshToken || input.verificationType) {
     return Promise.reject(new OAuthSignInError({ code: 'callback_not_expected', message: '앱에서 소셜 로그인을 다시 시작해 주세요.' }));
@@ -263,8 +271,14 @@ export function completeOAuthCallbackSession(input: OAuthCallbackSessionInput): 
     if (entry) entry.timer = setTimeout(() => callbackExchanges.delete(key), 60_000);
   };
   oauthExchangeInProgress = true;
-  const promise = exchangeOAuthCallbackSession(input).then(clearExplicitLogoutAfterSignIn).finally(() => { oauthExchangeInProgress = false; }).then(
-    () => { expireCompleted(); },
+  const promise = exchangeOAuthCallbackSession(input).then(async session => {
+    await clearExplicitLogoutAfterSignIn();
+    recordAuthEvent('EXPLICIT_LOGOUT_STATE_CLEARED');
+    // SIGNED_IN is emitted inside exchangeCodeForSession's auth lock. Publish
+    // exactly once, after that lock and explicit-logout suppression are cleared.
+    return resolveAuthTransition(session);
+  }).finally(() => { oauthExchangeInProgress = false; }).then(
+    route => { expireCompleted(); return route; },
     (error: unknown) => { expireCompleted(); throw error; },
   );
   callbackExchanges.set(key, { promise, timer: null });
@@ -273,7 +287,7 @@ export function completeOAuthCallbackSession(input: OAuthCallbackSessionInput): 
 
 async function exchangeOAuthCallbackSession(
   input: OAuthCallbackSessionInput,
-): Promise<void> {
+): Promise<NonNullable<Awaited<ReturnType<typeof supabase.auth.exchangeCodeForSession>>['data']['session']>> {
   const code = normalizeOptionalToken(input.code);
   const provider = await consumePendingOAuth(input.provider ?? null);
   if (!code || !provider) {
@@ -283,6 +297,8 @@ async function exchangeOAuthCallbackSession(
       provider: input.provider ?? null,
     });
   }
+  recordAuthEvent('PENDING_FLOW_VALIDATED');
+  recordAuthEvent('CODE_EXCHANGE_STARTED');
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
   if (error || !data.session) {
     throw new OAuthSignInError({
@@ -291,6 +307,9 @@ async function exchangeOAuthCallbackSession(
       provider,
     });
   }
+  recordAuthEvent('CODE_EXCHANGE_SUCCESS');
+  recordAuthEvent('SESSION_AVAILABLE');
+  return data.session;
 }
 
 export async function signInWithEmail(email: string, password: string) {

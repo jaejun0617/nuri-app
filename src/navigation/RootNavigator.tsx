@@ -15,6 +15,7 @@
 
 import React from 'react';
 import type { NavigatorScreenParams } from '@react-navigation/native';
+import { isSecurityQaEnabled } from '../services/securityQa/config';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { NativeStackHeaderProps } from '@react-navigation/native-stack';
 
@@ -94,6 +95,7 @@ import type { PolicyDocumentId } from '../services/legal/presentation';
 import { FixedTypographyBoundary } from '../app/providers/AppFontPreferenceProvider';
 
 export type RootStackParamList = {
+  SecurityValidation: undefined;
   Splash: undefined;
 
   // ✅ 공통 탭 영역
@@ -592,6 +594,9 @@ export default function RootNavigator() {
       />
 
       {/* Dev only */}
+      {isSecurityQaEnabled ? (
+        <Stack.Screen name="SecurityValidation" getComponent={() => require('../screens/DevTest/SecurityValidationScreen').default} />
+      ) : null}
       {__DEV__ ? (
         <Stack.Screen
           name="DevTest"

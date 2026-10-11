@@ -1,4 +1,5 @@
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
+import { isSecurityQaEnabled } from '../../services/securityQa/config';
 // 파일: src/screens/More/MoreDrawerContent.tsx
 // 파일 목적:
 // - 더보기 드로어 안에서 주요 메뉴 허브와 계정 관리 기능을 한 화면으로 제공한다.
@@ -2187,6 +2188,10 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   );
   const policyItems = useMemo<MenuItemSpec[]>(
     () => [
+      ...(isSecurityQaEnabled ? [{
+        key: 'security-validation', label: 'Security validation', icon: 'shield',
+        onPress: () => closeAndNavigate(() => navigation.navigate('SecurityValidation')),
+      }] : []),
       {
         key: 'policy-center',
         label: '약관 및 정책',
@@ -2194,7 +2199,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         onPress: openPolicyCenter,
       },
     ],
-    [openPolicyCenter],
+    [openPolicyCenter, navigation, closeAndNavigate],
   );
   const accountItems = useMemo<MenuItemSpec[]>(
     () => [
