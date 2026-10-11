@@ -7,6 +7,7 @@ const crypto = require('node:crypto');
 const cp = require('node:child_process');
 const { Buffer } = require('node:buffer');
 const { relativeImports } = require('./preflight-release-inputs');
+const { verifyExternalSigner } = require('./release-signing-identity');
 
 const DECLARED = ['src/services/supabase/config.ts'];
 const fail = code => { throw new Error(code); };
@@ -84,6 +85,11 @@ function createProvenance(manifest, verification, apk, aab, root) {
   // Re-read declared inputs after Gradle; do not attest inputs that changed during build.
   for (const input of manifest.inputs.filter(i => i.destination)) {
     if (sha256(fs.readFileSync(input.destination)) !== input.sha256) fail('NURI_PROVENANCE_INPUT_CHANGED');
+  }
+  for (const input of manifest.inputs.filter(i => i.source === 'EXTERNAL_PROTECTED_KEYSTORE')) {
+    if (input.destination || input.sha256 || input.copied !== false ||
+      verifyExternalSigner(process.env) !== input.certificateSha256 ||
+      input.certificateSha256 !== manifest.expectedSignerCertificateSha256) fail('NURI_PROVENANCE_SIGNING_IDENTITY_CHANGED');
   }
   const inputIdentity = manifest.inputs.map(({ role, classification, sha256: digest }) => ({ role, classification, sha256: digest })).sort((a, b) => a.role.localeCompare(b.role));
   const artifacts = [apk, aab].map(file => ({ name: path.basename(file), sha256: sha256(fs.readFileSync(file)), bytes: fs.statSync(file).size }));

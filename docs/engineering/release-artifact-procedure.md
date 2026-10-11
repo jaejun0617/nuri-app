@@ -39,7 +39,15 @@ QA와 Store Release 모두 `NURI_UPLOAD_STORE_FILE`, `NURI_UPLOAD_STORE_PASSWORD
 
 하나라도 실패하면 artifact는 `REJECTED`다. QA와 Store 모두 signing input 부재 시 fail-closed이며 두 path는 명령·artifact 이름으로 분리한다.
 
-## 2026-10-10 Security Corrective Gate
+## 2026-10-12 Master-Managed Signing
+
+기존 키·alias·인증서를 유지한 비밀번호 교체와 macOS Keychain 저장·독립 재조회 검증을 마쳤다. [실제 결과](../qa/nuri-signing-credential-rotation-2026-10-12.md). PO의 수동 password/env 입력은 필요하지 않다.
+
+Master는 pinned Node로 `scripts/secure-release-signing.js verify`를 실행해 준비만 확인한다. 별도 승인된 Release에서는 clean exact commit에서 secure wrapper가 Keychain → 메모리 내 child 환경 → canonical wrapper → Gradle 순서로 주입한다. 원본의 절대 keystore 경로를 직접 사용하며 복사·이동·private key export는 하지 않는다. dirty source·누락 입력·signer 불일치는 계속 차단한다.
+
+2026-10-12 PO는 signing wrapper 전용 커밋과 해당 커밋의 clean detached worktree에서 QA Release 1회, 기존 기기에 덮어 설치 1회 및 native security 검증을 승인했다. 이전 보안 commit에 wrapper가 포함됐다고 간주하지 않는다. 새 commit·artifact·검증 결과는 이번 실행 증적에 기록하며, 실제 signer 검증 전까지 SEC-015는 `RESOLVED_PENDING_RELEASE_ARTIFACT`다. push·Store·SEC-011 배포는 승인되지 않았다.
+
+## 이전 Security Corrective Gate (2026-10-10, 서명 준비 상태는 위 기록으로 대체)
 
 현재 signing 환경변수 4개가 미주입 상태이므로 build/install은 보류한다. 기존 보호된 shell/process 주입만 사용하며 별도 secret manager 연동은 이 runbook에서 확인되지 않았다. `NURI_APPROVED_SIGNER_SHA256`도 별도로 필요하다.
 

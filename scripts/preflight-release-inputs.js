@@ -7,6 +7,7 @@ const crypto = require('node:crypto');
 const cp = require('node:child_process');
 const Module = require('node:module');
 const ts = require('typescript');
+const { requireSigningEnvironment, verifyExternalSigner, withoutSigningSecrets } = require('./release-signing-identity');
 
 const CONFIG_PATH = 'src/services/supabase/config.ts';
 const FIELD_NAMES = ['SUPABASE_URL', 'SUPABASE_ANON_KEY'];
@@ -174,17 +175,6 @@ function relativeImports(root, files, declared) {
   }
 }
 
-function requireSigningEnvironment(env) {
-  for (const name of [
-    'NURI_UPLOAD_STORE_FILE', 'NURI_UPLOAD_STORE_PASSWORD',
-    'NURI_UPLOAD_KEY_ALIAS', 'NURI_UPLOAD_KEY_PASSWORD',
-  ]) {
-    if (typeof env[name] !== 'string' || !env[name]) {
-      fail(`NURI_SIGNING_ENV_MISSING:${name}`);
-    }
-  }
-}
-
 function prepareInputs(root, inputRoot, env) {
   const manifest = [];
   const configSource = path.join(inputRoot, CONFIG_PATH);
@@ -252,17 +242,11 @@ function prepareInputs(root, inputRoot, env) {
       sha256: sha(fs.readFileSync(destination)),
     });
   }
-  // Explicit inputs only: no recursive copying of ignored files or the source tree.
-  const store = env.NURI_UPLOAD_STORE_FILE;
-  if (path.basename(store) !== store) {
-    fail('NURI_SIGNING_STORE_MUST_BE_APP_LOCAL');
-  }
-  inject(
-    `android/app/${store}`,
-    env.NURI_RELEASE_KEYSTORE_SOURCE ||
-      path.join(inputRoot, 'android/app', store),
-    'SECRET_SIGNING_MATERIAL',
-  );
+  manifest.push({
+    role: 'Release signing identity', required: true, tracked: false,
+    classification: 'SECRET_SIGNING_MATERIAL', source: 'EXTERNAL_PROTECTED_KEYSTORE',
+    certificateSha256: verifyExternalSigner(env), rawContentRead: false, copied: false,
+  });
   inject(
     'android/local.properties',
     env.NURI_RELEASE_LOCAL_PROPERTIES_SOURCE ||
@@ -344,7 +328,7 @@ function prepareInputs(root, inputRoot, env) {
   return {
     manifest,
     android: { sdk, buildTools, platform, platformDirectory, ndk, cmake },
-    declared: [CONFIG_PATH, `android/app/${store}`, 'android/local.properties'],
+    declared: [CONFIG_PATH, 'android/local.properties'],
   };
 }
 
@@ -464,7 +448,8 @@ function main(args) {
       '--max-workers',
       '2',
     ],
-    { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024 },
+    { cwd: root, encoding: 'utf8', maxBuffer: 16 * 1024 * 1024,
+      env: withoutSigningSecrets(process.env) },
   );
   // Preserve build diagnostics without printing any deployment file content.
   fs.writeFileSync(

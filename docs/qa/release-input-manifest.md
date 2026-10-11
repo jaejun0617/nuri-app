@@ -1,6 +1,18 @@
 # Release Deployment Input Contract
 
-## 2026-10-12 Security Gate Checkpoint
+## 2026-10-12 Signing Rotation Checkpoint
+
+- Both exposed passwords were rotated and saved in macOS Keychain without changing
+  signing identity. Independent secure retrieval PASS. See the
+  [rotation report](nuri-signing-credential-rotation-2026-10-12.md).
+- The no-copy wrapper uses the existing absolute keystore
+  path through the Java cryptographic provider and records certificate identity.
+- PO approved a signing-only commit, a clean detached checkout at that exact commit,
+  one QA Release build and one replace install on the designated device. Record
+  actual results separately; do not infer success from this authorization.
+  Original dirty remains preserved. Push, Store and SEC-011 deployment remain forbidden.
+
+## Earlier Security Gate Checkpoint (Signing Readiness Superseded Above)
 
 - STORE HOLD. SEC-019/020 server corrective verified; 13 resolved / 7 open.
 - Required signing environment and approved signer fingerprint remain absent.
@@ -29,8 +41,8 @@ keys must never enter the client bundle. See the
 | Input | Required | Git | Classification | Injection |
 | --- | --- | --- | --- | --- |
 | Supabase URL and client key | Yes | Ignored | Public client input protected by current policy | Literal config from protected input root, or paired CI environment |
-| Upload keystore | Yes | Ignored | Secret signing material | Explicit keystore source into Android app directory |
-| Signing password and alias | Yes | Protected process environment only | Secret signing properties | QA and Store require all four signing inputs; no static fallback |
+| Upload keystore | Yes | Ignored | Secret signing material | Existing absolute protected path; cryptographic read, no copy |
+| Signing password and alias | Yes | Never tracked | Secret signing properties | macOS Keychain into protected child environment; no static fallback |
 | `android/local.properties` | Yes | Ignored | SDK path and restricted Maps client key | Explicit protected source |
 | `android/app/google-services.json` | Yes | Tracked | Public client descriptor | Exact commit |
 | Node, Yarn, Java, SDK, NDK, CMake | Yes | External toolchain | Installed development tools | Existing pinned installation, recorded in manifest |
@@ -47,24 +59,21 @@ Use a clean exact-commit checkout with its own physical dependency installation.
 Do not symlink dependencies outside Metro's project root or copy the dirty source
 worktree. The original protected inputs are not modified.
 
-```bash
-export NURI_RELEASE_INPUT_ROOT=/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri
-export NURI_RELEASE_INPUT_MANIFEST=/tmp/nuri-rc-recovery-20261004/deployment-inputs.json
-export NURI_RELEASE_PREFLIGHT_DIR=/tmp/nuri-rc-recovery-20261004/preflight-temp
-export NURI_APPROVED_SIGNER_SHA256=08efb41ea4729792ce9fc3d242be9704e84a8ea3eadcbbcf1c8426884db689d3
-yarn android:release:qa
-```
+Master supplies non-secret input-root/evidence paths and runs the secure wrapper
+from the separately approved clean checkout with its exact commit. It injects the
+four signing inputs from Keychain and verifies the fingerprint from the preserved
+approved APK. PO does not perform shell exports. This is not build authorization.
 
 CI may supply `NURI_SUPABASE_URL` and `NURI_SUPABASE_CLIENT_KEY` together instead
-of a config file. `NURI_RELEASE_KEYSTORE_SOURCE` and
-`NURI_RELEASE_LOCAL_PROPERTIES_SOURCE` select explicit protected files.
-`NURI_UPLOAD_STORE_FILE` must be an app-local filename. Both QA and Store modes
+of a config file. `NURI_RELEASE_LOCAL_PROPERTIES_SOURCE` selects the protected
+SDK/Maps input; the `NURI_RELEASE_KEYSTORE_SOURCE` copy path is removed.
+`NURI_UPLOAD_STORE_FILE` must be an absolute existing protected file. Both QA and Store modes
 require `NURI_UPLOAD_STORE_FILE`, `NURI_UPLOAD_STORE_PASSWORD`,
 `NURI_UPLOAD_KEY_ALIAS` and `NURI_UPLOAD_KEY_PASSWORD` in the protected process
 environment. No QA defaults remain. The manifest records environment presence
 and source classification, not signing property values or their hashes.
 
-### Current Security Corrective Hold (2026-10-10)
+### Historical Security Corrective Hold (2026-10-10)
 
 The four signing inputs are absent. Build and install are blocked; do not run
 the examples above until the PO prepares the existing protected environment.

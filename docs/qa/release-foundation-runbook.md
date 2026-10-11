@@ -1,5 +1,18 @@
 # NURI Release Foundation Runbook
 
+## 2026-10-12 Signing Readiness Update
+
+The existing identity is preserved and exposed passwords are rotated into macOS
+Keychain. Secure retrieval and approved certificate verification PASS. The local
+no-copy wrapper uses the external protected path directly; PO does not enter
+secrets. See [rotation result](nuri-signing-credential-rotation-2026-10-12.md).
+Historical missing-environment/copy requirements below are superseded by this
+corrective. PO subsequently approved a signing-only commit, a clean detached
+checkout at that new commit, one QA Release build and one replace install.
+The current execution evidence must prove each gate; authorization is not a PASS.
+SEC-015 stays `RESOLVED_PENDING_RELEASE_ARTIFACT` until the fresh signer is verified.
+No push, Store or SEC-011 deployment is authorized. STORE HOLD.
+
 ## Scope And Freeze
 
 2026-10-04 PO approved the installed AUTH candidate. Offline bootstrap and Kakao zero-tap return are COMPLETE_FROZEN. Home, login, profile, Weather, KST schedule, four seasons and QA data remain unchanged. Keep the season review control until a new PO decision. Native Kakao cancel/back is NOT_RUN; source tests passed. Do not relabel that native evidence gap as PASS.
