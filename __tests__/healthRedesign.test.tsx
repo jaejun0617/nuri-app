@@ -12,6 +12,8 @@ import { buildWeightChartModel } from '../src/components/health/weightChartModel
 import WeightTrendChart from '../src/components/health/WeightTrendChart';
 import SeasonalAmbientBackground from '../src/components/common/SeasonalAmbientBackground';
 import { getHomeAmbientVisual } from '../src/theme/home/seasonalAmbient';
+import { healthGraphForeground } from '../src/app/theme/tokens/healthGraph';
+import { SEASON_CTA } from '../src/app/theme/ctaPalette';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 import type { HealthReportTabKey } from '../src/services/health-report/viewModel';
 import { useHealthVisualQaStore } from '../src/components/health/healthVisualQa';
@@ -238,7 +240,7 @@ describe('health redesign preserves feature ownership', () => {
     );
   });
 
-  it.each(['autumn', 'winter', 'spring', 'summer'])(
+  it.each(['autumn', 'winter', 'spring', 'summer'] as const)(
     'uses three non-nested insight glass panels with real chart data: %s',
     async season => {
       mockSeason = season;
@@ -271,7 +273,7 @@ describe('health redesign preserves feature ownership', () => {
       expect(
         glassPanels()[2].findAllByProps({ logs: mockData.weightTimeline })[0]
           .props.accentColor,
-      ).toBe(createTheme('light').colors.textPrimary);
+      ).toBe(SEASON_CTA[season].primary);
     },
   );
 
@@ -317,7 +319,7 @@ describe('health redesign preserves feature ownership', () => {
     expect(
       glassPanels()[0].findAllByProps({ logs: mockData.weightTimeline })[0]
         .props.accentColor,
-    ).toBe(createTheme('light').colors.textPrimary);
+    ).toBe(SEASON_CTA.autumn.primary);
     expect(button('2026-10-09, 5.3kg, 체중 기록 수정')).toBeDefined();
     const addWeight = renderer.root
       .findAllByProps({ accessibilityLabel: '체중 기록 추가' })
@@ -624,6 +626,63 @@ describe('shared seasonal background', () => {
 });
 
 describe('weight chart uses actual measured values', () => {
+  it.each([1, 1.3, 1.5])('gives axis labels separate scaled rows at fontScale %s', scale => {
+    mockFontScale = scale;
+    let renderer!: TestRenderer.ReactTestRenderer;
+    act(() => { renderer = TestRenderer.create(<ThemeProvider theme={createTheme('light')}><WeightTrendChart logs={[
+      { id: 'a', measuredOn: '2026-10-08', weightKg: 4.7 },
+      { id: 'b', measuredOn: '2026-10-09', weightKg: 6 },
+    ]} accentColor={SEASON_CTA.autumn.primary} /></ThemeProvider>); });
+    try {
+      const grids = renderer.root.findAllByProps({ testID: 'health-chart-grid' }).filter(node => node.type === RN.View)
+        .map(node => RN.StyleSheet.flatten(node.props.style));
+      expect(grids).toHaveLength(5);
+      expect(grids[1].top - grids[0].top).toBeGreaterThan(20 * scale);
+      const guide = renderer.root.findAllByProps({ testID: 'health-chart-active-guide' }).find(node => node.type === RN.View);
+      expect(RN.StyleSheet.flatten(guide?.props.style).height).toBe(120 * scale);
+    } finally {
+      act(() => renderer.unmount());
+      mockFontScale = 1;
+    }
+  });
+  it.each([
+    ['spring', '#B84066'],
+    ['summer', '#247264'],
+    ['autumn', '#B95000'],
+    ['winter', '#3B6398'],
+  ] as const)('keeps %s data colored and the grid neutral in both themes', (season, color) => {
+    const logs = [
+      { id: 'a', measuredOn: '2026-10-08', weightKg: 5.2 },
+      { id: 'b', measuredOn: '2026-10-09', weightKg: 5.3 },
+    ];
+    for (const mode of ['light', 'dark'] as const) {
+      const theme = createTheme(mode);
+      let renderer!: TestRenderer.ReactTestRenderer;
+      act(() => {
+        renderer = TestRenderer.create(
+          <ThemeProvider theme={theme}>
+            <WeightTrendChart logs={logs} accentColor={SEASON_CTA[season].primary} />
+          </ThemeProvider>,
+        );
+      });
+      try {
+        const styles = renderer.root.findAllByType(RN.View)
+          .map(node => RN.StyleSheet.flatten(node.props.style))
+          .filter(Boolean);
+        const segments = styles.filter(style => style.position === 'absolute' && style.height === 3);
+        const points = styles.filter(style => (style.width === 8 && style.height === 8) || (style.width === 12 && style.height === 12 && style.position === 'absolute'));
+        const grid = styles.filter(style => style.borderTopWidth === RN.StyleSheet.hairlineWidth);
+        const guides = styles.filter(style => style.borderStyle === 'dashed');
+        expect(segments.map(style => style.backgroundColor)).toEqual([color]);
+        expect(points.map(style => style.backgroundColor)).toEqual([color, color]);
+        expect(grid.map(style => style.borderColor)).toEqual(Array(5).fill(healthGraphForeground[mode].grid));
+        expect(guides).toHaveLength(1);
+        expect(guides[0]).toMatchObject({ borderColor: color, opacity: 0.32 });
+      } finally {
+        act(() => renderer.unmount());
+      }
+    }
+  });
   it('has no synthetic data in the empty state', () => {
     expect(buildWeightChartModel([], 320).points).toEqual([]);
   });
