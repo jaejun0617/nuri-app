@@ -46,6 +46,10 @@ MODE="${1:-}"
 }
 
 SOURCE_HEAD="$(git -C "$REPO_ROOT" rev-parse HEAD)"
+# Allocate once per invocation and preserve prior artifacts before Gradle replaces outputs.
+RUN_EVIDENCE_DIR="$(node "$SCRIPT_DIR/qa/release-run-evidence.js" prepare "$REPO_ROOT" "${NURI_RELEASE_INPUT_MANIFEST:-}")"
+export NURI_RELEASE_INPUT_MANIFEST="$RUN_EVIDENCE_DIR/deployment-inputs.json"
+printf 'RUN_EVIDENCE_DIR: %s\n' "$RUN_EVIDENCE_DIR"
 node "$SCRIPT_DIR/preflight-release-inputs.js" --root "$REPO_ROOT"
 SHORT_HEAD="${SOURCE_HEAD:0:7}"
 DIRTY_STATUS="$(git -C "$REPO_ROOT" status --short)"
@@ -88,6 +92,7 @@ node "$SCRIPT_DIR/release-foundation.js" provenance \
   "$NURI_RELEASE_INPUT_MANIFEST" "$VERIFICATION_PATH" "$ARTIFACT_PATH" \
   "$REPO_ROOT/android/app/build/outputs/bundle/release/app-release.aab" \
   "$ARTIFACT_PATH.provenance.json"
+node "$SCRIPT_DIR/qa/release-run-evidence.js" capture "$REPO_ROOT" "$RUN_EVIDENCE_DIR"
 
 if [[ "$MODE" == "store" ]]; then
   printf '%s\n' 'QA_STORE_INTENT_SEPARATION: STORE_PROTECTED_INPUT_REQUIRED'

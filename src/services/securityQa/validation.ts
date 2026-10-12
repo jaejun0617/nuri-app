@@ -7,8 +7,8 @@ import { AUTH_SESSION_STORAGE_KEY } from '../auth/localSession';
 import { getSecureStorageReceipt, secureSessionStorage } from '../auth/secureSessionStorage';
 import { getAuthTrace } from '../auth/trace';
 import { MAX_IMAGE_UPLOAD_BYTES, getImageUploadType, validateImageUploadSize } from '../media/imageUploadPolicy';
-import { createQaImage, isSecurityQaEnabled } from './config';
-import { PUBLIC_HEIC_FIXTURE } from './publicHeicFixture';
+import { isSecurityQaEnabled } from './config';
+import { STORAGE_IMAGE_FIXTURES } from './storageImageFixtures';
 
 const JOURNAL_KEY = 'NURI_SECURITY_QA_STORAGE_JOURNAL_V1';
 const MIGRATION_KEY = 'nuri.security.qa.synthetic-migration.v2';
@@ -34,6 +34,7 @@ const SAFE_ERRORS = new Set([
   'QA_MIGRATION_FAILED', 'QA_REFRESH_FAILED', 'QA_PROTECTED_READ_FAILED',
   'QA_NAMESPACE_NOT_EMPTY', 'QA_VALID_UPLOAD_FAILED', 'QA_IMAGE_READ_FAILED',
   'QA_IMAGE_BYTES_MISMATCH', 'QA_VALID_DELETE_FAILED',
+  'QA_LOCAL_FILE_REMAINS', 'QA_FIXTURE_INVALID', 'QA_IMAGE_DISPLAY_FAILED',
 ]);
 export function qaFailureCode(error: unknown): string {
   return error instanceof Error && SAFE_ERRORS.has(error.message) ? error.message : 'QA_UNVERIFIED_FAILURE';
@@ -55,9 +56,9 @@ function payload(base64: string): ArrayBuffer {
   return bytes.buffer;
 }
 
-function nativeDecode(uri: string): Promise<void> {
+function nativeDecode(uri: string, expectedWidth: number, expectedHeight: number): Promise<void> {
   return new Promise((resolve, reject) => Image.getSize(uri,
-    (width, height) => width > 0 && height > 0 ? resolve() : reject(new Error('QA_IMAGE_DECODE_FAILED')),
+    (width, height) => width === expectedWidth && height === expectedHeight ? resolve() : reject(new Error('QA_IMAGE_DECODE_FAILED')),
     () => reject(new Error('QA_IMAGE_DECODE_FAILED')),
   ));
 }
@@ -73,9 +74,19 @@ async function list(prefix: string): Promise<number> {
 }
 
 async function removeExact(prefix: string): Promise<void> {
+  // Fixed QA-only cache filenames, derived exclusively from the validated journal.
+  for (const fixture of STORAGE_IMAGE_FIXTURES) {
+    const file = localFixturePath(prefix, fixture.extension);
+    if (await RNBlobUtil.fs.exists(file)) await RNBlobUtil.fs.unlink(file);
+    if (await RNBlobUtil.fs.exists(file)) throw new Error('QA_LOCAL_FILE_REMAINS');
+  }
   const result = await supabase.storage.from(BUCKET).remove(FILES.map(file => `${prefix}/${file}`));
   if (result.error) throw new Error('QA_CLEANUP_FAILED');
   if (await list(prefix) !== 0) throw new Error('QA_CLEANUP_REMAINS');
+}
+
+function localFixturePath(prefix: string, extension: string): string {
+  return `${RNBlobUtil.fs.dirs.CacheDir}/${prefix.split('/')[1]}.${extension}`;
 }
 
 async function cleanupJournal(userId: string): Promise<void> {
@@ -127,7 +138,10 @@ export async function runQaSessionValidation(): Promise<Result> {
   } finally { running = false; }
 }
 
-export async function runQaStorageValidation(preview: (uri: string) => void): Promise<Result> {
+export async function runQaStorageValidation(
+  preview: (uri: string | null) => Promise<void>,
+  progress: (receipt: Result) => void = () => {},
+): Promise<Result> {
   if (running) throw new Error('QA_ALREADY_RUNNING');
   running = true;
   try {
@@ -144,41 +158,74 @@ export async function runQaStorageValidation(preview: (uri: string) => void): Pr
     await removeExact(prefix);
     await AsyncStorage.setItem(JOURNAL_KEY, prefix);
     const result: Result = {};
+    const mark = (event: string, status: string | number = 'PASS') => {
+      result[event] = status;
+      progress({ ...result });
+      // Fixed event names and scalar statuses only; never URLs, paths or API errors.
+      console.info('NURI_STORAGE_QA', JSON.stringify({ event, status }));
+    };
     try {
-      for (const mime of ['image/jpeg', 'image/png', 'image/heic', 'image/heif'] as const) {
-        const base64 = mime === 'image/heic' || mime === 'image/heif' ? PUBLIC_HEIC_FIXTURE : await createQaImage(mime);
+      for (const fixture of STORAGE_IMAGE_FIXTURES) {
+        const { mime, base64 } = fixture;
+        const format = mime.slice(6).toUpperCase();
         const body = payload(base64);
+        if (Buffer.from(body).toString('base64') !== base64) throw new Error('QA_FIXTURE_INVALID');
+        mark(`${format}_BASE64_ROUNDTRIP`);
+        mark(`${format}_BYTE_LENGTH`, body.byteLength);
         validateImageUploadSize(body.byteLength);
         const type = getImageUploadType(mime);
         const objectPath = `${prefix}/valid.${type.extension}`;
+        mark(`${format}_UPLOAD_STARTED`);
         const upload = await supabase.storage.from(BUCKET).upload(objectPath, body, { contentType: mime, upsert: false });
         if (upload.error) throw new Error('QA_VALID_UPLOAD_FAILED');
+        mark(`${format}_UPLOAD_PASS`);
         const signed = await supabase.storage.from(BUCKET).createSignedUrl(objectPath, 60);
         if (signed.error || !signed.data?.signedUrl) throw new Error('QA_IMAGE_READ_FAILED');
         const response = await RNBlobUtil.fetch('GET', signed.data.signedUrl);
         if (response.info().status !== 200) throw new Error('QA_IMAGE_READ_FAILED');
+        mark(`${format}_READ_PASS`);
         const downloaded = await response.base64();
-        if (downloaded !== base64) throw new Error('QA_IMAGE_BYTES_MISMATCH');
-        const uri = `data:${mime};base64,${downloaded}`;
-        await nativeDecode(uri);
-        preview(uri);
+        if (!Buffer.from(downloaded, 'base64').equals(Buffer.from(body))) throw new Error('QA_IMAGE_BYTES_MISMATCH');
+        mark(`${format}_BYTE_EQUALITY_PASS`);
+        const localFile = localFixturePath(prefix, type.extension);
+        try {
+          await RNBlobUtil.fs.writeFile(localFile, downloaded, 'base64');
+          if (await RNBlobUtil.fs.hash(localFile, 'sha256') !== fixture.sha256) throw new Error('QA_IMAGE_BYTES_MISMATCH');
+          mark(`${format}_FILE_HASH_PASS`);
+          // RN 0.87 getSize uses Fresco encoded fetch, which rejects data: URIs.
+          // Use the downloaded file; actual Image.onLoad separately proves display.
+          await nativeDecode(`file://${localFile}`, fixture.width, fixture.height);
+          mark(`${format}_NATIVE_SIZE_PASS`);
+          await preview(`file://${localFile}`);
+          mark(`${format}_NATIVE_DISPLAY_PASS`);
+        } catch (error: unknown) {
+          mark(`${format}_COMPATIBILITY`, qaFailureCode(error));
+        } finally {
+          await preview(null);
+          if (await RNBlobUtil.fs.exists(localFile)) await RNBlobUtil.fs.unlink(localFile);
+          if (await RNBlobUtil.fs.exists(localFile)) throw new Error('QA_LOCAL_FILE_REMAINS');
+          mark(`${format}_TEMP_ABSENT_PASS`);
+        }
         const removed = await supabase.storage.from(BUCKET).remove([objectPath]);
-        if (removed.error || await list(prefix) !== 0) throw new Error('QA_VALID_DELETE_FAILED');
-        result[`${type.extension}UploadReadDecodeDeleteAbsent`] = 'PASS';
+        if (removed.error) throw new Error('QA_VALID_DELETE_FAILED');
+        mark(`${format}_DELETE_PASS`);
+        if (await list(prefix) !== 0) throw new Error('QA_VALID_DELETE_FAILED');
+        mark(`${format}_ABSENT_PASS`);
       }
       // Bypass local preflight only in this compile-time gated isolated QA path.
       const oversized = await supabase.storage.from(BUCKET).upload(`${prefix}/oversize.png`, new Uint8Array(MAX_IMAGE_UPLOAD_BYTES + 1).buffer, { contentType: 'image/png', upsert: false });
-      result.oversize = await list(prefix) === 0 ? classifyStorageRejection(oversized.error, 'size') : 'UNEXPECTED_OBJECT';
+      mark('OVERSIZE', await list(prefix) === 0 ? classifyStorageRejection(oversized.error, 'size') : 'UNEXPECTED_OBJECT');
       await removeExact(prefix);
       const disallowed = await supabase.storage.from(BUCKET).upload(`${prefix}/disallowed.txt`, payload(Buffer.from('PUBLIC QA TEXT').toString('base64')), { contentType: 'text/plain', upsert: false });
-      result.disallowedMime = await list(prefix) === 0 ? classifyStorageRejection(disallowed.error, 'mime') : 'UNEXPECTED_OBJECT';
+      mark('DISALLOWED_MIME', await list(prefix) === 0 ? classifyStorageRejection(disallowed.error, 'mime') : 'UNEXPECTED_OBJECT');
       await removeExact(prefix);
       const spoof = await supabase.storage.from(BUCKET).upload(`${prefix}/spoof.png`, payload(Buffer.from('PUBLIC QA NON IMAGE').toString('base64')), { contentType: 'image/png', upsert: false });
-      result.spoofedMime = spoof.error ? 'REJECTED_UNCLASSIFIED' : 'ALLOW_CONTENT_VALIDATION_RESIDUAL';
+      mark('SPOOFED_MIME', spoof.error ? 'REJECTED_UNCLASSIFIED' : 'ALLOW_CONTENT_VALIDATION_RESIDUAL');
     } finally {
       await removeExact(prefix);
       await AsyncStorage.removeItem(JOURNAL_KEY);
+      mark('CLEANUP_PASS');
     }
-    return { ...result, cleanup: 'PASS', objectsRemaining: 0, syntheticRowsRemaining: 0 };
+    return { ...result, cleanup: 'PASS', objectsRemaining: 0, tempFilesRemaining: 0, syntheticRowsRemaining: 0 };
   } finally { running = false; }
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Button, Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -11,6 +11,21 @@ export default function SecurityValidationScreen({ navigation }: NativeStackScre
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState('READY');
   const [preview, setPreview] = useState<string | null>(null);
+  const [storageReceipt, setStorageReceipt] = useState('');
+  const displayCompletion = useRef<{ resolve: () => void; reject: (error: Error) => void } | null>(null);
+  const displayFixture = (uri: string | null): Promise<void> => {
+    if (uri === null) { setPreview(null); return Promise.resolve(); }
+    return new Promise((resolve, reject) => {
+      displayCompletion.current = { resolve, reject };
+      setPreview(uri);
+    });
+  };
+  const finishDisplay = (success: boolean) => {
+    const pending = displayCompletion.current;
+    displayCompletion.current = null;
+    if (success) pending?.resolve();
+    else pending?.reject(new Error('QA_IMAGE_DISPLAY_FAILED'));
+  };
   useEffect(() => navigation.addListener('beforeRemove', event => {
     if (busy) event.preventDefault();
   }), [busy, navigation]);
@@ -26,10 +41,14 @@ export default function SecurityValidationScreen({ navigation }: NativeStackScre
   return <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }]}>
     <Button title="Back" disabled={busy} onPress={() => navigation.goBack()} />
     <Button title="Secure session validation" disabled={busy} onPress={() => run(runQaSessionValidation)} />
-    <Button title="Storage lifecycle validation" disabled={busy} onPress={() => run(() => runQaStorageValidation(setPreview))} />
+    <Button title="Storage lifecycle validation" disabled={busy} onPress={() => {
+      setStorageReceipt('');
+      return run(() => runQaStorageValidation(displayFixture, receipt => setStorageReceipt(JSON.stringify(receipt, null, 2))));
+    }} />
     <Button title="Resume exact fixture cleanup" disabled={busy} onPress={() => run(resumeQaStorageCleanup)} />
-    <View style={styles.preview}>{preview ? <Image source={{ uri: preview }} style={styles.image} /> : null}</View>
+    <View style={styles.preview}>{preview ? <Image key={preview} source={{ uri: preview }} style={styles.image} onLoad={() => finishDisplay(true)} onError={() => finishDisplay(false)} /> : null}</View>
     <Text selectable>{result}</Text>
+    <Text selectable>{storageReceipt}</Text>
   </ScrollView>;
 }
 
