@@ -3083,7 +3083,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@react-native-firebase/crashlytics@npm:^23.8.6":
+"@react-native-firebase/crashlytics@npm:23.8.6":
   version: 23.8.6
   resolution: "@react-native-firebase/crashlytics@npm:23.8.6"
   dependencies:
@@ -3095,6 +3095,21 @@ __metadata:
     expo:
       optional: true
   checksum: ade492b279aa49142f6576e75d85b6722797a9b66687a817ed3f9cb401fa7e8755fe06dc53e213e8a1558171e12ede365f05961f72911591ac3aa2cc149dae9a
+  languageName: node
+  linkType: hard
+
+"@react-native-firebase/crashlytics@patch:@react-native-firebase/crashlytics@npm%3A23.8.6#./.yarn/patches/@react-native-firebase-crashlytics-npm-23.8.6-f5ba9c2e64.patch::locator=nuri%40workspace%3A.":
+  version: 23.8.6
+  resolution: "@react-native-firebase/crashlytics@patch:@react-native-firebase/crashlytics@npm%3A23.8.6#./.yarn/patches/@react-native-firebase-crashlytics-npm-23.8.6-f5ba9c2e64.patch::version=23.8.6&hash=e72a72&locator=nuri%40workspace%3A."
+  dependencies:
+    stacktrace-js: ^2.0.2
+  peerDependencies:
+    "@react-native-firebase/app": 23.8.6
+    expo: ">=47.0.0"
+  peerDependenciesMeta:
+    expo:
+      optional: true
+  checksum: 73c44a137bf29bca702fa9d229498aaea40c8e666725107916b9648b19e63fc182c7b63e1d05ddfede6b230443696625d839df8b9a4d1abd368bc840290af8d7
   languageName: node
   linkType: hard
 

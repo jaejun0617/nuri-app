@@ -1,0 +1,132 @@
+diff --git a/dist/module/handlers.js b/dist/module/handlers.js
+index 91b02019ce2d95f714ff0a8405ffc7c4ff086dee..98a793c7d9f47c3fe99a664c0149a4a24e663946 100644
+--- a/dist/module/handlers.js
++++ b/dist/module/handlers.js
+@@ -23,6 +23,28 @@ import { isError, once } from '@react-native-firebase/app/dist/module/common';
+ import tracking from 'promise/setimmediate/rejection-tracking';
+ import StackTrace from 'stacktrace-js';
+ export const FATAL_FLAG = 'com.firebase.crashlytics.reactnative.fatal';
++// NURI SEC-014: automatic handlers bypass the app wrapper. Never forward raw
++// messages, properties, function names or paths, including to the chained handler.
++function sanitizeAutomaticError(value) {
++  const safe = new Error('redacted_exception');
++  const frames = [];
++  try {
++    const stack = typeof value === 'object' && value !== null && 'stack' in value
++      ? value.stack : undefined;
++    if (typeof stack === 'string') {
++      for (const line of stack.slice(0, 32768).split('\n').slice(1, 31)) {
++        const coordinates = line.match(/:(\d{1,9}):(\d{1,9})\)?\s*$/);
++        if (coordinates) {
++          frames.push(`    at app (index.android.bundle:${coordinates[1]}:${coordinates[2]})`);
++        }
++      }
++    }
++  } catch (_) {
++    // A throwing accessor must not restore the original error or prevent reporting.
++  }
++  safe.stack = ['Error: redacted_exception', ...frames].join('\n');
++  return safe;
++}
+ export function createNativeErrorObj(error, stackFrames, isUnhandledRejection, jsErrorName) {
+   const nativeObj = {
+     message: `${error.message}`,
+@@ -71,6 +93,8 @@ export function createNativeErrorObj(error, stackFrames, isUnhandledRejection, j
+ export const setGlobalErrorHandler = once(nativeModule => {
+   const originalHandler = ErrorUtils.getGlobalHandler();
+   async function handler(error, fatal) {
++    if (!__DEV__) error = sanitizeAutomaticError(error);
++
+     // If collection is disabled, just forward to the original handler
+     if (!nativeModule.isCrashlyticsCollectionEnabled) {
+       return originalHandler(error, fatal);
+@@ -83,7 +107,7 @@ export const setGlobalErrorHandler = once(nativeModule => {
+     // If we are supposed to log javascript-level stack traces, convert this error and log it
+     if (nativeModule.isErrorGenerationOnJSCrashEnabled) {
+       try {
+-        const stackFrames = await StackTrace.fromError(error, {
++        const stackFrames = !__DEV__ && !error.stack?.includes('\n') ? [] : await StackTrace.fromError(error, {
+           offline: true
+         });
+         // The backend conversion scan converts the closest event to this timestamp without going over
+@@ -147,11 +171,12 @@ export const setGlobalErrorHandler = once(nativeModule => {
+ export const setOnUnhandledPromiseRejectionHandler = once(nativeModule => {
+   async function onUnhandled(_id, error) {
+     if (!__DEV__) {
++      error = sanitizeAutomaticError(error);
+       // TODO(salakar): Option to disable
+       try {
+-        const stackFrames = await StackTrace.fromError(error, {
++        const stackFrames = error.stack?.includes('\n') ? await StackTrace.fromError(error, {
+           offline: true
+-        });
++        }) : [];
+         await nativeModule.recordErrorPromise(createNativeErrorObj(error, stackFrames, true));
+       } catch (_) {
+         // do nothing
+diff --git a/lib/handlers.ts b/lib/handlers.ts
+index 28bd23ca9a43e5d6ff573f2479d1cb916405739c..107158bfd51312f0f796403f7910ac85ddba7061 100644
+--- a/lib/handlers.ts
++++ b/lib/handlers.ts
+@@ -46,6 +46,29 @@ interface NativeModule {
+   crashWithStackPromise(errorObj: NativeErrorObj): Promise<void>;
+ }
+ 
++// NURI SEC-014: automatic handlers bypass the app wrapper. Never forward raw
++// messages, properties, function names or paths, including to the chained handler.
++function sanitizeAutomaticError(value: unknown): Error {
++  const safe = new Error('redacted_exception');
++  const frames: string[] = [];
++  try {
++    const stack = typeof value === 'object' && value !== null && 'stack' in value
++      ? value.stack : undefined;
++    if (typeof stack === 'string') {
++      for (const line of stack.slice(0, 32768).split('\n').slice(1, 31)) {
++        const coordinates = line.match(/:(\d{1,9}):(\d{1,9})\)?\s*$/);
++        if (coordinates) {
++          frames.push(`    at app (index.android.bundle:${coordinates[1]}:${coordinates[2]})`);
++        }
++      }
++    }
++  } catch (_) {
++    // A throwing accessor must not restore the original error or prevent reporting.
++  }
++  safe.stack = ['Error: redacted_exception', ...frames].join('\n');
++  return safe;
++}
++
+ export function createNativeErrorObj(
+   error: Error,
+   stackFrames: StackTrace.StackFrame[],
+@@ -100,6 +123,8 @@ export const setGlobalErrorHandler = once((nativeModule: NativeModule) => {
+   const originalHandler = ErrorUtils.getGlobalHandler();
+ 
+   async function handler(error: unknown, fatal?: boolean) {
++    if (!__DEV__) error = sanitizeAutomaticError(error);
++
+     // If collection is disabled, just forward to the original handler
+     if (!nativeModule.isCrashlyticsCollectionEnabled) {
+       return originalHandler(error, fatal);
+@@ -113,7 +138,8 @@ export const setGlobalErrorHandler = once((nativeModule: NativeModule) => {
+     // If we are supposed to log javascript-level stack traces, convert this error and log it
+     if (nativeModule.isErrorGenerationOnJSCrashEnabled) {
+       try {
+-        const stackFrames = await StackTrace.fromError(error, { offline: true });
++        const stackFrames = !__DEV__ && !error.stack?.includes('\n')
++          ? [] : await StackTrace.fromError(error, { offline: true });
+         // The backend conversion scan converts the closest event to this timestamp without going over
+         // from the timestamp here. So the timestamp *must* be greater then the event log time.
+         //
+@@ -178,9 +204,11 @@ export const setGlobalErrorHandler = once((nativeModule: NativeModule) => {
+ export const setOnUnhandledPromiseRejectionHandler = once((nativeModule: NativeModule) => {
+   async function onUnhandled(_id: number, error: Error) {
+     if (!__DEV__) {
++      error = sanitizeAutomaticError(error);
+       // TODO(salakar): Option to disable
+       try {
+-        const stackFrames = await StackTrace.fromError(error, { offline: true });
++        const stackFrames = error.stack?.includes('\n')
++          ? await StackTrace.fromError(error, { offline: true }) : [];
+         await nativeModule.recordErrorPromise(createNativeErrorObj(error, stackFrames, true));
+       } catch (_) {
+         // do nothing
