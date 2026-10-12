@@ -1618,7 +1618,7 @@ export default function HealthReportScreen() {
             </View>
             <WeightTrendChart
               logs={monthQuery.data?.weightTimeline ?? []}
-              accentColor={theme.colors.textPrimary}
+              accentColor={SEASON_CTA[season].primary}
             />
           </HomeFrostedGlass>
 
@@ -1844,7 +1844,7 @@ export default function HealthReportScreen() {
             {insightWeightTimeline.length > 0 ? (
               <WeightTrendChart
                 logs={insightWeightTimeline}
-                accentColor={theme.colors.textPrimary}
+                accentColor={SEASON_CTA[season].primary}
               />
             ) : (
               <HealthText preset="unifiedMeta" color={theme.colors.textMuted}>
