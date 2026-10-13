@@ -302,14 +302,18 @@ export default function WalkDistanceQaPanel() {
   };
   const primary = () => {
     if (preview) {
+      if (
+        galleryState === 'FINISHED_LOCAL' ||
+        galleryState === 'FUTURE_RECORD_CTA_PREVIEW'
+      ) {
+        setVisible(false);
+        return;
+      }
       setGalleryState(
         galleryState === 'PRE_WALK' ||
           galleryState === 'PAUSED' ||
           galleryState === 'RECOVERY_REQUIRED'
           ? 'WALKING'
-          : galleryState === 'FINISHED_LOCAL' ||
-            galleryState === 'FUTURE_RECORD_CTA_PREVIEW'
-          ? 'PRE_WALK'
           : 'PAUSED',
       );
       return;
@@ -789,21 +793,6 @@ export default function WalkDistanceQaPanel() {
                   />
                 }
               />
-              {preview && (
-                <View
-                  style={[
-                    styles.previewControl,
-                    { backgroundColor: theme.colors.surfaceElevated },
-                  ]}
-                >
-                  <Button
-                    title="실제 GPS 화면 열기"
-                    testID="walk-mode-actual"
-                    disabled={busy}
-                    onPress={() => switchMode(false)}
-                  />
-                </View>
-              )}
             </View>
           ))}
         {minimizeConfirm && open && (
@@ -857,7 +846,6 @@ const styles = StyleSheet.create({
     minHeight: 48,
     color: '#0B1220',
   },
-  previewControl: { paddingHorizontal: 16, paddingBottom: 6 },
   minimize: {
     ...StyleSheet.absoluteFill,
     paddingHorizontal: 24,

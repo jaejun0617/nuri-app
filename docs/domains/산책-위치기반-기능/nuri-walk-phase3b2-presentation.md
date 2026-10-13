@@ -30,6 +30,10 @@
 
 ## Review order
 
+- Initial S24 candidate reproduced a QA mode button overlapping Android navigation and a synthetic label dimmed behind the result veil. Preserve both initial screenshots; consolidate the UI-only corrective once, with QA mode switching inside the opaque inspector and the mode label above state overlays.
+- The result exit closes this QA modal; it does not claim Home navigation. A static outlined start point avoids font-snapshot timing, and is rendered only when the bounded page actually contains the session start.
+- PO explicitly approved one additional full-suite run on corrective source. First full PASS remains historical evidence; the corrective full and second permitted Release/install have separate per-run receipts. Native engine regression is not repeated.
+
 Phase 3A/B -> Phase 3B2 candidate -> PO visual approval -> Phase 3C outdoor QA -> Phase 3D return review/corrective -> Phase 3 completion -> Phase 4.
 
 Security 20/20 stays frozen. Original dirty181 is preserved outside the candidate worktree. No push, remote/server/XP changes; STORE HOLD.

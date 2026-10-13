@@ -200,7 +200,7 @@ export default function WalkView(props: Props) {
     confirm = state === 'FINISH_CONFIRM';
   const stateLabel = state === 'WALKING' ? `${petName}와 걷는 중` : copy.title;
   const primary = result
-    ? '홈으로'
+    ? '산책 화면 닫기'
     : pre
     ? '함께 산책 시작하기'
     : recovery
@@ -236,7 +236,11 @@ export default function WalkView(props: Props) {
       </Header>
       <View style={styles.mapStage}>
         {props.map}
-        <View pointerEvents="none" style={styles.mapTop}>
+        <View
+          pointerEvents="none"
+          style={styles.mapTop}
+          testID="walk-mode-label-layer"
+        >
           {preview && (
             <Chip $accent={theme.colors.surfaceElevated}>
               <AppText
@@ -274,7 +278,7 @@ export default function WalkView(props: Props) {
           </View>
         )}
         {(pre || recovery || confirm || result) && (
-          <View style={styles.center}>
+          <View style={styles.center} testID="walk-state-overlay">
             <ScrollView
               contentContainerStyle={styles.centerContent}
               showsVerticalScrollIndicator={false}
@@ -487,7 +491,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   mapStage: { flex: 1, minHeight: 180 },
-  mapTop: { position: 'absolute', top: 12, left: 16, right: 16 },
+  mapTop: { position: 'absolute', top: 12, left: 16, right: 16, zIndex: 2 },
   dim: {
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(11,18,32,0.18)',
@@ -497,6 +501,7 @@ const styles = StyleSheet.create({
   center: {
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(246,247,251,0.88)',
+    zIndex: 1,
   },
   centerContent: {
     padding: 20,

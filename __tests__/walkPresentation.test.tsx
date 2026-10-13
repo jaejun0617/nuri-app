@@ -135,6 +135,14 @@ const routePage: WalkRoutePage = {
   ],
 };
 const press = async (r: Renderer.ReactTestRenderer, id: string) => {
+  if (
+    id === 'walk-mode-actual' &&
+    r.root.findAllByProps({ testID: id }).length === 0
+  ) {
+    await act(async () =>
+      r.root.findAllByProps({ testID: 'walk-qa-open' })[0].props.onPress(),
+    );
+  }
   await act(async () => {
     await r.root.findAllByProps({ testID: id })[0].props.onPress();
   });
@@ -180,6 +188,51 @@ describe('Walk presentation privacy and mode boundaries', () => {
     expect(
       r.root.findAllByProps({ testID: 'walk-wizard-receipt' }),
     ).toHaveLength(0);
+  });
+  test('QA mode toggle cannot occupy or overlap the product bottom safe area', async () => {
+    await open();
+    expect(r.root.findAllByProps({ testID: 'walk-mode-actual' })).toHaveLength(
+      0,
+    );
+    await press(r, 'walk-qa-open');
+    expect(
+      r.root.findAllByProps({ testID: 'walk-mode-actual' }).length,
+    ).toBeGreaterThan(0);
+  });
+  test('synthetic mode label remains above the finished result overlay', async () => {
+    await open();
+    await press(r, 'walk-qa-open');
+    await press(r, 'walk-gallery-FINISHED_LOCAL');
+    const label = r.root.findAllByProps({ testID: 'walk-mode-label-layer' })[0];
+    const overlay = r.root.findAllByProps({ testID: 'walk-state-overlay' })[0];
+    expect(label.props.style.zIndex).toBeGreaterThan(
+      overlay.props.style.zIndex,
+    );
+  });
+  test('a bounded tail page cannot misrepresent its first point as the session start', async () => {
+    jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot());
+    jest
+      .mocked(getWalkRoutePage)
+      .mockResolvedValue({
+        ...routePage,
+        startCursor: '512',
+        endCursor: '515',
+      filteredPointCount: '516',
+        hasEarlier: true,
+      });
+    await open();
+    await press(r, 'walk-mode-actual');
+    expect(host(r, 'Marker')).toHaveLength(1);
+    expect(host(r, 'Marker')[0].props.testID).toBe('walk-actual-marker');
+  });
+  test('result exit closes only the QA modal and does not pretend to navigate Home', async () => {
+    await open();
+    await press(r, 'walk-qa-open');
+    await press(r, 'walk-gallery-FINISHED_LOCAL');
+    expect(visibleText(r)).not.toContain('홈으로');
+    await press(r, 'walk-primary');
+    expect(r.root.findByType(Modal).props.visible).toBe(false);
+    expect(mutateNativeWalk).not.toHaveBeenCalled();
   });
   test('public preview uses a child pet marker rather than the default Google red pin', async () => {
     await open();

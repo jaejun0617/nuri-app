@@ -174,7 +174,7 @@ export default function WalkMapStage({
             <Route key={s.segmentId} points={s.points} accent={accent} />
           ))
         ))}
-      {showRoute && (
+      {showRoute && (preview || page?.startCursor === '0') && (
         <Marker
           coordinate={
             preview ? PUBLIC_ROUTE[0] : page?.segments[0]?.points[0] ?? target
@@ -182,15 +182,7 @@ export default function WalkMapStage({
           anchor={{ x: 0.5, y: 0.5 }}
           tracksViewChanges={false}
         >
-          <View style={styles.start}>
-            <NuriSemanticIcon
-              family="material"
-              name="paw"
-              preserveOriginal
-              size={12}
-              color={accent}
-            />
-          </View>
+          <View style={[styles.start, { borderColor: accent }]} />
         </Marker>
       )}
       <Marker
@@ -224,6 +216,7 @@ const styles = StyleSheet.create({
     height: 22,
     borderRadius: 11,
     backgroundColor: '#FFFFFF',
+    borderWidth: 3,
     alignItems: 'center',
     justifyContent: 'center',
   },
