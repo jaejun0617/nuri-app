@@ -1,7 +1,9 @@
 # NURI Walk Phase 2 Native Runtime
 
 Base: `e59360d9ce0b685868850dbd2a1fb3bbfbda78a3`. Phase 1 remains frozen.
-This is the pre-build implementation candidate; physical acceptance belongs to the per-run evidence report.
+The native implementation and scoped S24 acceptance are complete; PO review remains pending.
+Exact runtime source: `929f0320cc0ab5c82f303740ffa471bf6f0d97eb`.
+See the [native acceptance report](../../qa/nuri-walk-phase2-native-2026-10-13.md).
 STORE HOLD. Push is not authorized. Phase 3 does not start automatically.
 
 ## Native Ownership and Android
@@ -64,7 +66,7 @@ synthetic coordinates belong only to unit/instrumentation tests. Test DBs use un
 Behavioral fail-first executed two failing auth-stop ordering assertions and one clock-overflow assertion;
 these are separated from final PASS evidence. Local checks include exact Phase 1 paths, native reducer/AEAD,
 instrumentation compilation, read-only-config TypeScript, scoped lint and one final full Jest run.
-Final local results: Phase 1 4 suites/145 tests; exact targeted selection 9 suites/185 tests;
+Initial candidate local results: Phase 1 4 suites/145 tests; exact targeted selection 9 suites/185 tests;
 native JVM 2 suites/10 tests; TypeScript zero diagnostics; scoped ESLint zero errors/warnings;
 final Android instrumentation compilation passed. Full Jest ran exactly once: 235 suites passed
 and the new logout suite had five test-only resolver failures caused by virtual mocking of an
@@ -83,7 +85,7 @@ and retains encrypted checkpoints without deleting old records or rewriting the 
 
 Next gate: PO review of the final Phase 2 native report.
 
-## Reboot Boundary Corrective Candidate
+## Reboot Boundary Corrective and Acceptance
 
 Candidate `3836d20a963406b7d0455d4fd5bbdf5bb5658cca` passed the required same-boot S24
 lifecycle, encryption, permission and logout gates. An additionally approved full reboot
@@ -99,6 +101,20 @@ exposed the failure in a JVM regression; only then was the cursor reset added. A
 Android test also verifies fresh sampling after a simulated epoch reset and rejects stale
 pre-segment input. Room schema, Phase 1, auth, signing and server contracts are unchanged.
 
-No boot receiver, sticky restart or automatic collection is introduced. The second exact
-candidate is allowed only by the PO reboot corrective approval and still requires physical
-reboot/recovery validation. No third candidate or Phase 3 starts automatically.
+Corrective `929f0320cc0ab5c82f303740ffa471bf6f0d97eb` passed 3 JVM suites/13 tests,
+the exact JS selection of 9 suites/185 tests including Phase 1's unchanged 4/145,
+TypeScript and scoped lint. The second signed Release installed with exact APK hash match;
+all 11 S24 instrumentation tests passed, including the reset-epoch regression.
+
+The second physical reboot stopped collection without automatic FGS restart. App opening
+returned RECOVERY_REQUIRED with 5 preserved encrypted chunks, revision 2 to 3 and the
+same protected owner/pet context. Explicit resume kept the same hashed session identity,
+created segment 2 and advanced revision to 5. In 60,084 ms, new fixes/chunks increased
+from 6 to 16. Finish persisted FINISHED_LOCAL at revision 7 with 20 chunks and stopped
+the service/subscription. Direct finish from recovery was physically proven in the
+earlier logout/relogin branch and in final instrumentation; the final reboot branch
+used explicit resume and then finish, not a second reboot for duplicate evidence.
+
+No boot receiver, sticky restart or automatic collection is introduced. Main Release
+build/install counts are 2/2; auxiliary instrumentation APK installs are separately 2.
+No third candidate, repeated full Jest run or automatic Phase 3 occurred.

@@ -1,10 +1,11 @@
 # V1.0 Remaining Task/Risk Closeout
 
-## 2026-10-13 Walk Phase 2 Candidate Boundary
+## 2026-10-13 Walk Phase 2 Native Acceptance Boundary
 
 - Accepted security findings remain frozen at 20/20; older counts below are historical.
-- [Walk native candidate](../domains/산책-위치기반-기능/nuri-walk-phase2-native-runtime.md) requires exact-source Release, signer/install identity, S24 permission/lifecycle/recovery/logout and encrypted persistence receipts.
-- This pre-build entry does not claim device acceptance or Store readiness. No distance/map/server/product UI, push or automatic Phase 3. STORE HOLD.
+- [Walk native report](nuri-walk-phase2-native-2026-10-13.md): exact runtime `929f032`, approved signer and installed SHA match; Main Release/install 2/2, auxiliary instrumentation installs 2. S24 permission/lifecycle/recovery/logout/encryption and the corrective reboot boundary passed within their stated scopes.
+- First reboot fresh-capture FAIL is retained, not overwritten by final PASS. Corrective changes only segment ordering; no automatic reboot tracking, background-location permission or third build. Final tests: Phase 1 4/145, targeted 9/185, JVM 3/13, S24 11/11; full-run/test-only repair details are separate.
+- Native foundation completion is not Store readiness or distance validity. No distance/map/server/product UI, push or automatic Phase 3. Original dirty 181 and device identity/settings preserved. New location surfaces require final source-frozen re-audit. STORE HOLD.
 
 ## 2026-10-12 Security-Only Local Commit Boundary
 
