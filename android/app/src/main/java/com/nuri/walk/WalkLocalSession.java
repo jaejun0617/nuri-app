@@ -2,6 +2,7 @@ package com.nuri.walk;
 
 import androidx.annotation.NonNull;
 import androidx.room.Entity;
+import androidx.room.ColumnInfo;
 import androidx.room.Index;
 import androidx.room.PrimaryKey;
 
@@ -19,4 +20,7 @@ public class WalkLocalSession {
   public long chunkCount;
   public long updatedAt;
   public String lastErrorCode;
+  public byte[] distanceNonce;
+  public byte[] distanceCiphertext;
+  @ColumnInfo(defaultValue = "0") public long distanceRevision;
 }

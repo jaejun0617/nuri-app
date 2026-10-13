@@ -60,6 +60,7 @@ if (!nuriGoogleMapsApiKey) {
 
 android {
   namespace "com.nuri"
+  sourceSets { androidTest.assets.srcDirs += ["$projectDir/schemas"] }
   // Local compilation uses debug tests. Canonical QA Release also produces a
   // same-signer instrumentation APK; Store intent has no QA/test packaging.
   testBuildType (project.findProperty("nuriSecurityQa") == "true" ? "release" : "debug")

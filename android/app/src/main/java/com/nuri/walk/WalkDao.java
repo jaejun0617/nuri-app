@@ -22,4 +22,11 @@ import java.util.List;
   @Query("UPDATE walk_command_receipts SET outcome = :code WHERE sessionId = :id AND outcome = 'PENDING'") void failPending(String id, String code);
   @Insert(onConflict = OnConflictStrategy.ABORT) void insertReceipt(WalkCommandReceipt row);
   @Update void updateReceipt(WalkCommandReceipt row);
+  @Query("SELECT * FROM walk_point_chunks WHERE sessionId = :id AND accepted = 1 AND chunkIndex > :after ORDER BY chunkIndex LIMIT :limit") List<WalkPointChunk> routePage(String id, long after, int limit);
+  @Query("SELECT COUNT(*) FROM walk_point_chunks WHERE sessionId = :id AND accepted = 1") long routeCount(String id);
+  @Query("SELECT * FROM walk_point_chunks WHERE sessionId = :id AND accepted = 1 AND chunkIndex < :before ORDER BY chunkIndex DESC LIMIT :limit") List<WalkPointChunk> routeBefore(String id, long before, int limit);
+  @Query("SELECT * FROM walk_qa_protocol WHERE id = 1") WalkQaProtocol qaProtocol();
+  @Insert(onConflict = OnConflictStrategy.REPLACE) void saveQaProtocol(WalkQaProtocol row);
+  @Query("DELETE FROM walk_command_receipts WHERE sessionId = :id") void deleteSessionReceipts(String id);
+  @Query("DELETE FROM walk_local_sessions WHERE sessionId = :id") void deleteSession(String id);
 }

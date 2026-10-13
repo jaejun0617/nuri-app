@@ -5,6 +5,7 @@ import {
   type WalkRuntimeState,
 } from '../domain';
 import { captureMonitoringException } from '../../monitoring/sentry';
+import { decodeWalkDistanceSummary, type WalkDistanceSummary } from './distanceProjection';
 
 export type WalkNativeSnapshot = Readonly<{
   sessionId: string;
@@ -26,7 +27,8 @@ export type WalkNativeSnapshot = Readonly<{
   notificationPermissionState:
     | 'GRANTED'
     | 'NOTIFICATION_PERMISSION_DENIED_LIMITED_VISIBILITY';
-  distanceStatus: 'NOT_AVAILABLE_PHASE_2';
+  distanceStatus: 'NOT_AVAILABLE_PHASE_2' | 'LOCAL_CANDIDATE';
+  distanceSummary?: WalkDistanceSummary | null;
   syncState: 'SYNC_PENDING' | null;
   lastErrorCode: string | null;
 }>;
@@ -131,7 +133,12 @@ export function decodeWalkSnapshot(raw: string): WalkNativeSnapshot | null {
     'lastFixAgeMs',
     'syncState',
     'lastErrorCode',
+    ...(Object.hasOwn(v, 'distanceSummary') ? ['distanceSummary'] : []),
   ];
+  let distanceValid = v.distanceStatus === 'NOT_AVAILABLE_PHASE_2' && (v.distanceSummary === undefined || v.distanceSummary === null);
+  if (v.distanceStatus === 'LOCAL_CANDIDATE') {
+    try { decodeWalkDistanceSummary(v.distanceSummary); distanceValid = true; } catch { distanceValid = false; }
+  }
   const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
   if (
     Object.keys(v).length !== keys.length ||
@@ -165,7 +172,7 @@ export function decodeWalkSnapshot(raw: string): WalkNativeSnapshot | null {
     ) ||
     !Number.isFinite(Date.parse(String(v.startedAt))) ||
     v.recoverable !== (v.runtimeState === 'RECOVERY_REQUIRED') ||
-    v.distanceStatus !== 'NOT_AVAILABLE_PHASE_2' ||
+    !distanceValid ||
     v.syncState !==
       (v.runtimeState === 'FINISHED_LOCAL' ? 'SYNC_PENDING' : null) ||
     !(
@@ -304,4 +311,12 @@ export const WALK_NATIVE_ERROR_CODES = Object.freeze([
   'WALK_CLOCK_DISCONTINUITY',
   'WALK_COMMAND_LIMIT_REACHED',
   'WALK_COMMAND_PENDING',
+  'WALK_DISTANCE_CHECKPOINT_INVALID',
+  'WALK_DISTANCE_CAPACITY_EXCEEDED',
+  'WALK_DISTANCE_NOT_AVAILABLE',
+  'WALK_ROUTE_REVISION_CONFLICT',
+  'WALK_ROUTE_PAGE_INVALID',
+  'WALK_QA_DISABLED',
+  'WALK_QA_PROTOCOL_INVALID',
+  'WALK_QA_CLEANUP_REQUIRED',
 ] as const);

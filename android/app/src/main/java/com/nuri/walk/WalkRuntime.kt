@@ -38,6 +38,8 @@ class WalkRuntime internal constructor(private val context: Context,
   private val main = Handler(Looper.getMainLooper())
   private val storage by lazy { injectedStorage ?: WalkStorage(context) }
   private val source: WalkLocationSource = injectedSource ?: FusedWalkLocationSource(context)
+  private val distanceEngine = WalkDistanceEngineV1(androidWalkGeodesic)
+  private val qa by lazy { WalkQaWorkflow(context,storage,::requireOwner) }
   private val generation = AtomicLong(0)
   private val ownerEpoch = AtomicLong(0)
   @Volatile private var owner: String? = null
@@ -122,7 +124,9 @@ class WalkRuntime internal constructor(private val context: Context,
       put("locationAvailable", availability); put("permissionState", permissionState())
       put("notificationPermissionState", if (Build.VERSION.SDK_INT >= 33 && ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED)
         "NOTIFICATION_PERMISSION_DENIED_LIMITED_VISIBILITY" else "GRANTED")
-      put("distanceStatus", "NOT_AVAILABLE_PHASE_2")
+      val distance = storage.distance(row)
+      put("distanceStatus", if(distance==null) "NOT_AVAILABLE_PHASE_2" else "LOCAL_CANDIDATE")
+      put("distanceSummary", distance?.let{distanceSummary(it,meta.timing.activeMs)} ?: JSONObject.NULL)
       put("syncState", if (state(row) == WalkState.FINISHED_LOCAL) "SYNC_PENDING" else JSONObject.NULL)
       put("lastErrorCode", row.lastErrorCode ?: JSONObject.NULL)
     }.toString()
@@ -174,6 +178,7 @@ class WalkRuntime internal constructor(private val context: Context,
         val row = WalkLocalSession().apply { sessionId = UUID.randomUUID().toString(); activeSlot = 1; runtimeState = "STARTING"; revision = 1 }
         val meta = WalkMetadata(actor, petId, wall, SystemClock.elapsedRealtimeNanos(), WalkTiming(mono, wall, 0, 0))
         storage.writeMetadata(row, meta)
+        storage.writeDistance(row, WalkDistanceState())
         val receipt = newReceipt(id, hash, row)
         storage.transaction { storage.dao.insertSession(row); storage.dao.insertReceipt(receipt) }
         waiters[id] = mutableListOf(done); pendingActivation = row.sessionId to id
@@ -216,6 +221,8 @@ class WalkRuntime internal constructor(private val context: Context,
               val timing = if (resuming) old.timing.advance(WalkState.PAUSED, mono, wall)
                 else old.timing.copy(lastMonoMs = mono, lastWallMs = wall)
               val meta = closePause(old, mono, wall).beginSegment(SystemClock.elapsedRealtimeNanos(), timing, resuming)
+              val engine = storage.distance(current) ?: WalkDistanceState(epoch=old.segmentCount,legacySession=true)
+              storage.writeDistance(current,distanceEngine.beginSegment(engine,walkBootIdentity(context),meta.segmentStartedNs))
               val receipt = storage.dao.receipt(command) ?: throw WalkFailure("WALK_LOCAL_DATABASE_ERROR")
               storage.transaction {
                 saveTransition(current, meta, WalkState.WALKING)
@@ -303,6 +310,9 @@ class WalkRuntime internal constructor(private val context: Context,
           storage.transaction { saveTransition(row, meta, WalkState.PAUSED); storage.dao.insertReceipt(receipt)
             storage.saveResult(receipt, snapshot(row, meta), row.revision) }
         } else if (type == "FINISH") {
+          storage.distance(row)?.validate()?.let{
+            if(storage.dao.routeCount(row.sessionId)!=it.counts[0])throw WalkFailure("WALK_DISTANCE_CHECKPOINT_INVALID")
+          }
           if (state(row) in setOf(WalkState.WALKING, WalkState.PAUSED)) {
             val mono = SystemClock.elapsedRealtime(); val wall = System.currentTimeMillis()
             meta = closePause(meta, mono, wall).copy(timing = meta.timing.advance(state(row), mono, wall))
@@ -343,11 +353,16 @@ class WalkRuntime internal constructor(private val context: Context,
         val row = storage.dao.session(sessionId) ?: return@execute
         if (state(row) != WalkState.WALKING) return@execute
         var meta = owned(row)
-        // Start-boundary and duplicate callback hygiene only, not a distance filter.
-        if (fix.elapsedRealtimeNanos < meta.segmentStartedNs || fix.elapsedRealtimeNanos <= meta.lastFixNs) return@execute
-        meta = meta.copy(fixCount = Math.addExact(meta.fixCount, 1), lastFixNs = fix.elapsedRealtimeNanos,
+        val engine = storage.distance(row) ?: throw WalkFailure("WALK_DISTANCE_CHECKPOINT_INVALID")
+        val next = distanceEngine.evaluate(engine,distanceFix(fix,walkBootIdentity(context),engine.epoch),
+          SystemClock.elapsedRealtimeNanos(),System.currentTimeMillis())
+        storage.writeDistance(row,next.state)
+        meta = meta.copy(fixCount = if(next.retainRaw)Math.addExact(meta.fixCount, 1)else meta.fixCount,
+          lastFixNs = maxOf(meta.lastFixNs,next.state.lastOrderedNs),segmentCount=maxOf(meta.segmentCount,next.state.epoch),
           timing = meta.timing.advance(state(row), SystemClock.elapsedRealtime(), System.currentTimeMillis()))
-        storage.appendPoint(row, encodeWalkFix(fix, meta.segmentCount - 1), meta); availability = true; publish(row, meta)
+        if(next.retainRaw)storage.appendPoint(row,encodeWalkFix(fix,meta.segmentCount-1),meta,next.disposition==WalkFixDisposition.ACCEPTED,next.state.epoch)
+        else{storage.writeMetadata(row,meta);storage.transaction{storage.dao.updateSession(row)}}
+        availability = true; publish(row, meta)
       } catch (error: Exception) { failClosed(failure(error)) }
     }
   }
@@ -357,14 +372,18 @@ class WalkRuntime internal constructor(private val context: Context,
         val row = storage.dao.active() ?: return@execute
         if (state(row) !in setOf(WalkState.WALKING, WalkState.PAUSED)) return@execute
         val meta = owned(row).let { it.copy(timing = it.timing.advance(state(row), SystemClock.elapsedRealtime(), System.currentTimeMillis())) }
+        if(state(row)==WalkState.WALKING)storage.distance(row)?.let{
+          storage.writeDistance(row,distanceEngine.tick(it,SystemClock.elapsedRealtimeNanos()))
+        }
         storage.writeMetadata(row, meta); storage.transaction { storage.dao.updateSession(row) }
         publish(row, meta)
+        if(com.nuri.BuildConfig.NURI_SECURITY_QA)qa.observe(row)
       } catch (error: Exception) { failClosed(failure(error)) }
     }
   }
   private fun publish(row: WalkLocalSession, meta: WalkMetadata) {
     val now = SystemClock.elapsedRealtime()
-    if (meta.owner != owner || now - lastEventMs < 1000) return
+    if (meta.owner != owner || now - lastEventMs < WalkDistancePolicyV1.EVENT_INTERVAL_MS) return
     lastEventMs = now; sink?.invoke(snapshot(row, meta))
     main.post { service?.refresh(row.runtimeState, meta.timing.activeMs, row.sessionId, row.revision, meta.fixCount, row.chunkCount) }
   }
@@ -384,7 +403,7 @@ class WalkRuntime internal constructor(private val context: Context,
       pauses = meta.pauses + WalkPauseInterval(meta.pauseStartedMonoMs, mono, meta.pauseStartedWallMs, wall))
   }
   private fun failClosed(code: String) {
-    if (code !in setOf("WALK_CLOCK_DISCONTINUITY", "WALK_LOCAL_ENCRYPTION_ERROR", "WALK_LOCAL_KEY_INVALIDATED", "WALK_LOCAL_DATABASE_ERROR", "WALK_SERVICE_UNAVAILABLE", "WALK_NOTIFICATION_SETUP_FAILED")) return
+    if (code !in setOf("WALK_CLOCK_DISCONTINUITY", "WALK_LOCAL_ENCRYPTION_ERROR", "WALK_LOCAL_KEY_INVALIDATED", "WALK_LOCAL_DATABASE_ERROR", "WALK_SERVICE_UNAVAILABLE", "WALK_NOTIFICATION_SETUP_FAILED", "WALK_DISTANCE_CHECKPOINT_INVALID", "WALK_DISTANCE_CAPACITY_EXCEEDED")) return
     haltCollection()
     try {
       storage.transaction {
@@ -431,6 +450,48 @@ class WalkRuntime internal constructor(private val context: Context,
     haltCollection(); worker.execute { try { sealActive() } catch (error: Exception) { failClosed(failure(error)) } }
   }
   internal fun closeForTest() { haltCollection(); worker.shutdown(); worker.awaitTermination(10, java.util.concurrent.TimeUnit.SECONDS) }
+  fun getRoutePage(direction:String,cursor:String,routeRevision:String,done:(String?,String?)->Unit)=run(done){
+    if(!com.nuri.BuildConfig.NURI_SECURITY_QA)throw WalkFailure("WALK_QA_DISABLED")
+    val row=newestOwned()?:throw WalkFailure("WALK_SESSION_DELETED");owned(row)
+    val state=storage.distance(row)?:throw WalkFailure("WALK_DISTANCE_NOT_AVAILABLE")
+    if(routeRevision!=state.routeRevision.toString())throw WalkFailure("WALK_ROUTE_REVISION_CONFLICT")
+    val position=cursor.toLongOrNull()?.takeIf{it>=-1}?:throw WalkFailure("WALK_ROUTE_PAGE_INVALID")
+    WalkRouteProjection(storage).page(row,state,direction,position).toString()
+  }
+  fun qaCommand(operation:String,input:String,done:(String?,String?)->Unit){
+    worker.execute{
+      try{
+        initialize();requireOwner()
+        if(!com.nuri.BuildConfig.NURI_SECURITY_QA)throw WalkFailure("WALK_QA_DISABLED")
+        val body=JSONObject(input)
+        if(operation=="CLEANUP")WalkQaContract.exact(body,setOf("postReturnReviewComplete"))
+        else if(operation!="CONFIGURE"&&operation!="SKIP")WalkQaContract.exact(body,emptySet())
+        when(operation){
+          "GET"->{newestOwned()?.let{qa.observeRecovery(it,service!=null)};done(qa.state(),null)}
+          "CONFIGURE"->done(qa.configure(body),null)
+          "START_STEP"->{
+            val(pet,command,repeated)=qa.reserve()
+            if(repeated){done(qa.state(),null);return@execute}
+            start(pet,command,"0",WalkVisibility.resumed){result,error->
+              try{done(qa.link(result,error),null)}catch(e:Exception){done(null,failure(e))}
+            }
+          }
+          "FINISH_STEP"->{
+            val(session,command,expected)=qa.finishIdentity();val row=storage.dao.session(session)?:throw WalkFailure("WALK_SESSION_DELETED")
+            owned(row)
+            if(row.runtimeState=="FINISHED_LOCAL"){done(qa.complete(),null);return@execute}
+            mutate("FINISH",session,command,expected,WalkVisibility.resumed){_,error->
+              if(error!=null)done(null,error)else try{done(qa.complete(),null)}catch(e:Exception){done(null,failure(e))}
+            }
+          }
+          "MARK_REBOOT"->done(qa.markReboot(),null)
+          "SKIP"->done(qa.skip(body),null)
+          "CLEANUP"->done(qa.cleanup(body.getBoolean("postReturnReviewComplete")),null)
+          else->throw WalkFailure("WALK_QA_PROTOCOL_INVALID")
+        }
+      }catch(e:Exception){failClosed(failure(e));done(null,failure(e))}
+    }
+  }
   companion object {
     private const val MAX_COMMANDS_PER_SESSION = 4096
     @Volatile private var instance: WalkRuntime? = null

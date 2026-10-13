@@ -270,11 +270,15 @@ class WalkPersistenceTest {
       waitResult { first.bindOwner(actor, it) }
       val initial = JSONObject(waitResult { first.start(pet, command(), "0", true, it) }.first!!)
       val session = initial.getString("sessionId")
-      // Simulate an encrypted prior-boot cursor using a public test fix only.
-      firstSource.fix?.invoke(fix().apply {
-        elapsedRealtimeNanos = Math.addExact(SystemClock.elapsedRealtimeNanos(), TimeUnit.DAYS.toNanos(1))
-      })
+      firstSource.fix?.invoke(fix())
       assertEquals("1", JSONObject(waitResult { first.getSnapshot(it) }.first!!).getString("fixCount"))
+      // A historical cursor is an encrypted checkpoint fixture, not permission
+      // for Phase 3 to accept a future-dated live location callback.
+      val oldRow = store.dao.session(session)
+      store.writeMetadata(oldRow, store.metadata(oldRow).copy(
+        lastFixNs = Math.addExact(SystemClock.elapsedRealtimeNanos(), TimeUnit.DAYS.toNanos(1)),
+      ))
+      store.transaction { store.dao.updateSession(oldRow) }
       first.closeForTest()
       val nextSource = FakeSource()
       val afterLoss = runtime(store, nextSource, FakeService()); recovered = afterLoss

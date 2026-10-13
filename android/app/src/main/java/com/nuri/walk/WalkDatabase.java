@@ -3,7 +3,7 @@ package com.nuri.walk;
 import androidx.room.Database;
 import androidx.room.RoomDatabase;
 
-@Database(entities = {WalkLocalSession.class, WalkPointChunk.class, WalkCommandReceipt.class}, version = 1, exportSchema = true)
+@Database(entities = {WalkLocalSession.class, WalkPointChunk.class, WalkCommandReceipt.class, WalkQaProtocol.class}, version = 2, exportSchema = true)
 public abstract class WalkDatabase extends RoomDatabase {
   public abstract WalkDao walkDao();
 }
