@@ -262,4 +262,37 @@ class WalkPersistenceTest {
       assertEquals(0, store.dao.sessionCount()); assertFalse(source.subscribed)
     } finally { runtime.closeForTest(); cleanup(store, name) }
   }
+  @Test fun recoveredClockEpochCheckpointsFreshFixWithoutChangingIdentity() {
+    val (store, name) = storage(); val firstSource = FakeSource()
+    val first = runtime(store, firstSource, FakeService())
+    var recovered: WalkRuntime? = null
+    try {
+      waitResult { first.bindOwner(actor, it) }
+      val initial = JSONObject(waitResult { first.start(pet, command(), "0", true, it) }.first!!)
+      val session = initial.getString("sessionId")
+      // Simulate an encrypted prior-boot cursor using a public test fix only.
+      firstSource.fix?.invoke(fix().apply {
+        elapsedRealtimeNanos = Math.addExact(SystemClock.elapsedRealtimeNanos(), TimeUnit.DAYS.toNanos(1))
+      })
+      assertEquals("1", JSONObject(waitResult { first.getSnapshot(it) }.first!!).getString("fixCount"))
+      first.closeForTest()
+      val nextSource = FakeSource()
+      val afterLoss = runtime(store, nextSource, FakeService()); recovered = afterLoss
+      waitResult { afterLoss.bindOwner(actor, it) }
+      val checkpoint = JSONObject(waitResult { afterLoss.getSnapshot(it) }.first!!)
+      assertEquals("RECOVERY_REQUIRED", checkpoint.getString("runtimeState"))
+      assertEquals(session, checkpoint.getString("sessionId")); assertEquals(pet, checkpoint.getString("petId"))
+      val resumed = waitResult { afterLoss.mutate("RESUME_RECOVERED", session, command(), checkpoint.getString("revision"), true, it) }
+      assertNull(resumed.second)
+      val stale = fix().apply { elapsedRealtimeNanos = 1 }
+      nextSource.fix?.invoke(stale)
+      assertEquals("1", JSONObject(waitResult { afterLoss.getSnapshot(it) }.first!!).getString("fixCount"))
+      nextSource.fix?.invoke(fix())
+      val fresh = JSONObject(waitResult { afterLoss.getSnapshot(it) }.first!!)
+      assertEquals("2", fresh.getString("fixCount")); assertEquals("2", fresh.getString("encryptedChunkCount"))
+      assertEquals(session, fresh.getString("sessionId")); assertEquals(pet, fresh.getString("petId"))
+      assertEquals("2", fresh.getString("segmentCount"))
+      assertTrue(fresh.getLong("revision") > checkpoint.getLong("revision"))
+    } finally { recovered?.closeForTest(); first.closeForTest(); cleanup(store, name) }
+  }
 }

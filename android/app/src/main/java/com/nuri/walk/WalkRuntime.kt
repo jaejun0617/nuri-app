@@ -215,8 +215,7 @@ class WalkRuntime internal constructor(private val context: Context,
               val resuming = state(current) == WalkState.PAUSED
               val timing = if (resuming) old.timing.advance(WalkState.PAUSED, mono, wall)
                 else old.timing.copy(lastMonoMs = mono, lastWallMs = wall)
-              val meta = closePause(old, mono, wall).copy(segmentStartedNs = SystemClock.elapsedRealtimeNanos(),
-                timing = timing, segmentCount = if (resuming) Math.addExact(old.segmentCount, 1) else old.segmentCount)
+              val meta = closePause(old, mono, wall).beginSegment(SystemClock.elapsedRealtimeNanos(), timing, resuming)
               val receipt = storage.dao.receipt(command) ?: throw WalkFailure("WALK_LOCAL_DATABASE_ERROR")
               storage.transaction {
                 saveTransition(current, meta, WalkState.WALKING)

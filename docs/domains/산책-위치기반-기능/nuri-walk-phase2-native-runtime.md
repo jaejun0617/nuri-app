@@ -82,3 +82,23 @@ Original dirty 181 paths stay in the original worktree. Rollback disables the ne
 and retains encrypted checkpoints without deleting old records or rewriting the security chain.
 
 Next gate: PO review of the final Phase 2 native report.
+
+## Reboot Boundary Corrective Candidate
+
+Candidate `3836d20a963406b7d0455d4fd5bbdf5bb5658cca` passed the required same-boot S24
+lifecycle, encryption, permission and logout gates. An additionally approved full reboot
+preserved its checkpoint and required explicit resume, but new chunks remained at 13 through
+a 60-second observation. The prior-boot ordering cursor survived a new segment. Android
+[elapsedRealtimeNanos](https://developer.android.com/reference/android/os/SystemClock#elapsedRealtimeNanos())
+uses time since boot, so that cursor rejected post-reboot samples.
+
+The minimal corrective scopes last-fix ordering to a newly started segment. Identity,
+encrypted historical chunks, cumulative counts and duration remain unchanged. Stale
+pre-segment and duplicate rejection stay in place. A behavior-preserving extraction first
+exposed the failure in a JVM regression; only then was the cursor reset added. An isolated
+Android test also verifies fresh sampling after a simulated epoch reset and rejects stale
+pre-segment input. Room schema, Phase 1, auth, signing and server contracts are unchanged.
+
+No boot receiver, sticky restart or automatic collection is introduced. The second exact
+candidate is allowed only by the PO reboot corrective approval and still requires physical
+reboot/recovery validation. No third candidate or Phase 3 starts automatically.

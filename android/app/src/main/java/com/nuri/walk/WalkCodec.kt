@@ -11,7 +11,14 @@ data class WalkMetadata(
   val lastFixNs: Long = 0, val finishedWall: Long = 0,
   val pauseStartedMonoMs: Long = 0, val pauseStartedWallMs: Long = 0,
   val pauses: List<WalkPauseInterval> = emptyList(),
-)
+) {
+  fun beginSegment(startedNs: Long, nextTiming: WalkTiming, resuming: Boolean): WalkMetadata = copy(
+    segmentStartedNs = startedNs, timing = nextTiming,
+    segmentCount = if (resuming) Math.addExact(segmentCount, 1) else segmentCount,
+    // Ordering is segment-local. A recovered segment may use a new boot clock.
+    lastFixNs = 0,
+  )
+}
 data class WalkPauseInterval(val startMonoMs: Long, val endMonoMs: Long, val startWallMs: Long, val endWallMs: Long)
 
 private class SensitiveWalkOutput : ByteArrayOutputStream() {
