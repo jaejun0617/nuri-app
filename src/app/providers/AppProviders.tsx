@@ -62,6 +62,7 @@ import {
   shouldClearAuthBoundScheduleNotifications,
 } from '../../services/auth/session';
 import { showToast } from '../../store/uiStore';
+import { bindWalkAuthenticatedOwner } from '../../services/walk/runtime/nativeWalk';
 import {
   appQueryClient,
   clearAppQueryCache,
@@ -410,6 +411,9 @@ export default function AppProviders({ children }: Props) {
       seq: number,
       gate: AccountDeletionGate,
     ) => {
+      const walkOwnerBinding = bindWalkAuthenticatedOwner(null);
+      if (walkOwnerBinding) await walkOwnerBinding;
+      if (!alive || transitionSeqRef.current !== seq) return;
       setAccountDeletionGate(gate);
       await setProfile({ nickname: null, role: 'user' });
       setProfileSyncState('idle');
@@ -459,6 +463,14 @@ export default function AppProviders({ children }: Props) {
       if (!alive || transitionSeqRef.current !== seq) return;
 
       await setSession(session);
+      if (!alive || transitionSeqRef.current !== seq) return;
+      const walkOwnerBinding = bindWalkAuthenticatedOwner(
+        shouldKeepGuestSandboxForRecovery({
+          passwordRecoveryFlow: useAuthStore.getState().passwordRecoveryFlow,
+          session,
+        }) ? null : nextUserId,
+      );
+      if (walkOwnerBinding) await walkOwnerBinding;
       if (!alive || transitionSeqRef.current !== seq) return;
 
       if (

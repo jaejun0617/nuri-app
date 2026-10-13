@@ -9,6 +9,7 @@ import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
 import com.nuri.notifications.ScheduleNotificationPackage
 import com.nuri.ui.BlurCaptureExclusionPackage
 import com.nuri.qa.SecurityQaPackage
+import com.nuri.walk.WalkPackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -20,6 +21,7 @@ class MainApplication : Application(), ReactApplication {
           add(ScheduleNotificationPackage())
           add(BlurCaptureExclusionPackage())
           add(SecurityQaPackage())
+          add(WalkPackage())
         },
     )
   }

@@ -60,6 +60,9 @@ if (!nuriGoogleMapsApiKey) {
 
 android {
   namespace "com.nuri"
+  // Local compilation uses debug tests. Canonical QA Release also produces a
+  // same-signer instrumentation APK; Store intent has no QA/test packaging.
+  testBuildType (project.findProperty("nuriSecurityQa") == "true" ? "release" : "debug")
 
   ndkVersion rootProject.ext.ndkVersion
   buildToolsVersion rootProject.ext.buildToolsVersion
@@ -71,6 +74,12 @@ android {
     targetSdkVersion rootProject.ext.targetSdkVersion
     versionCode 1
     versionName "1.0"
+    testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    javaCompileOptions {
+      annotationProcessorOptions {
+        arguments += ["room.schemaLocation": "$projectDir/schemas".toString()]
+      }
+    }
     buildConfigField "boolean", "NURI_SECURITY_QA", (project.findProperty("nuriSecurityQa") == "true").toString()
     manifestPlaceholders["NURI_GOOGLE_MAPS_API_KEY"] = nuriGoogleMapsApiKey
   }
@@ -112,10 +121,23 @@ android {
   }
 }
 
+if (project.findProperty("nuriSecurityQa") == "true") {
+  tasks.matching { it.name == "assembleRelease" }.configureEach {
+    finalizedBy("assembleReleaseAndroidTest")
+  }
+}
+
 dependencies {
   implementation("com.facebook.react:react-android")
   // Match react-native-blur's pinned capture engine for local foreground exclusion.
   implementation("com.github.qmdeve.qmblurview:core:v1.3.0")
+  implementation("com.google.android.gms:play-services-location:21.3.0")
+  implementation("androidx.room:room-runtime:2.8.4")
+  // Java Room DAO uses javac processing: no KSP/kapt or toolchain upgrade.
+  annotationProcessor("androidx.room:room-compiler:2.8.4")
+  testImplementation("junit:junit:4.13.2")
+  androidTestImplementation("androidx.test.ext:junit:1.3.0")
+  androidTestImplementation("androidx.test:runner:1.7.0")
 
   if (project.hasProperty('hermesEnabled') && hermesEnabled.toBoolean()) {
     implementation("com.facebook.react:hermes-android")

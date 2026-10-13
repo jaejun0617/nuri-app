@@ -1,5 +1,11 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-10-13 Walk Phase 2 Candidate Boundary
+
+- Accepted security findings remain frozen at 20/20; older counts below are historical.
+- [Walk native candidate](../domains/산책-위치기반-기능/nuri-walk-phase2-native-runtime.md) requires exact-source Release, signer/install identity, S24 permission/lifecycle/recovery/logout and encrypted persistence receipts.
+- This pre-build entry does not claim device acceptance or Store readiness. No distance/map/server/product UI, push or automatic Phase 3. STORE HOLD.
+
 ## 2026-10-12 Security-Only Local Commit Boundary
 
 - Latest accepted baseline: 20 findings, 13 resolved, 7 open, Pre-Store 5, immediate blockers 0. SEC-019/020 are resolved within the scoped server boundary; older pending-approval counts below are historical. See [security checkpoint](nuri-security-remaining-2026-10-12.md).

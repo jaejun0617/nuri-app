@@ -6,6 +6,7 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { isSecurityQaEnabled } from '../../services/securityQa/config';
 import { qaFailureCode, resumeQaStorageCleanup, runQaSessionValidation, runQaStorageValidation } from '../../services/securityQa/validation';
 import { runQaAutomaticMonitoringValidation } from '../../services/securityQa/monitoringValidation';
+import WalkRuntimeQaPanel from './WalkRuntimeQaPanel';
 
 export default function SecurityValidationScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'SecurityValidation'>) {
   const insets = useSafeAreaInsets();
@@ -41,6 +42,7 @@ export default function SecurityValidationScreen({ navigation }: NativeStackScre
   };
   return <ScrollView contentContainerStyle={[styles.content, { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 16 }]}>
     <Button title="Back" disabled={busy} onPress={() => navigation.goBack()} />
+    <WalkRuntimeQaPanel />
     <Button title="Automatic monitoring validation" disabled={busy} onPress={() => run(runQaAutomaticMonitoringValidation)} />
     <Button title="Secure session validation" disabled={busy} onPress={() => run(runQaSessionValidation)} />
     <Button title="Storage lifecycle validation" disabled={busy} onPress={() => {

@@ -26,6 +26,7 @@ import { useScheduleStore } from '../../store/scheduleStore';
 import { markExplicitLogout } from './localSession';
 import { revokeCurrentDevicePushToken } from '../notifications/pushTokenLifecycle';
 import { clearAppQueryCache } from '../query/appQueryClient';
+import { stopWalkForLogout } from '../walk/runtime/nativeWalk';
 import {
   clearAllScheduleNotifications,
   type ScheduleNotificationSyncResult,
@@ -85,6 +86,8 @@ export function createAuthBoundaryCleanupQueue() {
     waitForBoundary: (shouldCleanup: boolean): Promise<void> => {
       const next = tail.then(async () => {
         if (shouldCleanup) {
+          const walkStop = stopWalkForLogout();
+          if (walkStop) await walkStop;
           await clearAuthBoundScheduleNotifications();
         }
       });
@@ -96,6 +99,8 @@ export function createAuthBoundaryCleanupQueue() {
 }
 
 export async function clearLocalSessionState(): Promise<void> {
+  const walkStop = stopWalkForLogout();
+  if (walkStop) await walkStop;
   setMonitoringUser({ id: null });
   clearAppQueryCache();
   await clearAllRecentPersonalSearches();
@@ -106,6 +111,8 @@ export async function clearLocalSessionState(): Promise<void> {
 }
 
 export async function disposePasswordRecoverySession(): Promise<void> {
+  const walkStop = stopWalkForLogout();
+  if (walkStop) await walkStop;
   await useAuthStore.getState().clearPasswordRecovery();
 
   try {
@@ -124,6 +131,8 @@ export async function disposePasswordRecoverySession(): Promise<void> {
 }
 
 export async function performLogout(timeoutMs = 1200) {
+  const walkStop = stopWalkForLogout();
+  if (walkStop) await walkStop;
   // Persist intent before any network work: failed remote logout must never
   // resurrect the old local credential on the next offline cold start.
   await markExplicitLogout();
@@ -140,6 +149,8 @@ export async function performLogout(timeoutMs = 1200) {
 }
 
 export async function performAccountDeletion(): Promise<AccountDeletionResult> {
+  const walkStop = stopWalkForLogout();
+  if (walkStop) await walkStop;
   const result = await deleteMyAccount();
   try {
     await clearRecentLoginProvider();

@@ -13,6 +13,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.swmansion.rnscreens.fragment.restoration.RNScreensFragmentFactory
 import com.nuri.notifications.ScheduleNotificationTapStore
+import com.nuri.walk.WalkVisibility
 
 class MainActivity : ReactActivity() {
   private fun applySystemBarStyle() {
@@ -61,7 +62,13 @@ class MainActivity : ReactActivity() {
 
   override fun onResume() {
     super.onResume()
+    WalkVisibility.resumed = true
     applySystemBarStyle()
+  }
+
+  override fun onPause() {
+    WalkVisibility.resumed = false
+    super.onPause()
   }
 
   override fun onWindowFocusChanged(hasFocus: Boolean) {
