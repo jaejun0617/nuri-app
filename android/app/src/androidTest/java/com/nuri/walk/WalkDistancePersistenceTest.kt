@@ -12,6 +12,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import javax.crypto.KeyGenerator
 import org.json.JSONObject
+import org.json.JSONArray
 import org.junit.Assert.*
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -47,17 +48,64 @@ class WalkDistancePersistenceTest {
     operation{v,e->value=v;error=e;latch.countDown()}
     assertTrue(latch.await(10,TimeUnit.SECONDS));assertNull(error);return value?:throw AssertionError("No native receipt")
   }
+  private fun frozenSchema()=JSONObject(InstrumentationRegistry.getInstrumentation().context.assets.open("com.nuri.walk.WalkDatabase/1.json").bufferedReader().use{it.readText()}).getJSONObject("database")
+  private data class FrozenIndex(val name:String,val column:String,val unique:Boolean)
+  private fun frozenIndices(entity:JSONObject):List<JSONObject>{
+    val expected=when(entity.getString("tableName")){
+      "walk_local_sessions"->listOf(FrozenIndex("index_walk_local_sessions_activeSlot","activeSlot",true))
+      "walk_command_receipts"->listOf(FrozenIndex("index_walk_command_receipts_sessionId","sessionId",false))
+      "walk_point_chunks"->emptyList()
+      else->throw IllegalArgumentException("Unknown frozen schema table")
+    }
+    require(!entity.has("indices")||entity.optJSONArray("indices")!=null){"Invalid index list"}
+    val actual=entity.optJSONArray("indices")?:JSONArray()
+    require(actual.length()==expected.size){"Required index missing or unexpected index"}
+    return expected.mapIndexed{i,spec->
+      val item=actual.getJSONObject(i);val columns=item.getJSONArray("columnNames");val orders=item.getJSONArray("orders")
+      require(item.getString("name")==spec.name&&item.getBoolean("unique")==spec.unique){"Index identity or uniqueness mismatch"}
+      require(columns.length()==1&&columns.getString(0)==spec.column){"Index columns or ordering mismatch"}
+      require(orders.length()==0||orders.length()==1&&orders.getString(0)=="ASC"){"Index sort order mismatch"}
+      val sql="CREATE ${if(spec.unique)"UNIQUE "else ""}INDEX IF NOT EXISTS `${spec.name}` ON `\${TABLE_NAME}` (`${spec.column}`)"
+      require(item.getString("createSql")==sql){"Index SQL does not match frozen contract"}
+      item
+    }
+  }
+  @Test fun indexHarnessRequiresTheExactFrozenSchemaContract(){
+    val entities=frozenSchema().getJSONArray("entities")
+    fun rejects(value:JSONObject){try{frozenIndices(value);fail("Expected index contract rejection")}catch(_:IllegalArgumentException){}}
+    for(i in 0 until entities.length()){
+      val entity=entities.getJSONObject(i);val table=entity.getString("tableName")
+      if(table=="walk_point_chunks"){
+        assertTrue(frozenIndices(entity).isEmpty())
+        assertTrue(frozenIndices(JSONObject(entity.toString()).put("indices",JSONArray())).isEmpty())
+      }else{
+        assertEquals(1,frozenIndices(entity).size)
+        rejects(JSONObject(entity.toString()).apply{remove("indices")})
+        for(field in listOf("name","columnNames","orders","unique","createSql")){
+          val bad=JSONObject(entity.toString());val index=bad.getJSONArray("indices").getJSONObject(0)
+          when(field){
+            "name"->index.put(field,"index_wrong")
+            "columnNames"->index.put(field,JSONArray().put("wrong_column"))
+            "orders"->index.put(field,JSONArray().put("DESC"))
+            "unique"->index.put(field,!index.getBoolean(field))
+            "createSql"->index.put(field,"CREATE INDEX invalid")
+          }
+          rejects(bad)
+        }
+      }
+    }
+  }
   @Test fun v1MigrationPreservesAllLifecycleStatesMetadataAndReceipts(){
-    val schema=JSONObject(InstrumentationRegistry.getInstrumentation().context.assets.open("com.nuri.walk.WalkDatabase/1.json").bufferedReader().use{it.readText()}).getJSONObject("database")
+    val schema=frozenSchema()
     for(state in listOf("WALKING","PAUSED","FINISHED_LOCAL","RECOVERY_REQUIRED")){
       val name="walk-phase3-migration-${id()}.db";val file=File(context.noBackupFilesDir,name);val crypto=cipher();val session=id()
       val metadata=WalkCodec.encode(WalkMetadata(actor,pet,10000,1,WalkTiming(1,10000,12345,0)))
       val sealed=crypto.encrypt(metadata,WalkCipher.aad(session,"metadata",1));metadata.fill(0)
       val old=SQLiteDatabase.openOrCreateDatabase(file,null)
       val entities=schema.getJSONArray("entities")
-      for(i in 0 until entities.length()){
+      try{for(i in 0 until entities.length()){
         val entity=entities.getJSONObject(i);old.execSQL(entity.getString("createSql").replace("\${TABLE_NAME}",entity.getString("tableName")))
-        val indexes=entity.getJSONArray("indices");for(j in 0 until indexes.length())old.execSQL(indexes.getJSONObject(j).getString("createSql").replace("\${TABLE_NAME}",entity.getString("tableName")))
+        frozenIndices(entity).forEach{old.execSQL(it.getString("createSql").replace("\${TABLE_NAME}",entity.getString("tableName")))}
       }
       old.execSQL("CREATE TABLE room_master_table (id INTEGER PRIMARY KEY, identity_hash TEXT)")
       old.execSQL("INSERT INTO room_master_table VALUES(42,?)",arrayOf(schema.getString("identityHash")))
@@ -67,7 +115,8 @@ class WalkDistancePersistenceTest {
         put("chunkCount",0);put("updatedAt",10000)
       })
       old.execSQL("INSERT INTO walk_command_receipts(commandId,sessionId,inputDigest,outcome,resultingRevision) VALUES(?,?,?,?,?)",arrayOf<Any>(id(),session,"public-fixture","PENDING",0))
-      old.version=1;old.close()
+      old.version=1
+      }finally{old.close()}
       val store=WalkStorage(context,crypto,name)
       try{
         val migrated=store.dao.session(session)
