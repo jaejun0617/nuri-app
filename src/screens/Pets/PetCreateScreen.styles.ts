@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 
 import { spacing } from '../../app/theme/tokens/spacing';
 
@@ -6,14 +7,13 @@ const BRAND = '#6D6AF8';
 const BRAND_DEEP = '#5A57E7';
 const TEXT = '#352B25';
 const MUTED = '#786B61';
-const SURFACE = '#FBF3E7';
 const FIELD = 'rgba(255, 253, 249, 0.78)';
 const BORDER = 'rgba(109,106,248,0.16)';
 
 export const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: SURFACE,
+    backgroundColor: PRODUCT_CANVAS_COLOR,
   },
   backgroundImage: {
     ...StyleSheet.absoluteFill,

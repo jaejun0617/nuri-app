@@ -505,7 +505,7 @@ export default function ScheduleEditScreen() {
       style={styles.screen}
       edges={keyboardVisible ? ['left', 'right'] : ['left', 'right', 'bottom']}
     >
-      <SeasonalFormBackground />
+      <SeasonalFormBackground uniform />
       <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity

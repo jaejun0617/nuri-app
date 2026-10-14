@@ -4,6 +4,7 @@
 // - 저장 성공 시 완료 팝업을 보여주고 타임라인으로 이어짐
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import {
   Alert,
   StyleSheet,
@@ -536,11 +537,11 @@ export default function WeatherActivityRecordScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#FBFAFD',
+    backgroundColor: PRODUCT_CANVAS_COLOR,
   },
   keyboardView: {
     flex: 1,
-    backgroundColor: '#FBFAFD',
+    backgroundColor: PRODUCT_CANVAS_COLOR,
   },
   keyboardContent: {
     flex: 1,

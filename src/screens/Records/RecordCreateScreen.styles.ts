@@ -1,11 +1,12 @@
 import { StyleSheet } from 'react-native';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 
 const BRAND = '#4B5563';
 const BRAND_DARK = '#303840';
 const TEXT = '#111827';
 const MUTED = '#66717F';
 const BORDER = '#E5EAF3';
-const BG = '#FFFFFF';
+const BG = PRODUCT_CANVAS_COLOR;
 const CARD = '#FFFFFF';
 
 export const styles = StyleSheet.create({

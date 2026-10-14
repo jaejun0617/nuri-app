@@ -16,7 +16,10 @@ import { isSecurityQaEnabled } from '../../services/securityQa/config';
 // - 계정 액션과 일반 메뉴 이동이 섞여 있어, 모달 상태와 navigation 호출 순서를 함부로 바꾸면 드로어 닫힘/복귀 UX가 어긋날 수 있다.
 
 import AppTextInput from '../../app/ui/AppTextInput';
-import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
+import { useSeasonPreference } from '../../app/providers/SeasonPreferenceProvider';
+import { SeasonReviewControls } from '../../components/common/SeasonReviewControls';
+import type { SeasonKey } from '../../theme/seasonal/season';
+import { captureMonitoringException } from '../../services/monitoring/sentry';
 import SeasonalAmbientBackground from '../../components/common/SeasonalAmbientBackground';
 import BlurCaptureExclusion from '../../components/common/BlurCaptureExclusion';
 import AppFontSettingsModal from '../../components/settings/AppFontSettingsModal';
@@ -67,6 +70,7 @@ import {
   type MoreMenuItem as MenuItemSpec,
 } from '../../components/MoreDrawer/MoreMenuPresentation';
 import { MORE_MENU } from '../../components/MoreDrawer/moreMenuVisualTokens';
+import MoreMonthlyExpenseSummary from '../../components/MoreDrawer/MoreMonthlyExpenseSummary';
 
 import AppNavigationToolbar from '../../components/navigation/AppNavigationToolbar';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
@@ -1208,7 +1212,13 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const season = useEffectiveSeason();
+  const { season, setOverride: setSeasonOverride } = useSeasonPreference();
+  const setReviewSeason = useCallback(
+    (nextSeason: SeasonKey) => {
+      setSeasonOverride(nextSeason).catch(captureMonitoringException);
+    },
+    [setSeasonOverride],
+  );
   const { mode: appFontMode } = useAppFontPreference();
   const nicknameRaw = useAuthStore(s => s.profile.nickname);
   const role = useAuthStore(s => s.profile.role ?? 'user');
@@ -1510,6 +1520,18 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         params: {
           screen: 'TimelineMain',
           params: { mainCategory: 'all', entrySource: 'more' },
+        },
+      }),
+    );
+  }, [closeAndNavigate, navigation]);
+
+  const openMonthlyExpenses = useCallback((monthKey: string) => {
+    closeAndNavigate(() =>
+      navigation.navigate('AppTabs', {
+        screen: 'TimelineTab',
+        params: {
+          screen: 'MonthlyExpenses',
+          params: { monthKey, entrySource: 'more', entryRequestId: Date.now() },
         },
       }),
     );
@@ -2314,6 +2336,12 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
             onProfile={isLoggedIn ? openProfileEditModal : onPressLogin}
             onPets={isLoggedIn ? openPetManagement : onPressLogin}
           />
+          {isLoggedIn ? (
+            <MoreMonthlyExpenseSummary onPress={openMonthlyExpenses} />
+          ) : null}
+          {isLoggedIn ? (
+            <SeasonReviewControls season={season} onChange={setReviewSeason} />
+          ) : null}
           <MoreMenuSection title="빠른 이동" items={quickItems} quick />
           <MoreMenuSection title="소통과 활동" items={socialItems} />
           <MoreMenuSection title="생활 정보" items={infoItems} />

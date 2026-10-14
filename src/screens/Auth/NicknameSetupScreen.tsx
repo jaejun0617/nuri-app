@@ -13,6 +13,7 @@
 // - 비로그인 상태 fallback과 draft 복구 타이밍을 바꾸면 온보딩 진입 흐름이 쉽게 깨진다.
 
 import AppText from '../../app/ui/AppText';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import AppTextInput from '../../app/ui/AppTextInput';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
@@ -41,8 +42,6 @@ import Animated, {
 
 import { spacing } from '../../app/theme/tokens/spacing';
 import { ASSETS } from '../../assets';
-import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
-import { getSeasonalOnboardingVisual } from '../../theme/seasonal/onboarding';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import {
@@ -294,8 +293,6 @@ const NicknameFooter = memo(function NicknameFooterView({
 });
 
 export default function NicknameSetupScreen() {
-  const season = useEffectiveSeason();
-  const seasonalVisual = useMemo(() => getSeasonalOnboardingVisual(season), [season]);
   const navigation = useNavigation<Nav>();
   const route = useRoute<R>();
   const insets = useSafeAreaInsets();
@@ -537,16 +534,7 @@ export default function NicknameSetupScreen() {
   }, [isLoggedIn, navigation]);
 
   return (
-    <View style={[styles.screen, { backgroundColor: seasonalVisual.palette.pageBackgroundColor }]}>
-      <Image
-        accessibilityIgnoresInvertColors
-        pointerEvents="none"
-        resizeMode="stretch"
-        source={seasonalVisual.nicknameBackground}
-        style={styles.backgroundImage}
-      />
-      <View pointerEvents="none" style={styles.readabilityVeil} />
-
+    <View style={[styles.screen, { backgroundColor: PRODUCT_CANVAS_COLOR }]}>
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         <KeyboardAwareScrollView
           ref={scrollRef}

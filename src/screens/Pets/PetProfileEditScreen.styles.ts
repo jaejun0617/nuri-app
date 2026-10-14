@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 
 import { spacing } from '../../app/theme/tokens/spacing';
 
@@ -12,7 +13,7 @@ const GLASS_SURFACE = 'rgba(255, 252, 246, 0.70)';
 export const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#FBF3E7',
+    backgroundColor: PRODUCT_CANVAS_COLOR,
   },
   backgroundImage: {
     position: 'absolute',

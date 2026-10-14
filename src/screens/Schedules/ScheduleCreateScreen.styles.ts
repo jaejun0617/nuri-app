@@ -1,8 +1,9 @@
 import { StyleSheet } from 'react-native';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 
 const TEXT = '#0B1220';
 const MUTED = '#556070';
-const BG = '#FFFFFF';
+const BG = PRODUCT_CANVAS_COLOR;
 const SURFACE = 'rgba(255,255,255,0.7)';
 const BORDER = 'rgba(0,0,0,0.06)';
 const BRAND = '#263445';

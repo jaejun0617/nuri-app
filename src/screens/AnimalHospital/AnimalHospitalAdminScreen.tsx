@@ -1,4 +1,5 @@
 import AppTextInput from '../../app/ui/AppTextInput';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Alert,
@@ -728,7 +729,7 @@ export default function AnimalHospitalAdminScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F7F9FC',
+    backgroundColor: PRODUCT_CANVAS_COLOR,
   },
   header: {
     minHeight: 64,

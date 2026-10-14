@@ -11,7 +11,6 @@ import { buildHealthReportMonthBounds } from '../src/services/health-report/mont
 import { buildWeightChartModel } from '../src/components/health/weightChartModel';
 import WeightTrendChart from '../src/components/health/WeightTrendChart';
 import SeasonalAmbientBackground from '../src/components/common/SeasonalAmbientBackground';
-import { getHomeAmbientVisual } from '../src/theme/home/seasonalAmbient';
 import { healthGraphForeground } from '../src/app/theme/tokens/healthGraph';
 import { SEASON_CTA } from '../src/app/theme/ctaPalette';
 import type { SeasonKey } from '../src/theme/seasonal/season';
@@ -176,7 +175,7 @@ describe('health redesign preserves feature ownership', () => {
 
   const glassPanels = () =>
     renderer.root.findAll(
-      node => node.type === ('NativeBlurView' as React.ElementType),
+      node => node.type === RN.View && /^health-.*-glass$/.test(String(node.props.testID)),
     );
 
   it.each([
@@ -512,16 +511,17 @@ describe('shared seasonal background', () => {
       testID: 'seasonal-ambient-background',
     })[0];
     expect(RN.StyleSheet.flatten(canvas.props.style).backgroundColor).toBe(
-      getHomeAmbientVisual('spring').canvasGradient[0],
+      '#F1F5F8',
     );
     expect(
       renderer.root.findAllByProps({ testID: 'seasonal-ambient-season-wash' }).length,
-    ).toBeGreaterThan(0);
+    ).toBe(0);
     expect(theme.mode).toBe('dark');
+    expect(renderer.root.findAllByProps({ testID: 'product-canvas-gradient' })).toHaveLength(1);
   });
 
   it.each<SeasonKey>(['autumn', 'winter', 'spring', 'summer'])(
-    'reuses the Home palette with four static edge glints and no spheres: %s',
+    'uses uniform blue-gray with no seasonal wash or decoration: %s',
     async season => {
       await act(async () => {
         renderer = TestRenderer.create(
@@ -530,42 +530,17 @@ describe('shared seasonal background', () => {
           </ThemeProvider>,
         );
       });
-      const wash = renderer.root.findAllByProps({
+      expect(renderer.root.findAllByProps({
         testID: 'seasonal-ambient-season-wash',
-      })[0];
-      expect(wash.props.colors).toEqual(
-        getHomeAmbientVisual(season).canvasGradient,
-      );
-      expect(RN.StyleSheet.flatten(wash.props.style).opacity).toBe(1);
-      expect(wash.props.start).toEqual({ x: 0, y: 0.5 });
-      expect(wash.props.end).toEqual({ x: 1, y: 0.5 });
-      expect(wash.props.locations).toEqual([0, 0.5, 1]);
-      for (const color of wash.props.colors) {
-        expect(color).toMatch(/^#[0-9A-F]{6}$/);
-        expect(color).not.toBe('#FFFFFF');
-      }
+      })).toHaveLength(0);
       const upperTint = renderer.root.findAllByProps({
         testID: 'seasonal-ambient-spring-upper-tint',
       });
       expect(upperTint).toHaveLength(0);
-      const light = renderer.root.findAllByProps({
+      const lights = renderer.root.findAllByProps({
         testID: 'seasonal-ambient-center-light',
-      })[0];
-      expect(RN.StyleSheet.flatten(light.props.style)).toMatchObject({
-        left: '43%',
-        right: '43%',
-        top: '38%',
-        height: '24%',
       });
-      expect(light.props.maskElement.props.colors).toEqual([
-        'transparent',
-        '#FFFFFF',
-        '#FFFFFF',
-        'transparent',
-      ]);
-      expect(light.props.children.props.colors[1]).toBe(
-        'rgba(255,255,255,0.12)',
-      );
+      expect(lights).toHaveLength(0);
       expect(
         renderer.root.findAllByProps({ testID: 'seasonal-ambient-soft-veil' }),
       ).toHaveLength(0);
@@ -574,15 +549,14 @@ describe('shared seasonal background', () => {
       })[0];
       expect(background.props.pointerEvents).toBe('none');
       expect(background.props.accessibilityElementsHidden).toBe(true);
+      expect(RN.StyleSheet.flatten(background.props.style).backgroundColor).toBe('#F1F5F8');
+      expect(renderer.root.findAllByProps({ testID: 'product-canvas-gradient' })[0].props.colors).toEqual(['#F1F5F8', '#F1F5F8']);
       expect(renderer.root.findAllByType(RN.Image)).toHaveLength(0);
       for (let index = 0; index < 4; index += 1) {
-        const glint = renderer.root.findAllByProps({
+        const glints = renderer.root.findAllByProps({
           testID: `seasonal-ambient-glint-${index}`,
-        })[0];
-        const style = RN.StyleSheet.flatten(glint.props.style);
-        expect(style.width).toBeGreaterThanOrEqual(9);
-        expect(style.width).toBeLessThanOrEqual(15);
-        expect(style.left ?? style.right).toMatch(/^(1\.5|2)%$/);
+        });
+        expect(glints).toHaveLength(0);
       }
     },
   );
@@ -617,10 +591,11 @@ describe('shared seasonal background', () => {
       expect(
         RN.StyleSheet.flatten(background.props.style).backgroundColor,
       ).toBe(theme.colors.background);
-      const wash = renderer.root.findAllByProps({
+      const washes = renderer.root.findAllByProps({
         testID: 'seasonal-ambient-season-wash',
-      })[0];
-      expect(RN.StyleSheet.flatten(wash.props.style).opacity).toBe(0.2);
+      });
+      expect(washes).toHaveLength(0);
+      expect(renderer.root.findAllByProps({ testID: 'product-canvas-gradient' })).toHaveLength(0);
     },
   );
 });

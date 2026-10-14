@@ -8,7 +8,6 @@ import { createTheme } from '../src/app/theme/theme';
 import GuideListScreen from '../src/screens/Guides/GuideListScreen';
 import { FlatList, Platform, StyleSheet, TouchableOpacity, View } from 'react-native';
 import * as seasonPreference from '../src/app/providers/SeasonPreferenceProvider';
-import { getHomeAmbientVisual } from '../src/theme/home/seasonalAmbient';
 import { BlurView } from '@sbaiahmed1/react-native-blur';
 import { resolveHomeFrostedMaterial } from '../src/components/home/HomeFrostedGlass';
 import GuideListCard from '../src/components/guides/GuideListCard';
@@ -46,7 +45,7 @@ describe('Guide controlled search composition contract', () => {
   afterEach(() => { TestRenderer.act(() => tree?.unmount()); jest.restoreAllMocks(); });
 
   it.each(['autumn', 'winter', 'spring', 'summer'] as const)(
-    'shares the %s background and glass without changing list or empty/search contracts',
+    'uses the uniform background with reflective %s glass and unchanged list/search contracts',
     async season => {
       jest.replaceProperty(Platform, 'OS', 'android');
       jest.spyOn(seasonPreference, 'useEffectiveSeason').mockReturnValue(season);
@@ -56,20 +55,22 @@ describe('Guide controlled search composition contract', () => {
         node => node.props.testID === 'seasonal-ambient-background',
       );
       expect(StyleSheet.flatten(background?.props.style).backgroundColor).toBe(
-        getHomeAmbientVisual(season).canvasGradient[0],
+        '#F1F5F8',
       );
       expect(background?.props.pointerEvents).toBe('none');
-      expect(tree.root.findAllByType(BlurView)).toHaveLength(1);
+      expect(tree.root.findAllByType(BlurView)).toHaveLength(0);
+      expect(tree.root.findAll(node => node.type === View && node.props.testID === 'home-reflective-fill')).toHaveLength(1);
       await TestRenderer.act(async () => tree.root.findAllByProps({ accessibilityLabel: '가이드 검색 열기' })[0].props.onPress());
-      expect(tree.root.findAllByType(BlurView)).toHaveLength(3);
-      for (const panel of tree.root.findAllByType(BlurView)) {
-        const tint = panel.findAllByProps({ testID: 'home-frosted-tint' })[0];
+      expect(tree.root.findAllByType(BlurView)).toHaveLength(0);
+      const fills = tree.root.findAll(node => node.type === View && node.props.testID === 'home-reflective-fill');
+      expect(fills).toHaveLength(3);
+      for (const tint of fills) {
         expect(StyleSheet.flatten(tint.props.style).backgroundColor).toBe(
           resolveHomeFrostedMaterial(season).backgroundColor,
         );
         // Horizontal margins must not be added to the shared glass's 100% width.
-        expect(StyleSheet.flatten(panel.props.style).width).toBeUndefined();
-        expect(StyleSheet.flatten(panel.props.style).alignSelf).toBe('stretch');
+        expect(StyleSheet.flatten(tint.parent?.props.style).width).toBeUndefined();
+        expect(StyleSheet.flatten(tint.parent?.props.style).alignSelf).toBe('stretch');
       }
       mockGuides = [PET_CARE_GUIDES[0]];
       await TestRenderer.act(async () => tree.update(render()));
@@ -90,7 +91,8 @@ describe('Guide controlled search composition contract', () => {
         <GuideListCard guide={guide} season="summer" onPress={onPress} />
       </ThemeProvider>);
     });
-    expect(tree.root.findAllByType(BlurView)).toHaveLength(1);
+    expect(tree.root.findAllByType(BlurView)).toHaveLength(0);
+    expect(tree.root.findAll(node => node.type === View && node.props.testID === 'home-reflective-fill')).toHaveLength(1);
     const button = tree.root.findByType(TouchableOpacity);
     expect(button.props.accessibilityLabel).toBe(`${guide.title}, 가이드 상세 보기`);
     button.props.onPress();

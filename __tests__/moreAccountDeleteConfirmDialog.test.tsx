@@ -4,6 +4,7 @@ import TestRenderer from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 
 import { createTheme } from '../src/app/theme/theme';
+import type { SeasonKey } from '../src/theme/seasonal/season';
 import MoreDrawerContent from '../src/screens/More/MoreDrawerContent';
 import { useAuthStore } from '../src/store/authStore';
 import { usePetStore } from '../src/store/petStore';
@@ -22,6 +23,24 @@ const mockNavigation = {
   reset: jest.fn(),
 };
 const mockPerformAccountDeletion = jest.fn();
+const mockSetSeasonOverride = jest.fn<Promise<void>, [SeasonKey | null]>(() => Promise.resolve());
+const mockMonthlyExpenses = jest.fn();
+
+jest.mock('../src/hooks/useMonthlyExpenses', () => ({
+  useMonthlyExpenses: (month: string) => {
+    mockMonthlyExpenses(month);
+    return { data: { total: 42300 }, isError: false };
+  },
+}));
+
+jest.mock('../src/app/providers/SeasonPreferenceProvider', () => ({
+  ...jest.requireActual('../src/app/providers/SeasonPreferenceProvider'),
+  useSeasonPreference: () => ({
+    season: 'autumn',
+    override: null,
+    setOverride: mockSetSeasonOverride,
+  }),
+}));
 
 jest.mock('@react-navigation/native', () => {
   const actual = jest.requireActual('@react-navigation/native');
@@ -125,6 +144,79 @@ describe('More account deletion confirmation', () => {
       moreDrawerRestorePending: false,
     });
     global.requestAnimationFrame = originalRequestAnimationFrame;
+  });
+
+  it('opens the current-month expense list from below the profile and preserves More return position', async () => {
+    const close = jest.fn();
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => {
+      renderer = TestRenderer.create(
+        <ThemeProvider theme={createTheme('light')}>
+          <MoreDrawerContent onRequestClose={close} />
+        </ThemeProvider>,
+      );
+    });
+    const menu = renderer.root.findByType(ScrollView);
+    await TestRenderer.act(async () => menu.props.onScroll({ nativeEvent: { contentOffset: { y: 80 } } }));
+    const entry = menu.find(node => node.props.testID === 'more-monthly-expenses' && typeof node.props.onPress === 'function');
+    await TestRenderer.act(async () => entry.props.onPress());
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(useUiStore.getState().moreDrawerScrollOffset).toBe(80);
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('AppTabs', {
+      screen: 'TimelineTab',
+      params: { screen: 'MonthlyExpenses', params: {
+        monthKey: mockMonthlyExpenses.mock.calls[0][0], entrySource: 'more', entryRequestId: expect.any(Number),
+      } },
+    });
+    await TestRenderer.act(async () => renderer.unmount());
+  });
+
+  it('does not mount or query an expense summary for a guest', async () => {
+    useAuthStore.setState({ status: 'guest', session: null, isLoggedIn: false });
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => {
+      renderer = TestRenderer.create(
+        <ThemeProvider theme={createTheme('light')}>
+          <MoreDrawerContent onRequestClose={jest.fn()} />
+        </ThemeProvider>,
+      );
+    });
+    expect(renderer.root.findAllByProps({ testID: 'more-monthly-expenses' })).toHaveLength(0);
+    expect(mockMonthlyExpenses).not.toHaveBeenCalled();
+    await TestRenderer.act(async () => renderer.unmount());
+  });
+
+  it('keeps the temporary season accordion inside More without navigating or closing the menu', async () => {
+    const close = jest.fn();
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => {
+      renderer = TestRenderer.create(
+        <ThemeProvider theme={createTheme('light')}>
+          <MoreDrawerContent onRequestClose={close} />
+        </ThemeProvider>,
+      );
+      await Promise.resolve();
+    });
+    const menu = renderer.root.findByType(ScrollView);
+    const toggle = menu.find(node =>
+      node.props.testID === 'home-review-season-toggle' &&
+      typeof node.props.onPress === 'function',
+    );
+    expect(toggle.props.accessibilityState.expanded).toBe(false);
+    await TestRenderer.act(async () => toggle.props.onPress());
+    for (const season of ['spring', 'summer', 'autumn', 'winter']) {
+      await TestRenderer.act(async () => {
+        menu.find(node => node.props.testID === `home-review-season-${season}` &&
+          typeof node.props.onPress === 'function').props.onPress();
+      });
+    }
+    expect(mockSetSeasonOverride.mock.calls.map(call => call[0])).toEqual([
+      'spring', 'summer', 'autumn', 'winter',
+    ]);
+    expect(close).not.toHaveBeenCalled();
+    expect(mockNavigation.navigate).not.toHaveBeenCalled();
+    expect(mockNavigation.reset).not.toHaveBeenCalled();
+    await TestRenderer.act(async () => renderer.unmount());
   });
 
   it('keeps all 19 destinations once across identity, quick links and purpose groups', async () => {

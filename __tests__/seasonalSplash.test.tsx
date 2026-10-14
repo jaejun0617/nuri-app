@@ -94,6 +94,13 @@ describe('seasonal splash presentation and boot preservation', () => {
     async season => {
       mockSeason = season;
       await render();
+      const background = renderer.root.find(
+        node => typeof node.props.$backgroundColor === 'string',
+      );
+      expect(background.props.$backgroundColor).toBe(
+        getSeasonalSplashVisual(season).backgroundColor,
+      );
+      expect(background.props.$backgroundColor).toBe('#FFFFFF');
       const image = renderer.root.findByType(Animated.Image);
       expect(image.props.source).toBe(getSeasonalSplashVisual(season).source);
       expect(image.props.resizeMode).toBe('contain');

@@ -16,6 +16,7 @@ import {
 import { HomeAmbientBubbleCanvas } from '../src/screens/Main/components/LoggedInHome/HomeAmbientBubbleCanvas';
 import * as calendarSeason from '../src/theme/seasonal/season';
 import type { SeasonKey } from '../src/theme/seasonal/season';
+import { SEASONAL_HOME_COPY } from '../src/theme/seasonal/home';
 
 jest.mock('../src/app/ui/AppText', () => 'AppText');
 
@@ -39,7 +40,7 @@ describe('approved Home season contract', () => {
     }
     const render = (season: SeasonKey) => (
       <HomeSeasonProvider season={HOME_FOREGROUND_UI_SEASON}>
-        <HomeAmbientBubbleCanvas season={season} heroHeight={704} />
+        <HomeAmbientBubbleCanvas season={season} heroHeight={704} backgroundMode="homePalette" />
         <HomeSectionGlassSurface />
         <Content />
       </HomeSeasonProvider>
@@ -121,7 +122,7 @@ describe('approved Home season contract', () => {
     await TestRenderer.act(async () => renderer.unmount());
   });
 
-  it('temporarily shares the review selection across canvas and empty art without changing the foreground', () => {
+  it('uses distinct existing copy for the selected season without changing foreground geometry', () => {
     const source = fs.readFileSync(
       path.join(
         __dirname,
@@ -133,10 +134,22 @@ describe('approved Home season contract', () => {
     expect(source).not.toContain('diaryReviewSeason');
     expect(source).not.toContain('setDiaryReviewSeason');
     expect(source).not.toContain('HOME_SEASON_QA_OVERRIDE');
-    expect(source).toContain('season: ambientSeason, setOverride: setSeasonOverride');
+    expect(source).toContain('season: ambientSeason');
     expect(source).not.toContain('useState<SeasonKey | null>');
-    expect(source).toContain('<HomeSeasonReviewControls');
-    expect(source).toContain('onChange={setReviewSeason}');
+    expect(source).not.toContain('HomeSeasonReviewControls');
+    expect(source).not.toContain('<SeasonReviewControls');
+    const menu = fs.readFileSync(path.join(__dirname, '../src/screens/More/MoreDrawerContent.tsx'), 'utf8');
+    expect(menu).toContain('<SeasonReviewControls');
+    expect(menu).toContain('onChange={setReviewSeason}');
+    expect(menu).toContain('setSeasonOverride(nextSeason).catch(captureMonitoringException)');
+    expect(source).toContain('seasonalCopy={SEASONAL_HOME_COPY[ambientSeason]}');
+    expect(source).not.toContain('seasonalCopy={seasonalHomeVisual?.greetingCopy ?? null}');
+    expect(new Set(SEASONS.map(season => SEASONAL_HOME_COPY[season])).size).toBe(4);
+    const header = source.slice(source.indexOf('const HomeHeaderSection'), source.indexOf('const HeroProfileIdentity'));
+    expect(header).toContain('const brandColor = SEASON_CTA[useEffectiveSeason()].primary');
+    expect(header).toMatch(/styles\.brandWordmark,\s*\{ color: brandColor \}/);
+    expect(header).toMatch(/styles\.seasonalCopyReadabilityText,\s*\{ color: brandColor \}/);
+    expect(header).not.toContain('headerPalette?.copy');
     expect(source).toContain(
       'getSeasonalHomeVisual(HOME_FOREGROUND_UI_SEASON)',
     );

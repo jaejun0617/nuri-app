@@ -424,7 +424,7 @@ export function useWeatherGuide(
       ? bundle.district
       : bundle.district === '현재 위치'
       ? '최근 확인 위치'
-      : `최근 확인 위치 · ${bundle.district}`;
+      : bundle.district;
 
   return {
     loading,

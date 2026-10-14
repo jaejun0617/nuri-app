@@ -15,6 +15,7 @@ import path from 'node:path';
 import SignInScreen from '../src/screens/Auth/SignInScreen';
 import PremiumNoticeModal from '../src/components/common/PremiumNoticeModal';
 import { styles } from '../src/screens/Auth/SignInScreen.styles';
+import { lightColors } from '../src/app/theme/tokens/colors';
 import type { useAuthStore } from '../src/store/authStore';
 import type { RouteSignInNotice } from '../src/services/auth/notices';
 import type { SeasonKey } from '../src/theme/seasonal/season';
@@ -142,6 +143,8 @@ describe('social-only seasonal login', () => {
     async season => {
       mockSeason = season;
       await render();
+      expect(StyleSheet.flatten(renderer.root.findByType(SafeAreaView).props.style).backgroundColor).toBe('#FFFFFF');
+      expect(StyleSheet.flatten(renderer.root.findByProps({ testID: 'social-login-actions' }).props.style).backgroundColor).toBe('#FFFFFF');
       expect(renderer.root.findAllByType(TextInput)).toHaveLength(0);
       const hero = renderer.root
         .findAllByType(Image)
@@ -168,6 +171,27 @@ describe('social-only seasonal login', () => {
       expect(mockClearSession).not.toHaveBeenCalled();
     },
   );
+
+  it('uses a subtle gray Google border while retaining its white fill and existing touch geometry', async () => {
+    await render();
+    expect(StyleSheet.flatten(button('google').props.style)).toMatchObject({
+      minHeight: 52,
+      borderRadius: 8,
+      paddingHorizontal: 16,
+      paddingVertical: 12,
+      backgroundColor: '#FFFFFF',
+      borderWidth: 1,
+      borderColor: lightColors.border,
+    });
+    expect(lightColors.border).toBe('#E6E8F0');
+    expect(StyleSheet.flatten(button('kakao').props.style)).toMatchObject({
+      backgroundColor: '#FEE500',
+      borderWidth: 1,
+      borderColor: '#FEE500',
+    });
+    expect(button('google').props.accessibilityLabel).toBe('Google로 계속하기');
+    expect(mockGoogle).not.toHaveBeenCalled();
+  });
 
   it.each(['google', 'kakao'])(
     'starts only %s and delegates the callback to existing auth ownership',

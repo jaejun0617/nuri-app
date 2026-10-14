@@ -11,9 +11,13 @@ const seasonalScreens = [
 ];
 
 describe('seasonal route ownership', () => {
-  it.each(seasonalScreens)('%s resolves global preference rather than a route-local forced season', file => {
+  it.each(seasonalScreens)('%s respects page canvas and global seasonal-accent ownership', file => {
     const source = read(file);
-    if (file === 'screens/Pets/PetProfileEditDoneScreen.tsx') {
+    if (file === 'screens/Auth/NicknameSetupScreen.tsx' || file === 'screens/Auth/WelcomeTransitionScreen.tsx') {
+      expect(source).toContain('PRODUCT_CANVAS_COLOR');
+      expect(source).not.toContain('style={styles.backgroundImage}');
+      expect(source).not.toContain('style={styles.readabilityVeil}');
+    } else if (file === 'screens/Pets/PetProfileEditDoneScreen.tsx') {
       expect(source).toContain('<SeasonalFormBackground />');
       expect(read('components/common/SeasonalFormSurface.tsx')).toContain('useEffectiveSeason()');
     } else {

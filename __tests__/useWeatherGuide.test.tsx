@@ -352,6 +352,51 @@ describe('useWeatherGuide', () => {
     await cleanup(renderer!, client);
   });
 
+  it.each([
+    { isFresh: true, loading: false, expectedLabel: '일산3동' },
+    { isFresh: false, loading: false, expectedLabel: '일산3동' },
+    { isFresh: false, loading: true, expectedLabel: '새 위치 확인 중' },
+  ])(
+    'keeps the district without a recency prefix: fresh=$isFresh loading=$loading',
+    async ({ isFresh, loading, expectedLabel }) => {
+      useCurrentLocation.mockReturnValue({
+        loading,
+        permission: 'granted',
+        coordinates: coords,
+        isFresh,
+        isStale: !isFresh,
+        error: null,
+        refresh: jest.fn(),
+      });
+      useDistrict.mockReturnValue({
+        loading: false,
+        district: '일산3동',
+        error: null,
+      });
+      mockWeatherCacheResponse({
+        forecast: { current: { temperature_2m: 18, weather_code: 0 } },
+        airQuality: null,
+      });
+      const client = createClient();
+      let renderer!: ReactTestRenderer.ReactTestRenderer;
+      await ReactTestRenderer.act(async () => {
+        renderer = ReactTestRenderer.create(
+          <QueryClientProvider client={client}>
+            <Harness initialDistrict="일산3동" />
+          </QueryClientProvider>,
+        );
+      });
+      try {
+        await waitFor(() => latestState?.bundle.district === '일산3동');
+        expect(latestState?.locationLabel).toBe(expectedLabel);
+        expect(latestState?.hasFreshLocation).toBe(isFresh);
+        expect(latestState?.usingStaleLocation).toBe(!isFresh);
+      } finally {
+        await cleanup(renderer, client);
+      }
+    },
+  );
+
   it('위치 권한이 거부되면 unavailable 상태를 반환한다', async () => {
     useCurrentLocation.mockReturnValue({
       loading: false,

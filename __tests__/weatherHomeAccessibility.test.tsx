@@ -1,7 +1,6 @@
 import React from 'react';
 import ReactNative, { StyleSheet, Text, View } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
-import { BlurView } from '@sbaiahmed1/react-native-blur';
 
 import WeatherGuideHomeCard from '../src/components/weather/WeatherGuideHomeCard';
 import { buildWeatherGuideBundleForScenario } from '../src/services/weather/guide';
@@ -41,7 +40,7 @@ describe('Weather Home enlarged text flow', () => {
         );
       });
       const border = StyleSheet.flatten(
-        renderer.root.findByType(BlurView).props.style,
+        renderer.root.findAll(node => node.type === View && node.props.testID === 'home-glass-weather')[0].props.style,
       );
       if (fontScale === 1) {
         expect(border.height).toBe((width - 32) / (1665 / 945));

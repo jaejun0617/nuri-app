@@ -1,4 +1,5 @@
 import AppTextInput from '../../app/ui/AppTextInput';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
@@ -662,7 +663,7 @@ export default function GuideAdminEditorScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F6F7FB',
+    backgroundColor: PRODUCT_CANVAS_COLOR,
   },
   scrollContent: {
     paddingHorizontal: 16,

@@ -17,8 +17,9 @@ import {
 import Feather from 'react-native-vector-icons/Feather';
 import LinearGradient from 'react-native-linear-gradient';
 
-import { HomeFrostedGlass } from '../home/HomeFrostedGlass';
 import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
+import { SEASON_CTA } from '../../app/theme/ctaPalette';
+import { HomeReflectiveGlass } from '../home/HomeReflectiveGlass';
 import { resolveWeatherMetricLayout } from './weatherMetricLayout';
 
 import {
@@ -54,15 +55,14 @@ function WeatherMaterialFrame({
   style: StyleProp<ViewStyle>;
   frosted: boolean;
 }>) {
-  const season = useEffectiveSeason();
   return frosted ? (
-    <HomeFrostedGlass
-      season={season}
+    <HomeReflectiveGlass
+      testID="home-glass-weather"
       borderRadius={27}
       style={[{ marginTop: 0 }, style]}
     >
       {children}
-    </HomeFrostedGlass>
+    </HomeReflectiveGlass>
   ) : (
     <LinearGradient
       colors={colors}
@@ -188,6 +188,7 @@ export default React.memo(function WeatherGuideHomeCard({
   onPress,
 }: Props) {
   const { width, fontScale } = useWindowDimensions();
+  const ctaTextColor = SEASON_CTA[useEffectiveSeason()].primary;
   const enlarged = fontScale > 1;
   const metricLayout = resolveWeatherMetricLayout({
     width,
@@ -235,8 +236,10 @@ export default React.memo(function WeatherGuideHomeCard({
     ? [...NIGHT_BORDER_COLORS]
     : [...WEATHER_DAY_BORDER_COLORS];
   const effectiveAccentColor = visualTheme?.accent ?? accentColor;
-  const locationColor = visualTheme ? effectiveAccentColor : textPrimary;
-  const temperatureColor = visualTheme ? effectiveAccentColor : textPrimary;
+  // These three emphases follow the selected season, not Home's fixed material.
+  const locationColor = ctaTextColor;
+  const temperatureColor = ctaTextColor;
+  const noticeLabelColor = notice.caution ? effectiveAccentColor : ctaTextColor;
   const noticeArrowColor = visualTheme ? effectiveAccentColor : muted;
   const temperatureValue =
     hasLiveData || isPreview
@@ -453,7 +456,7 @@ export default React.memo(function WeatherGuideHomeCard({
                 style={[
                   styles.noticeLabel,
                   isCompact ? styles.noticeLabelCompact : null,
-                  { color: effectiveAccentColor },
+                  { color: noticeLabelColor },
                 ]}
                 numberOfLines={enlarged ? undefined : 2}
               >

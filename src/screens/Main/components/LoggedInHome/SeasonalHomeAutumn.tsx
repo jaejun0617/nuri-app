@@ -106,12 +106,14 @@ export function SeasonalHomeAutumnStage({
           />
         </View>
       ) : null}
-      <LinearGradient
-        colors={[...getHomeAmbientVisual(ambientSeason).headerWash]}
-        locations={[0, 0.48, 1]}
-        style={styles.headerSafeWash}
-        pointerEvents="none"
-      />
+      {backgroundImageVisible ? (
+        <LinearGradient
+          colors={[...getHomeAmbientVisual(ambientSeason).headerWash]}
+          locations={[0, 0.48, 1]}
+          style={styles.headerSafeWash}
+          pointerEvents="none"
+        />
+      ) : null}
       <View style={styles.content}>{children}</View>
     </View>
   );

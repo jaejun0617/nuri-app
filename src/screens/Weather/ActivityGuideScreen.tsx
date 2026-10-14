@@ -4,6 +4,7 @@
 // - 단계별 안내 후 기록 화면으로 자연스럽게 이동
 
 import React, { useMemo } from 'react';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import {
   ScrollView,
   StyleSheet,
@@ -159,7 +160,7 @@ export default function ActivityGuideScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PRODUCT_CANVAS_COLOR,
   },
   header: {
     minHeight: 56,

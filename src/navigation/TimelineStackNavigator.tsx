@@ -18,7 +18,11 @@ import type { ScreenEntrySource } from './entry';
 import type { ScheduleDetailReturnContext } from './scheduleReturn';
 
 export type TimelineStackParamList = {
-  MonthlyExpenses: { monthKey?: string; entrySource?: 'home' } | undefined;
+  MonthlyExpenses: {
+    monthKey?: string;
+    entrySource?: 'home' | 'more';
+    entryRequestId?: number;
+  } | undefined;
   TimelineMain:
     | {
         petId?: string;

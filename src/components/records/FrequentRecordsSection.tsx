@@ -6,7 +6,6 @@ import { formatPetCopy } from '../../utils/petDisplayName';
 // - 유리 패널 위의 위젯은 공통 반사광과 베벨 재질로 구분한다.
 
 import AppText from '../../app/ui/AppText';
-import MarkerText from '../../app/ui/MarkerText';
 import React, { memo, useMemo } from 'react';
 import { AppState, Pressable, useWindowDimensions, View, type AppStateStatus } from 'react-native';
 import NuriSemanticIcon from '../icons/NuriSemanticIcon';
@@ -112,17 +111,13 @@ function RecordSummaryCard({
         </View>
         <View style={styles.recordTimeSlot}>
           {item.relativeTimeLabel ? (
-            <View
-              style={[
-                styles.relativeTimeMarker,
-              ]}
-            >
-              <MarkerText
+            <View style={styles.relativeTimeLabel}>
+              <AppText
                 preset="unifiedBody"
                 style={styles.relativeTimeText}
               >
                 {item.relativeTimeLabel}
-              </MarkerText>
+              </AppText>
             </View>
           ) : (
             <View style={styles.relativeTimePlaceholder} />

@@ -1234,7 +1234,7 @@ export default function RecordCreateScreen() {
 
   return (
     <View style={styles.screen}>
-      <SeasonalFormBackground />
+      <SeasonalFormBackground uniform />
       <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity

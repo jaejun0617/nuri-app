@@ -4,6 +4,16 @@ const source = (path: string) =>
   readFileSync(join(process.cwd(), path), 'utf8');
 
 describe('glass form and expense integration contracts', () => {
+  it('moves the monthly expense entry from Home to below the More identity', () => {
+    const home = source('src/screens/Main/components/LoggedInHome/LoggedInHome.tsx');
+    expect(home.includes('MonthlyExpenseSection')).toBe(false);
+    const more = source('src/screens/More/MoreDrawerContent.tsx');
+    const identity = more.indexOf('<MoreIdentityBand');
+    const expense = more.indexOf('<MoreMonthlyExpenseSummary');
+    const quick = more.indexOf('<MoreMenuSection title="빠른 이동"');
+    expect(expense).toBeGreaterThan(identity);
+    expect(expense).toBeLessThan(quick);
+  });
   it('reuses reading background without spheres and retains compact shared glass material', () => {
     const shared = source('src/components/common/SeasonalFormSurface.tsx');
     expect(shared).toContain('decorationMode="reading"');
@@ -18,7 +28,9 @@ describe('glass form and expense integration contracts', () => {
       'Pets/PetProfileEditDoneScreen',
     ]) {
       expect(source(`src/screens/${screen}.tsx`)).toContain(
-        '<SeasonalFormBackground />',
+        screen === 'Pets/PetProfileEditDoneScreen'
+          ? '<SeasonalFormBackground />'
+          : '<SeasonalFormBackground uniform />',
       );
       expect(source(`src/screens/${screen}.tsx`)).toContain(
         '<SeasonalFormPanel',

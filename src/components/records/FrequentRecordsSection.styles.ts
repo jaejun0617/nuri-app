@@ -103,7 +103,7 @@ export const styles = StyleSheet.create({
     color: '#1E2A43',
     textAlign: 'center',
   },
-  relativeTimeMarker: {
+  relativeTimeLabel: {
     minHeight: 22,
     maxWidth: '100%',
     paddingHorizontal: 4,

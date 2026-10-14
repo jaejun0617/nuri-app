@@ -111,6 +111,16 @@ function sectionFields(
 // Only the background selection changes. The approved Home foreground stays frozen.
 export const HOME_FOREGROUND_UI_SEASON: SeasonKey = 'autumn';
 
+// Home-only palette; shared hubs and reading surfaces keep their current canvas.
+export const HOME_SEASONAL_BACKGROUND_GRADIENTS = {
+  spring: ['#FADDE4', '#F7C8D3', '#F4C1CF'],
+  summer: ['#BFDDE9', '#ADD7E3', '#ACD4D0'],
+  autumn: ['#E5D1C0', '#E2CEBC', '#DFCAB8'],
+  winter: ['#CDDCE6', '#BFD3E1', '#BCD0DE'],
+} as const satisfies Record<SeasonKey, readonly [string, string, string]>;
+
+export const HOME_SEASONAL_BACKGROUND_LOCATIONS = [0, 0.45, 1] as const;
+
 export type HomeAmbientSectionLight = HomeAmbientLight & {
   zone: HomeAmbientBubbleZone;
   topRatio: number;

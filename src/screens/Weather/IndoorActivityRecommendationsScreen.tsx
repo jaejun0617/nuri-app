@@ -4,6 +4,7 @@
 // - 활동 카드와 다음 가이드 진입 흐름을 한 화면에서 정리
 
 import React, { useCallback, useMemo } from 'react';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import {
   ScrollView,
   StyleSheet,
@@ -190,7 +191,7 @@ export default function IndoorActivityRecommendationsScreen() {
 const styles = StyleSheet.create({
   safe: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PRODUCT_CANVAS_COLOR,
   },
   header: {
     minHeight: 56,

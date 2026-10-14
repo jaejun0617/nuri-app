@@ -85,6 +85,8 @@ describe('More presentation contracts (not native pixel QA)', () => {
           expect(style.height).toBeUndefined();
           expect(style.flexBasis).toBe(fontScale === 1 ? '45%' : undefined);
           expect(button.props.accessibilityRole).toBe('button');
+          expect(button.findAll(node => node.props.name === 'chevron-right').length).toBeGreaterThan(0);
+          expect(style.gap).toBe(8);
         }
         await TestRenderer.act(async () => tree.unmount());
       }
@@ -92,7 +94,7 @@ describe('More presentation contracts (not native pixel QA)', () => {
   );
 
   it.each(['autumn', 'winter', 'spring', 'summer'] as const)(
-    'uses shared %s accents without changing geometry',
+    'keeps %s accents available but removes only the four quick-icon backgrounds',
     async season => {
       mockSeason = season;
       const tree = await render(
@@ -102,14 +104,17 @@ describe('More presentation contracts (not native pixel QA)', () => {
         SEASON_CTA[season].primary,
       );
       const boxes = tree.root.findAll(
-        node =>
-          RN.StyleSheet.flatten(node.props.style)?.backgroundColor ===
-          SEASON_CTA[season].subtle,
+        node => {
+          const style = RN.StyleSheet.flatten(node.props.style);
+          return style?.width === 28 && style?.height === 28;
+        },
       );
-      expect(boxes.length).toBeGreaterThan(0);
-      expect(RN.StyleSheet.flatten(boxes[0].props.style)).toEqual(
-        expect.objectContaining({ width: 28, height: 28, borderRadius: 8 }),
-      );
+      expect(boxes.length).toBeGreaterThanOrEqual(4);
+      for (const box of boxes) {
+        const style = RN.StyleSheet.flatten(box.props.style);
+        expect(style).toEqual(expect.objectContaining({ width: 28, height: 28, borderRadius: 8 }));
+        expect(style.backgroundColor).toBeUndefined();
+      }
       await TestRenderer.act(async () => tree.unmount());
     },
   );

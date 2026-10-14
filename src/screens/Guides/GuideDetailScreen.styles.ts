@@ -1,6 +1,7 @@
 import { StyleSheet } from 'react-native';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 
-const BG = '#FFFFFF';
+const BG = PRODUCT_CANVAS_COLOR;
 const SURFACE = 'transparent';
 const TEXT = '#0B1220';
 const MUTED = '#556070';

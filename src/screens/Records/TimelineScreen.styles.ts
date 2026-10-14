@@ -1,13 +1,14 @@
 // 파일: src/screens/Records/TimelineScreen.styles.ts
 
 import { StyleSheet } from 'react-native';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import { SCREEN_TOP_SPACING } from '../../theme/layout';
 
 const BRAND = '#6D6AF8';
 const TEXT = '#0B1220';
 
 export const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#FFFFFF' },
+  screen: { flex: 1, backgroundColor: PRODUCT_CANVAS_COLOR },
   guestGateWrap: {
     flex: 1,
     paddingHorizontal: 18,

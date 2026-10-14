@@ -4,6 +4,7 @@ import { createTheme } from '../src/app/theme/theme';
 import ReactNative, {
   ImageBackground,
   ScrollView,
+  StatusBar,
   StyleSheet,
   Text,
   View,
@@ -25,18 +26,18 @@ import {
 import { useWeatherGuide } from '../src/hooks/useWeatherGuide';
 import * as seasonPreference from '../src/app/providers/SeasonPreferenceProvider';
 import { getSeasonalWeatherVisualTheme } from '../src/theme/seasonal/weather';
-import { getHomeAmbientVisual } from '../src/theme/home/seasonalAmbient';
-import {
-  getSeasonalWeatherHeroVisual,
-  getWeatherHeroTextPalette,
-} from '../src/theme/seasonal/weatherHero';
+import { SEASON_CTA } from '../src/app/theme/ctaPalette';
+import { HOME_FLOATING_WIDGET_MATERIAL } from '../src/components/home/HomeWidgetMaterial';
+import { getSeasonalWeatherHeroVisual } from '../src/theme/seasonal/weatherHero';
+
+const mockGoBack = jest.fn();
 
 jest.mock('../src/hooks/useWeatherGuide', () => ({
   useWeatherGuide: jest.fn(),
 }));
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
-  useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn() }),
+  useNavigation: () => ({ navigate: jest.fn(), goBack: mockGoBack }),
   useRoute: () => ({ name: 'WeatherInsight', key: 'weather' }),
 }));
 jest.mock('react-native-safe-area-context', () => ({
@@ -75,6 +76,76 @@ async function render(element: React.ReactElement) {
   });
   return renderer;
 }
+
+function expectGlassBackButton(header: TestRenderer.ReactTestInstance, color: string) {
+  expect(
+    header.findAllByType(Text).some(node => node.props.children === '오늘의 날씨'),
+  ).toBe(false);
+  const back = header.find(
+    node => node.props.accessibilityLabel === '뒤로 가기' && !!node.props.onPress,
+  );
+  expect(back.props.accessibilityRole).toBe('button');
+  expect(StyleSheet.flatten(back.props.style)).toMatchObject({ width: 48, height: 48 });
+  const glass = back.findAll(node => node.type === View && node.props.testID === 'weather-back-glass')[0];
+  expect(glass).toBeDefined();
+  expect(StyleSheet.flatten(glass.props.style)).toMatchObject({
+    width: 40, height: 40, borderRadius: 20, marginTop: 0, overflow: 'hidden',
+    borderWidth: 0,
+    backgroundColor: HOME_FLOATING_WIDGET_MATERIAL.backgroundColor,
+  });
+  expect(glass.props.pointerEvents).toBe('none');
+  expect(glass.findByProps({ testID: 'weather-back-glass-reflection' })).toBeDefined();
+  expect(glass.findByProps({ testID: 'weather-back-glass-glint' })).toBeDefined();
+  back.props.onPress();
+  expect(mockGoBack).toHaveBeenCalledTimes(1);
+  expect(
+    back.findAll(node => node.props.name === 'arrow-left')
+      .every(node => node.props.color === color),
+  ).toBe(true);
+}
+
+function expectImageHeader(
+  renderer: TestRenderer.ReactTestRenderer,
+  color: string,
+) {
+  const hero = renderer.root.findByType(ImageBackground);
+  const header = hero.findByProps({ testID: 'weather-header-surface' });
+  expect(StyleSheet.flatten(header.props.style)).toMatchObject({
+    position: 'absolute',
+    top: 0,
+    left: 18,
+    right: 18,
+    zIndex: 1,
+  });
+  expectGlassBackButton(header, color);
+  expect(
+    hero.findAllByType(Text).some(node =>
+      node.props.testID === 'weather-hero-district' ||
+      node.props.testID === 'weather-hero-temperature',
+    ),
+  ).toBe(false);
+  expect(
+    hero.findAllByProps({ testID: 'weather-hero-information' }),
+  ).toHaveLength(0);
+  for (const node of header.findAllByType(Text)) {
+    const style = StyleSheet.flatten(node.props.style);
+    for (const key of ['textShadowColor', 'textShadowOffset', 'textShadowRadius']) {
+      expect(style).not.toHaveProperty(key);
+    }
+  }
+  const safeArea = renderer.root.findByType(SafeAreaView);
+  expect(safeArea.props.edges).toEqual(['top', 'left', 'right']);
+  expect(safeArea.findAll(node => node === hero)).toHaveLength(1);
+  const statusBar = renderer.root.findByType(StatusBar);
+  expect(statusBar.props.barStyle).toBe('dark-content');
+  for (const key of ['translucent', 'backgroundColor', 'hidden']) {
+    expect(statusBar.props[key]).toBeUndefined();
+  }
+  expect(renderer.root.findAllByType(LinearGradient)[0].props.colors).toEqual([
+    '#F1F5F8', '#F1F5F8',
+  ]);
+}
+
 describe('weather service presentation UI', () => {
   beforeEach(() => {
     jest.spyOn(seasonPreference, 'useSeasonPreference').mockReturnValue({
@@ -89,11 +160,12 @@ describe('weather service presentation UI', () => {
       .spyOn(ReactNative, 'useWindowDimensions')
       .mockReturnValue({ width: 384, height: 800, fontScale: 1, scale: 3 });
     refresh.mockClear();
+    mockGoBack.mockClear();
   });
   afterEach(() => jest.restoreAllMocks());
 
   it.each(['autumn', 'winter', 'spring', 'summer'] as const)(
-    'keeps %s artwork and outer frost but removes inner surface fills',
+    'keeps %s artwork and outer reflection but removes inner surface fills',
     async season => {
       const weather = {
         ...buildWeatherGuideBundleForScenario('fresh'),
@@ -111,11 +183,114 @@ describe('weather service presentation UI', () => {
         .map(node => StyleSheet.flatten(node.props.style)?.backgroundColor)
         .filter(Boolean);
       expect(fills.filter(color => color !== 'transparent')).toHaveLength(1);
-      expect(renderer.root.findAllByType(BlurView)).toHaveLength(1);
+      expect(renderer.root.findAllByType(BlurView)).toHaveLength(0);
+      expect(renderer.root.findAll(node => node.type === View && node.props.testID === 'home-reflective-fill')).toHaveLength(1);
       expect(texts(renderer)).toContain('구름 조금 예측');
       expect(texts(renderer)).toContain(
         `최고 ${weather.highTemperature}° · 최저 ${weather.lowTemperature}°`,
       );
+      await act(async () => renderer.unmount());
+    },
+  );
+
+  it.each(['spring', 'summer', 'autumn', 'winter'] as const)(
+    'uses selected %s CTA text on the Home card without changing its fixed material',
+    async season => {
+      jest.spyOn(seasonPreference, 'useEffectiveSeason').mockReturnValue(season);
+      const weather = buildWeatherGuideBundleForScenario('fresh', '일산3동');
+      const visualTheme = getSeasonalWeatherVisualTheme('autumn')?.card;
+      const renderer = await render(
+        <WeatherGuideHomeCard
+          weather={weather}
+          locationLabel="일산3동"
+          visualTheme={visualTheme}
+          onPress={jest.fn()}
+        />,
+      );
+      for (const label of [
+        '일산3동',
+        String(weather.currentTemperature),
+        '°',
+        'C',
+        '외출 전 체크',
+      ]) {
+        const node = renderer.root
+          .findAllByType(Text)
+          .find(text => text.props.children === label);
+        expect(node).toBeDefined();
+        expect(StyleSheet.flatten(node?.props.style).color).toBe(
+          SEASON_CTA[season].primary,
+        );
+      }
+      const date = renderer.root
+        .findAllByType(Text)
+        .find(
+          node =>
+            typeof node.props.children === 'string' &&
+            /월.*일.*\(/.test(node.props.children),
+        );
+      expect(StyleSheet.flatten(date?.props.style).color).toBe(
+        visualTheme?.primaryText,
+      );
+      await act(async () => renderer.unmount());
+    },
+  );
+
+  it.each(['spring', 'summer', 'autumn', 'winter'] as const)(
+    'keeps the %s unavailable boundary and plain header without a fake region or temperature',
+    async season => {
+      jest.spyOn(seasonPreference, 'useEffectiveSeason').mockReturnValue(season);
+      const weather = createUnavailableWeatherGuideBundle('일산3동');
+      state(weather);
+      const renderer = await render(<WeatherInsightScreen />);
+      expect(
+        renderer.root.findAll(node => node.props.name === 'map-pin'),
+      ).toHaveLength(0);
+      const heroText = renderer.root.findAllByType(Text).filter(
+        node => typeof node.props.testID === 'string' &&
+          node.props.testID.startsWith('weather-hero-'),
+      );
+      expect(heroText).toHaveLength(0);
+      const header = renderer.root.findByProps({ testID: 'weather-header-surface' });
+      expect(StyleSheet.flatten(header.props.style).position).toBeUndefined();
+      expectGlassBackButton(header, createTheme('light').colors.textPrimary);
+      expect(texts(renderer)).not.toContain('오늘의 날씨');
+      expect(renderer.root.findAllByType(ImageBackground)).toHaveLength(0);
+      expect(texts(renderer)).toContain('날씨를 불러오지 못했어요');
+      await act(async () => renderer.unmount());
+    },
+  );
+
+  it.each(['fresh', 'preview', 'unavailable'] as const)(
+    'groups %s detail sections in one rounded Walk-style sheet without nesting vertical scroll views',
+    async mode => {
+      const bundle = buildWeatherGuideBundleForScenario('fresh');
+      state(mode === 'unavailable'
+        ? createUnavailableWeatherGuideBundle()
+        : mode === 'preview' ? createPreviewWeatherGuideBundle(bundle) : bundle);
+      const renderer = await render(<WeatherInsightScreen />);
+      const sheet = renderer.root.findByProps({ testID: 'weather-details-sheet' });
+      expect(StyleSheet.flatten(sheet.props.style)).toMatchObject({
+        borderTopLeftRadius: 28,
+        borderTopRightRadius: 28,
+        marginTop: mode === 'unavailable' ? 0 : -28,
+        marginHorizontal: -18,
+        paddingHorizontal: 18,
+        paddingTop: 20,
+        gap: 12,
+        backgroundColor: '#F1F5F8',
+      });
+      expect(
+        sheet.findAllByType(ScrollView).filter(node => !node.props.horizontal),
+      ).toHaveLength(0);
+      const body = sheet.findAllByType(Text).map(node => node.props.children);
+      for (const label of ['7일 예보', '일출과 일몰', '반려동물 외출 안내']) {
+        expect(body).toContain(label);
+      }
+      expect(
+        sheet.findAll(node => node.type === View && node.props.testID === 'weather-hourly-viewport'),
+      ).toHaveLength(1);
+      expect(sheet.findAllByType(ImageBackground)).toHaveLength(0);
       await act(async () => renderer.unmount());
     },
   );
@@ -131,7 +306,8 @@ describe('weather service presentation UI', () => {
         buildWeatherGuideBundleForScenario(scenario, '일산3동', { isDaytime }),
       );
       const renderer = await render(<WeatherInsightScreen />);
-      expect(renderer.root.findAllByType(BlurView)).toHaveLength(11);
+      expect(renderer.root.findAllByType(BlurView)).toHaveLength(0);
+      expect(renderer.root.findAll(node => node.type === View && node.props.testID === 'home-reflective-fill')).toHaveLength(11);
       expect(renderer.root.findAllByType(ImageBackground)).toHaveLength(1);
       expect(renderer.root.findByType(SafeAreaView).props.edges).toEqual([
         'top',
@@ -196,44 +372,13 @@ describe('weather service presentation UI', () => {
         scenario,
         isDaytime,
       );
-      const foreground = getWeatherHeroTextPalette('autumn', isDaytime);
-      expect(foreground.primary).toBe(
-        getHomeAmbientVisual('autumn').primaryColor,
-      );
       const hero = renderer.root.findByType(ImageBackground);
       expect(hero.props.source).toEqual(visual?.image);
       expect(StyleSheet.flatten(hero.props.style).minHeight).toBe(width);
       expect(StyleSheet.flatten(hero.props.style).height).toBeUndefined();
-      const region = renderer.root
-        .findAllByType(Text)
-        .find(node => node.props.children === '일산3동');
-      const temp = renderer.root
-        .findAllByType(Text)
-        .find(node => node.props.children === `${bundle.currentTemperature}°`);
-      expect(StyleSheet.flatten(region?.props.style)).toMatchObject({
-        fontSize: 14,
-        color: foreground.primary,
-      });
-      expect(StyleSheet.flatten(temp?.props.style)).toMatchObject({
-        fontSize: 53,
-        lineHeight: 57,
-        color: foreground.primary,
-      });
-      const infoText = hero
-        .findAllByType(Text)
-        .filter(
-          node =>
-            typeof node.props.testID === 'string' &&
-            node.props.testID.startsWith('weather-hero-'),
-        );
-      expect(infoText).toHaveLength(5);
-      expect(
-        infoText.every(
-          node =>
-            StyleSheet.flatten(node.props.style).color ===
-            getHomeAmbientVisual('autumn').primaryColor,
-        ),
-      ).toBe(true);
+      expectImageHeader(renderer, isDaytime ? '#162C46' : '#FFFFFF');
+      expect(texts(renderer)).not.toContain('일산3동');
+      expect(hero.findAll(node => node.props.name === 'map-pin')).toHaveLength(0);
       const fade = hero
         .findAllByType(LinearGradient)
         .find(node => node.props.testID === 'weather-hero-bottom-blend');
@@ -249,18 +394,9 @@ describe('weather service presentation UI', () => {
       expect(headerStyle.backgroundColor).toBeUndefined();
       expect(headerStyle.marginBottom).toBeUndefined();
       expect(fade?.props.pointerEvents).toBe('none');
-      expect(renderer.root.findAllByType(BlurView)).toHaveLength(11);
+      expect(renderer.root.findAllByType(BlurView)).toHaveLength(0);
+      expect(renderer.root.findAll(node => node.type === View && node.props.testID === 'home-reflective-fill')).toHaveLength(11);
       expect(hero.findAllByType(BlurView)).toHaveLength(0);
-      const info = hero.findByProps({ testID: 'weather-hero-information' });
-      expect(StyleSheet.flatten(info.props.style)).toMatchObject({
-        paddingHorizontal: 18,
-        paddingTop: 12,
-        justifyContent: 'flex-start',
-        gap: 6,
-      });
-      expect(
-        StyleSheet.flatten(info.props.style).backgroundColor,
-      ).toBeUndefined();
       await act(async () => renderer.unmount());
     },
   );
@@ -298,39 +434,7 @@ describe('weather service presentation UI', () => {
       expect(
         hero.findAllByProps({ testID: 'weather-hero-reading-tint' }),
       ).toHaveLength(0);
-      const info = hero.findByProps({ testID: 'weather-hero-information' });
-      const foreground = getWeatherHeroTextPalette(season, isDaytime);
-      expect(foreground.primary).toBe(getHomeAmbientVisual(season).primaryColor);
-      const infoText = info
-        .findAllByType(Text)
-        .filter(
-          node =>
-            typeof node.props.testID === 'string' &&
-            node.props.testID.startsWith('weather-hero-'),
-        );
-      expect(infoText).toHaveLength(5);
-      expect(infoText.map(node => node.props.children).join('\n')).toContain(
-        '체감온도',
-      );
-      expect(infoText.map(node => node.props.children).join('\n')).toContain(
-        '최고',
-      );
-      expect(
-        infoText.every(
-          node =>
-            StyleSheet.flatten(node.props.style).color === foreground.primary,
-        ),
-      ).toBe(true);
-      expect(StyleSheet.flatten(info.props.style)).toMatchObject({
-        paddingHorizontal: 18,
-        paddingTop: 12,
-        justifyContent: 'flex-start',
-      });
-      expect(StyleSheet.flatten(info.props.style).height).toBeUndefined();
-      expect(
-        StyleSheet.flatten(info.props.style).backgroundColor,
-      ).toBeUndefined();
-      expect(StyleSheet.flatten(info.props.style).borderWidth).toBeUndefined();
+      expectImageHeader(renderer, isDaytime ? '#162C46' : '#FFFFFF');
       await act(async () => renderer.unmount());
     },
   );
@@ -359,7 +463,7 @@ describe('weather service presentation UI', () => {
       renderer.root
         .findAllByType(Text)
         .some(node => node.props.children === '오늘의 날씨'),
-    ).toBe(true);
+    ).toBe(false);
     expect(setOverride).not.toHaveBeenCalled();
     expect(refresh).not.toHaveBeenCalled();
     await act(async () => renderer.unmount());
@@ -374,21 +478,14 @@ describe('weather service presentation UI', () => {
     await act(async () => renderer.unmount());
   });
 
-  it('preserves the unavailable boundary and makes recent temperature copy compact', async () => {
-    state(
-      createPreviewWeatherGuideBundle(
-        buildWeatherGuideBundleForScenario('rain'),
-      ),
+  it('preserves recent and unavailable warnings without region or temperature in the hero', async () => {
+    const preview = createPreviewWeatherGuideBundle(
+      buildWeatherGuideBundleForScenario('rain'),
     );
+    state(preview);
     const renderer = await render(<WeatherInsightScreen />);
-    const recent = renderer.root
-      .findAllByType(Text)
-      .find(
-        node =>
-          typeof node.props.children === 'string' &&
-          /^최근 확인 [-\d]+°$/.test(node.props.children),
-      );
-    expect(StyleSheet.flatten(recent?.props.style).fontSize).toBe(24);
+    expectImageHeader(renderer, preview.isDaytime ? '#162C46' : '#FFFFFF');
+    expect(texts(renderer)).toContain('최근 확인한 날씨예요');
     state(createUnavailableWeatherGuideBundle());
     await act(async () =>
       renderer.update(
@@ -398,6 +495,7 @@ describe('weather service presentation UI', () => {
       ),
     );
     expect(renderer.root.findAllByType(ImageBackground)).toHaveLength(0);
+    expect(texts(renderer)).toContain('날씨를 불러오지 못했어요');
     await act(async () => renderer.unmount());
   });
 
@@ -408,7 +506,7 @@ describe('weather service presentation UI', () => {
     state(buildWeatherGuideBundleForScenario('fresh'));
     const renderer = await render(<WeatherInsightScreen />);
     const info = renderer.root.findByProps({
-      testID: 'weather-hero-information',
+      testID: 'weather-header-surface',
     });
     expect(StyleSheet.flatten(info.props.style).width).toBeUndefined();
     expect(StyleSheet.flatten(info.props.style).maxWidth).toBeUndefined();
@@ -419,8 +517,9 @@ describe('weather service presentation UI', () => {
         .every(node => node.props.numberOfLines === undefined),
     ).toBe(true);
     const metricCards = renderer.root
-      .findAllByType(BlurView)
-      .filter(node => StyleSheet.flatten(node.props.style).minHeight === 0);
+      .findAll(node => node.type === View && node.props.testID === 'home-reflective-fill')
+      .map(node => node.parent)
+      .filter((node): node is TestRenderer.ReactTestInstance => node !== null && StyleSheet.flatten(node.props.style).minHeight === 0);
     expect(metricCards).toHaveLength(6);
     expect(
       metricCards.every(
@@ -480,7 +579,7 @@ describe('weather service presentation UI', () => {
     );
     expect(texts(renderer).join('\n')).not.toContain('누리의 종류');
     const frame = StyleSheet.flatten(
-      renderer.root.findByType(BlurView).props.style,
+      renderer.root.findAll(node => node.type === View && node.props.testID === 'home-glass-weather')[0].props.style,
     );
     expect(frame.height).toBeUndefined();
     expect(frame.minHeight).toBe((384 - 32) / (1665 / 945));
@@ -517,7 +616,8 @@ describe('weather service presentation UI', () => {
           secondaryColor="#CCCCCC"
         />,
       );
-      expect(renderer.root.findAllByType(BlurView)).toHaveLength(1);
+      expect(renderer.root.findAllByType(BlurView)).toHaveLength(0);
+      expect(renderer.root.findAll(node => node.type === View && node.props.testID === 'home-reflective-fill')).toHaveLength(1);
       const slots = renderer.root
         .findAllByType(View)
         .filter(node => node.props.testID === 'weather-hourly-slot');

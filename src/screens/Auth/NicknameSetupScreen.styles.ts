@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import { typography } from '../../app/theme/tokens/typography';
 
 const BRAND = '#8B6CF5';
@@ -9,7 +10,7 @@ const SYSTEM_FONT = typography.family.sans;
 export const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#FFF4ED',
+    backgroundColor: PRODUCT_CANVAS_COLOR,
   },
   backgroundImage: {
     position: 'absolute',

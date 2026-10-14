@@ -9,6 +9,8 @@ import {
 import styled, { useTheme } from 'styled-components/native';
 import AppText from '../../../app/ui/AppText';
 import Feather from '../../../components/icons/NuriFeatherIcon';
+import NuriSemanticIcon from '../../../components/icons/NuriSemanticIcon';
+import { formatPetCopy } from '../../../utils/petDisplayName';
 import {
   resolveCtaPalette,
   SEASON_CTA,
@@ -22,13 +24,15 @@ import {
   WALK_COPY,
   type PresentationState,
 } from './model';
+import { WALK_SHEET_OVERLAP, WALK_TEXT } from './visuals';
+import WalkWeatherChip from './WalkWeatherChip';
 
 const Surface = styled.View`
   background-color: ${({ theme }) => theme.colors.surfaceElevated};
 `;
 const Root = styled.View`
   flex: 1;
-  background-color: ${({ theme }) => theme.colors.surface};
+  background-color: ${({ theme }) => theme.colors.background};
 `;
 const Header = styled(Surface)`
   padding: 8px 16px;
@@ -37,23 +41,15 @@ const Header = styled(Surface)`
   gap: 12px;
 `;
 const Bottom = styled(Surface)`
-  padding: 18px 20px;
-  border-top-width: 1px;
-  border-color: ${({ theme }) => theme.colors.border};
-  gap: 14px;
+  border-top-left-radius: 28px;
+  border-top-right-radius: 28px;
+  overflow: hidden;
 `;
 const Chip = styled.View<{ $accent: string }>`
   padding: 6px 10px;
   background-color: ${({ $accent }) => $accent};
   border-radius: 8px;
   align-self: flex-start;
-`;
-const Hint = styled(Surface)`
-  margin: 16px;
-  padding: 14px;
-  border-radius: 8px;
-  flex-direction: row;
-  gap: 10px;
 `;
 const Panel = styled(Surface)`
   padding: 24px;
@@ -62,14 +58,37 @@ const Panel = styled(Surface)`
   width: 100%;
   max-width: 480px;
 `;
+function WalkContextRow({ copy }: { copy: string }) {
+  const theme = useTheme();
+  return (
+    <View testID="walk-context-row" style={styles.stateLine}>
+      <View style={styles.flex}>
+        <AppText
+          testID="walk-supporting-copy"
+          preset="caption"
+          accessibilityLiveRegion="polite"
+          style={[WALK_TEXT.caption, { color: theme.colors.textSecondary }]}
+        >
+          {copy}
+        </AppText>
+      </View>
+      <View style={styles.contextWeather}>
+        <WalkWeatherChip />
+      </View>
+    </View>
+  );
+}
 type ActionProps = {
   label: string;
-  icon: string;
+  icon?: string;
   season: SeasonKey;
   onPress?: () => void;
   disabled?: boolean;
   role?: CtaRole;
   testID?: string;
+  outlined?: boolean;
+  filled?: boolean;
+  readOnly?: boolean;
 };
 export function WalkAction({
   label,
@@ -79,8 +98,109 @@ export function WalkAction({
   disabled,
   role = 'primary',
   testID,
+  outlined = false,
+  filled = false,
+  readOnly = false,
 }: ActionProps) {
   const theme = useTheme();
+  const visualRole = filled && role === 'primarySubtle' ? 'primary' : role;
+  const palette = resolveCtaPalette({
+    role: visualRole,
+    season,
+    colorScheme: theme.mode,
+    colors: theme.colors,
+    state: disabled ? 'disabled' : 'default',
+  });
+  if (outlined) {
+    const destructive =
+      role === 'destructiveEntry' || role === 'destructiveConfirm';
+    return (
+      <Pressable
+        testID={testID}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled: !!disabled || readOnly }}
+        disabled={disabled || readOnly}
+        onPress={readOnly ? undefined : onPress}
+        style={() => styles.controlTarget}
+      >
+        {({ pressed }) => {
+          const currentPalette = resolveCtaPalette({
+            role: visualRole,
+            season,
+            colorScheme: theme.mode,
+            colors: theme.colors,
+            state: disabled ? 'disabled' : pressed ? 'pressed' : 'default',
+          });
+          return (
+            <View
+              testID={`${testID}-face`}
+              style={[
+                styles.controlFace,
+                {
+                  backgroundColor:
+                    disabled || filled
+                      ? currentPalette.background
+                      : pressed
+                      ? theme.colors.surface
+                      : theme.colors.background,
+                  borderColor:
+                    filled && !disabled
+                      ? currentPalette.border
+                      : theme.colors.border,
+                },
+              ]}
+            >
+              {icon && (
+                <View
+                  testID={`${testID}-icon-slot`}
+                  style={[
+                    styles.controlIcon,
+                    filled && !disabled && styles.filledControlIcon,
+                    filled && !disabled && { backgroundColor: palette.text },
+                  ]}
+                >
+                  <NuriSemanticIcon
+                    family="feather"
+                    preserveOriginal
+                    name={icon}
+                    size={20}
+                    testID={`${testID}-icon`}
+                    accessible={false}
+                    color={
+                      disabled || destructive
+                        ? palette.text
+                        : SEASON_CTA[season].primary
+                    }
+                    style={[
+                      styles.controlGlyph,
+                      icon === 'play' && styles.playGlyph,
+                    ]}
+                  />
+                </View>
+              )}
+              <AppText
+                testID={testID ? `${testID}-label` : undefined}
+                preset="button"
+                style={[
+                  WALK_TEXT.action,
+                  styles.controlLabel,
+                  {
+                    color:
+                      disabled || destructive || filled
+                        ? palette.text
+                        : theme.colors.textPrimary,
+                  },
+                ]}
+              >
+                {label}
+              </AppText>
+            </View>
+          );
+        }}
+      </Pressable>
+    );
+  }
   return (
     <Pressable
       testID={testID}
@@ -90,7 +210,7 @@ export function WalkAction({
       disabled={disabled}
       onPress={onPress}
       style={({ pressed }) => {
-        const palette = resolveCtaPalette({
+        const pressedPalette = resolveCtaPalette({
           role,
           season,
           colorScheme: theme.mode,
@@ -99,39 +219,53 @@ export function WalkAction({
         });
         return [
           styles.action,
-          { backgroundColor: palette.background, borderColor: palette.border },
+          {
+            backgroundColor: pressedPalette.background,
+            borderColor: pressedPalette.border,
+          },
         ];
       }}
     >
-      <Feather
-        name={icon}
-        size={20}
-        color={
-          resolveCtaPalette({
-            role,
-            season,
-            colorScheme: theme.mode,
-            colors: theme.colors,
-            state: disabled ? 'disabled' : 'default',
-          }).text
-        }
-      />
-      <AppText
-        preset="button"
-        style={{
-          color: resolveCtaPalette({
-            role,
-            season,
-            colorScheme: theme.mode,
-            colors: theme.colors,
-            state: disabled ? 'disabled' : 'default',
-          }).text,
-          flexShrink: 1,
-          textAlign: 'center',
-        }}
-      >
-        {label}
-      </AppText>
+      {icon && (
+        <View>
+          <Feather
+            name={icon}
+            size={20}
+            accessible={false}
+            color={
+              resolveCtaPalette({
+                role,
+                season,
+                colorScheme: theme.mode,
+                colors: theme.colors,
+                state: disabled ? 'disabled' : 'default',
+              }).text
+            }
+          />
+        </View>
+      )}
+      <View style={styles.actionText}>
+        <AppText
+          testID={testID ? `${testID}-label` : undefined}
+          preset="button"
+          style={[
+            WALK_TEXT.action,
+            {
+              color: resolveCtaPalette({
+                role,
+                season,
+                colorScheme: theme.mode,
+                colors: theme.colors,
+                state: disabled ? 'disabled' : 'default',
+              }).text,
+              flexShrink: 1,
+              textAlign: 'center',
+            },
+          ]}
+        >
+          {label}
+        </AppText>
+      </View>
     </Pressable>
   );
 }
@@ -170,6 +304,9 @@ type Props = {
   petName: string;
   season: SeasonKey;
   preview: boolean;
+  publicPreview?: boolean;
+  designReview?: boolean;
+  designMessage?: string;
   distanceM: string | null;
   activeMs: string;
   busy: boolean;
@@ -189,7 +326,7 @@ type Props = {
 export default function WalkView(props: Props) {
   const { state, petName, season, preview, distanceM, activeMs, busy } = props;
   const theme = useTheme(),
-    { width, fontScale } = useWindowDimensions();
+    { width, height, fontScale } = useWindowDimensions();
   const copy = WALK_COPY[state],
     seasonal = SEASON_CTA[season];
   const result =
@@ -198,7 +335,16 @@ export default function WalkView(props: Props) {
     recovery = state === 'RECOVERY_REQUIRED';
   const pre = state === 'PRE_WALK',
     confirm = state === 'FINISH_CONFIRM';
-  const stateLabel = state === 'WALKING' ? `${petName}와 걷는 중` : copy.title;
+  const supporting = props.designReview
+    ? props.designMessage ?? copy.supporting
+    : paused
+    ? '시간과 거리 기록을 멈췄어요'
+    : state === 'GPS_ACQUIRING'
+    ? '잠시만 기다려 주세요'
+    : ['GPS_WEAK', 'GPS_LOST'].includes(state)
+    ? '함께하는 이 순간을 즐겨요.'
+    : copy.supporting;
+  const stacked = width < 380 || fontScale >= 1.3;
   const primary = result
     ? '산책 화면 닫기'
     : pre
@@ -213,18 +359,25 @@ export default function WalkView(props: Props) {
       <Header style={{ paddingTop: props.insetTop + 8 }}>
         <IconControl
           label="산책 화면 닫기"
-          icon="chevron-down"
+          icon="arrow-left"
           onPress={props.onClose}
           testID="walk-close"
         />
         <View style={styles.headerText}>
-          <AppText preset="titleSm">누리랑 산책</AppText>
+          <AppText
+            preset="titleSm"
+            style={WALK_TEXT.title}
+            testID="walk-header-title"
+          >
+            오늘의 산책
+          </AppText>
           <AppText
             preset="bodySm"
             numberOfLines={2}
-            style={{ color: theme.colors.textSecondary }}
+            testID="walk-header-pet"
+            style={[WALK_TEXT.body, { color: theme.colors.textSecondary }]}
           >
-            {petName}
+            {formatPetCopy('우리 아이와 함께', petName)}
           </AppText>
         </View>
         <IconControl
@@ -241,42 +394,22 @@ export default function WalkView(props: Props) {
           style={styles.mapTop}
           testID="walk-mode-label-layer"
         >
-          {preview && (
+          {(preview || props.designReview) && (
             <Chip $accent={theme.colors.surfaceElevated}>
               <AppText
                 preset="caption"
-                style={{ color: theme.colors.textPrimary }}
+                style={[WALK_TEXT.caption, { color: theme.colors.textPrimary }]}
               >
-                합성 미리보기
+                {props.designReview
+                  ? '현재 위치 · 디자인 확인'
+                  : props.publicPreview
+                  ? '합성 미리보기'
+                  : '합성 경로 · 내 펫'}
               </AppText>
             </Chip>
           )}
-          {['GPS_ACQUIRING', 'GPS_WEAK', 'GPS_LOST'].includes(state) && (
-            <Hint>
-              <Feather
-                name={copy.icon}
-                size={20}
-                color={theme.colors.textPrimary}
-              />
-              <View style={styles.flex}>
-                <AppText preset="bodyStrong">{copy.title}</AppText>
-                <AppText
-                  preset="bodySm"
-                  style={{ color: theme.colors.textSecondary }}
-                >
-                  {copy.supporting}
-                </AppText>
-              </View>
-            </Hint>
-          )}
         </View>
-        {paused && (
-          <View pointerEvents="none" style={styles.dim}>
-            <Chip $accent={theme.colors.surfaceElevated}>
-              <AppText preset="titleMd">잠시 쉬는 중</AppText>
-            </Chip>
-          </View>
-        )}
+        {paused && <View pointerEvents="none" style={styles.dim} />}
         {(pre || recovery || confirm || result) && (
           <View style={styles.center} testID="walk-state-overlay">
             <ScrollView
@@ -285,17 +418,20 @@ export default function WalkView(props: Props) {
             >
               <Panel>
                 <Feather name={copy.icon} size={30} color={seasonal.primary} />
-                <AppText preset="titleLg" accessibilityRole="header">
+                <AppText
+                  preset="titleLg"
+                  style={WALK_TEXT.title}
+                  accessibilityRole="header"
+                >
                   {copy.title}
                 </AppText>
-                <AppText
-                  preset="bodySm"
-                  style={{ color: theme.colors.textSecondary }}
-                >
-                  {copy.supporting}
-                </AppText>
+                <WalkContextRow copy={supporting} />
                 {(result || confirm || recovery) && (
-                  <AppText preset="display" fontModeOverride="pretendard">
+                  <AppText
+                    preset="display"
+                    style={WALK_TEXT.metric}
+                    fontModeOverride="pretendard"
+                  >
                     {metricDistance(distanceM)} km · {metricTime(activeMs)}
                   </AppText>
                 )}
@@ -311,7 +447,6 @@ export default function WalkView(props: Props) {
                   <>
                     <WalkAction
                       label="산책 마치기"
-                      icon="flag"
                       season={season}
                       role="destructiveConfirm"
                       onPress={props.onFinish}
@@ -320,9 +455,8 @@ export default function WalkView(props: Props) {
                     />
                     <WalkAction
                       label="계속 걷기"
-                      icon="arrow-left"
                       season={season}
-                      role="secondary"
+                      role="primary"
                       onPress={props.onCancelFinish}
                       testID="walk-finish-cancel"
                     />
@@ -333,13 +467,11 @@ export default function WalkView(props: Props) {
                     <AppText preset="caption">향후 기록 연결 시안</AppText>
                     <WalkAction
                       label="산책 기록으로 남기기"
-                      icon="edit-3"
                       season={season}
                       disabled
                     />
                     <WalkAction
                       label="나중에 기록하기"
-                      icon="clock"
                       season={season}
                       disabled
                     />
@@ -366,97 +498,121 @@ export default function WalkView(props: Props) {
         )}
       </View>
       {!confirm && (
-        <Bottom style={{ paddingBottom: props.insetBottom + 12 }}>
-          <View style={styles.stateLine}>
-            <View style={styles.flex}>
-              <AppText
-                preset="titleSm"
-                numberOfLines={2}
-                accessibilityLiveRegion="polite"
-              >
-                {stateLabel}
-              </AppText>
-              <AppText
-                preset="caption"
-                style={{ color: theme.colors.textSecondary }}
-              >
-                {paused
-                  ? '시간과 거리 기록을 멈췄어요'
-                  : result
-                  ? '기기 저장 완료'
-                  : pre
-                  ? '준비되면 시작해 주세요'
-                  : state === 'GPS_ACQUIRING'
-                  ? '신호 대기 중'
-                  : ['GPS_WEAK', 'GPS_LOST'].includes(state)
-                  ? '위치 신호 확인 중'
-                  : 'GPS 기록 중'}
-              </AppText>
-            </View>
-            <Feather name={copy.icon} size={22} color={seasonal.primary} />
-          </View>
-          {!pre && !result && (
-            <View style={styles.metrics}>
-              <View style={styles.metric}>
-                <AppText
-                  preset="caption"
-                  style={{ color: theme.colors.textSecondary }}
-                >
-                  함께 걸은 거리
-                </AppText>
-                <AppText
-                  preset="display"
-                  fontModeOverride="pretendard"
-                  style={styles.distance}
-                >
-                  {metricDistance(distanceM)}
-                  <AppText preset="bodySm"> km</AppText>
-                </AppText>
+        <Bottom
+          testID="walk-bottom-sheet"
+          style={{ maxHeight: height * 0.56, marginTop: -WALK_SHEET_OVERLAP }}
+        >
+          <ScrollView
+            bounces={false}
+            showsVerticalScrollIndicator={false}
+            style={styles.sheetScroll}
+            contentContainerStyle={styles.bottomContent}
+          >
+            {!pre && !recovery && !result && (
+              <WalkContextRow copy={supporting} />
+            )}
+            {!pre && !result && (
+              <View style={styles.metrics}>
+                <View testID="walk-distance-group" style={styles.metricGroup}>
+                  <View style={styles.metric}>
+                    <AppText
+                      preset="caption"
+                      testID="walk-distance-label"
+                      style={[
+                        WALK_TEXT.caption,
+                        {
+                          color: theme.colors.textSecondary,
+                          textAlign: 'center',
+                        },
+                      ]}
+                    >
+                      함께 걸은 거리
+                    </AppText>
+                    <AppText
+                      preset="display"
+                      fontModeOverride="pretendard"
+                      style={[WALK_TEXT.metric, styles.metricValue]}
+                      testID="walk-distance-value"
+                    >
+                      {metricDistance(distanceM)}
+                      <AppText preset="bodySm" style={WALK_TEXT.body}>
+                        {' '}
+                        km
+                      </AppText>
+                    </AppText>
+                  </View>
+                </View>
+                <View
+                  style={[
+                    styles.metricDivider,
+                    { backgroundColor: theme.colors.border },
+                  ]}
+                />
+                <View testID="walk-time-group" style={styles.metricGroup}>
+                  <View style={styles.metric}>
+                    <AppText
+                      preset="caption"
+                      testID="walk-time-label"
+                      style={[
+                        WALK_TEXT.caption,
+                        {
+                          color: theme.colors.textSecondary,
+                          textAlign: 'center',
+                        },
+                      ]}
+                    >
+                      산책 시간
+                    </AppText>
+                    <AppText
+                      preset="titleLg"
+                      style={[WALK_TEXT.metric, styles.metricValue]}
+                      fontModeOverride="pretendard"
+                      testID="walk-time-value"
+                    >
+                      {metricTime(activeMs)}
+                    </AppText>
+                  </View>
+                </View>
               </View>
-              <View style={styles.metric}>
-                <AppText
-                  preset="caption"
-                  style={{ color: theme.colors.textSecondary }}
-                >
-                  산책 시간
-                </AppText>
-                <AppText preset="titleLg" fontModeOverride="pretendard">
-                  {metricTime(activeMs)}
-                </AppText>
-              </View>
-            </View>
-          )}
-          {props.error && (
-            <AppText preset="bodySm" accessibilityLiveRegion="polite">
-              지금 요청을 완료하지 못했어요. 산책 상태를 확인한 뒤 다시 시도해
-              주세요.
-            </AppText>
-          )}
+            )}
+            {props.error && (
+              <AppText preset="bodySm" accessibilityLiveRegion="polite">
+                지금 요청을 완료하지 못했어요. 산책 상태를 확인한 뒤 다시 시도해
+                주세요.
+              </AppText>
+            )}
+          </ScrollView>
           <View
+            testID="walk-controls"
             style={[
               styles.controls,
-              (width < 380 || fontScale >= 1.3) && styles.stack,
+              styles.controlsInset,
+              stacked && styles.stack,
+              { paddingBottom: props.insetBottom + 12 },
             ]}
           >
-            <View style={styles.flex}>
+            <View style={[styles.flex, stacked && styles.stackedCell]}>
               <WalkAction
                 label={primary}
-                icon={
-                  result ? 'home' : paused || recovery || pre ? 'play' : 'pause'
-                }
                 season={season}
+                role="primary"
+                outlined
+                filled
+                readOnly={props.designReview}
                 disabled={busy}
                 onPress={props.onPrimary}
                 testID="walk-primary"
               />
             </View>
             {!pre && !result && (
-              <View style={styles.flex}>
+              <View style={[styles.flex, stacked && styles.stackedCell]}>
                 <WalkAction
                   label={recovery ? '여기서 산책 마치기' : '산책 종료'}
-                  icon="flag"
                   season={season}
-                  role="destructiveEntry"
+                  outlined
+                  filled
+                  readOnly={props.designReview}
+                  role="destructiveConfirm"
                   onPress={props.onFinish}
                   disabled={busy}
                   testID="walk-finish"
@@ -471,6 +627,8 @@ export default function WalkView(props: Props) {
 }
 const styles = StyleSheet.create({
   flex: { flex: 1, minWidth: 0 },
+  stackedCell: { flex: 0, alignSelf: 'stretch' },
+  actionText: { flexShrink: 1, minWidth: 0 },
   headerText: { flex: 1, minWidth: 0 },
   icon: {
     minWidth: 48,
@@ -490,6 +648,39 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 10,
   },
+  controlTarget: {
+    minHeight: 84,
+    paddingVertical: 0,
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  controlFace: {
+    minHeight: 48,
+    width: '100%',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  controlIcon: {
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  filledControlIcon: { borderRadius: 14 },
+  controlGlyph: {
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
+  },
+  playGlyph: { transform: [{ translateX: 1 }] },
+  controlLabel: { flexShrink: 1, textAlign: 'center' },
   mapStage: { flex: 1, minHeight: 180 },
   mapTop: { position: 'absolute', top: 12, left: 16, right: 16, zIndex: 2 },
   dim: {
@@ -511,15 +702,30 @@ const styles = StyleSheet.create({
   },
   recenter: {
     position: 'absolute',
-    bottom: 16,
+    bottom: WALK_SHEET_OVERLAP + 16,
     right: 16,
     gap: 6,
     alignItems: 'flex-end',
   },
   stateLine: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  metrics: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  metric: { flex: 1, minWidth: 0, gap: 4 },
-  distance: { fontSize: 40, lineHeight: 48, letterSpacing: 0 },
+  contextWeather: { flexShrink: 1, maxWidth: '46%' },
+  sheetScroll: { flexGrow: 0, flexShrink: 1 },
+  bottomContent: { paddingTop: 20, paddingHorizontal: 16, gap: 14 },
+  metrics: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingVertical: 6,
+  },
+  metricGroup: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+  },
+  metricDivider: { width: 1, alignSelf: 'stretch', marginVertical: 4 },
+  metric: { minWidth: 0, gap: 4, alignItems: 'center', width: '100%' },
+  metricValue: { textAlign: 'center', width: '100%' },
   controls: { flexDirection: 'row', gap: 12 },
+  controlsInset: { paddingHorizontal: 16, paddingTop: 8 },
   stack: { flexDirection: 'column' },
 });

@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 
 const BRAND = '#6D6AF8';
 const BRAND_DEEP = '#5753E6';
@@ -7,7 +8,7 @@ const TEXT = '#0B1220';
 export const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F7F8FC',
+    backgroundColor: PRODUCT_CANVAS_COLOR,
     paddingHorizontal: 22,
     paddingTop: 40,
     paddingBottom: 32,

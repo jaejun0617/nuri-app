@@ -1,4 +1,5 @@
 import { formatPetCopy } from '../../utils/petDisplayName';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // 파일: src/screens/Pets/PetProfileEditScreen.tsx
 // 역할:
@@ -18,7 +19,6 @@ import React, {
 import {
   Alert,
   AppState,
-  Image,
   type TextInputContentSizeChangeEvent,
   TouchableOpacity,
   View,
@@ -315,7 +315,7 @@ export default function PetProfileEditScreen() {
     const { palette } = profileEditVisual;
 
     return {
-      screen: { backgroundColor: palette.pageBackgroundColor },
+      screen: { backgroundColor: PRODUCT_CANVAS_COLOR },
       ambient: { backgroundColor: palette.ambientOverlayColor },
       section: {
         backgroundColor: palette.sectionSurfaceColor,
@@ -805,18 +805,6 @@ export default function PetProfileEditScreen() {
 
   return (
     <View style={[styles.screen, seasonalStyles.screen]}>
-      <Image
-        accessibilityIgnoresInvertColors
-        pointerEvents="none"
-        resizeMode="cover"
-        source={profileEditVisual.backgroundSource}
-        style={styles.backgroundImage}
-      />
-      <View
-        pointerEvents="none"
-        style={[styles.backgroundWarmth, seasonalStyles.ambient]}
-      />
-
       <View
         style={[
           styles.header,

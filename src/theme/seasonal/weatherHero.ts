@@ -1,7 +1,7 @@
 import type { ImageSourcePropType } from 'react-native';
 
 import type { WeatherScenario } from '../../services/weather/guide';
-import { getHomeAmbientVisual } from '../home/seasonalAmbient';
+import { SEASON_CTA } from '../../app/theme/ctaPalette';
 import type { SeasonKey } from './season';
 import { getSeasonalWeatherVisualTheme } from './weather';
 
@@ -92,12 +92,12 @@ function tint(hex: string, alpha: number) {
   return `rgba(${channels.join(',')},${alpha})`;
 }
 
-/** PO uses the actual Home background hue unchanged in both day and night. */
+/** Hero text shares the canonical seasonal CTA hue in both day and night. */
 export function getWeatherHeroTextPalette(
   season: SeasonKey,
   isDaytime: boolean,
 ) {
-  const foreground = getHomeAmbientVisual(season).primaryColor;
+  const foreground = SEASON_CTA[season].primary;
   const visual = getSeasonalWeatherVisualTheme(season);
   if (!visual) throw new Error('Unsupported weather hero season');
   return {

@@ -154,7 +154,7 @@ describe('Timeline seasonal design', () => {
           (season === 'summer' ? 8 : 4),
       });
       expect(stats.props.blurAmount).toBeUndefined();
-      expect(tree.root.findAllByProps({ testID: 'home-frosted-tint' })).toHaveLength(0);
+      expect(tree.root.findAllByProps({ testID: 'home-reflective-fill' })).toHaveLength(0);
       const titleXp = tree.root
         .findAll(node => node.props.testID === 'timeline-title-xp-row')
         .at(-1)!;
@@ -591,7 +591,7 @@ describe('Timeline seasonal design', () => {
     TestRenderer.act(() => tree.unmount());
   });
 
-  it.each(Object.keys(expected) as SeasonKey[])('%s opts into row blur without changing default cards, taps, or image behavior', season => {
+  it.each(Object.keys(expected) as SeasonKey[])('%s opts into row reflection without changing default cards, taps, or image behavior', season => {
     mockEffectiveSeason = season;
     const press = jest.fn();
     const tree = render(
@@ -607,14 +607,12 @@ describe('Timeline seasonal design', () => {
     );
     const button = tree.root.findByType(TouchableOpacity);
     const glass = tree.root.findAllByProps({ testID: 'timeline-record-glass' }).at(-1)!;
-    expect(glass.props.blurAmount).toBe(18);
-    expect(glass.props.blurRounds).toBe(2);
+    expect(tree.root.findAll(node => node.type === ('NativeBlurView' as React.ElementType))).toHaveLength(0);
     expect(StyleSheet.flatten(glass.props.style)).toMatchObject({
       marginTop: 0, padding: 8, borderRadius: 8, backgroundColor: 'transparent',
     });
     const material = resolveHomeFrostedMaterial(season);
-    expect(glass.props.reducedTransparencyFallbackColor).toBe(material.reducedTransparencyFallbackColor);
-    const tint = tree.root.findAllByProps({ testID: 'home-frosted-tint' }).at(-1)!;
+    const tint = tree.root.findAllByProps({ testID: 'home-reflective-fill' }).at(-1)!;
     expect(StyleSheet.flatten(tint.props.style)).toMatchObject({
       backgroundColor: material.backgroundColor, borderColor: material.borderColor,
     });

@@ -4,11 +4,12 @@
 // - 상단 헤더, 피드 카드, 액션 메뉴, 삭제 확인 모달 톤을 한 곳에서 관리
 
 import { StyleSheet } from 'react-native';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 
 export const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PRODUCT_CANVAS_COLOR,
   },
   header: {
     width: '100%',

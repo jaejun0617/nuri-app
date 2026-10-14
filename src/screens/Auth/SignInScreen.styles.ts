@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { lightColors } from '../../app/theme/tokens/colors';
 
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#FFFFFF' },
@@ -33,7 +34,7 @@ export const styles = StyleSheet.create({
     gap: 8,
   },
   kakaoButton: { backgroundColor: '#FEE500', borderColor: '#FEE500' },
-  googleButton: { backgroundColor: '#FFFFFF', borderColor: '#747775' },
+  googleButton: { backgroundColor: '#FFFFFF', borderColor: lightColors.border },
   disabledButton: { opacity: 0.55 },
   providerIcon: { width: 20, height: 20 },
   buttonLeading: {

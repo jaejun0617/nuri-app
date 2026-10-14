@@ -16,6 +16,7 @@ import { formatPetCopy } from '../../utils/petDisplayName';
 
 import AppTextInput from '../../app/ui/AppTextInput';
 import AppText from '../../app/ui/AppText';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import React, {
   memo,
   useCallback,
@@ -52,7 +53,6 @@ import {
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RouteProp } from '@react-navigation/native';
 import Feather from '../../components/icons/NuriFeatherIcon';
-import LinearGradient from 'react-native-linear-gradient';
 import Animated, {
   interpolate,
   useAnimatedStyle,
@@ -155,7 +155,7 @@ function buildRegistrationSeasonalStyles(
   palette: ProfileRegistrationSeasonalPresentation['palette'],
 ) {
   return {
-    screen: { backgroundColor: palette.pageBackgroundColor },
+    screen: { backgroundColor: PRODUCT_CANVAS_COLOR },
     ambient: { backgroundColor: palette.ambientOverlayColor },
     section: {
       backgroundColor: palette.sectionSurfaceColor,
@@ -2098,35 +2098,6 @@ export default function PetCreateScreen() {
   return (
     <RegistrationSeasonalStyleContext.Provider value={seasonalStyles}>
       <View style={[styles.screen, seasonalStyles.screen]}>
-        {step === 1 ? (
-          <Image
-            accessibilityIgnoresInvertColors
-            pointerEvents="none"
-            resizeMode="cover"
-            source={registrationPresentation.backgroundSource}
-            style={styles.backgroundImage}
-          />
-        ) : (
-          <LinearGradient
-            pointerEvents="none"
-            colors={registrationPresentation.continuationColors}
-            locations={[0, 0.34, 0.72, 1]}
-            style={styles.continuationCanvas}
-          />
-        )}
-        <View
-          pointerEvents="none"
-          style={[styles.backgroundWarmth, seasonalStyles.ambient]}
-        />
-        {step === 1 ? (
-          <LinearGradient
-            pointerEvents="none"
-            colors={registrationPresentation.readabilityVeilColors}
-            locations={[0, 0.38, 0.76, 1]}
-            style={styles.topReadabilityVeil}
-          />
-        ) : null}
-
         <View
           style={[
             styles.topChrome,

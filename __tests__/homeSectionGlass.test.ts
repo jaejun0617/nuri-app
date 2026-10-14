@@ -2,7 +2,7 @@ import React from 'react';
 import * as ReactNative from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
 import { BlurView } from '@sbaiahmed1/react-native-blur';
-import { resolveHomeFrostedMaterial } from '../src/components/home/HomeFrostedGlass';
+import { HOME_FLOATING_WIDGET_MATERIAL } from '../src/components/home/HomeWidgetMaterial';
 
 import {
   HOME_SECTION_GLASS_MATERIAL_STYLE,
@@ -98,7 +98,7 @@ describe('Home section glass', () => {
     if (!renderer) throw new Error('Home glass did not render');
 
     const section = renderer.root.findAll(
-      node => node.type === BlurView && node.props.testID === 'section',
+      node => node.type === ReactNative.View && node.props.testID === 'section',
     )[0];
     expect(ReactNative.StyleSheet.flatten(section.props.style)).toMatchObject({
       padding: 14,
@@ -109,7 +109,7 @@ describe('Home section glass', () => {
     });
     const surfaces = renderer.root
       .findAllByProps({
-        testID: 'home-frosted-tint',
+        testID: 'home-reflective-fill',
       })
       .filter(node => node.type === ReactNative.View);
     expect(surfaces).toHaveLength(1);
@@ -117,8 +117,7 @@ describe('Home section glass', () => {
     expect(
       ReactNative.StyleSheet.flatten(surfaces[0].props.style),
     ).toMatchObject({
-      backgroundColor: resolveHomeFrostedMaterial('autumn').backgroundColor,
-      borderColor: resolveHomeFrostedMaterial('autumn').borderColor,
+      ...HOME_FLOATING_WIDGET_MATERIAL,
       position: 'absolute',
       borderRadius: 22,
     });
@@ -132,6 +131,7 @@ describe('Home section glass', () => {
     ).not.toHaveProperty('opacity');
     content.props.onPress();
     expect(onPress).toHaveBeenCalledTimes(1);
+    expect(renderer.root.findAllByType(BlurView)).toHaveLength(0);
 
     await ReactTestRenderer.act(async () => renderer?.unmount());
   });
@@ -167,7 +167,7 @@ describe('Home section glass', () => {
 
       const frame = renderer.root.findAll(node =>
         Boolean(
-          node.type === BlurView &&
+          node.type === ReactNative.View &&
             ReactNative.StyleSheet.flatten(node.props.style)?.padding === 1.25,
         ),
       )[0];
@@ -181,7 +181,7 @@ describe('Home section glass', () => {
       ).not.toHaveProperty('height');
       const surfaces = renderer.root
         .findAllByProps({
-          testID: 'home-frosted-tint',
+          testID: 'home-reflective-fill',
         })
         .filter(node => node.type === ReactNative.View);
       expect(surfaces).toHaveLength(1);
@@ -189,8 +189,7 @@ describe('Home section glass', () => {
       expect(
         ReactNative.StyleSheet.flatten(surfaces[0].props.style),
       ).toMatchObject({
-        backgroundColor: resolveHomeFrostedMaterial(season).backgroundColor,
-        borderColor: resolveHomeFrostedMaterial(season).borderColor,
+        ...HOME_FLOATING_WIDGET_MATERIAL,
         borderRadius: 27,
       });
       const action = renderer.root.findByType(ReactNative.TouchableOpacity);

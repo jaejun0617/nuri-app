@@ -5,23 +5,7 @@ import MaskedView from '@react-native-masked-view/masked-view';
 import { useTheme } from 'styled-components/native';
 import { getHomeAmbientVisual } from '../../theme/home/seasonalAmbient';
 import type { SeasonKey } from '../../theme/seasonal/season';
-
-const GLINTS = [
-  { top: '32%', left: '2%', size: 14, opacity: 0.78, rotation: '12deg' },
-  { top: '46%', right: '2%', size: 10, opacity: 0.62, rotation: '-8deg' },
-  { top: '68%', left: '1.5%', size: 9, opacity: 0.58, rotation: '8deg' },
-  { top: '81%', right: '1.5%', size: 15, opacity: 0.76, rotation: '-12deg' },
-] as const;
-const RAY_COLORS = [
-  'rgba(255,255,255,0)',
-  'rgba(255,255,255,0.18)',
-  'rgba(255,255,255,0.75)',
-  '#FFFFFF',
-  'rgba(255,255,255,0.75)',
-  'rgba(255,255,255,0.18)',
-  'rgba(255,255,255,0)',
-];
-const RAY_STOPS = [0, 0.22, 0.42, 0.5, 0.58, 0.78, 1];
+import { PRODUCT_CANVAS_COLOR, PRODUCT_CANVAS_GRADIENT_COLORS } from '../../app/theme/tokens/colors';
 type MaskProps = React.ComponentProps<typeof View> & {
   maskElement: React.ReactElement;
 };
@@ -94,7 +78,6 @@ export function SeasonalAmbientLighting({
 
 /** A fixed, non-interactive canvas keeps decoration outside the data/scroll path. */
 export default memo(function SeasonalAmbientBackground({
-  season,
   appearance,
 }: {
   season: SeasonKey;
@@ -102,7 +85,6 @@ export default memo(function SeasonalAmbientBackground({
   appearance?: 'light' | 'dark';
 }) {
   const theme = useTheme();
-  const visual = getHomeAmbientVisual(season);
   const dark = (appearance ?? theme.mode) === 'dark';
 
   return (
@@ -116,40 +98,20 @@ export default memo(function SeasonalAmbientBackground({
         StyleSheet.absoluteFill,
         styles.canvas,
         {
-          backgroundColor: dark ? theme.colors.background : visual.canvasGradient[0],
+          backgroundColor: dark ? theme.colors.background : PRODUCT_CANVAS_COLOR,
         },
       ]}
     >
-      <SeasonalAmbientLighting season={season} dark={dark} />
-      {GLINTS.map(({ size, rotation, opacity, ...position }, index) => (
-        <View
-          key={index}
-          testID={`seasonal-ambient-glint-${index}`}
-          style={[
-            styles.glint,
-            position,
-            {
-              width: size,
-              height: size,
-              opacity: dark ? opacity * 0.45 : opacity,
-              transform: [{ rotate: rotation }],
-            },
-          ]}
-        >
-          <LinearGradient
-            colors={RAY_COLORS}
-            locations={RAY_STOPS}
-            style={styles.verticalRay}
-          />
-          <LinearGradient
-            colors={RAY_COLORS}
-            locations={RAY_STOPS}
-            start={{ x: 0, y: 0.5 }}
-            end={{ x: 1, y: 0.5 }}
-            style={styles.horizontalRay}
-          />
-        </View>
-      ))}
+      {!dark ? (
+        <LinearGradient
+          testID="product-canvas-gradient"
+          colors={[...PRODUCT_CANVAS_GRADIENT_COLORS]}
+          locations={[0, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+      ) : null}
     </View>
   );
 });
@@ -163,11 +125,4 @@ const styles = StyleSheet.create({
     top: '38%',
     height: '24%',
   },
-  glint: {
-    position: 'absolute',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  verticalRay: { position: 'absolute', width: 1.4, height: '100%' },
-  horizontalRay: { position: 'absolute', height: 1.1, width: '72%' },
 });

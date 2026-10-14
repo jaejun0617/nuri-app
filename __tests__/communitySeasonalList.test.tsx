@@ -343,7 +343,7 @@ describe('community seasonal list candidate', () => {
     const root = renderer.root.findByType(CommunityListScreen).children[0];
     if (typeof root === 'string') throw new Error('screen root must be a view');
     expect(StyleSheet.flatten(root.props.style)).toMatchObject({
-      backgroundColor: '#FFFFFF',
+      backgroundColor: '#F1F5F8',
       paddingTop: 24,
       paddingBottom: 80,
     });
@@ -408,6 +408,27 @@ describe('community seasonal list candidate', () => {
     expect(header.props.onLayout).toBeUndefined();
   });
 
+  it.each(['spring', 'summer', 'autumn', 'winter'] as const)(
+    'omits the central list title in %s while preserving the back action and hero',
+    async season => {
+      mockSeason = season;
+      await TestRenderer.act(async () => renderer.update(tree()));
+      const header = renderer.root.findAllByProps({
+        testID: 'community-hero-overlay-header',
+      })[0];
+      expect(
+        header.findAllByType(Text).some(node => node.props.children === '커뮤니티'),
+      ).toBe(false);
+      const back = header
+        .findAllByType(TouchableOpacity)
+        .find(node => node.props.accessibilityLabel === '뒤로가기');
+      expect(back).toBeDefined();
+      await TestRenderer.act(async () => back?.props.onPress());
+      expect(mockNavigation.goBack).toHaveBeenCalledTimes(1);
+      expect(heroImage(renderer).props.source).toBe(COMMUNITY_HERO_IMAGES[season]);
+    },
+  );
+
   it.each([0, 24, 48])(
     'reserves the %s dp status-bar inset once without changing the artwork bounds',
     async top => {
@@ -421,7 +442,7 @@ describe('community seasonal list candidate', () => {
       })[0];
       expect(StyleSheet.flatten(root.props.style)).toMatchObject({
         paddingTop: top,
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#F1F5F8',
       });
       expect(StyleSheet.flatten(header.props.style)).toMatchObject({
         top: 0,

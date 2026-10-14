@@ -41,7 +41,9 @@ import {
   WALK_QA_STEP_COPY,
   type WalkQaProtocol,
 } from '../../services/walk/runtime/qaProtocol';
-import WalkMapStage from './walkPresentation/WalkMapStage';
+import WalkMapStage, {
+  type PetMarkerImageStatus,
+} from './walkPresentation/WalkMapStage';
 import WalkView, { IconControl, WalkAction } from './walkPresentation/WalkView';
 import {
   GALLERY_STATES,
@@ -51,6 +53,7 @@ import {
   type PresentationState,
 } from './walkPresentation/model';
 import { fixtureMetrics } from './walkPresentation/fixtures';
+import { useWalkDesignLocation } from './walkPresentation/useWalkDesignLocation';
 
 const SEASONS: { key: SeasonKey; label: string }[] = [
   { key: 'spring', label: '봄' },
@@ -88,6 +91,10 @@ export default function WalkDistanceQaPanel() {
   const [mode, setMode] = useState<WalkCameraMode>('FOLLOW');
   const [preview, setPreview] = useState(true),
     [galleryState, setGalleryState] = useState<PresentationState>('WALKING');
+  const [publicGallery, setPublicGallery] = useState(false);
+  const [designReview, setDesignReview] = useState(false);
+  const [petImageStatus, setPetImageStatus] =
+    useState<PetMarkerImageStatus>('NONE');
   const [gallerySeason, setGallerySeason] = useState<SeasonKey | null>(null);
   const [finishConfirm, setFinishConfirm] = useState(false),
     [minimizeConfirm, setMinimizeConfirm] = useState(false);
@@ -112,8 +119,17 @@ export default function WalkDistanceQaPanel() {
   const enabled = isWalkDistanceQaEnabled();
   const open =
     visible && owner !== null && owner === openedOwner.current && enabled;
+  const designLocation = useWalkDesignLocation(open, owner);
   const season = preview ? gallerySeason ?? effectiveSeason : effectiveSeason;
-  const pet = pets.find(p => p.id === (snapshot?.petId ?? selectedPetId));
+  const pet = pets.find(
+    p =>
+      p.id ===
+      (preview || designReview
+        ? selectedPetId
+        : snapshot?.petId ?? selectedPetId),
+  );
+  const petImage =
+    preview && publicGallery ? null : pet?.avatarUrl?.trim() || null;
 
   const loadPage = useCallback(
     async (
@@ -287,6 +303,8 @@ export default function WalkDistanceQaPanel() {
   };
   const switchMode = (nextPreview: boolean) => {
     if (operationRunning.current) return;
+    setDesignReview(false);
+    designLocation.clear();
     setPage(null);
     selectedPage.current = null;
     setFinishConfirm(false);
@@ -378,8 +396,14 @@ export default function WalkDistanceQaPanel() {
   const baseState = preview
     ? galleryState
     : presentationState(snapshot, !!page?.current);
-  const state = finishConfirm ? 'FINISH_CONFIRM' : baseState;
-  const metrics = preview
+  const state = designReview
+    ? 'WALKING'
+    : finishConfirm
+    ? 'FINISH_CONFIRM'
+    : baseState;
+  const metrics = designReview
+    ? { distanceM: null, activeMs: '0' }
+    : preview
     ? fixtureMetrics(state)
     : {
         distanceM: snapshot?.distanceSummary?.acceptedDistanceM ?? null,
@@ -387,7 +411,16 @@ export default function WalkDistanceQaPanel() {
       };
   // Explicit scalar allowlist; never spread a snapshot, protocol, pet, or map point here.
   const diagnostics: readonly [string, string][] = [
-    ['모드', preview ? 'PUBLIC_SYNTHETIC' : 'ACTUAL'],
+    ['펫 사진 입력', petImage ? 'PRESENT' : 'MISSING'],
+    ['펫 사진 상태', petImageStatus],
+    [
+      '모드',
+      preview
+        ? publicGallery
+          ? 'PUBLIC_SYNTHETIC'
+          : 'LOCAL_PET_PREVIEW'
+        : 'ACTUAL',
+    ],
     ['카메라', mode],
     ['지도 준비', String(mapReady)],
     ['지도 로드', String(mapLoaded)],
@@ -441,6 +474,9 @@ export default function WalkDistanceQaPanel() {
           setBusy(false);
           setQaOpen(false);
           setPreview(true);
+          setPublicGallery(false);
+          setDesignReview(false);
+          designLocation.clear();
           setGalleryState('WALKING');
           setFinishConfirm(false);
           setVisible(true);
@@ -499,6 +535,7 @@ export default function WalkDistanceQaPanel() {
                         onPress={() => {
                           if (operationRunning.current) return;
                           switchMode(true);
+                          setPublicGallery(true);
                           setGallerySeason(s.key);
                         }}
                       />
@@ -517,6 +554,7 @@ export default function WalkDistanceQaPanel() {
                         onPress={() => {
                           if (operationRunning.current) return;
                           switchMode(true);
+                          setPublicGallery(true);
                           setGalleryState(s);
                         }}
                       />
@@ -524,12 +562,29 @@ export default function WalkDistanceQaPanel() {
                   ))}
                 </View>
                 <WalkAction
+                  label="현재 위치로 디자인 보기"
+                  icon="crosshair"
+                  season={season}
+                  role="secondary"
+                  testID="walk-design-location"
+                  onPress={async () => {
+                    if (operationRunning.current) return;
+                    switchMode(false);
+                    setPublicGallery(false);
+                    setDesignReview(true);
+                    await designLocation.request();
+                  }}
+                />
+                <WalkAction
                   label={preview ? '실제 GPS 화면 열기' : '합성 미리보기 열기'}
                   icon="map"
                   season={season}
                   role="secondary"
                   testID={preview ? 'walk-mode-actual' : 'walk-mode-preview'}
-                  onPress={() => switchMode(!preview)}
+                  onPress={() => {
+                    setPublicGallery(false);
+                    switchMode(!preview);
+                  }}
                 />
                 <AppText preset="sectionTitle">안전한 진단 정보</AppText>
                 {diagnostics.map(([label, value]) => (
@@ -739,9 +794,14 @@ export default function WalkDistanceQaPanel() {
             <View style={styles.flex}>
               <WalkView
                 state={state}
-                petName={preview ? '누리' : pet?.name ?? '반려동물'}
+                petName={
+                  preview && publicGallery ? '누리' : pet?.name ?? '반려동물'
+                }
                 season={season}
                 preview={preview}
+                publicPreview={preview && publicGallery}
+                designReview={designReview}
+                designMessage={designLocation.message}
                 distanceM={metrics.distanceM}
                 activeMs={metrics.activeMs}
                 busy={busy}
@@ -780,12 +840,18 @@ export default function WalkDistanceQaPanel() {
                       preview ? 'public' : snapshot?.sessionId ?? 'no-session'
                     }:${qaOpen}`}
                     preview={preview}
-                    page={preview ? null : page}
+                    personalPreview={preview && !publicGallery}
+                    displayLocation={designReview ? designLocation.point : null}
+                    page={preview || designReview ? null : page}
                     accent={SEASON_CTA[season].primary}
-                    image={preview ? null : pet?.avatarUrl?.trim() || null}
+                    image={petImage}
+                    onImageStatus={setPetImageStatus}
                     mode={mode}
                     paused={state === 'PAUSED'}
-                    showRoute={!['PRE_WALK', 'GPS_ACQUIRING'].includes(state)}
+                    showRoute={
+                      !designReview &&
+                      !['PRE_WALK', 'GPS_ACQUIRING'].includes(state)
+                    }
                     recenterRevision={recenterRevision}
                     onReady={() => setMapReady(true)}
                     onLoaded={() => setMapLoaded(true)}
@@ -811,7 +877,6 @@ export default function WalkDistanceQaPanel() {
             </AppText>
             <WalkAction
               label="계속 기록하고 닫기"
-              icon="chevron-down"
               season={season}
               onPress={() => {
                 setMinimizeConfirm(false);
@@ -821,7 +886,6 @@ export default function WalkDistanceQaPanel() {
             />
             <WalkAction
               label="산책 화면으로 돌아가기"
-              icon="arrow-left"
               season={season}
               role="secondary"
               onPress={() => setMinimizeConfirm(false)}

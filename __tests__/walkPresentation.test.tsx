@@ -25,9 +25,28 @@ import {
   metricTime,
 } from '../src/screens/DevTest/walkPresentation/model';
 import { PetPosition } from '../src/screens/DevTest/walkPresentation/WalkMapStage';
+import Geolocation from '@react-native-community/geolocation';
+import { getLocationPermissionGrant } from '../src/services/location/permission';
 let mockPetName = '누리';
+let mockAvatarUrl: string | null = null;
 
 jest.mock('../src/app/ui/AppText', () => 'AppText');
+jest.mock('react-native/Libraries/AppState/AppState', () => ({
+  __esModule: true,
+  default: {
+    currentState: 'active',
+    addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+  },
+}));
+jest.mock('@react-native-community/geolocation', () => ({
+  getCurrentPosition: jest.fn(),
+}));
+jest.mock('../src/services/location/permission', () => ({
+  getLocationPermissionGrant: jest.fn(async () => ({
+    status: 'granted',
+    accuracy: 'precise',
+  })),
+}));
 jest.mock('../src/components/icons/NuriFeatherIcon', () => 'Feather');
 jest.mock('../src/components/icons/NuriSemanticIcon', () => 'SemanticIcon');
 jest.mock('../src/app/providers/SeasonPreferenceProvider', () => ({
@@ -41,7 +60,9 @@ jest.mock('../src/store/petStore', () => ({
   usePetStore: Object.assign(
     (select: (state: unknown) => unknown) =>
       select({
-        pets: [{ id: 'public-pet', name: mockPetName, avatarUrl: null }],
+        pets: [
+          { id: 'public-pet', name: mockPetName, avatarUrl: mockAvatarUrl },
+        ],
         selectedPetId: 'public-pet',
       }),
     { getState: () => ({ selectedPetId: 'public-pet' }) },
@@ -158,12 +179,30 @@ describe('Walk presentation privacy and mode boundaries', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockPetName = '누리';
+    mockAvatarUrl = null;
     jest.mocked(getWalkSnapshot).mockResolvedValue(null);
     jest.mocked(getWalkRoutePage).mockResolvedValue(routePage);
     jest.mocked(runWalkQaCommand).mockResolvedValue(null);
+    jest
+      .mocked(getLocationPermissionGrant)
+      .mockResolvedValue({ status: 'granted', accuracy: 'precise' });
+    jest.mocked(Geolocation.getCurrentPosition).mockImplementation(success =>
+      success({
+        coords: {
+          ...PUBLIC_ROUTE[1],
+          accuracy: 10,
+          altitude: null,
+          altitudeAccuracy: null,
+          heading: null,
+          speed: null,
+        },
+        timestamp: Date.now(),
+      }),
+    );
   });
   afterEach(async () => {
     if (r) await act(async () => r.unmount());
+    jest.restoreAllMocks();
   });
   const open = async () => {
     await act(async () => {
@@ -211,19 +250,19 @@ describe('Walk presentation privacy and mode boundaries', () => {
   });
   test('a bounded tail page cannot misrepresent its first point as the session start', async () => {
     jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot());
-    jest
-      .mocked(getWalkRoutePage)
-      .mockResolvedValue({
-        ...routePage,
-        startCursor: '512',
-        endCursor: '515',
+    jest.mocked(getWalkRoutePage).mockResolvedValue({
+      ...routePage,
+      startCursor: '512',
+      endCursor: '515',
       filteredPointCount: '516',
-        hasEarlier: true,
-      });
+      hasEarlier: true,
+    });
     await open();
     await press(r, 'walk-mode-actual');
-    expect(host(r, 'Marker')).toHaveLength(1);
-    expect(host(r, 'Marker')[0].props.testID).toBe('walk-actual-marker');
+    expect(host(r, 'Marker')).toHaveLength(0);
+    expect(
+      r.root.findAllByProps({ testID: 'walk-actual-marker' }).length,
+    ).toBeGreaterThan(0);
   });
   test('result exit closes only the QA modal and does not pretend to navigate Home', async () => {
     await open();
@@ -234,17 +273,153 @@ describe('Walk presentation privacy and mode boundaries', () => {
     expect(r.root.findByType(Modal).props.visible).toBe(false);
     expect(mutateNativeWalk).not.toHaveBeenCalled();
   });
-  test('public preview uses a child pet marker rather than the default Google red pin', async () => {
+  test('public preview uses a regular RN pet overlay and only a native start point', async () => {
     await open();
+    expect(host(r, 'Marker')).toHaveLength(1);
     const marker = host(r, 'Marker')[0];
     expect(marker.props.children).toBeTruthy();
     expect(marker.props.title).not.toBe('PUBLIC_SYNTHETIC');
+    expect(
+      r.root.findAllByProps({ testID: 'walk-fixture-marker' }).length,
+    ).toBeGreaterThan(0);
+  });
+  test('local pet preview uses the selected profile but public gallery never exposes it', async () => {
+    mockPetName = '보리';
+    mockAvatarUrl = 'https://example.invalid/selected-pet.png';
+    await open();
+    expect(r.root.findByType(Image).props.source).toEqual({
+      uri: mockAvatarUrl,
+    });
+    expect(visibleText(r)).toContain('보리와 함께');
+    expect(visibleText(r)).toContain('합성 경로 · 내 펫');
+    expect(getWalkRoutePage).not.toHaveBeenCalled();
+    expect(mutateNativeWalk).not.toHaveBeenCalled();
+    await press(r, 'walk-qa-open');
+    await press(r, 'walk-gallery-WALKING');
+    expect(r.root.findAllByType(Image)).toHaveLength(0);
+    expect(visibleText(r)).toContain('누리와 함께');
+    expect(visibleText(r)).toContain('합성 미리보기');
+    expect(visibleText(r)).not.toContain('보리');
   });
   test('actual mode without a filtered fix has no synthetic camera or marker', async () => {
     await open();
     await press(r, 'walk-mode-actual');
     expect(host(r, 'Marker')).toHaveLength(0);
     expect(host(r, 'MapView')).toHaveLength(0);
+    expect(r.root.findAllByProps({ testID: 'walk-pet-overlay' })).toHaveLength(
+      0,
+    );
+  });
+  test('explicit current-location design review shows only the real one-shot point and never starts a walk', async () => {
+    await open();
+    expect(Geolocation.getCurrentPosition).not.toHaveBeenCalled();
+    await press(r, 'walk-qa-open');
+    await press(r, 'walk-design-location');
+    expect(Geolocation.getCurrentPosition).toHaveBeenCalledTimes(1);
+    expect(
+      jest.mocked(Geolocation.getCurrentPosition).mock.calls[0][2],
+    ).toMatchObject({
+      enableHighAccuracy: false,
+      maximumAge: 0,
+      timeout: 10000,
+    });
+    expect(host(r, 'MapView')[0].props.initialRegion).toMatchObject(
+      PUBLIC_ROUTE[1],
+    );
+    expect(host(r, 'Polyline')).toHaveLength(0);
+    expect(visibleText(r)).toContain('현재 위치 · 디자인 확인');
+    expect(visibleText(r)).toContain('산책 기록은 시작하지 않았어요');
+    expect(visibleText(r)).not.toContain('합성 미리보기');
+    expect(mutateNativeWalk).not.toHaveBeenCalled();
+    expect(runWalkQaCommand).not.toHaveBeenCalledWith('START_STEP');
+    for (const id of ['walk-primary', 'walk-finish']) {
+      const action = r.root.findAll(
+        n => n.props.testID === id && n.props.accessibilityRole === 'button',
+      )[0];
+      expect(action.props.accessibilityState.disabled).toBe(true);
+      expect(action.props.onPress).toBeUndefined();
+    }
+    await press(r, 'walk-qa-open');
+    await press(r, 'walk-gallery-WALKING');
+    expect(visibleText(r)).not.toContain('현재 위치 · 디자인 확인');
+    expect(host(r, 'MapView')[0].props.initialRegion).toMatchObject(
+      PUBLIC_ROUTE.at(-1)!,
+    );
+  });
+  test('current-location design review fails closed on denied permission without fake coordinates', async () => {
+    jest
+      .mocked(getLocationPermissionGrant)
+      .mockResolvedValue({ status: 'denied', accuracy: 'unknown' });
+    await open();
+    await press(r, 'walk-qa-open');
+    await press(r, 'walk-design-location');
+    expect(Geolocation.getCurrentPosition).not.toHaveBeenCalled();
+    expect(host(r, 'MapView')).toHaveLength(0);
+    expect(visibleText(r)).toContain(
+      '위치 권한이 필요해요. 기기 설정에서 허용해 주세요.',
+    );
+    expect(mutateNativeWalk).not.toHaveBeenCalled();
+  });
+  test('one-shot location failure does not substitute the public route or start tracking', async () => {
+    jest
+      .mocked(Geolocation.getCurrentPosition)
+      .mockImplementation((_success, failure) =>
+        failure?.({
+          code: 3,
+          message: 'timeout',
+          PERMISSION_DENIED: 1,
+          POSITION_UNAVAILABLE: 2,
+          TIMEOUT: 3,
+        }),
+      );
+    await open();
+    await press(r, 'walk-qa-open');
+    await press(r, 'walk-design-location');
+    expect(host(r, 'MapView')).toHaveLength(0);
+    expect(visibleText(r)).toContain(
+      '현재 위치를 확인하지 못했어요. 잠시 후 다시 시도해 주세요.',
+    );
+    expect(mutateNativeWalk).not.toHaveBeenCalled();
+  });
+  test('a late location callback cannot enter the public gallery after mode switch', async () => {
+    const callbacks: Parameters<typeof Geolocation.getCurrentPosition>[0][] =
+      [];
+    jest.mocked(Geolocation.getCurrentPosition).mockImplementation(success => {
+      callbacks.push(success);
+    });
+    await open();
+    await press(r, 'walk-qa-open');
+    let locationTask: Promise<void> | undefined;
+    await act(async () => {
+      locationTask = r.root
+        .findAllByProps({ testID: 'walk-design-location' })[0]
+        .props.onPress();
+    });
+    expect(host(r, 'MapView')).toHaveLength(0);
+    await press(r, 'walk-qa-open');
+    await press(r, 'walk-gallery-WALKING');
+    await act(async () => {
+      callbacks[0]({
+        coords: {
+          ...PUBLIC_ROUTE[1],
+          accuracy: 10,
+          altitude: null,
+          altitudeAccuracy: null,
+          heading: null,
+          speed: null,
+        },
+        timestamp: Date.now(),
+      });
+      await locationTask;
+    });
+    expect(host(r, 'MapView')[0].props.initialRegion).toMatchObject(
+      PUBLIC_ROUTE.at(-1)!,
+    );
+    expect(visibleText(r)).not.toContain('현재 위치 · 디자인 확인');
+    expect(
+      r.root.findAllByProps({ testID: 'walk-actual-marker' }),
+    ).toHaveLength(0);
+    expect(mutateNativeWalk).not.toHaveBeenCalled();
   });
   test('actual filtered fix owns the first camera and only actual marker; gaps remain separate', async () => {
     jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot());
@@ -254,11 +429,11 @@ describe('Walk presentation privacy and mode boundaries', () => {
       PUBLIC_ROUTE[0],
     );
     expect(
-      host(r, 'Marker').some(n => n.props.testID === 'walk-fixture-marker'),
-    ).toBe(false);
+      r.root.findAllByProps({ testID: 'walk-fixture-marker' }),
+    ).toHaveLength(0);
     expect(
-      host(r, 'Marker').some(n => n.props.testID === 'walk-actual-marker'),
-    ).toBe(true);
+      r.root.findAllByProps({ testID: 'walk-actual-marker' }).length,
+    ).toBeGreaterThan(0);
     expect(host(r, 'Polyline')).toHaveLength(4);
     expect(host(r, 'Polyline')[0].props.coordinates).toHaveLength(2);
   });
@@ -278,7 +453,15 @@ describe('Walk presentation privacy and mode boundaries', () => {
       await press(r, 'walk-qa-open');
       await press(r, `walk-gallery-${state}`);
       expect(visibleText(r)).toContain(
-        state === 'WALKING' ? '누리와 걷는 중' : WALK_COPY[state].title,
+        state === 'WALKING'
+          ? WALK_COPY.WALKING.supporting
+          : state === 'PAUSED'
+          ? '시간과 거리 기록을 멈췄어요'
+          : ['GPS_WEAK', 'GPS_LOST'].includes(state)
+          ? '함께하는 이 순간을 즐겨요.'
+          : state === 'GPS_ACQUIRING'
+          ? '잠시만 기다려 주세요'
+          : WALK_COPY[state].title,
       );
       expect(
         host(r, 'AppText').some(n => n.props.children === '합성 미리보기'),
@@ -363,6 +546,9 @@ describe('Walk presentation privacy and mode boundaries', () => {
     });
     expect(host(r, 'MapView')).toHaveLength(0);
     expect(host(r, 'Marker')).toHaveLength(0);
+    expect(r.root.findAllByProps({ testID: 'walk-pet-overlay' })).toHaveLength(
+      0,
+    );
   });
   test('safe inspector contains no coordinate, raw identity or whole JSON', async () => {
     jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot());
@@ -411,7 +597,7 @@ describe('Walk presentation privacy and mode boundaries', () => {
       );
     });
     const image = r.root.findByType(Image);
-    expect(image.props.style.borderRadius).toBe(24);
+    expect(image.props.style.borderRadius).toBe(16);
     await act(async () => image.props.onError());
     expect(r.root.findAllByType(Image)).toHaveLength(0);
     expect(host(r, 'SemanticIcon')[0].props.name).toBe('paw');
@@ -429,8 +615,9 @@ describe('Walk presentation privacy and mode boundaries', () => {
       await open();
       await press(r, 'walk-mode-actual');
       const name = host(r, 'AppText').find(
-        n => n.props.children === mockPetName,
+        n => n.props.testID === 'walk-header-pet',
       )!;
+      expect(name.props.children).toContain(mockPetName);
       expect(name.props.numberOfLines).toBe(2);
       const control = r.root.findAll(
         n =>

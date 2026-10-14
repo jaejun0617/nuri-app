@@ -114,28 +114,15 @@ export const styles = StyleSheet.create({
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.04)',
-    borderWidth: 1,
-    borderColor: 'rgba(0,0,0,0.04)',
+    backgroundColor: 'transparent',
+    borderWidth: 0,
     position: 'relative',
   },
-  autumnHeaderIconBtn: {
-    backgroundColor: 'rgba(255, 252, 247, 0.97)',
-    borderColor: 'rgba(94, 68, 49, 0.34)',
-    shadowColor: '#4D3428',
-    shadowOpacity: 0.12,
-    shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
-    elevation: 3,
-  },
-  winterHeaderIconBtn: {
-    backgroundColor: 'rgba(248, 251, 255, 0.94)',
-    borderColor: 'rgba(120, 148, 210, 0.30)',
-    shadowColor: '#40516F',
-    shadowOpacity: 0.12,
-    shadowRadius: 5,
-    shadowOffset: { width: 0, height: 2 },
-    elevation: 3,
+  headerNotificationGlass: {
+    ...ABS_FILL,
+    borderRadius: 17,
+    borderWidth: 0,
+    overflow: 'hidden',
   },
   headerNotificationBadge: {
     position: 'absolute',
@@ -500,6 +487,7 @@ export const styles = StyleSheet.create({
     backgroundColor: HOME_BASE_BACKGROUND_COLOR,
   },
   lowerHomeSectionList: {
+    paddingTop: HOME_LOWER_SECTION_GAP,
     gap: HOME_LOWER_SECTION_GAP,
   },
   ambientBackgroundTransparent: {

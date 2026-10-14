@@ -6,6 +6,7 @@
 
 import AppTextInput from '../../app/ui/AppTextInput';
 import AppText from '../../app/ui/AppText';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import React, { useMemo, useState } from 'react';
 import {
   Alert,
@@ -371,7 +372,7 @@ export default function MoreScreen() {
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: '#F6F2EE', padding: 18 },
+  screen: { flex: 1, backgroundColor: PRODUCT_CANVAS_COLOR, padding: 18 },
   card: {
     backgroundColor: '#FFFFFF',
     borderRadius: 22,

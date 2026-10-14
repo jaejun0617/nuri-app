@@ -2,11 +2,15 @@ import fs from 'node:fs';
 import path from 'node:path';
 import React from 'react';
 import ReactNative from 'react-native';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
+import NativeFeather from 'react-native-vector-icons/Feather';
 
 import { createTheme } from '../src/app/theme/theme';
+import MarkerText from '../src/app/ui/MarkerText';
+import NuriIcon from '../src/components/icons/NuriIcon';
+import NuriSemanticIcon from '../src/components/icons/NuriSemanticIcon';
 import {
   HomeSectionHeader,
   isHomeSectionConfirmedEmpty,
@@ -20,7 +24,6 @@ import {
 import { HomeSeasonProvider } from '../src/components/home/HomeSeasonContext';
 import { FrequentRecordsSection } from '../src/components/records/FrequentRecordsSection';
 import { styles as frequentStyles } from '../src/components/records/FrequentRecordsSection.styles';
-import { resolveHomeFrostedMaterial } from '../src/components/home/HomeFrostedGlass';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 import {
   styles as homeStyles,
@@ -30,6 +33,7 @@ import { styles as actionStyles } from '../src/app/ui/SectionHeaderAction.styles
 import { styles as summaryStyles } from '../src/screens/Main/components/LoggedInHome/TotalSummarySection';
 import { buildPetThemePalette } from '../src/services/pets/themePalette';
 
+jest.unmock('react-native-vector-icons/Feather');
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
   useIsFocused: () => true,
@@ -50,6 +54,73 @@ describe('Home section rhythm and material', () => {
     });
   });
   afterEach(() => jest.restoreAllMocks());
+
+  it('keeps the notification touch target around a borderless transparent glass circle', () => {
+    const header = source.slice(
+      source.indexOf('const HomeHeaderSection'),
+      source.indexOf('const HeroProfileIdentity'),
+    );
+    expect(homeStyles.headerIconBtn).toMatchObject({
+      width: 34,
+      height: 34,
+      backgroundColor: 'transparent',
+      borderWidth: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+    });
+    expect(header).toContain('style={styles.headerIconBtn}');
+    expect(header).not.toContain('styles.autumnHeaderIconBtn');
+    expect(header).not.toContain('styles.winterHeaderIconBtn');
+    expect(StyleSheet.flatten([
+      HOME_FLOATING_WIDGET_MATERIAL,
+      homeStyles.headerNotificationGlass,
+    ])).toMatchObject({
+      position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
+      backgroundColor: HOME_FLOATING_WIDGET_MATERIAL.backgroundColor,
+      borderRadius: 17,
+      borderWidth: 0,
+      overflow: 'hidden',
+    });
+    expect(header).toContain('testID="home-notification-glass"');
+    expect(header).toMatch(/testID="home-notification-glass"\s+pointerEvents="none"\s+accessible=\{false\}\s+importantForAccessibility="no-hide-descendants"/);
+    expect(header).toContain('HOME_FLOATING_WIDGET_MATERIAL, styles.headerNotificationGlass');
+    expect(header).toMatch(/<HomeFloatingWidgetSurface\s+radius=\{17\}\s+testIDPrefix="home-notification-glass"/);
+    expect(header).toContain('onPress={onPressNotifications}');
+    expect(header).toContain('accessibilityLabel={notificationAccessibilityLabel}');
+    expect(header).toContain('accessibilityRole="button"');
+    expect(header).toContain('name="bell" size={18}');
+    expect(header).toContain('notificationUnreadCount > 0');
+    expect(header).toContain('styles.headerNotificationBadge');
+  });
+
+  it('uses a black profile-sheet close icon without changing its close action or hit slop', async () => {
+    const sheet = source.slice(
+      source.indexOf('const ProfileInfoBottomSheet'),
+      source.indexOf('const HeroProfileSection'),
+    );
+    expect(sheet).toMatch(
+      /<NuriSemanticIcon\s+family="feather"\s+preserveOriginal\s+name="x"\s+size=\{19\}\s+color="#000000"/,
+    );
+    expect(sheet).toContain('accessibilityLabel="프로필 상세 닫기"');
+    expect(sheet).toContain('onPress={requestClose}');
+    expect(sheet).toContain('hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}');
+    expect(sheet).toContain('styles.profileSheetCloseButton');
+
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <NuriSemanticIcon family="feather" preserveOriginal name="x" size={19} color="#000000" />,
+      );
+    });
+    expect(renderer.root.findAllByType(NuriIcon)).toHaveLength(0);
+    expect(renderer.root.findByType(NativeFeather).props.color).toBe('#000000');
+    const glyph = renderer.root.findAllByType(Text).find(
+      node => StyleSheet.flatten(node.props.style).fontFamily === 'Feather',
+    );
+    expect(glyph).toBeDefined();
+    expect(StyleSheet.flatten(glyph?.props.style).color).toBe('#000000');
+    await act(async () => renderer.unmount());
+  });
 
   it.each([360, 384, 400, 430].flatMap(width =>
     [1, 1.3, 1.5].map(fontScale => ({ width, fontScale })),
@@ -284,10 +355,10 @@ describe('Home section rhythm and material', () => {
         expect(StyleSheet.flatten(slot.props.style).backgroundColor).toBeUndefined();
       }
       const outerGlass = renderer.root.findAll(node =>
-        node.type === View && node.props.testID === 'home-frosted-tint',
+        node.type === View && node.props.testID === 'home-reflective-fill',
       )[0];
       expect(StyleSheet.flatten(outerGlass.props.style).backgroundColor).toBe(
-        resolveHomeFrostedMaterial('autumn').backgroundColor,
+        HOME_FLOATING_WIDGET_MATERIAL.backgroundColor,
       );
       for (const id of ['reflection', 'glint']) {
         const decorations = renderer.root.findAll(node =>
@@ -481,6 +552,8 @@ describe('Home section rhythm and material', () => {
         </ThemeProvider>,
       );
     });
+    expect(renderer.root.findAllByType(Text).some(node => node.props.children === '방금 전')).toBe(true);
+    expect(renderer.root.findAllByType(MarkerText)).toHaveLength(0);
     renderer.root
       .find(
         node =>

@@ -30,6 +30,7 @@ import Feather from '../../components/icons/NuriFeatherIcon';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
@@ -634,7 +635,7 @@ export default function UserNotificationsScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PRODUCT_CANVAS_COLOR,
   },
   header: {
     minHeight: 64,

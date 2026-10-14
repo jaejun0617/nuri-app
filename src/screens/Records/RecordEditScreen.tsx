@@ -779,7 +779,7 @@ export default function RecordEditScreen() {
   // ---------------------------------------------------------
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
-      <SeasonalFormBackground />
+      <SeasonalFormBackground uniform />
       <View style={styles.header}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity

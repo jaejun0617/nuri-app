@@ -1,6 +1,10 @@
 // 파일: src/app/theme/tokens/colors.ts
 // 목적: 라이트/다크 컬러 팔레트 분리 + 공통 semantic key 유지
 
+// Shared page canvas; Home, cards, actions and pet palettes remain separate.
+export const PRODUCT_CANVAS_COLOR = '#F1F5F8';
+export const PRODUCT_CANVAS_GRADIENT_COLORS = [PRODUCT_CANVAS_COLOR, PRODUCT_CANVAS_COLOR] as const;
+
 const common = {
   brand: '#6D7CFF',
   danger: '#FF4D4F',
@@ -10,7 +14,7 @@ const common = {
 
 export const lightColors = {
   ...common,
-  background: '#FFFFFF',
+  background: PRODUCT_CANVAS_COLOR,
   surface: '#F6F7FB',
   surfaceElevated: '#FFFFFF',
   border: '#E6E8F0',

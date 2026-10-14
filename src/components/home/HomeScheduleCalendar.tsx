@@ -21,7 +21,7 @@ import {
 import { getKstYmd } from '../../utils/date';
 import type { SeasonKey } from '../../theme/seasonal/season';
 import { ScheduleCalendarSheet } from './ScheduleCalendarSheet';
-import { HomeFrostedGlass } from './HomeFrostedGlass';
+import { HomeReflectiveGlass } from './HomeReflectiveGlass';
 import {
   buildHomeScheduleCalendar,
   homeCalendarDayLabel,
@@ -166,9 +166,8 @@ export const HomeScheduleCalendar = memo(function HomeScheduleCalendarView({
       ? '일정을 불러오고 있어요'
       : '';
   return (
-    <HomeFrostedGlass
+    <HomeReflectiveGlass
       testID="home-glass-schedule"
-      season={season}
       style={styles.section}
     >
       <View style={[styles.header, fontScale >= 1.3 && styles.stackedHeader]}>
@@ -391,7 +390,7 @@ export const HomeScheduleCalendar = memo(function HomeScheduleCalendarView({
           onDetail={detail}
         />
       ) : null}
-    </HomeFrostedGlass>
+    </HomeReflectiveGlass>
   );
 });
 

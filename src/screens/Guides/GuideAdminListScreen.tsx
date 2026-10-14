@@ -1,4 +1,5 @@
 import AppTextInput from '../../app/ui/AppTextInput';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import React, {
   startTransition,
   useCallback,
@@ -253,7 +254,7 @@ export default function GuideAdminListScreen() {
 const styles = {
   screen: {
     flex: 1,
-    backgroundColor: '#F6F7FB',
+    backgroundColor: PRODUCT_CANVAS_COLOR,
   },
   header: {
     paddingHorizontal: 18,

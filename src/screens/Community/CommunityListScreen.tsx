@@ -847,18 +847,6 @@ export default function CommunityListScreen() {
                     <View style={[styles.headerSide, styles.headerLeft]}>
                       {renderHeaderLeft()}
                     </View>
-                    <AppText
-                      preset="titleSm"
-                      maxFontSizeMultiplier={1.6}
-                      numberOfLines={1}
-                      style={[
-                        styles.headerTitle,
-                        styles.connectedHeaderTitle,
-                        { color: '#243042' },
-                      ]}
-                    >
-                      커뮤니티
-                    </AppText>
                     <View style={styles.headerSide} pointerEvents="none" />
                   </View>
                 </View>

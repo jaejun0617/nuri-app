@@ -13,6 +13,7 @@
 // - 시각 표현을 바꿀 때도 unavailable/preview 상태를 숨기면 안 된다.
 // - 배경 이미지나 레이아웃 변경보다 우선해야 하는 것은 위치 실패/권한 거부 시 정보 전달의 명확성이다.
 import React, { useCallback, useMemo } from 'react';
+import { PRODUCT_CANVAS_COLOR, lightColors } from '../../app/theme/tokens/colors';
 import {
   ImageBackground,
   ScrollView,
@@ -36,6 +37,10 @@ import AirQualityInsightCard from '../../components/weather/AirQualityInsightCar
 import WeatherForecastStrip from '../../components/weather/WeatherForecastStrip';
 import WeatherHourlyPrecipitation from '../../components/weather/WeatherHourlyPrecipitation';
 import WeatherGlassCard from '../../components/weather/WeatherGlassCard';
+import {
+  HOME_FLOATING_WIDGET_MATERIAL,
+  HomeFloatingWidgetSurface,
+} from '../../components/home/HomeWidgetMaterial';
 import { useWeatherGuide } from '../../hooks/useWeatherGuide';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { DeviceCoordinates } from '../../services/location/currentPosition';
@@ -55,7 +60,6 @@ import { getUpcomingWeatherHours } from '../../services/weather/reliability';
 import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 import {
   getSeasonalWeatherHeroVisual,
-  getWeatherHeroTextPalette,
   type WeatherScenePalette as ScenePalette,
 } from '../../theme/seasonal/weatherHero';
 
@@ -76,6 +80,7 @@ const CLEAR_NIGHT_IMAGE = require('../../assets/weather/clear-night.png');
 const DUSTY_IMAGE = require('../../assets/weather/dusty.png');
 const RAIN_IMAGE = require('../../assets/weather/rain.png');
 const SNOW_IMAGE = require('../../assets/weather/snow.png');
+const DETAILS_SHEET_RADIUS = 28;
 const UNAVAILABLE_PALETTE: ScenePalette = {
   background: ['#EEF2F7', '#E6ECF4', '#D8E0EA'],
   cardBackground: 'rgba(255,255,255,0.78)',
@@ -269,24 +274,19 @@ export default function WeatherInsightScreen() {
   );
 
   const palette = useMemo(
-    () =>
-      hasRenderableWeather
+    () => ({
+      ...(hasRenderableWeather
         ? seasonalHero?.palette ??
           getScenePalette(displayScenario, sceneIsDaytime)
-        : UNAVAILABLE_PALETTE,
+        : UNAVAILABLE_PALETTE),
+      textPrimary: lightColors.textPrimary,
+      textSecondary: lightColors.textSecondary,
+    }),
     [seasonalHero, displayScenario, hasRenderableWeather, sceneIsDaytime],
   );
   const advice = getWeatherAdvice(weather, selectedPetName);
   const needsRefresh = !hasLiveWeather || !!weatherState.error;
   const attributionLabel = weather.attribution?.label?.trim() || 'Open-Meteo';
-
-  const routeDistrict = route.params?.district?.trim() || null;
-  const displayDistrict =
-    weather.district === '현재 위치' &&
-    routeDistrict &&
-    routeDistrict !== '현재 위치'
-      ? routeDistrict
-      : weather.district;
 
   const metrics = useMemo(() => {
     const feelsLike = readWeatherMeasurement(weather, 'apparentTemperature');
@@ -368,10 +368,10 @@ export default function WeatherInsightScreen() {
     );
   }, [seasonalHero, displayScenario, hasRenderableWeather, sceneIsDaytime]);
 
-  const heroImageTextPalette = useMemo(
-    () => getWeatherHeroTextPalette(season, sceneIsDaytime),
-    [season, sceneIsDaytime],
-  );
+  const heroHeaderColor = heroImageSource
+    ? seasonalHero?.text.primary ??
+      getScenePalette(displayScenario, sceneIsDaytime).textPrimary
+    : palette.textPrimary;
 
   const forecastTextPalette = useMemo(() => {
     if (!hasRenderableWeather) {
@@ -483,15 +483,45 @@ export default function WeatherInsightScreen() {
     weatherState.coordinates,
   ]);
 
+  const weatherHeader = (
+    <View
+      testID="weather-header-surface"
+      style={[
+        styles.headerSurface,
+        heroImageSource ? styles.heroOverlayHeader : null,
+      ]}
+    >
+      <View style={styles.header}>
+        <View style={styles.headerSideSlot}>
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel="뒤로 가기"
+            activeOpacity={0.88}
+            style={styles.backButton}
+            onPress={() => navigation.goBack()}
+          >
+            <View
+              testID="weather-back-glass"
+              pointerEvents="none"
+              accessible={false}
+              importantForAccessibility="no-hide-descendants"
+              style={[HOME_FLOATING_WIDGET_MATERIAL, styles.backGlass]}
+            >
+              <HomeFloatingWidgetSurface
+                radius={20}
+                testIDPrefix="weather-back-glass"
+              />
+              <Feather name="arrow-left" size={20} color={heroHeaderColor} />
+            </View>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
+
   return (
-    <LinearGradient colors={palette.background} style={styles.screen}>
-      <StatusBar
-        barStyle={
-          hasRenderableWeather && !sceneIsDaytime
-            ? 'light-content'
-            : 'dark-content'
-        }
-      />
+    <LinearGradient colors={[PRODUCT_CANVAS_COLOR, PRODUCT_CANVAS_COLOR]} style={styles.screen}>
+      <StatusBar barStyle="dark-content" />
       <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
         <ScrollView
           contentContainerStyle={[
@@ -500,34 +530,6 @@ export default function WeatherInsightScreen() {
           ]}
           showsVerticalScrollIndicator={false}
         >
-          <View testID="weather-header-surface" style={styles.headerSurface}>
-            <View style={styles.header}>
-              <View style={styles.headerSideSlot}>
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  accessibilityLabel="뒤로 가기"
-                  activeOpacity={0.88}
-                  style={styles.backButton}
-                  onPress={() => navigation.goBack()}
-                >
-                  <Feather
-                    name="arrow-left"
-                    size={20}
-                    color={palette.textPrimary}
-                  />
-                </TouchableOpacity>
-              </View>
-              <Text
-                style={[styles.headerTitle, { color: palette.textPrimary }]}
-              >
-                오늘의 날씨
-              </Text>
-              <View
-                style={[styles.headerSideSlot, styles.headerSideSlotRight]}
-              />
-            </View>
-          </View>
-
           <View style={styles.hero}>
             {heroImageSource ? (
               <View style={styles.heroImageWrap}>
@@ -542,127 +544,7 @@ export default function WeatherInsightScreen() {
                   ]}
                   imageStyle={styles.heroImage}
                 >
-                  <View
-                    testID="weather-hero-information"
-                    style={styles.heroImageOverlay}
-                  >
-                    <View style={styles.heroTopRow}>
-                      <View style={styles.locationWrap}>
-                        <Feather
-                          name="map-pin"
-                          size={16}
-                          color={heroImageTextPalette.locationIcon}
-                        />
-                        <Text
-                          testID="weather-hero-district"
-                          style={[
-                            styles.heroImageLocationText,
-                            {
-                              color: heroImageTextPalette.primary,
-                              textShadowColor: heroImageTextPalette.shadowColor,
-                            },
-                          ]}
-                        >
-                          {displayDistrict}
-                        </Text>
-                      </View>
-                    </View>
-
-                    <View style={styles.heroMain}>
-                      <View style={styles.heroCopy}>
-                        <Text
-                          testID="weather-hero-temperature"
-                          style={[
-                            hasPreviewWeather
-                              ? styles.heroRecentTemp
-                              : styles.heroTemp,
-                            styles.heroImageText,
-                            {
-                              color: heroImageTextPalette.primary,
-                              textShadowColor: heroImageTextPalette.shadowColor,
-                            },
-                          ]}
-                        >
-                          {hasLiveWeather
-                            ? `${displayWeather.currentTemperature}°`
-                            : hasPreviewWeather
-                            ? `최근 확인 ${displayWeather.currentTemperature}°`
-                            : '정보 없음'}
-                        </Text>
-                        <Text
-                          testID="weather-hero-condition"
-                          style={[
-                            styles.heroStatus,
-                            styles.heroImageText,
-                            {
-                              color: heroImageTextPalette.primary,
-                              textShadowColor: heroImageTextPalette.shadowColor,
-                            },
-                          ]}
-                        >
-                          {displayWeather.detailStatus}
-                        </Text>
-                        <Text
-                          testID="weather-hero-range"
-                          style={[
-                            styles.heroRange,
-                            styles.heroImageSubText,
-                            {
-                              color: heroImageTextPalette.secondary,
-                              textShadowColor: heroImageTextPalette.shadowColor,
-                            },
-                          ]}
-                        >
-                          {hasLiveWeather
-                            ? `최고 ${formatWeatherMeasurement(
-                                weather,
-                                'highTemperature',
-                                '°',
-                              )} / 최저 ${formatWeatherMeasurement(
-                                weather,
-                                'lowTemperature',
-                                '°',
-                              )}`
-                            : hasPreviewWeather
-                            ? `최근 확인 최고 ${formatWeatherMeasurement(
-                                weather,
-                                'highTemperature',
-                                '°',
-                              )} / 최저 ${formatWeatherMeasurement(
-                                weather,
-                                'lowTemperature',
-                                '°',
-                              )}`
-                            : '최고/최저 기온 확인 중'}
-                        </Text>
-                        <Text
-                          testID="weather-hero-feels-like"
-                          style={[
-                            styles.heroFeelsLike,
-                            styles.heroImageSubText,
-                            {
-                              color: heroImageTextPalette.secondary,
-                              textShadowColor: heroImageTextPalette.shadowColor,
-                            },
-                          ]}
-                        >
-                          {hasLiveWeather
-                            ? `체감온도 ${formatWeatherMeasurement(
-                                weather,
-                                'apparentTemperature',
-                                '°',
-                              )}`
-                            : hasPreviewWeather
-                            ? `최근 확인 체감온도 ${formatWeatherMeasurement(
-                                weather,
-                                'apparentTemperature',
-                                '°',
-                              )}`
-                            : '체감온도 확인 중'}
-                        </Text>
-                      </View>
-                    </View>
-                  </View>
+                  {weatherHeader}
                   <LinearGradient
                     testID="weather-hero-bottom-blend"
                     pointerEvents="none"
@@ -678,363 +560,288 @@ export default function WeatherInsightScreen() {
                 </ImageBackground>
               </View>
             ) : (
-              <WeatherGlassCard
-                frosted
-                backgroundColor={palette.cardBackground}
-                borderColor={palette.cardBorder}
-                style={styles.heroVisualCard}
+              <>
+                {weatherHeader}
+                <WeatherGlassCard
+                  frosted
+                  backgroundColor={palette.cardBackground}
+                  borderColor={palette.cardBorder}
+                  style={styles.heroVisualCard}
+                >
+                  <View style={styles.heroPlaceholder}>
+                    <Text
+                      style={[
+                        styles.heroVisualTitle,
+                        { color: palette.textPrimary },
+                      ]}
+                    >
+                      날씨를 불러오지 못했어요
+                    </Text>
+                    <Text
+                      style={[
+                        styles.heroVisualBody,
+                        { color: palette.textSecondary },
+                      ]}
+                    >
+                      위치 권한과 네트워크 연결을 확인한 뒤 다시 시도해 주세요.
+                    </Text>
+                  </View>
+                </WeatherGlassCard>
+              </>
+            )}
+          </View>
+
+          <View
+            testID="weather-details-sheet"
+            style={[
+              styles.detailsSheet,
+              { marginTop: heroImageSource ? -DETAILS_SHEET_RADIUS : 0 },
+            ]}
+          >
+            <View style={styles.heroSummary}>
+              <Text style={[styles.heroHeadline, { color: palette.textPrimary }]}>
+                {formatWeatherPetText(advice.headline, selectedPetName)}
+              </Text>
+              <Text
+                style={[styles.heroMoodCopy, { color: palette.textSecondary }]}
               >
-                <View style={styles.heroTopRow}>
-                  <View style={styles.locationWrap}>
-                    <Feather
-                      name="map-pin"
-                      size={16}
-                      color={palette.textSecondary}
-                    />
-                    <Text
-                      style={[
-                        styles.locationText,
-                        { color: palette.textPrimary },
-                      ]}
-                    >
-                      {displayDistrict}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.heroMain}>
-                  <View style={styles.heroCopy}>
-                    <Text
-                      style={[styles.heroTemp, { color: palette.textPrimary }]}
-                    >
-                      {hasLiveWeather
-                        ? `${displayWeather.currentTemperature}°`
-                        : hasPreviewWeather
-                        ? `최근 확인 ${displayWeather.currentTemperature}°`
-                        : '정보 없음'}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.heroStatus,
-                        { color: palette.textPrimary },
-                      ]}
-                    >
-                      {displayWeather.detailStatus}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.heroRange,
-                        { color: palette.textSecondary },
-                      ]}
-                    >
-                      {hasLiveWeather
-                        ? `최고 ${formatWeatherMeasurement(
-                            weather,
-                            'highTemperature',
-                            '°',
-                          )} / 최저 ${formatWeatherMeasurement(
-                            weather,
-                            'lowTemperature',
-                            '°',
-                          )}`
-                        : hasPreviewWeather
-                        ? `최근 확인 최고 ${formatWeatherMeasurement(
-                            weather,
-                            'highTemperature',
-                            '°',
-                          )} / 최저 ${formatWeatherMeasurement(
-                            weather,
-                            'lowTemperature',
-                            '°',
-                          )}`
-                        : '최고/최저 기온 확인 중'}
-                    </Text>
-                    <Text
-                      style={[
-                        styles.heroFeelsLike,
-                        { color: palette.textSecondary },
-                      ]}
-                    >
-                      {hasLiveWeather
-                        ? `체감온도 ${formatWeatherMeasurement(
-                            weather,
-                            'apparentTemperature',
-                            '°',
-                          )}`
-                        : hasPreviewWeather
-                        ? `최근 확인 체감온도 ${formatWeatherMeasurement(
-                            weather,
-                            'apparentTemperature',
-                            '°',
-                          )}`
-                        : '체감온도 확인 중'}
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.heroPlaceholder}>
+                {formatWeatherPetText(advice.caption, selectedPetName)}
+              </Text>
+              {needsRefresh ? (
+                <View style={styles.updateRow}>
                   <Text
                     style={[
-                      styles.heroVisualTitle,
-                      { color: palette.textPrimary },
-                    ]}
-                  >
-                    날씨를 불러오지 못했어요
-                  </Text>
-                  <Text
-                    style={[
-                      styles.heroVisualBody,
+                      styles.sectionHint,
+                      styles.updateText,
                       { color: palette.textSecondary },
                     ]}
                   >
-                    위치 권한과 네트워크 연결을 확인한 뒤 다시 시도해 주세요.
+                    {hasPreviewWeather
+                      ? '최근 확인한 날씨예요'
+                      : '최신 날씨를 확인하지 못했어요'}
                   </Text>
+                  <TouchableOpacity
+                    accessibilityRole="button"
+                    accessibilityLabel="날씨 다시 확인"
+                    onPress={weatherState.refresh}
+                    disabled={weatherState.loading}
+                    style={styles.refreshButton}
+                  >
+                    <Text
+                      style={[styles.sectionHint, { color: palette.textPrimary }]}
+                    >
+                      {weatherState.loading ? '확인 중' : '다시 확인'}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
-              </WeatherGlassCard>
-            )}
+              ) : null}
+            </View>
 
-            <Text style={[styles.heroHeadline, { color: palette.textPrimary }]}>
-              {formatWeatherPetText(advice.headline, selectedPetName)}
-            </Text>
-            <Text
-              style={[styles.heroMoodCopy, { color: palette.textSecondary }]}
+            <WeatherHourlyPrecipitation
+              items={getUpcomingWeatherHours(weather)}
+              textColor={palette.textPrimary}
+              secondaryColor={palette.textSecondary}
+            />
+
+            <WeatherGlassCard
+              frosted
+              backgroundColor={palette.cardBackground}
+              borderColor={palette.cardBorder}
             >
-              {formatWeatherPetText(advice.caption, selectedPetName)}
-            </Text>
-            {needsRefresh ? (
-              <View style={styles.updateRow}>
+              <View style={styles.sectionHeader}>
                 <Text
+                  style={[styles.sectionTitle, { color: palette.textPrimary }]}
+                >
+                  7일 예보
+                </Text>
+              </View>
+              <WeatherForecastStrip
+                items={weather.weekly}
+                accentColor={palette.accent}
+                labelColor={forecastTextPalette.label}
+                precipitationColor={forecastTextPalette.precipitation}
+                temperatureColor={forecastTextPalette.temperature}
+                lowTemperatureColor={forecastTextPalette.lowTemperature}
+              />
+            </WeatherGlassCard>
+
+            <AirQualityInsightCard
+              frosted
+              metrics={weather.airQualityMetrics}
+              titleColor={palette.textPrimary}
+              hintColor={palette.textSecondary}
+              metricLabelColor={palette.textPrimary}
+              valueColor={palette.textPrimary}
+              trackColor={
+                hasLiveWeather &&
+                displayWeather.scenario === 'fresh' &&
+                sceneIsDaytime
+                  ? 'rgba(99,153,231,0.18)'
+                  : undefined
+              }
+              backgroundColor={
+                hasLiveWeather &&
+                displayWeather.scenario === 'fresh' &&
+                sceneIsDaytime
+                  ? 'rgba(255,255,255,0.78)'
+                  : palette.cardBackground
+              }
+              borderColor={
+                hasLiveWeather &&
+                displayWeather.scenario === 'fresh' &&
+                sceneIsDaytime
+                  ? 'rgba(255,255,255,0.46)'
+                  : palette.cardBorder
+              }
+            />
+
+            <View style={styles.metricGrid}>
+              {metrics.map(item => (
+                <WeatherGlassCard
+                  frosted
+                  key={item.key}
+                  backgroundColor={palette.cardBackground}
+                  borderColor={palette.cardBorder}
                   style={[
-                    styles.sectionHint,
-                    styles.updateText,
-                    { color: palette.textSecondary },
+                    styles.metricCard,
+                    singleColumnMetrics ? styles.metricCardFull : null,
                   ]}
                 >
-                  {hasPreviewWeather
-                    ? '최근 확인한 날씨예요'
-                    : '최신 날씨를 확인하지 못했어요'}
-                </Text>
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  accessibilityLabel="날씨 다시 확인"
-                  onPress={weatherState.refresh}
-                  disabled={weatherState.loading}
-                  style={styles.refreshButton}
+                  <Text
+                    style={[styles.metricLabel, { color: palette.textSecondary }]}
+                  >
+                    {item.title}
+                  </Text>
+                  <Text
+                    style={[styles.metricValue, { color: palette.textPrimary }]}
+                  >
+                    {item.value}
+                  </Text>
+                  <Text
+                    style={[styles.metricBody, { color: palette.textSecondary }]}
+                  >
+                    {item.description}
+                  </Text>
+                </WeatherGlassCard>
+              ))}
+            </View>
+
+            <View style={styles.metricGrid}>
+              {atmosphericMetrics.map(item => (
+                <WeatherGlassCard
+                  frosted
+                  key={item.key}
+                  backgroundColor={palette.cardBackground}
+                  borderColor={palette.cardBorder}
+                  style={[
+                    styles.metricCard,
+                    singleColumnMetrics ? styles.metricCardFull : null,
+                  ]}
                 >
                   <Text
-                    style={[styles.sectionHint, { color: palette.textPrimary }]}
+                    style={[styles.metricLabel, { color: palette.textSecondary }]}
                   >
-                    {weatherState.loading ? '확인 중' : '다시 확인'}
+                    {item.title}
                   </Text>
-                </TouchableOpacity>
+                  <Text
+                    style={[styles.metricValue, { color: palette.textPrimary }]}
+                  >
+                    {item.value}
+                  </Text>
+                  <Text
+                    style={[styles.metricBody, { color: palette.textSecondary }]}
+                  >
+                    {item.description}
+                  </Text>
+                </WeatherGlassCard>
+              ))}
+            </View>
+
+            <WeatherGlassCard
+              frosted
+              backgroundColor={palette.cardBackground}
+              borderColor={palette.cardBorder}
+            >
+              <View style={styles.sectionHeader}>
+                <Text
+                  style={[styles.sectionTitle, { color: palette.textPrimary }]}
+                >
+                  일출과 일몰
+                </Text>
               </View>
+
+              <View style={styles.sunRow}>
+                <View style={styles.sunItem}>
+                  <Text style={styles.sunEmoji}>🌅</Text>
+                  <Text
+                    style={[styles.sunLabel, { color: palette.textSecondary }]}
+                  >
+                    일출
+                  </Text>
+                  <Text style={[styles.sunValue, { color: palette.textPrimary }]}>
+                    {weather.sunriseTime ?? '정보 없음'}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.sunDivider,
+                    { backgroundColor: 'rgba(255,255,255,0.12)' },
+                  ]}
+                />
+                <View style={styles.sunItem}>
+                  <Text style={styles.sunEmoji}>🌇</Text>
+                  <Text
+                    style={[styles.sunLabel, { color: palette.textSecondary }]}
+                  >
+                    일몰
+                  </Text>
+                  <Text style={[styles.sunValue, { color: palette.textPrimary }]}>
+                    {weather.sunsetTime ?? '정보 없음'}
+                  </Text>
+                </View>
+              </View>
+            </WeatherGlassCard>
+
+            <WeatherGlassCard
+              frosted
+              backgroundColor={palette.cardBackground}
+              borderColor={palette.cardBorder}
+            >
+              <View style={styles.sectionHeader}>
+                <Text
+                  style={[styles.sectionTitle, { color: palette.textPrimary }]}
+                >
+                  반려동물 외출 안내
+                </Text>
+              </View>
+              <Text style={[styles.careTitle, { color: palette.textPrimary }]}>
+                {advice.label}
+              </Text>
+              <Text style={[styles.careBody, { color: palette.textSecondary }]}>
+                {formatWeatherPetText(advice.detail, selectedPetName)}
+              </Text>
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={[
+                  styles.primaryButton,
+                  { backgroundColor: palette.accent },
+                ]}
+                onPress={onPressPrimary}
+              >
+                <Text style={styles.primaryButtonText}>
+                  {advice.caution ? '실내 활동 살펴보기' : '산책 기록 보기'}
+                </Text>
+              </TouchableOpacity>
+            </WeatherGlassCard>
+
+            {hasRenderableWeather ? (
+              <Text
+                style={[styles.attributionText, { color: palette.textSecondary }]}
+              >
+                {`날씨·대기질 예측: ${attributionLabel} · 실제 날씨와 차이가 있을 수 있어요.`}
+              </Text>
             ) : null}
           </View>
-
-          <WeatherHourlyPrecipitation
-            items={getUpcomingWeatherHours(weather)}
-            textColor={palette.textPrimary}
-            secondaryColor={palette.textSecondary}
-          />
-
-          <WeatherGlassCard
-            frosted
-            backgroundColor={palette.cardBackground}
-            borderColor={palette.cardBorder}
-          >
-            <View style={styles.sectionHeader}>
-              <Text
-                style={[styles.sectionTitle, { color: palette.textPrimary }]}
-              >
-                7일 예보
-              </Text>
-            </View>
-            <WeatherForecastStrip
-              items={weather.weekly}
-              accentColor={palette.accent}
-              labelColor={forecastTextPalette.label}
-              precipitationColor={forecastTextPalette.precipitation}
-              temperatureColor={forecastTextPalette.temperature}
-              lowTemperatureColor={forecastTextPalette.lowTemperature}
-            />
-          </WeatherGlassCard>
-
-          <AirQualityInsightCard
-            frosted
-            metrics={weather.airQualityMetrics}
-            titleColor={palette.textPrimary}
-            hintColor={palette.textSecondary}
-            metricLabelColor={palette.textPrimary}
-            valueColor={palette.textPrimary}
-            trackColor={
-              hasLiveWeather &&
-              displayWeather.scenario === 'fresh' &&
-              sceneIsDaytime
-                ? 'rgba(99,153,231,0.18)'
-                : undefined
-            }
-            backgroundColor={
-              hasLiveWeather &&
-              displayWeather.scenario === 'fresh' &&
-              sceneIsDaytime
-                ? 'rgba(255,255,255,0.78)'
-                : palette.cardBackground
-            }
-            borderColor={
-              hasLiveWeather &&
-              displayWeather.scenario === 'fresh' &&
-              sceneIsDaytime
-                ? 'rgba(255,255,255,0.46)'
-                : palette.cardBorder
-            }
-          />
-
-          <View style={styles.metricGrid}>
-            {metrics.map(item => (
-              <WeatherGlassCard
-                frosted
-                key={item.key}
-                backgroundColor={palette.cardBackground}
-                borderColor={palette.cardBorder}
-                style={[
-                  styles.metricCard,
-                  singleColumnMetrics ? styles.metricCardFull : null,
-                ]}
-              >
-                <Text
-                  style={[styles.metricLabel, { color: palette.textSecondary }]}
-                >
-                  {item.title}
-                </Text>
-                <Text
-                  style={[styles.metricValue, { color: palette.textPrimary }]}
-                >
-                  {item.value}
-                </Text>
-                <Text
-                  style={[styles.metricBody, { color: palette.textSecondary }]}
-                >
-                  {item.description}
-                </Text>
-              </WeatherGlassCard>
-            ))}
-          </View>
-
-          <View style={styles.metricGrid}>
-            {atmosphericMetrics.map(item => (
-              <WeatherGlassCard
-                frosted
-                key={item.key}
-                backgroundColor={palette.cardBackground}
-                borderColor={palette.cardBorder}
-                style={[
-                  styles.metricCard,
-                  singleColumnMetrics ? styles.metricCardFull : null,
-                ]}
-              >
-                <Text
-                  style={[styles.metricLabel, { color: palette.textSecondary }]}
-                >
-                  {item.title}
-                </Text>
-                <Text
-                  style={[styles.metricValue, { color: palette.textPrimary }]}
-                >
-                  {item.value}
-                </Text>
-                <Text
-                  style={[styles.metricBody, { color: palette.textSecondary }]}
-                >
-                  {item.description}
-                </Text>
-              </WeatherGlassCard>
-            ))}
-          </View>
-
-          <WeatherGlassCard
-            frosted
-            backgroundColor={palette.cardBackground}
-            borderColor={palette.cardBorder}
-          >
-            <View style={styles.sectionHeader}>
-              <Text
-                style={[styles.sectionTitle, { color: palette.textPrimary }]}
-              >
-                일출과 일몰
-              </Text>
-            </View>
-
-            <View style={styles.sunRow}>
-              <View style={styles.sunItem}>
-                <Text style={styles.sunEmoji}>🌅</Text>
-                <Text
-                  style={[styles.sunLabel, { color: palette.textSecondary }]}
-                >
-                  일출
-                </Text>
-                <Text style={[styles.sunValue, { color: palette.textPrimary }]}>
-                  {weather.sunriseTime ?? '정보 없음'}
-                </Text>
-              </View>
-              <View
-                style={[
-                  styles.sunDivider,
-                  { backgroundColor: 'rgba(255,255,255,0.12)' },
-                ]}
-              />
-              <View style={styles.sunItem}>
-                <Text style={styles.sunEmoji}>🌇</Text>
-                <Text
-                  style={[styles.sunLabel, { color: palette.textSecondary }]}
-                >
-                  일몰
-                </Text>
-                <Text style={[styles.sunValue, { color: palette.textPrimary }]}>
-                  {weather.sunsetTime ?? '정보 없음'}
-                </Text>
-              </View>
-            </View>
-          </WeatherGlassCard>
-
-          <WeatherGlassCard
-            frosted
-            backgroundColor={palette.cardBackground}
-            borderColor={palette.cardBorder}
-          >
-            <View style={styles.sectionHeader}>
-              <Text
-                style={[styles.sectionTitle, { color: palette.textPrimary }]}
-              >
-                반려동물 외출 안내
-              </Text>
-            </View>
-            <Text style={[styles.careTitle, { color: palette.textPrimary }]}>
-              {advice.label}
-            </Text>
-            <Text style={[styles.careBody, { color: palette.textSecondary }]}>
-              {formatWeatherPetText(advice.detail, selectedPetName)}
-            </Text>
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[
-                styles.primaryButton,
-                { backgroundColor: palette.accent },
-              ]}
-              onPress={onPressPrimary}
-            >
-              <Text style={styles.primaryButtonText}>
-                {advice.caution ? '실내 활동 살펴보기' : '산책 기록 보기'}
-              </Text>
-            </TouchableOpacity>
-          </WeatherGlassCard>
-
-          {hasRenderableWeather ? (
-            <Text
-              style={[styles.attributionText, { color: palette.textSecondary }]}
-            >
-              {`날씨·대기질 예측: ${attributionLabel} · 실제 날씨와 차이가 있을 수 있어요.`}
-            </Text>
-          ) : null}
         </ScrollView>
       </SafeAreaView>
     </LinearGradient>
@@ -1050,7 +857,6 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: 18,
-    gap: 12,
   },
   header: {
     minHeight: 48,
@@ -1061,27 +867,50 @@ const styles = StyleSheet.create({
   headerSurface: {
     gap: 8,
   },
+  // SafeAreaView owns the status-bar inset; the artwork starts below that boundary.
+  heroOverlayHeader: {
+    position: 'absolute',
+    top: 0,
+    left: 18,
+    right: 18,
+    zIndex: 1,
+  },
   headerSideSlot: {
-    width: 40,
-    minHeight: 40,
+    width: 48,
+    minHeight: 48,
     justifyContent: 'center',
     alignItems: 'flex-start',
   },
-  headerSideSlotRight: {
-    alignItems: 'flex-end',
-  },
   backButton: {
-    width: 40,
-    height: 40,
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: {
-    flex: 1,
-    textAlign: 'center',
-    fontSize: 17,
-    lineHeight: 22,
-    fontWeight: '900',
+  backGlass: {
+    width: 40,
+    height: 40,
+    marginTop: 0,
+    borderRadius: 20,
+    borderWidth: 0,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  // A full-width sheet meets the artwork; content keeps its existing horizontal inset.
+  detailsSheet: {
+    backgroundColor: PRODUCT_CANVAS_COLOR,
+    borderTopLeftRadius: DETAILS_SHEET_RADIUS,
+    borderTopRightRadius: DETAILS_SHEET_RADIUS,
+    marginHorizontal: -18,
+    paddingHorizontal: 18,
+    paddingTop: 20,
+    gap: 12,
+    overflow: 'hidden',
+    zIndex: 1,
+  },
+  heroSummary: {
+    gap: 10,
   },
   hero: {
     gap: 10,
@@ -1095,14 +924,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   heroImage: {},
-  heroImageOverlay: {
-    flex: 1,
-    paddingHorizontal: 18,
-    paddingTop: 12,
-    paddingBottom: 14,
-    justifyContent: 'flex-start',
-    gap: 6,
-  },
   heroImageBottomBlend: {
     position: 'absolute',
     left: 0,
@@ -1110,84 +931,9 @@ const styles = StyleSheet.create({
     bottom: 0,
     height: 132,
   },
-  heroTopRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  locationWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    flexShrink: 1,
-  },
-  locationText: {
-    fontSize: 15,
-    lineHeight: 20,
-    fontWeight: '700',
-  },
-  heroImageLocationText: {
-    fontSize: 14,
-    lineHeight: 18,
-    flexShrink: 1,
-    color: '#FFFFFF',
-    fontWeight: '700',
-    textShadowColor: 'rgba(0,0,0,0.5)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  heroMain: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  heroCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  heroTemp: {
-    fontSize: 53,
-    lineHeight: 57,
-    fontWeight: '800',
-  },
-  heroRecentTemp: {
-    fontSize: 24,
-    lineHeight: 32,
-    fontWeight: '800',
-  },
-  heroStatus: {
-    fontSize: 16,
-    lineHeight: 20,
-    fontWeight: '700',
-  },
-  heroRange: {
-    marginTop: 2,
-    fontSize: 14,
-    lineHeight: 18,
-    fontWeight: '600',
-  },
-  heroFeelsLike: {
-    fontSize: 13,
-    lineHeight: 17,
-    fontWeight: '500',
-  },
   heroEmoji: {
     fontSize: 54,
     lineHeight: 58,
-  },
-  heroImageText: {
-    color: '#FFFFFF',
-    textShadowColor: 'rgba(0,0,0,0.56)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  heroImageSubText: {
-    color: 'rgba(255,255,255,0.88)',
-    textShadowColor: 'rgba(0,0,0,0.48)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
   },
   heroVisualCard: {
     borderRadius: 28,

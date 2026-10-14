@@ -24,6 +24,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import GuestLockedState from '../../components/common/GuestLockedState';
 import Screen from '../../components/layout/Screen';
 import {
@@ -475,11 +476,11 @@ function PrimaryButton({
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PRODUCT_CANVAS_COLOR,
   },
   scroll: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PRODUCT_CANVAS_COLOR,
   },
   content: {
     flexGrow: 1,

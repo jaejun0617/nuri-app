@@ -2,7 +2,7 @@ import {
   getSeasonalWeatherHeroVisual,
   getWeatherHeroTextPalette,
 } from '../src/theme/seasonal/weatherHero';
-import { getHomeAmbientVisual } from '../src/theme/home/seasonalAmbient';
+import { SEASON_CTA } from '../src/app/theme/ctaPalette';
 import { getSeasonalWeatherVisualTheme } from '../src/theme/seasonal/weather';
 
 describe('autumn weather hero contract', () => {
@@ -39,17 +39,15 @@ describe('seasonal hero text without a panel', () => {
       [true, false].map(isDaytime => ({ season, isDaytime })),
     ),
   )(
-    'uses the Home background color for $season / day=$isDaytime without a surface',
+    'uses the seasonal CTA color for $season / day=$isDaytime without a surface',
     ({ season, isDaytime }) => {
       const palette = getWeatherHeroTextPalette(season, isDaytime);
-      const home = getHomeAmbientVisual(season);
       const card = getSeasonalWeatherVisualTheme(season)?.card;
       const visual = getSeasonalWeatherHeroVisual(season, 'fresh', isDaytime);
       expect(visual?.key).toBe(isDaytime ? 'normal-day' : 'normal-night');
-      expect(home.primaryColor).toBe(home.sectionFields[0].color);
       expect(palette).toEqual({
-        primary: home.primaryColor,
-        secondary: home.primaryColor,
+        primary: SEASON_CTA[season].primary,
+        secondary: SEASON_CTA[season].primary,
         shadowColor: 'transparent',
         locationIcon: isDaytime ? card?.primaryText : card?.surfaceColors[0],
       });

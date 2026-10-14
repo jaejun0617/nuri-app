@@ -65,7 +65,10 @@ import Animated, {
 
 import Screen from '../../../../components/layout/Screen';
 import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
-import MonthlyExpenseSection from './MonthlyExpenseSection';
+import {
+  HOME_FLOATING_WIDGET_MATERIAL,
+  HomeFloatingWidgetSurface,
+} from '../../../../components/home/HomeWidgetMaterial';
 import { useHealthVisualQa } from '../../../../components/health/healthVisualQa';
 import { HomeScheduleCalendar } from '../../../../components/home/HomeScheduleCalendar';
 import { HomeSeasonProvider } from '../../../../components/home/HomeSeasonContext';
@@ -109,7 +112,6 @@ import {
   HomeEmptySectionState,
   type HomeEmptyDataState,
 } from './HomeEmptySectionState';
-import { HomeSeasonReviewControls } from './HomeSeasonReviewControls';
 import { HomeHealthActivityList } from './HomePopulatedLists';
 import { TotalSummarySection } from './TotalSummarySection';
 import {
@@ -118,7 +120,10 @@ import {
   getRecentEmptyDataState,
 } from './HomeEditorialStates';
 import { HomeAmbientBubbleCanvas } from './HomeAmbientBubbleCanvas';
-import { HOME_FOREGROUND_UI_SEASON } from '../../../../theme/home/seasonalAmbient';
+import {
+  HOME_FOREGROUND_UI_SEASON,
+  HOME_SEASONAL_BACKGROUND_GRADIENTS,
+} from '../../../../theme/home/seasonalAmbient';
 import {
   AutumnLeafOrnament,
   SeasonalHomeAutumnStage,
@@ -134,11 +139,11 @@ import {
 } from './SeasonalProfileSheetOrnament';
 import {
   getSeasonalHomeVisual,
+  SEASONAL_HOME_COPY,
   type SeasonalHomeVisual,
 } from '../../../../theme/seasonal/home';
 import type { SeasonKey } from '../../../../theme/seasonal/season';
 import { useSeasonPreference } from '../../../../app/providers/SeasonPreferenceProvider';
-import { captureMonitoringException } from '../../../../services/monitoring/sentry';
 import { getSeasonalWeatherVisualTheme } from '../../../../theme/seasonal/weather';
 
 import {
@@ -1106,7 +1111,6 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
 const HomeHeaderSection = React.memo(function HomeHeaderSection({
   seasonalCopy,
   season,
-  headerPalette,
   visiblePets,
   activePetId,
   petThemePrimary,
@@ -1117,7 +1121,6 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
 }: {
   seasonalCopy: string | null;
   season: SeasonalHomeVisual['season'] | null;
-  headerPalette: SeasonalHomeVisual['headerPalette'] | null;
   visiblePets: Pet[];
   activePetId: string | null;
   petThemePrimary: string;
@@ -1130,7 +1133,6 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
   const isWinter = season === 'winter';
   const isSpring = season === 'spring';
   const isSummer = season === 'summer';
-  const usesCanonicalWarmSurface = season !== null && !isWinter;
   const notificationAccessibilityLabel =
     notificationUnreadCount > 0
       ? `알림 목록 열기, 읽지 않은 알림 ${notificationUnreadCount}개`
@@ -1172,7 +1174,7 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
             style={[
               styles.seasonalCopy,
               styles.seasonalCopyReadabilityText,
-              { color: headerPalette?.copy ?? petThemePrimary },
+              { color: brandColor },
             ]}
           >
             {seasonalCopy}
@@ -1183,15 +1185,23 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
       <View style={styles.notificationAnchor}>
         <TouchableOpacity
           activeOpacity={0.85}
-          style={[
-            styles.headerIconBtn,
-            usesCanonicalWarmSurface ? styles.autumnHeaderIconBtn : null,
-            isWinter ? styles.winterHeaderIconBtn : null,
-          ]}
+          style={styles.headerIconBtn}
           onPress={onPressNotifications}
           accessibilityLabel={notificationAccessibilityLabel}
           accessibilityRole="button"
         >
+          <View
+            testID="home-notification-glass"
+            pointerEvents="none"
+            accessible={false}
+            importantForAccessibility="no-hide-descendants"
+            style={[HOME_FLOATING_WIDGET_MATERIAL, styles.headerNotificationGlass]}
+          >
+            <HomeFloatingWidgetSurface
+              radius={17}
+              testIDPrefix="home-notification-glass"
+            />
+          </View>
           <Feather name="bell" size={18} color="rgba(11,18,32,0.75)" />
           {notificationUnreadCount > 0 ? (
             <View style={styles.headerNotificationBadge}>
@@ -2265,18 +2275,12 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
               onPress={requestClose}
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Feather
+              <NuriSemanticIcon
+                family="feather"
+                preserveOriginal
                 name="x"
                 size={19}
-                color={
-                  isWinter
-                    ? '#50627F'
-                    : isSpring
-                    ? '#765564'
-                    : isSummer
-                    ? '#426C63'
-                    : 'rgba(79,56,42,0.78)'
-                }
+                color="#000000"
               />
             </TouchableOpacity>
           </View>
@@ -2896,15 +2900,10 @@ export default function LoggedInHome() {
   const insets = useSafeAreaInsets();
   const bottomTabBarHeight = useBottomTabBarHeight();
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
-  const { season: ambientSeason, setOverride: setSeasonOverride } =
+  const { season: ambientSeason } =
     useSeasonPreference();
-  const setReviewSeason = useCallback(
-    (season: SeasonKey) => {
-      setSeasonOverride(season).catch(captureMonitoringException);
-    },
-    [setSeasonOverride],
-  );
-  // Seasonal atmosphere is independent of the approved logo, copy and Weather UI.
+  const homeBackgroundColor = HOME_SEASONAL_BACKGROUND_GRADIENTS[ambientSeason][0];
+  // Keep foreground geometry stable; greeting copy follows the selected season.
   const seasonalHomeVisual = useMemo(
     () => getSeasonalHomeVisual(HOME_FOREGROUND_UI_SEASON),
     [],
@@ -4043,9 +4042,8 @@ export default function LoggedInHome() {
   }, []);
   const homeHeader = (
     <HomeHeaderSection
-      seasonalCopy={seasonalHomeVisual?.greetingCopy ?? null}
+      seasonalCopy={SEASONAL_HOME_COPY[ambientSeason]}
       season={seasonalHomeVisual?.season ?? null}
-      headerPalette={seasonalHomeVisual?.headerPalette ?? null}
       visiblePets={visiblePets}
       activePetId={activePetId}
       petThemePrimary={petTheme.primary}
@@ -4098,7 +4096,6 @@ export default function LoggedInHome() {
         ambientBubbleCanvasEnabled ? styles.ambientBackgroundTransparent : null,
       ]}
     >
-      <MonthlyExpenseSection onPress={monthKey => navigation.navigate('TimelineTab', { screen: 'MonthlyExpenses', params: { monthKey, entrySource: 'home' } })} />
       <WeatherToLowerHomeBridge
         season={seasonalHomeVisual?.season ?? null}
         height={weatherToHomeBridgeHeight}
@@ -4236,15 +4233,20 @@ export default function LoggedInHome() {
   // ---------------------------------------------------------
   return (
     <HomeSeasonProvider season={HOME_FOREGROUND_UI_SEASON}>
-      <Screen style={styles.screen}>
-        <HomeSeasonReviewControls
-          season={ambientSeason}
-          onChange={setReviewSeason}
-        />
+      <Screen style={[styles.screen, { backgroundColor: homeBackgroundColor }]}>
+        {seasonalHomeVisual ? (
+          <HomeAmbientBubbleCanvas
+            backgroundMode="homePalette"
+            season={ambientSeason}
+            heroHeight={seasonalHeroViewportHeight}
+            sectionLayouts={ambientSectionLayouts}
+            sectionOrigin={ambientContentY + ambientLowerY}
+          />
+        ) : null}
         <ScrollView
           ref={homeScrollRef}
           keyboardShouldPersistTaps="handled"
-          style={styles.scroll}
+          style={[styles.scroll, styles.ambientBackgroundTransparent]}
           contentContainerStyle={[
             styles.scrollContent,
             {
@@ -4259,14 +4261,6 @@ export default function LoggedInHome() {
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
-          {seasonalHomeVisual ? (
-            <HomeAmbientBubbleCanvas
-              season={ambientSeason}
-              heroHeight={seasonalHeroViewportHeight}
-              sectionLayouts={ambientSectionLayouts}
-              sectionOrigin={ambientContentY + ambientLowerY}
-            />
-          ) : null}
           {seasonalHomeVisual ? (
             <SeasonalHomeAutumnStage
               atmosphere={seasonalHomeVisual.atmosphere}

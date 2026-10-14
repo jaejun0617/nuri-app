@@ -1,12 +1,12 @@
 import { StyleSheet } from 'react-native';
+import { PRODUCT_CANVAS_COLOR, lightColors } from '../../app/theme/tokens/colors';
 
-const SURFACE_DEEP = '#090A21';
 const DISPLAY_FONT = 'insungitCutelivelyjisu';
 
 export const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: SURFACE_DEEP,
+    backgroundColor: PRODUCT_CANVAS_COLOR,
   },
   backgroundImage: {
     position: 'absolute',
@@ -54,7 +54,7 @@ export const styles = StyleSheet.create({
   },
   wordmark: {
     marginTop: 10,
-    color: '#F7D7C2',
+    color: lightColors.textPrimary,
     fontFamily: DISPLAY_FONT,
     fontSize: 36,
     lineHeight: 44,
@@ -75,7 +75,7 @@ export const styles = StyleSheet.create({
     marginTop: 25,
   },
   headline: {
-    color: '#F9E4D3',
+    color: lightColors.textPrimary,
     fontFamily: DISPLAY_FONT,
     fontSize: 25,
     lineHeight: 34,
@@ -86,7 +86,7 @@ export const styles = StyleSheet.create({
   },
   description: {
     marginTop: 8,
-    color: 'rgba(219, 210, 226, 0.76)',
+    color: lightColors.textSecondary,
     fontFamily: DISPLAY_FONT,
     fontSize: 15,
     lineHeight: 22,

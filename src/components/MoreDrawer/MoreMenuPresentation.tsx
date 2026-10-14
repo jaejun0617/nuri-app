@@ -269,6 +269,7 @@ const MoreMenuRow = memo(function MoreMenuRowContent({
       activeOpacity={0.65}
       style={[
         styles.row,
+        quick && styles.quickRow,
         quick && !stacked && styles.quickCell,
         item.disabled && styles.disabled,
       ]}
@@ -279,7 +280,6 @@ const MoreMenuRow = memo(function MoreMenuRowContent({
             style={[
               styles.icon,
               quick && styles.quickIcon,
-              quick && { backgroundColor: colors.accentSurface },
             ]}
           >
             <NuriSemanticIcon
@@ -323,7 +323,7 @@ const MoreMenuRow = memo(function MoreMenuRowContent({
           <View style={[styles.dot, { backgroundColor: colors.accent }]} />
         </Decoration>
       ) : null}
-      {!quick && !item.command ? <Chevron /> : null}
+      {!item.command ? <Chevron /> : null}
     </TouchableOpacity>
   );
 });
@@ -443,6 +443,7 @@ const styles = StyleSheet.create({
     rowGap: 4,
   },
   quickCell: { flexBasis: '45%', flexGrow: 1 },
+  quickRow: { gap: 8 },
   row: {
     minHeight: MORE_MENU.rowHeight,
     paddingVertical: MORE_MENU.rowPaddingVertical,

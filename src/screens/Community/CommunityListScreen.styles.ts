@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import { typography } from '../../app/theme/tokens/typography';
 
 export const styles = StyleSheet.create({
@@ -32,7 +33,7 @@ export const styles = StyleSheet.create({
   },
   screen: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PRODUCT_CANVAS_COLOR,
   },
   header: {
     position: 'absolute',

@@ -22,10 +22,13 @@ import {
 import {
   getHomeAmbientVisual,
   HOME_AMBIENT_SECTION_LIGHTS,
+  HOME_SEASONAL_BACKGROUND_GRADIENTS,
+  HOME_SEASONAL_BACKGROUND_LOCATIONS,
   type HomeAmbientAnchoredField,
 } from '../../../../theme/home/seasonalAmbient';
 import type { SeasonKey } from '../../../../theme/seasonal/season';
 import { SeasonalAmbientLighting } from '../../../../components/common/SeasonalAmbientBackground';
+import { PRODUCT_CANVAS_COLOR, PRODUCT_CANVAS_GRADIENT_COLORS } from '../../../../app/theme/tokens/colors';
 
 const SOFT_RADIAL_GLOW = require('../../../../assets/seasonal/home/autumn/bubbles/soft-radial-glow-v1.png');
 const FADE_LOCATIONS = [0, 0.12, 0.3, 0.5, 0.7, 0.88, 1];
@@ -227,6 +230,7 @@ export const HomeAmbientBubbleCanvas = memo(
     season = 'autumn',
     decorationMode = 'home',
     showDecorations = true,
+    backgroundMode = 'seasonal',
   }: {
     heroHeight: number;
     sectionLayouts?: HomeAmbientSectionLayouts;
@@ -234,11 +238,45 @@ export const HomeAmbientBubbleCanvas = memo(
     season?: SeasonKey;
     decorationMode?: 'home' | 'reading';
     showDecorations?: boolean;
+    backgroundMode?: 'seasonal' | 'uniform' | 'homePalette';
   }) {
     const { width: windowWidth } = useWindowDimensions();
     const visual = getHomeAmbientVisual(season);
     const lightColors = season === 'autumn' ? LIGHT_COLORS : COOL_LIGHT_COLORS;
     const lowerLayerStyle = useMemo(() => ({ top: heroHeight }), [heroHeight]);
+
+    // Flat product palettes omit all legacy images, washes and decorations.
+    if (backgroundMode === 'uniform' || backgroundMode === 'homePalette') {
+      const isHomePalette = backgroundMode === 'homePalette';
+      const homeColors = HOME_SEASONAL_BACKGROUND_GRADIENTS[season];
+      return (
+        <View
+          testID="home-ambient-bubble-canvas"
+          pointerEvents="none"
+          accessible={false}
+          accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
+          style={[
+            styles.canvas,
+            (isHomePalette || decorationMode === 'reading') && styles.readingCanvas,
+            {
+              backgroundColor: isHomePalette
+                ? homeColors[2]
+                : PRODUCT_CANVAS_COLOR,
+            },
+          ]}
+        >
+          <LinearGradient
+            testID={isHomePalette ? 'home-season-canvas-gradient' : 'product-canvas-gradient'}
+            colors={isHomePalette ? [...homeColors] : [...PRODUCT_CANVAS_GRADIENT_COLORS]}
+            locations={isHomePalette ? [...HOME_SEASONAL_BACKGROUND_LOCATIONS] : [0, 1]}
+            start={{ x: 0.5, y: 0 }}
+            end={{ x: 0.5, y: 1 }}
+            style={StyleSheet.absoluteFill}
+          />
+        </View>
+      );
+    }
 
     return (
       <View

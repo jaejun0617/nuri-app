@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useState } from 'react';
+import React, { useCallback, useContext, useEffect, useState } from 'react';
 import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 import {
   SafeAreaView,
@@ -29,6 +29,7 @@ import {
 } from '../../services/health-report/month';
 import { formatRecordPriceLabel } from '../../services/records/form';
 import type { MonthlyExpense } from '../../services/records/expenses';
+import { openMoreDrawer } from '../../store/uiStore';
 
 export default function MonthlyExpensesScreen() {
   const navigation =
@@ -44,6 +45,11 @@ export default function MonthlyExpensesScreen() {
     normalizeHealthReportMonthKey(route.params?.monthKey),
   );
   const [visibleCount, setVisibleCount] = useState(20);
+  // A fresh menu entry resets the month; returning from a record preserves it.
+  useEffect(() => {
+    setMonth(normalizeHealthReportMonthKey(route.params?.monthKey));
+    setVisibleCount(20);
+  }, [route.params?.monthKey, route.params?.entryRequestId]);
   const query = useMonthlyExpenses(month);
   const toolbarHeight = useContext(ToolbarHeightContext);
   const insets = useSafeAreaInsets();
@@ -54,7 +60,10 @@ export default function MonthlyExpensesScreen() {
   const onBack = useEntryAwareBackAction({
     entrySource: route.params?.entrySource,
     onHome: returnHome,
-    onMore: returnHome,
+    onMore: () => {
+      navigation.goBack();
+      requestAnimationFrame(() => openMoreDrawer());
+    },
     onFallback: () => navigation.goBack(),
   });
   const changeMonth = (offset: number) => {

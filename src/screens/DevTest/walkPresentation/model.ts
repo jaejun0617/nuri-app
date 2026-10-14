@@ -29,8 +29,8 @@ export const WALK_COPY: Record<
   },
   WALKING: {
     title: '함께 걷는 중',
-    supporting: '지금 이 길에 우리의 발자국을 남겨요.',
-    icon: 'sun',
+    supporting: '우리의 걸음이 차곡차곡 쌓이고 있어요.',
+    icon: 'navigation',
   },
   PAUSED: {
     title: '잠시 쉬는 중',
@@ -67,6 +67,23 @@ export const WALK_COPY: Record<
     supporting: '함께 걸은 순간을 기록으로 남겨볼까요?',
     icon: 'heart',
   },
+};
+
+// These labels describe the existing presentation state, not a new GPS policy.
+export const WALK_GPS_STATUS: Record<
+  PresentationState,
+  { label: string; icon: string }
+> = {
+  PRE_WALK: { label: '산책 시작 전', icon: 'map-pin' },
+  GPS_ACQUIRING: { label: 'GPS 신호 대기', icon: 'crosshair' },
+  WALKING: { label: 'GPS 신호 양호', icon: 'navigation' },
+  PAUSED: { label: 'GPS 기록 일시정지', icon: 'pause-circle' },
+  GPS_WEAK: { label: 'GPS 신호 약함', icon: 'wifi' },
+  GPS_LOST: { label: 'GPS 신호 없음', icon: 'wifi-off' },
+  RECOVERY_REQUIRED: { label: '복구 대기', icon: 'rotate-ccw' },
+  FINISH_CONFIRM: { label: '산책 종료 확인 중', icon: 'flag' },
+  FINISHED_LOCAL: { label: '기기 저장 완료', icon: 'check-circle' },
+  FUTURE_RECORD_CTA_PREVIEW: { label: '합성 결과 미리보기', icon: 'eye' },
 };
 
 export function presentationState(

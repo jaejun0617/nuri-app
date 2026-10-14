@@ -1,4 +1,5 @@
 import { StyleSheet } from 'react-native';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import { typography } from '../../app/theme/tokens/typography';
 
 const TEXT = '#1B2435';
@@ -7,7 +8,7 @@ const BRAND = '#6D6AF8';
 export const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PRODUCT_CANVAS_COLOR,
   },
   keyboardView: {
     flex: 1,

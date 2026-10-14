@@ -576,6 +576,7 @@ export default function ScheduleDetailScreen() {
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <View pointerEvents="none" style={styles.ambient}>
         <HomeAmbientBubbleCanvas
+          backgroundMode="uniform"
           heroHeight={height}
           season={season}
           decorationMode="reading"

@@ -14,8 +14,7 @@ import {
 import type { SeasonKey } from '../../theme/seasonal/season';
 import { getHomeAmbientVisual } from '../../theme/home/seasonalAmbient';
 import { useHomeSeason } from './HomeSeasonContext';
-import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
-import { HomeFrostedGlass } from './HomeFrostedGlass';
+import { HomeReflectiveGlass } from './HomeReflectiveGlass';
 
 export const HOME_SECTION_GLASS_RADIUS = 22;
 export const HOME_SECTION_ROOT_STYLE: ViewStyle = {
@@ -102,15 +101,13 @@ export function HomeSectionGlass({
   style,
   ...viewProps
 }: HomeSectionGlassProps) {
-  const season = useEffectiveSeason();
   return (
-    <HomeFrostedGlass
+    <HomeReflectiveGlass
       {...viewProps}
-      season={season}
       style={[styles.transparentRoot, style, styles.forceTransparentRoot]}
     >
       {children}
-    </HomeFrostedGlass>
+    </HomeReflectiveGlass>
   );
 }
 

@@ -5,16 +5,15 @@
 // - 일정 시간이 지나면 AppTabs HomeTab으로 reset 이동해 온보딩 플로우를 마무리
 
 import AppText from '../../app/ui/AppText';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import React, { memo, useEffect, useRef } from 'react';
-import { Animated, Easing, Image, StatusBar, View } from 'react-native';
+import { Animated, Easing, StatusBar, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { formatPetCopy } from '../../utils/petDisplayName';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { ASSETS } from '../../assets';
-import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
-import { getSeasonalOnboardingVisual } from '../../theme/seasonal/onboarding';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { styles } from './WelcomeTransitionScreen.styles';
 
@@ -77,8 +76,6 @@ const LoadingDot = memo(function LoadingDotView({
 
 export default function WelcomeTransitionScreen() {
   const route = useRoute<RouteProp<RootStackParamList, 'WelcomeTransition'>>();
-  const season = useEffectiveSeason();
-  const seasonalVisual = getSeasonalOnboardingVisual(season);
   const navigation = useNavigation<Nav>();
   const entranceProgress = useRef(new Animated.Value(0)).current;
   const dotProgress = useRef(new Animated.Value(0)).current;
@@ -157,16 +154,8 @@ export default function WelcomeTransitionScreen() {
   });
 
   return (
-    <View style={styles.screen}>
-      <StatusBar barStyle="light-content" />
-      <Image
-        accessibilityIgnoresInvertColors
-        pointerEvents="none"
-        resizeMode="cover"
-        source={seasonalVisual.loadingBackground}
-        style={styles.backgroundImage}
-      />
-      <View pointerEvents="none" style={styles.readabilityVeil} />
+    <View style={[styles.screen, { backgroundColor: PRODUCT_CANVAS_COLOR }]}>
+      <StatusBar barStyle="dark-content" />
 
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <Animated.View

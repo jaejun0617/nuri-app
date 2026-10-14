@@ -7,6 +7,7 @@
 // - admin/super_admin에게만 batch, review queue, audit, fallback gate 요약을 보여준다.
 // - write action은 pending 후보의 approve/reject/held로 제한하고 import commit UI와 raw payload는 제공하지 않는다.
 import AppTextInput from '../../app/ui/AppTextInput';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -1097,7 +1098,7 @@ export default function WalkPoiAdminReadOnlyScreen() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: '#F7F9FC',
+    backgroundColor: PRODUCT_CANVAS_COLOR,
   },
   header: {
     minHeight: 64,

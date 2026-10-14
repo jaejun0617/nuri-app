@@ -187,7 +187,8 @@ describe('compact controls and seasonal emphasis', () => {
         items={[{ key: 'guide', label: '집사 꿀팁', onPress }]}
       />,
     );
-    expect(tree.root.findAllByType(BlurView)).toHaveLength(1);
+    expect(tree.root.findAllByType(BlurView)).toHaveLength(0);
+    expect(tree.root.findAll(node => node.type === View && node.props.testID === 'home-reflective-fill')).toHaveLength(1);
     act(() => tree.root.findByType(TouchableOpacity).props.onPress());
     expect(onPress).toHaveBeenCalledTimes(1);
   });

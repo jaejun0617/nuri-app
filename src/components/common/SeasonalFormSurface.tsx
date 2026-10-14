@@ -9,8 +9,8 @@ import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider
 import { HomeFrostedGlass } from '../home/HomeFrostedGlass';
 import { HomeAmbientBubbleCanvas } from '../../screens/Main/components/LoggedInHome/HomeAmbientBubbleCanvas';
 
-/** Schedule reading background without its decorative spheres. No inset ownership. */
-export function SeasonalFormBackground() {
+/** Shared product-page canvas, without changing the caller's inset ownership. */
+export function SeasonalFormBackground({ uniform = true }: { uniform?: boolean }) {
   const season = useEffectiveSeason();
   const { height } = useWindowDimensions();
   return (
@@ -24,6 +24,7 @@ export function SeasonalFormBackground() {
         season={season}
         decorationMode="reading"
         showDecorations={false}
+        backgroundMode={uniform ? 'uniform' : 'seasonal'}
       />
     </View>
   );

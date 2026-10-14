@@ -3,11 +3,12 @@
 // - Compact record form on the shared seasonal glass surface.
 
 import { StyleSheet } from 'react-native';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 
 const BRAND = '#263445';
 const TEXT = '#0B1220';
 const BORDER = '#E6E8F0';
-const BG = '#FFFFFF';
+const BG = PRODUCT_CANVAS_COLOR;
 const IMAGE_BORDER = '#D5DBE6';
 
 export const styles = StyleSheet.create({
