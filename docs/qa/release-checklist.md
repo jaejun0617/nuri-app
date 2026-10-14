@@ -1,5 +1,12 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-10-15 Approved Design Bundle Delivery
+
+- [전달 보고서](nuri-design-bundle-release-2026-10-15.md): 승인된106경로를 `3c403f2`로 선택 커밋했다. 전체248 suites/2866 tests·타입·source/import/secret guards PASS, 코드98개 lint 오류0/기존 경고23이다. 원본 dirty181과 accepted security ancestry를 보존한다.
+- Clean exact source의 canonical QA Release1회, APK `d5d719e605197f7c8b73b02e84311a5a6034abef194e7b60f18a0b7f2605e180`, AAB `95f1fd164182bf1c2f3800ec32367bf44ce403eba6cc2b6b0d83c4cb74cc4aa1`. Approved signer/내장 JS/provenance·debuggable/cleartext/backup false·AAB 서명 및 설정 입력 hash 보존 PASS다.
+- S24 Metro Home10장/More1장 캡처, 실제 위치 지도0/새 보행0. 설치0으로 기존 Metro 확인 앱/계정/펫·설정을 유지한다. 새 Release 실기기 QA나 네 계절 신규 device matrix PASS로 확대하지 않는다.
+- 미푸시 보안·Walk 기반 이력을 포함한 전용 `codex/mint-background-review` push는 PO 별도 명시 승인이다. 원격 수락 SHA는 외부 `~/.codex/nuri-design-evidence/design-approved-release-20261015-weSr0I/FINAL_REPORT.md` 및 receipt에 기록한다. main·태그·Store·cleanup·다음 단계는 변경/시작하지 않는다. STORE HOLD.
+
 ## 2026-10-13 Walk Phase 2 Native Acceptance Boundary
 
 - Accepted security findings remain frozen at 20/20; older counts below are historical.
