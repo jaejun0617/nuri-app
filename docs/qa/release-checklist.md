@@ -1,5 +1,11 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-10-15 Hero / Pet Profile Follow-Up Delivery
+
+- [전달 보고서](nuri-hero-profile-release-2026-10-15.md): 디자인/runtime `28e7ccf`22경로 선택 커밋. 전체252 suites/2975 tests 1회·타입·source/import/secret guards PASS, 대상18파일 lint 오류0/기존 경고18/신규0, 원본 dirty181/보안 ancestry 보존.
+- Clean source canonical QA Release1회·S24 install-r1회. APK `381495b8054b2de738ba492edf82382124a2185cad2817e7426c094f70d3e569`, 승인 signer/설치 hash 일치·내장 JS·debuggable/cleartext/backup false·AAB 서명/입력 보존 PASS. UID/최초 설치/표시 설정 유지, 재로그인 없이 선택 펫/홈 표시 확인. 설치/실행 sanity이며 전체 디자인/실보행 QA는 아니다.
+- 후속 문서 커밋과 전용 브랜치 정상 push만 허용한다. 실제 원격 수락 SHA는 외부 `hero-profile-release-20261015-YAK4XT/delivery-result.json`이 소유한다. Metro OFF, 원본181·서버·Walk 엔진 보존, main·태그·Store·cleanup 변경0. 전달 후 산책 GPS는 PO 다음 지시 대기, STORE HOLD.
+
 ## 2026-10-15 Approved Design Bundle Delivery
 
 - [전달 보고서](nuri-design-bundle-release-2026-10-15.md): 승인된106경로를 `3c403f2`로 선택 커밋했다. 전체248 suites/2866 tests·타입·source/import/secret guards PASS, 코드98개 lint 오류0/기존 경고23이다. 원본 dirty181과 accepted security ancestry를 보존한다.
