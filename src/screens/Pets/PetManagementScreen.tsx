@@ -78,7 +78,11 @@ const EmptyPetState = memo(function EmptyPetState({
         style={[styles.addButton, {}]}
         onPress={onPressAdd}
       >
-        <CtaText preset="unifiedBody" style={[styles.addButtonText, {}]}>
+        <CtaText
+          preset="unifiedBody"
+          styleOverridesPreset
+          style={styles.addButtonText}
+        >
           아이 등록하기
         </CtaText>
       </CtaButton>
@@ -100,10 +104,6 @@ export default function PetManagementScreen() {
   const [deleting, setDeleting] = useState(false);
   const [lastPetGuardVisible, setLastPetGuardVisible] = useState(false);
 
-  const selectedPet = useMemo(
-    () => pets.find(pet => pet.id === selectedPetId) ?? pets[0] ?? null,
-    [pets, selectedPetId],
-  );
   const accentPalette = NEUTRAL_UI_PALETTE;
 
   const onPressBack = useEntryAwareBackAction({
@@ -241,7 +241,11 @@ export default function PetManagementScreen() {
           style={[styles.addButton, styles.footerAddButton, {}]}
           onPress={handleAddPet}
         >
-          <CtaText preset="unifiedBody" style={[styles.addButtonText, {}]}>
+          <CtaText
+            preset="unifiedBody"
+            styleOverridesPreset
+            style={styles.addButtonText}
+          >
             + 아이 등록하기
           </CtaText>
         </CtaButton>
@@ -260,16 +264,22 @@ export default function PetManagementScreen() {
     [accentPalette.onPrimary, accentPalette.primary, handleAddPet],
   );
 
-  const subtitle = useMemo(() => {
-    if (pets.length === 0) return '등록한 아이들을 한곳에서 관리할 수 있어요.';
-    if (selectedPet) {
-      return `현재 ${selectedPet.name} 기준으로 홈과 기록, 일정이 연결돼 있어요.`;
-    }
-    return '아이들을 한곳에서 관리할 수 있어요.';
-  }, [pets.length, selectedPet]);
+  const subtitle =
+    pets.length > 0
+      ? `우리 아이 ${pets.length}마리`
+      : '등록한 아이들을 한곳에서 관리할 수 있어요.';
 
   return (
-    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
+    <View
+      testID="pet-management-screen"
+      style={[
+        styles.screen,
+        {
+          backgroundColor: theme.colors.background,
+          paddingBottom: insets.bottom,
+        },
+      ]}
+    >
       <View
         style={[
           styles.header,
@@ -282,6 +292,8 @@ export default function PetManagementScreen() {
         <TouchableOpacity
           activeOpacity={0.88}
           style={styles.backButton}
+          accessibilityRole="button"
+          accessibilityLabel="뒤로가기"
           onPress={onPressBack}
         >
           <Feather
@@ -295,13 +307,15 @@ export default function PetManagementScreen() {
           <AppText
             typographyRole="screenTitle"
             preset="unifiedTitle"
+            styleOverridesPreset
             style={[styles.title, { color: theme.colors.textPrimary }]}
           >
             아이들 프로필 관리
           </AppText>
           <AppText
             preset="unifiedMeta"
-            style={[styles.subtitle, { color: theme.colors.textMuted }]}
+            styleOverridesPreset
+            style={[styles.subtitle, { color: theme.colors.textSecondary }]}
           >
             {subtitle}
           </AppText>
@@ -356,15 +370,15 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 18,
-    paddingBottom: 16,
+    paddingBottom: 14,
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
+    gap: 8,
   },
   backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 48,
+    height: 48,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -374,9 +388,12 @@ const styles = StyleSheet.create({
     paddingTop: 3,
   },
   title: {
-    fontWeight: '900',
+    fontSize: 18,
+    lineHeight: 26,
+    fontWeight: '700',
   },
   subtitle: {
+    fontSize: 12,
     lineHeight: 18,
   },
   listContent: {
@@ -414,22 +431,24 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   addButton: {
-    minHeight: 50,
-    borderRadius: 18,
+    minHeight: 48,
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 18,
     marginTop: 20,
     shadowColor: '#000000',
-    shadowOpacity: 0.14,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 4,
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 2,
   },
   footerAddButton: {
     marginTop: 18,
   },
   addButtonText: {
-    fontWeight: '900',
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '600',
   },
 });

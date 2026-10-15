@@ -133,8 +133,14 @@ describe('CTA source safety guards', () => {
     expect(read('src/navigation/AppTabsNavigator.tsx')).not.toContain(
       'CtaButton',
     );
-    expect(read('src/components/pets/PetManagementCard.tsx')).toContain(
-      'petTheme',
+    const managementCard = read('src/components/pets/PetManagementCard.tsx');
+    expect(managementCard).toContain('{pet.name}');
+    expect(managementCard).toContain('theme.colors.textPrimary');
+    expect(managementCard).toContain("role: 'primarySubtle'");
+    expect(managementCard).toContain('useEffectiveSeason()');
+    expect(managementCard).not.toContain('buildPetThemePalette');
+    expect(read('src/screens/Pets/PetProfileEditScreen.tsx')).toContain(
+      'buildPetThemePalette(selectedThemeColor)',
     );
   });
 });

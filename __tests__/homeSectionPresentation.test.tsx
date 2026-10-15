@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import React from 'react';
 import ReactNative from 'react-native';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 import NativeFeather from 'react-native-vector-icons/Feather';
@@ -22,6 +22,7 @@ import {
   HOME_WIDGET_MATERIAL,
 } from '../src/components/home/HomeWidgetMaterial';
 import { HomeSeasonProvider } from '../src/components/home/HomeSeasonContext';
+import { HomeReflectiveGlass } from '../src/components/home/HomeReflectiveGlass';
 import { FrequentRecordsSection } from '../src/components/records/FrequentRecordsSection';
 import { styles as frequentStyles } from '../src/components/records/FrequentRecordsSection.styles';
 import type { SeasonKey } from '../src/theme/seasonal/season';
@@ -158,7 +159,7 @@ describe('Home section rhythm and material', () => {
     await act(async () => renderer.unmount());
   });
 
-  it('lowers the Hero identity and CTA together by 16dp while keeping the memory chip fixed', () => {
+  it('keeps the photo edit geometry while moving the memory action into the lower information panel', () => {
     expect(homeStyles.autumnHeroBodyGroup.paddingTop).toBe(14 + 16);
     expect(homeStyles.autumnHeroBodyGroup).not.toHaveProperty('transform');
     expect(homeStyles.autumnMemoryChipAnchor).toMatchObject({
@@ -166,30 +167,33 @@ describe('Home section rhythm and material', () => {
     });
     expect(homeStyles.autumnHeroCardWithMemoryChip.paddingTop).toBe(34);
     expect(homeStyles.heroCenter.paddingTop).toBe(10);
-    expect(homeStyles.autumnProfileEntry.marginTop).toBe(32);
-    expect(homeStyles.autumnProfileEntry.minHeight).toBe(52);
     expect(source).toMatch(
       /const usesCanonicalHeroGeometry =\s*isAutumn \|\| isWinter \|\| isSpring \|\| isSummer;/,
     );
     expect(source).toMatch(
-      /style=\{usesCanonicalHeroGeometry \? styles\.autumnHeroBodyGroup : null\}[\s\S]*?<HeroProfileIdentity[\s\S]*?accessibilityLabel=\{`\$\{profilePetName\} 더 알아보기`\}/,
+      /style=\{usesCanonicalHeroGeometry \? styles\.autumnHeroBodyGroup : null\}[\s\S]*?<HeroProfileIdentity/,
     );
+    expect(source).toContain('<HomeHeroInfoPanel');
+    expect(source).toContain('onPressPetProfileEdit={onPressPetProfileEdit}');
+    expect(source).toContain('onPressProfileInfo={openProfileInfoSheet}');
+    const hero = source.slice(source.indexOf('const HeroProfileSection'), source.indexOf('const RecommendationTipsSection'));
+    expect(hero).not.toContain('heroMemoryChip');
+    const info = source.slice(source.indexOf('<HomeHeroInfoPanel'), source.indexOf('<FixedTypographyBoundary>', source.indexOf('<HomeHeroInfoPanel')));
+    expect(info).toContain('heroMemoryChip={heroMemoryChip}');
+    expect(info).toContain('onPressMemoryChip={onPressRecordItem}');
+    expect(info).toContain('onPressCreateMemory={onPressRecord}');
   });
 
-  it('uses seasonal glass with neutral text and preserves the profile entry action', () => {
-    const hero = source.slice(source.indexOf('const HeroProfileSection'), source.indexOf('const RecommendationTipsSection'));
-    expect(hero).toContain('const effectiveSeason = useEffectiveSeason()');
-    expect(hero).toContain('const profileEntryPalette = NEUTRAL_UI_PALETTE');
-    expect(hero).toContain('<HomeFrostedGlass season={effectiveSeason} borderRadius={8}');
-    expect(hero).not.toContain('backgroundColor: profileEntryPalette.subtle');
+  it('keeps neutral profile actions on the approved seasonal lower panel', () => {
+    const panel = fs.readFileSync(path.join(__dirname, '../src/screens/Main/components/LoggedInHome/HomeHeroInfoPanel.tsx'), 'utf8');
+    expect(panel).toContain('HOME_SEASONAL_BACKGROUND_GRADIENTS[season]');
+    expect(panel).not.toContain('HomeFrostedGlass');
     expect(source).toContain('const brandColor = SEASON_CTA[useEffectiveSeason()].primary');
-    expect(hero).toContain('color: profileEntryPalette.primary');
-    expect(hero).toContain('color={profileEntryPalette.primary}');
-    expect(hero).toContain('onPress={onPressProfileInfo}');
-    expect(hero).toMatch(/name="chevron-right"[\s\S]*style=\{styles.autumnProfileEntryChevron\}[\s\S]*accessible=\{false\}/);
-    expect(homeStyles.autumnProfileEntryChevron).toMatchObject({ position: 'absolute', right: 16 });
-    expect(homeStyles.autumnProfileEntryText.textAlign).toBe('center');
-    expect(homeStyles.autumnProfileEntry.paddingHorizontal).toBeGreaterThan(16 + 18);
+    expect(panel).toContain('color: NEUTRAL_UI_PALETTE.primary');
+    expect(panel).toContain('color={NEUTRAL_UI_PALETTE.primary}');
+    expect(panel).toContain('onPress={onPressProfileInfo}');
+    expect(panel).toContain('name="chevron-right"');
+    expect(panel).toContain("textAlign: 'left'");
   });
 
   it('lets record tiles grow with enlarged copy instead of painting outside a square', async () => {
@@ -232,12 +236,14 @@ describe('Home section rhythm and material', () => {
     expect(source).toMatch(
       /styles\.seasonalWeatherSection,[\s\S]*?fontScale > 1 \? \{ marginTop: 0 \} : null,[\s\S]*?pointerEvents="box-none"/,
     );
+    expect(homeStyles.heroConnectedWeatherSection).toEqual({ marginTop: 0, paddingTop: 52, paddingBottom: 0 });
+    expect(source).toContain('connectedToHero ? styles.heroConnectedWeatherSection : null');
     expect(source).toMatch(
       /<Animated\.View[\s\S]*?onLayout=\{handleAmbientContentLayout\}[\s\S]*?pointerEvents="box-none"/,
     );
   });
 
-  it('uses the existing Weather-to-records distance between every lower section', () => {
+  it('keeps a uniform 52 dp card-to-card gap from standalone weather onward', () => {
     expect(HOME_LOWER_SECTION_GAP).toBe(40);
     expect(homeStyles.lowerHomeSectionList.gap).toBe(
       homeStyles.seasonalWeatherSection.paddingBottom,
@@ -247,7 +253,18 @@ describe('Home section rhythm and material', () => {
     expect(
       HOME_LOWER_SECTION_GAP + Number(HOME_SECTION_ROOT_STYLE.marginTop),
     ).toBe(52);
-    expect(source).toContain('style={styles.lowerHomeSectionList}');
+    const lowerList = {
+      ...homeStyles.lowerHomeSectionList,
+      ...homeStyles.heroConnectedLowerSectionList,
+    };
+    expect(lowerList.paddingTop).toBe(HOME_LOWER_SECTION_GAP);
+    expect(
+      homeStyles.heroConnectedWeatherSection.paddingBottom +
+      Number(lowerList.paddingTop) +
+      Number(HOME_SECTION_ROOT_STYLE.marginTop),
+    ).toBe(52);
+    expect(Number(lowerList.gap) + Number(HOME_SECTION_ROOT_STYLE.marginTop)).toBe(52);
+    expect(source).toContain('styles.lowerHomeSectionList, styles.heroConnectedLowerSectionList');
     for (const section of [
       homeStyles.section,
       summaryStyles.section,
@@ -256,6 +273,36 @@ describe('Home section rhythm and material', () => {
       expect(section.paddingHorizontal).toBe(14);
       expect(section.paddingTop).toBe(18);
     }
+  });
+
+  it('aligns weather and the lower cards to the same full-width column with 16 dp gutters', async () => {
+    const gutter = homeStyles.scrollContent.paddingHorizontal;
+    expect(gutter).toBe(16);
+    for (const wrapper of [homeStyles.seasonalWeatherSection, homeStyles.lowerHomeRoot]) {
+      expect(wrapper.marginHorizontal).toBe(-gutter);
+      expect(wrapper.paddingHorizontal).toBe(gutter);
+    }
+    const referenceCards: ViewStyle[] = [HOME_SECTION_ROOT_STYLE, frequentStyles.section];
+    for (const card of referenceCards) {
+      expect(card.width).toBe('100%');
+      expect(card.marginHorizontal ?? 0).toBe(0);
+    }
+    const remainingCards: ViewStyle[] = [homeStyles.section, summaryStyles.section];
+    for (const card of remainingCards) {
+      expect(card.marginHorizontal ?? 0).toBe(0);
+      expect(card.width).toBeUndefined();
+    }
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <HomeReflectiveGlass testID="home-calendar-column" style={{ padding: 14 }} />,
+      );
+    });
+    const calendarRoot = renderer.root.findAll(node => node.type === View && node.props.testID === 'home-calendar-column')[0];
+    const calendarStyle = StyleSheet.flatten(calendarRoot.props.style);
+    expect(calendarStyle.width).toBe('100%');
+    expect(calendarStyle.marginTop).toBe(HOME_SECTION_ROOT_STYLE.marginTop);
+    await act(async () => renderer.unmount());
   });
 
   it('unifies summary and quick-record glass without changing guide material or panel geometry', () => {

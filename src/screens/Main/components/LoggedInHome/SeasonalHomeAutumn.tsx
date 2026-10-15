@@ -24,6 +24,7 @@ type AutumnStageProps = {
   backgroundImageVisible?: boolean;
   ambientSeason?: SeasonKey;
   minHeight?: number;
+  background?: React.ReactNode;
   children: React.ReactNode;
 };
 
@@ -36,6 +37,7 @@ export function SeasonalHomeAutumnStage({
   backgroundImageVisible = true,
   ambientSeason = 'autumn',
   minHeight,
+  background,
   children,
 }: AutumnStageProps) {
   const { width: windowWidth } = useWindowDimensions();
@@ -53,6 +55,7 @@ export function SeasonalHomeAutumnStage({
         minHeight ? { minHeight } : null,
       ]}
     >
+      {background}
       {backgroundImageVisible ? (
         <Image
           source={atmosphere}

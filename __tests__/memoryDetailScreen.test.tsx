@@ -17,7 +17,9 @@ import Feather from 'react-native-vector-icons/Feather';
 import { styles } from '../src/screens/Records/RecordDetailScreen.styles';
 import RecordDetailScreen from '../src/screens/Records/RecordDetailScreen';
 import type { MemoryRecord } from '../src/services/supabase/memories';
-import { TIMELINE_SEASON_COLORS } from '../src/theme/seasonal/timeline';
+import { SEASON_CTA } from '../src/app/theme/ctaPalette';
+import { lightColors, PRODUCT_CANVAS_COLOR } from '../src/app/theme/tokens/colors';
+import { HOME_FLOATING_WIDGET_MATERIAL } from '../src/components/home/HomeWidgetMaterial';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 import { ToolbarHeightContext } from '../src/components/navigation/ToolbarHeightContext';
 
@@ -125,6 +127,7 @@ function text(tree: TestRenderer.ReactTestRenderer) {
 describe('memory detail rendered contract', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockSeason = 'autumn';
     mockRecord.imagePaths = [];
     const rows = [
       mockRecord,
@@ -188,6 +191,67 @@ describe('memory detail rendered contract', () => {
       ).toHaveLength(1);
     });
     TestRenderer.act(() => tree.unmount());
+  });
+  it('uses shared reflective glass without opaque card backing and shrinks only the pet avatar', async () => {
+    const tree = await render();
+    const main = tree.root.findAll(
+      node => node.type === View && node.props.testID === 'memory-detail-post-glass',
+    );
+    const related = tree.root.findAll(
+      node => node.type === View && node.props.testID === 'memory-detail-related-glass',
+    );
+    expect(main).toHaveLength(1);
+    expect(related).toHaveLength(5);
+    for (const frame of [...main, ...related]) {
+      expect(StyleSheet.flatten(frame.props.style)).toMatchObject({
+        backgroundColor: 'transparent',
+        borderRadius: 8,
+        marginTop: 0,
+      });
+      const fill = frame.findAll(
+        node => node.type === View && node.props.testID === 'home-reflective-fill',
+      )[0];
+      expect(StyleSheet.flatten(fill.props.style)).toMatchObject(
+        HOME_FLOATING_WIDGET_MATERIAL,
+      );
+    }
+    expect(StyleSheet.flatten(main[0].props.style).padding).toBe(12);
+    expect(styles.postCard.backgroundColor).not.toBe('#FFFFFF');
+    expect(styles.postAvatar).toMatchObject({ width: 36, height: 36, borderRadius: 18 });
+    expect(styles.relatedThumb).toMatchObject({ width: 72, height: 80 });
+    expect(styles.headerLink.backgroundColor).toBe(PRODUCT_CANVAS_COLOR);
+    TestRenderer.act(() => tree.unmount());
+  });
+  it('shows each historical date as well as time instead of implying every record is from the same day', async () => {
+    const tree = await render();
+    const related = tree.root.findAllByType(TouchableOpacity).filter(
+      node => node.props.testID === 'memory-detail-related-record',
+    );
+    related.forEach(card => {
+      const copy = card.findAllByType(Text).map(node => node.props.children).join(' ');
+      expect(copy).toContain('2026.09.01');
+      expect(copy).toContain('오후 12:16');
+    });
+    TestRenderer.act(() => tree.unmount());
+  });
+  it('uses the existing KST date fallback for a historical record without an occurred date', async () => {
+    mockFetchPage.mockResolvedValueOnce({
+      items: [{ ...mockRecord, id: 'history-fallback', occurredAt: null, createdAt: '2026-12-31T15:01:00Z' }],
+      hasMore: false,
+      nextCursor: null,
+    });
+    const tree = await render();
+    expect(text(tree)).toContain('2027.01.01');
+    expect(text(tree)).toContain('오전 12:01');
+    TestRenderer.act(() => tree.unmount());
+  });
+  it('keeps small metadata readable using the existing neutral secondary foreground', () => {
+    for (const style of [styles.postMetaLine, styles.relatedSectionCount, styles.relatedTime, styles.postTagsText, styles.tagText]) {
+      expect(StyleSheet.flatten(style)?.color).toBe(lightColors.textSecondary);
+    }
+    expect(styles.postContentText.fontSize).toBe(13);
+    expect(styles.tagText.fontSize).toBe(11);
+    expect(styles.relatedTitle.fontSize).toBe(12);
   });
   it('fits original image proportions without crop and opens a dismissible overlay', async () => {
     mockRecord.imagePaths = ['qa/portrait.png'];
@@ -277,14 +341,21 @@ describe('memory detail rendered contract', () => {
           .filter(node => node.props.testID === 'memory-detail-related-record'),
       ).toHaveLength(5);
       const more = tree.root
-        .findAllByType(TouchableOpacity)
+        .findAllByType(CtaButton)
         .find(
           node => node.props.accessibilityLabel === '다른 추억 5개 더보기',
         )!;
-      expect(StyleSheet.flatten(more.props.style).backgroundColor).toBe(
-        TIMELINE_SEASON_COLORS[season].surface,
-      );
-      expect(text(tree)).toContain('추억을 더 만나볼까요?');
+      expect(more.props.role).toBe('primary');
+      const button = more.findAllByType(View).find(
+        node => node.props.accessibilityRole === 'button',
+      )!;
+      expect(StyleSheet.flatten(button.props.style).backgroundColor).toBe(SEASON_CTA[season].primary);
+      expect(more.findByType(Feather).props).toMatchObject({
+        name: 'chevron-right',
+        color: '#FFFFFF',
+      });
+      expect(text(tree)).toContain('추억을 더 만나볼까요');
+      expect(text(tree)).not.toContain('추억을 더 만나볼까요?');
       expect(styles.relatedMoreButtonText).toMatchObject({
         flex: 1,
         textAlign: 'center',

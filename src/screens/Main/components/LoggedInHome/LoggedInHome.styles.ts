@@ -90,22 +90,12 @@ export const styles = StyleSheet.create({
     right: 0,
     zIndex: 1,
   },
-  seasonalCopyReadabilityText: {
-    textShadowColor: 'rgba(255,255,255,0.32)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 1.5,
-  },
   title: { fontSize: 16, fontWeight: '900', color: BRAND_DEEP },
   subTitle: {
     fontSize: 12,
     fontWeight: '700',
     color: MUTED,
     lineHeight: 16,
-  },
-  seasonalCopy: {
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '500',
   },
 
   headerIconBtn: {
@@ -462,6 +452,11 @@ export const styles = StyleSheet.create({
     paddingBottom: HOME_LOWER_SECTION_GAP,
     overflow: 'hidden',
   },
+  heroConnectedWeatherSection: {
+    marginTop: 0,
+    paddingTop: 52,
+    paddingBottom: 0,
+  },
   weatherSectionBottomFinish: {
     position: 'absolute',
     left: 0,
@@ -489,6 +484,10 @@ export const styles = StyleSheet.create({
   lowerHomeSectionList: {
     paddingTop: HOME_LOWER_SECTION_GAP,
     gap: HOME_LOWER_SECTION_GAP,
+  },
+  heroConnectedLowerSectionList: {
+    // The glass root adds 12 dp, matching the 52 dp gap between lower cards.
+    paddingTop: HOME_LOWER_SECTION_GAP,
   },
   ambientBackgroundTransparent: {
     backgroundColor: 'transparent',

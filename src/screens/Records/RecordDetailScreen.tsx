@@ -1,4 +1,4 @@
-import CtaButton, { CtaText } from '../../app/ui/CtaButton';
+import CtaButton, { CtaIcon, CtaText } from '../../app/ui/CtaButton';
 // 파일: src/screens/Records/RecordDetailScreen.tsx
 // 역할:
 // - 선택한 추억 1개를 집중해서 보여주는 상세 화면
@@ -49,6 +49,7 @@ import AppText from '../../app/ui/AppText';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import OptimizedImage from '../../components/images/OptimizedImage';
+import { HomeFrostedGlass } from '../../components/home/HomeFrostedGlass';
 import { useSignedMemoryImage } from '../../hooks/useSignedMemoryImage';
 import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 import { TIMELINE_SEASON_COLORS } from '../../theme/seasonal/timeline';
@@ -56,7 +57,6 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import {
-  formatRecordCreatedTime,
   formatRecordRelativeTime,
   getRecordDisplayYmd,
 } from '../../services/records/date';
@@ -158,6 +158,7 @@ const FeedPostCard = memo(function FeedPostCardView({
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
   const window = useWindowDimensions();
+  const season = useEffectiveSeason();
   const categoryTone = getMemoryDetailCategoryTone(item);
   const moodMeta = item.emotion ? EMOTION_META[item.emotion] : null;
   const imagePaths = useMemo(() => {
@@ -382,7 +383,12 @@ const FeedPostCard = memo(function FeedPostCardView({
   );
 
   return (
-    <View style={styles.postCard}>
+    <HomeFrostedGlass
+      testID="memory-detail-post-glass"
+      season={season}
+      borderRadius={8}
+      style={styles.postCard}
+    >
       <View style={styles.postHeader}>
         <View style={styles.postHeaderLeft}>
           {petAvatarUrl ? (
@@ -604,7 +610,7 @@ const FeedPostCard = memo(function FeedPostCardView({
           </TouchableOpacity>
         </View>
       </Modal>
-    </View>
+    </HomeFrostedGlass>
   );
 });
 
@@ -615,6 +621,7 @@ const RelatedMemoryCard = memo(function RelatedMemoryCardView({
   item: MemoryRecord;
   onPress: (item: MemoryRecord) => void;
 }) {
+  const season = useEffectiveSeason();
   const image = getTimelinePrimaryMemoryImageSource(item);
   const { signedUrl } = useSignedMemoryImage(image.value, {
     variant: 'timeline-thumb',
@@ -629,52 +636,59 @@ const RelatedMemoryCard = memo(function RelatedMemoryCardView({
       accessibilityLabel={`${category.label}, ${item.title}`}
       onPress={() => onPress(item)}
       activeOpacity={0.9}
-      style={styles.relatedCard}
+      style={styles.relatedAction}
     >
-      <View
-        style={[
-          styles.relatedThumb,
-          { backgroundColor: tone.placeholderColor },
-        ]}
+      <HomeFrostedGlass
+        testID="memory-detail-related-glass"
+        season={season}
+        borderRadius={8}
+        style={styles.relatedCard}
       >
-        {signedUrl ? (
-          <OptimizedImage
-            uri={signedUrl}
-            style={styles.relatedThumbImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <NuriSemanticIcon family="material" name={category.icon} size={26} />
-        )}
-      </View>
-      <View style={styles.relatedBody}>
         <View
           style={[
-            styles.categoryChip,
-            { backgroundColor: tone.backgroundColor },
+            styles.relatedThumb,
+            { backgroundColor: tone.placeholderColor },
           ]}
         >
-          <AppText
-            preset="unifiedMeta"
-            styleOverridesPreset
-            style={[styles.categoryText, { color: tone.textColor }]}
+          {signedUrl ? (
+            <OptimizedImage
+              uri={signedUrl}
+              style={styles.relatedThumbImage}
+              resizeMode="cover"
+            />
+          ) : (
+            <NuriSemanticIcon family="material" name={category.icon} size={26} />
+          )}
+        </View>
+        <View style={styles.relatedBody}>
+          <View
+            style={[
+              styles.categoryChip,
+              { backgroundColor: tone.backgroundColor },
+            ]}
           >
-            {getMemoryCategoryChipLabel(item)}
+            <AppText
+              preset="unifiedMeta"
+              styleOverridesPreset
+              style={[styles.categoryText, { color: tone.textColor }]}
+            >
+              {getMemoryCategoryChipLabel(item)}
+            </AppText>
+          </View>
+          <AppText
+            preset="unifiedBody"
+            numberOfLines={1}
+            styleOverridesPreset
+            style={styles.relatedTitle}
+          >
+            {item.title.trim() || item.content?.trim() || '기록을 남겼어요'}
+          </AppText>
+          <AppText preset="unifiedMeta" style={styles.relatedTime}>
+            {formatMemoryDetailDate(item)}
           </AppText>
         </View>
-        <AppText
-          preset="unifiedBody"
-          numberOfLines={1}
-          styleOverridesPreset
-          style={styles.relatedTitle}
-        >
-          {item.title.trim() || item.content?.trim() || '기록을 남겼어요'}
-        </AppText>
-        <AppText preset="unifiedMeta" style={styles.relatedTime}>
-          {formatRecordCreatedTime(item)}
-        </AppText>
-      </View>
-      <Feather name="chevron-right" size={18} color="#748096" />
+        <Feather name="chevron-right" size={18} color={styles.relatedTime.color} />
+      </HomeFrostedGlass>
     </TouchableOpacity>
   );
 });
@@ -1216,15 +1230,10 @@ export default function RecordDetailScreen() {
               ) : null}
 
               {canShowMoreRelatedRecords && visibleRelatedStatus === 'ready' ? (
-                <TouchableOpacity
+                <CtaButton
+                  role="primary"
                   activeOpacity={0.9}
-                  style={[
-                    styles.relatedMoreButton,
-                    {
-                      backgroundColor: seasonColors.surface,
-                      borderColor: seasonColors.surface,
-                    },
-                  ]}
+                  style={styles.relatedMoreButton}
                   onPress={handlePressMoreRelatedRecords}
                   accessibilityRole="button"
                   accessibilityLabel="다른 추억 5개 더보기"
@@ -1234,21 +1243,24 @@ export default function RecordDetailScreen() {
                     pointerEvents="none"
                     accessible={false}
                   />
-                  <AppText
+                  <CtaText
                     preset="unifiedBody"
-                    style={[
-                      styles.relatedMoreButtonText,
-                      { color: seasonColors.selectedCategory },
-                    ]}
+                    style={styles.relatedMoreButtonText}
                   >
-                    추억을 더 만나볼까요?
-                  </AppText>
+                    추억을 더 만나볼까요
+                  </CtaText>
                   <View
                     style={styles.relatedMoreButtonSide}
                     pointerEvents="none"
                     accessible={false}
-                  />
-                </TouchableOpacity>
+                  >
+                    <CtaIcon
+                      name="chevron-right"
+                      size={18}
+                      accessible={false}
+                    />
+                  </View>
+                </CtaButton>
               ) : null}
             </View>
           )

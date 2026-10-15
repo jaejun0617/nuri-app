@@ -4,7 +4,7 @@
 // - 상단 헤더, 피드 카드, 액션 메뉴, 삭제 확인 모달 톤을 한 곳에서 관리
 
 import { StyleSheet } from 'react-native';
-import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
+import { lightColors, PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 
 export const styles = StyleSheet.create({
   screen: {
@@ -28,7 +28,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingTop: 8,
     paddingBottom: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: PRODUCT_CANVAS_COLOR,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
@@ -99,7 +99,7 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
   },
   relatedSectionCount: {
-    color: '#98A2B3',
+    color: lightColors.textSecondary,
     fontWeight: '700',
   },
   relatedEmptyCard: {
@@ -138,9 +138,11 @@ export const styles = StyleSheet.create({
   },
 
   postCard: {
+    width: 'auto',
+    marginTop: 0,
     marginHorizontal: 16,
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E8EBF2',
+    padding: 12,
+    backgroundColor: 'transparent',
   },
   postHeader: {
     minHeight: 60,
@@ -156,9 +158,9 @@ export const styles = StyleSheet.create({
     flex: 1,
   },
   postAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: '#F1E1D0',
   },
   postAvatarFallback: {
@@ -180,7 +182,7 @@ export const styles = StyleSheet.create({
     lineHeight: 20,
   },
   postMetaLine: {
-    color: '#748096',
+    color: lightColors.textSecondary,
     fontWeight: '400',
   },
   postMoreBtn: {
@@ -271,7 +273,7 @@ export const styles = StyleSheet.create({
     fontWeight: '600',
   },
   postTagsText: {
-    color: '#7B88A2',
+    color: lightColors.textSecondary,
     lineHeight: 18,
     fontWeight: '600',
   },
@@ -379,17 +381,16 @@ export const styles = StyleSheet.create({
     backgroundColor: '#EFF7FD',
     maxWidth: '100%',
   },
-  tagText: { color: '#5B7794', fontSize: 11, lineHeight: 16, letterSpacing: 0 },
+  tagText: { color: lightColors.textSecondary, fontSize: 11, lineHeight: 16, letterSpacing: 0 },
+  relatedAction: { marginBottom: 10 },
   relatedCard: {
+    marginTop: 0,
     flexDirection: 'row',
     alignItems: 'center',
     padding: 6,
-    marginBottom: 10,
     gap: 10,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#F0F2F5',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
   },
   relatedThumb: {
     width: 72,
@@ -401,7 +402,7 @@ export const styles = StyleSheet.create({
   },
   relatedThumbImage: { width: '100%', height: '100%' },
   relatedBody: { flex: 1, minWidth: 0, gap: 4 },
-  relatedTime: { color: '#748096' },
+  relatedTime: { color: lightColors.textSecondary },
   relatedTitle: { fontSize: 12, lineHeight: 18, letterSpacing: 0 },
 
   modalBackdrop: {

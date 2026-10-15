@@ -16,7 +16,6 @@ import {
 import { HomeAmbientBubbleCanvas } from '../src/screens/Main/components/LoggedInHome/HomeAmbientBubbleCanvas';
 import * as calendarSeason from '../src/theme/seasonal/season';
 import type { SeasonKey } from '../src/theme/seasonal/season';
-import { SEASONAL_HOME_COPY } from '../src/theme/seasonal/home';
 
 jest.mock('../src/app/ui/AppText', () => 'AppText');
 
@@ -122,7 +121,7 @@ describe('approved Home season contract', () => {
     await TestRenderer.act(async () => renderer.unmount());
   });
 
-  it('uses distinct existing copy for the selected season without changing foreground geometry', () => {
+  it('preserves seasonal atmosphere and the logo without rendering the removed header copy', () => {
     const source = fs.readFileSync(
       path.join(
         __dirname,
@@ -142,13 +141,15 @@ describe('approved Home season contract', () => {
     expect(menu).toContain('<SeasonReviewControls');
     expect(menu).toContain('onChange={setReviewSeason}');
     expect(menu).toContain('setSeasonOverride(nextSeason).catch(captureMonitoringException)');
-    expect(source).toContain('seasonalCopy={SEASONAL_HOME_COPY[ambientSeason]}');
-    expect(source).not.toContain('seasonalCopy={seasonalHomeVisual?.greetingCopy ?? null}');
-    expect(new Set(SEASONS.map(season => SEASONAL_HOME_COPY[season])).size).toBe(4);
+    expect(source).not.toContain('SEASONAL_HOME_COPY');
     const header = source.slice(source.indexOf('const HomeHeaderSection'), source.indexOf('const HeroProfileIdentity'));
+    expect(header).not.toContain('seasonalCopy');
+    expect(header).not.toContain('greetingCopy');
+    expect(header).toContain('NURI');
+    expect(header).toContain('onPress={onPressNotifications}');
+    expect(header).toContain('styles.petSwitcherRow');
     expect(header).toContain('const brandColor = SEASON_CTA[useEffectiveSeason()].primary');
     expect(header).toMatch(/styles\.brandWordmark,\s*\{ color: brandColor \}/);
-    expect(header).toMatch(/styles\.seasonalCopyReadabilityText,\s*\{ color: brandColor \}/);
     expect(header).not.toContain('headerPalette?.copy');
     expect(source).toContain(
       'getSeasonalHomeVisual(HOME_FOREGROUND_UI_SEASON)',

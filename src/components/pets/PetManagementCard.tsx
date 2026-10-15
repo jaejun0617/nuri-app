@@ -1,14 +1,25 @@
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
-import React, { memo, useCallback, useMemo } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import React, { memo, useCallback, useMemo, useState } from 'react';
+import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
+import { resolveCtaPalette } from '../../app/theme/ctaPalette';
 import { formatPetAgeLabelFromBirthDate } from '../../services/pets/age';
-import { getPetSpeciesGroupLabel } from '../../services/pets/species';
-import { buildPetThemePalette, NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
+import {
+  buildPetSpeciesSelection,
+  deriveCanonicalPetSpeciesKey,
+} from '../../services/pets/species';
 import type { Pet } from '../../store/petStore';
-import PetAvatar from './PetAvatar';
-import PetSelectedBadge from './PetSelectedBadge';
+import {
+  diffCalendarDaysBetweenYmd,
+  diffDaysFromKst,
+  formatYmdToDots,
+} from '../../utils/date';
+import { HomeReflectiveGlass } from '../home/HomeReflectiveGlass';
+import Feather from '../icons/NuriFeatherIcon';
+import NuriSemanticIcon from '../icons/NuriSemanticIcon';
 
 type Props = {
   pet: Pet;
@@ -18,6 +29,55 @@ type Props = {
   onPressDelete: (petId: string) => void;
 };
 
+const PetManagementPhotoStage = memo(function PetManagementPhotoStageView({
+  uri,
+  name,
+  petId,
+}: {
+  uri: string | null;
+  name: string;
+  petId: string;
+}) {
+  const theme = useTheme();
+  const [loadFailed, setLoadFailed] = useState(false);
+
+  return (
+    <View testID={`pet-photo-frame-${petId}`} style={styles.photoFrame}>
+      {uri && !loadFailed ? (
+        <Image
+          source={{ uri }}
+          style={styles.photo}
+          resizeMode="contain"
+          resizeMethod="resize"
+          accessibilityRole="image"
+          accessibilityLabel={`${name} 프로필 사진`}
+          onError={() => setLoadFailed(true)}
+        />
+      ) : (
+        <View
+          style={[
+            styles.photoFallback,
+            { backgroundColor: theme.colors.surface },
+          ]}
+        >
+          <Feather name="image" size={28} color={theme.colors.textSecondary} />
+          <AppText
+            preset="unifiedMeta"
+            styleOverridesPreset
+            style={[
+              styles.meta,
+              styles.fallbackText,
+              { color: theme.colors.textSecondary },
+            ]}
+          >
+            {uri ? '사진을 불러오지 못했어요' : '등록된 사진이 없어요'}
+          </AppText>
+        </View>
+      )}
+    </View>
+  );
+});
+
 function PetManagementCardComponent({
   pet,
   isSelected,
@@ -25,28 +85,77 @@ function PetManagementCardComponent({
   onPressEdit,
   onPressDelete,
 }: Props) {
-  const petTheme = useMemo(
-    () => buildPetThemePalette(pet.themeColor),
-    [pet.themeColor],
-  );
+  const theme = useTheme();
+  const season = useEffectiveSeason();
+  const selectionPalette = resolveCtaPalette({
+    role: 'primarySubtle',
+    season,
+    colorScheme: theme.mode,
+    colors: theme.colors,
+  });
+  const photoUri = pet.avatarUrl?.trim() || null;
+  const birthDate =
+    diffCalendarDaysBetweenYmd(pet.birthDate, pet.birthDate) === 0
+      ? pet.birthDate ?? null
+      : null;
   const ageLabel = useMemo(
-    () =>
-      formatPetAgeLabelFromBirthDate(pet.birthDate ?? null) ?? '나이 미입력',
-    [pet.birthDate],
+    () => formatPetAgeLabelFromBirthDate(birthDate) ?? '미입력',
+    [birthDate],
   );
   const speciesLabel = useMemo(() => {
-    const detail = pet.speciesDetailKey?.trim();
-    if (detail) return detail;
-
-    const displayName = pet.speciesDisplayName?.trim();
-    if (displayName) return displayName;
-
-    return getPetSpeciesGroupLabel(pet.species ?? null);
-  }, [pet.species, pet.speciesDetailKey, pet.speciesDisplayName]);
-  const summary = useMemo(
-    () => `${speciesLabel} · ${ageLabel}`,
-    [ageLabel, speciesLabel],
-  );
+    const detail =
+      pet.speciesDisplayName?.trim() ||
+      pet.speciesDetailKey?.trim() ||
+      pet.breed?.trim() ||
+      '';
+    if (!pet.species && !pet.speciesKey && !detail) return '미입력';
+    const speciesKey = deriveCanonicalPetSpeciesKey({
+      species: pet.species,
+      speciesKey: pet.speciesKey,
+      speciesDetailKey: pet.speciesDetailKey,
+      speciesDisplayName: pet.speciesDisplayName,
+      breed: pet.breed,
+    });
+    return buildPetSpeciesSelection(speciesKey, detail).speciesDisplayName;
+  }, [
+    pet.species,
+    pet.speciesKey,
+    pet.speciesDetailKey,
+    pet.speciesDisplayName,
+    pet.breed,
+  ]);
+  const genderLabel =
+    pet.gender === 'male'
+      ? '남아'
+      : pet.gender === 'female'
+      ? '여아'
+      : '미입력';
+  const weightLabel =
+    typeof pet.weightKg === 'number' &&
+    Number.isFinite(pet.weightKg) &&
+    pet.weightKg > 0
+      ? `${Number(pet.weightKg.toFixed(2))}kg`
+      : '미입력';
+  // Use Home's inclusive KST adoption-day calculation, without storing a total.
+  const togetherDays = diffDaysFromKst(pet.adoptionDate ?? '');
+  const details = [
+    { key: 'age', label: '나이', value: ageLabel },
+    { key: 'gender', label: '성별', value: genderLabel },
+    { key: 'weight', label: '몸무게', value: weightLabel },
+    {
+      key: 'birthday',
+      label: '생일',
+      value: formatYmdToDots(birthDate) ?? '미입력',
+    },
+    {
+      key: 'together',
+      label: '함께한 시간',
+      value:
+        togetherDays !== null && togetherDays > 0
+          ? `${togetherDays}일`
+          : '미입력',
+    },
+  ];
   const handleSelect = useCallback(() => {
     onPressSelect(pet.id);
   }, [onPressSelect, pet.id]);
@@ -58,60 +167,123 @@ function PetManagementCardComponent({
   }, [onPressDelete, pet.id]);
 
   return (
-    <View
-      style={[
-        styles.card,
-        {
-          borderColor: isSelected ? NEUTRAL_UI_PALETTE.border : '#E5EAF2',
-          backgroundColor: isSelected ? NEUTRAL_UI_PALETTE.soft : '#FFFFFF',
-        },
-      ]}
-    >
-      <View style={styles.leading}>
-        <PetAvatar
-          uri={pet.avatarUrl?.trim() || null}
-          size={64}
-          fallbackLabel={pet.name}
+    <HomeReflectiveGlass borderRadius={8} style={styles.card}>
+      {/* Keep the whole photo visible; the information column can grow for text. */}
+      <View testID={`pet-content-${pet.id}`} style={styles.content}>
+        <PetManagementPhotoStage
+          key={photoUri ?? 'no-photo'}
+          uri={photoUri}
+          name={pet.name}
+          petId={pet.id}
         />
-      </View>
 
-      <View style={styles.info}>
-        <AppText preset="unifiedBody" style={[styles.name, { color: petTheme.deep }]}>
-          {pet.name}
-        </AppText>
-        <AppText preset="unifiedMeta" style={[styles.meta, { color: petTheme.deep }]}>
-          {summary}
-        </AppText>
-        {pet.deathDate ? (
-          <View style={styles.memorialBadge}>
-            <AppText preset="unifiedMeta" style={styles.memorialBadgeText}>
-              추모
+        <View testID={`pet-info-${pet.id}`} style={styles.info}>
+          <View style={styles.identity}>
+            <View style={styles.nameRow}>
+              <AppText
+                preset="unifiedBody"
+                styleOverridesPreset
+                style={[styles.name, { color: theme.colors.textPrimary }]}
+              >
+                {pet.name}
+              </AppText>
+              {pet.deathDate ? (
+                <View
+                  style={[
+                    styles.memorialBadge,
+                    { backgroundColor: theme.colors.surface },
+                  ]}
+                >
+                  <AppText
+                    preset="unifiedMeta"
+                    styleOverridesPreset
+                    style={[styles.meta, { color: theme.colors.textSecondary }]}
+                  >
+                    추모
+                  </AppText>
+                </View>
+              ) : null}
+            </View>
+            <AppText
+              preset="unifiedMeta"
+              styleOverridesPreset
+              style={[styles.meta, { color: theme.colors.textSecondary }]}
+            >
+              {speciesLabel}
             </AppText>
           </View>
-        ) : null}
+          <View testID={`pet-stats-${pet.id}`} style={styles.stats}>
+            {details.map(detail => (
+              <View
+                key={detail.key}
+                testID={`pet-${detail.key}-${pet.id}`}
+                style={styles.statRow}
+              >
+                <AppText
+                  preset="unifiedMeta"
+                  styleOverridesPreset
+                  style={[styles.meta, { color: theme.colors.textSecondary }]}
+                >
+                  {detail.label}
+                </AppText>
+                <AppText
+                  preset="unifiedBody"
+                  styleOverridesPreset
+                  style={[
+                    styles.statValue,
+                    { color: theme.colors.textPrimary },
+                  ]}
+                >
+                  {detail.value}
+                </AppText>
+              </View>
+            ))}
+          </View>
+        </View>
       </View>
 
-      <View style={styles.actions}>
+      <View testID={`pet-actions-${pet.id}`} style={styles.actions}>
         {isSelected ? (
-          <PetSelectedBadge
-            accentColor={NEUTRAL_UI_PALETTE.primary}
-            accentTint={NEUTRAL_UI_PALETTE.tint}
-          />
+          <View
+            testID={`pet-selected-status-${pet.id}`}
+            accessible
+            accessibilityLabel={`${pet.name}, 지금 보고 있는 아이`}
+            style={[
+              styles.action,
+              styles.selectedStatus,
+              { backgroundColor: selectionPalette.background },
+            ]}
+          >
+            <NuriSemanticIcon
+              family="feather"
+              name="check"
+              preserveOriginal
+              size={12}
+              color={selectionPalette.text}
+            />
+            <AppText
+              preset="unifiedMeta"
+              styleOverridesPreset
+              style={[styles.actionText, { color: selectionPalette.text }]}
+            >
+              보고 있어요
+            </AppText>
+          </View>
         ) : (
           <TouchableOpacity
-            activeOpacity={0.9}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel={`${pet.name} 선택하기`}
             style={[
-              styles.selectButton,
-              {
-                backgroundColor: NEUTRAL_UI_PALETTE.primary,
-                shadowColor: NEUTRAL_UI_PALETTE.primary,
-              },
+              styles.action,
+              { backgroundColor: selectionPalette.background },
             ]}
             onPress={handleSelect}
           >
             <AppText
               preset="unifiedMeta"
-              style={[styles.selectButtonText, { color: NEUTRAL_UI_PALETTE.onPrimary }]}
+              styleOverridesPreset
+              style={[styles.actionText, { color: selectionPalette.text }]}
             >
               선택
             </AppText>
@@ -120,11 +292,16 @@ function PetManagementCardComponent({
 
         <CtaButton
           role="secondary"
-          activeOpacity={0.9}
-          style={[styles.editButton, {}]}
+          testID={`pet-edit-${pet.id}`}
+          accessibilityLabel={`${pet.name} 프로필 수정하기`}
+          style={styles.action}
           onPress={handleEdit}
         >
-          <CtaText preset="unifiedMeta" style={[styles.editButtonText, {}]}>
+          <CtaText
+            preset="unifiedMeta"
+            styleOverridesPreset
+            style={styles.actionText}
+          >
             프로필 수정
           </CtaText>
         </CtaButton>
@@ -132,31 +309,42 @@ function PetManagementCardComponent({
         <CtaButton
           role="destructiveEntry"
           testID={`pet-delete-entry-${pet.id}`}
-          accessibilityRole="button"
           accessibilityLabel={`${pet.name} 아이 프로필 삭제하기`}
           accessibilityHint="확인 절차를 열며 바로 삭제하지 않습니다."
-          activeOpacity={0.88}
-          style={styles.deleteButton}
+          style={styles.action}
           onPress={handleDelete}
         >
-          <CtaText preset="unifiedMeta" style={styles.deleteButtonText}>
+          <CtaText
+            preset="unifiedMeta"
+            styleOverridesPreset
+            style={styles.actionText}
+          >
             삭제하기
           </CtaText>
         </CtaButton>
       </View>
-    </View>
+    </HomeReflectiveGlass>
   );
 }
 
 function areEqual(prev: Props, next: Props) {
   return (
     prev.isSelected === next.isSelected &&
+    prev.onPressSelect === next.onPressSelect &&
+    prev.onPressEdit === next.onPressEdit &&
+    prev.onPressDelete === next.onPressDelete &&
+    prev.pet.id === next.pet.id &&
     prev.pet.name === next.pet.name &&
     prev.pet.avatarUrl === next.pet.avatarUrl &&
     prev.pet.birthDate === next.pet.birthDate &&
+    prev.pet.adoptionDate === next.pet.adoptionDate &&
     prev.pet.speciesDetailKey === next.pet.speciesDetailKey &&
     prev.pet.speciesDisplayName === next.pet.speciesDisplayName &&
     prev.pet.species === next.pet.species &&
+    prev.pet.speciesKey === next.pet.speciesKey &&
+    prev.pet.breed === next.pet.breed &&
+    prev.pet.weightKg === next.pet.weightKg &&
+    prev.pet.gender === next.pet.gender &&
     prev.pet.deathDate === next.pet.deathDate &&
     prev.pet.themeColor === next.pet.themeColor
   );
@@ -166,88 +354,105 @@ const PetManagementCard = memo(PetManagementCardComponent, areEqual);
 
 const styles = StyleSheet.create({
   card: {
-    borderRadius: 24,
-    borderWidth: 1,
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    flexDirection: 'row',
-    gap: 14,
-    alignItems: 'center',
+    marginTop: 0,
   },
-  leading: {
+  content: {
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    minHeight: 224,
+  },
+  photoFrame: {
+    width: '50%',
+    minWidth: 0,
+    overflow: 'hidden',
+  },
+  photo: {
+    ...StyleSheet.absoluteFill,
+  },
+  photoFallback: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+    padding: 12,
+  },
+  fallbackText: {
+    textAlign: 'center',
   },
   info: {
     flex: 1,
+    minWidth: 0,
+    padding: 16,
+    justifyContent: 'center',
+    gap: 12,
+  },
+  identity: {
+    minWidth: 0,
+    gap: 8,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
     gap: 6,
   },
   name: {
-    color: '#172033',
-    fontWeight: '900',
+    fontSize: 18,
+    lineHeight: 24,
+    fontWeight: '700',
+    flexShrink: 1,
   },
   meta: {
-    color: '#7C889A',
-    fontWeight: '700',
+    fontSize: 12,
+    lineHeight: 18,
+  },
+  stats: {
+    gap: 6,
+  },
+  statRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+  },
+  statValue: {
+    flex: 1,
+    minWidth: 0,
+    fontSize: 14,
+    lineHeight: 20,
+    fontWeight: '600',
+    textAlign: 'right',
   },
   memorialBadge: {
-    alignSelf: 'flex-start',
-    borderRadius: 999,
-    backgroundColor: 'rgba(224, 90, 104, 0.1)',
+    borderRadius: 8,
     paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  memorialBadgeText: {
-    color: '#E05A68',
-    fontWeight: '900',
+    paddingVertical: 2,
   },
   actions: {
-    width: 124,
-    gap: 8,
-    alignItems: 'stretch',
-  },
-  selectButton: {
-    minHeight: 36,
-    borderRadius: 14,
     flexDirection: 'row',
+    gap: 6,
+    alignItems: 'stretch',
+    padding: 8,
+  },
+  action: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 48,
+    borderRadius: 8,
+    paddingHorizontal: 6,
+    paddingVertical: 8,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOpacity: 0.16,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 3,
+  },
+  selectedStatus: {
+    flexDirection: 'row',
     gap: 4,
   },
-  selectButtonText: {
-    fontWeight: '900',
-  },
-  selectButtonIcon: {
-    marginTop: 0.5,
-  },
-  editButton: {
-    minHeight: 36,
-    borderRadius: 14,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  editButtonText: {
-    fontWeight: '900',
-  },
-  deleteButton: {
-    minHeight: 36,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(200,62,77,0.28)',
-    backgroundColor: 'rgba(200,62,77,0.06)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 5,
-  },
-  deleteButtonText: {
-    color: '#C83E4D',
-    fontWeight: '900',
+  actionText: {
+    fontSize: 12,
+    lineHeight: 18,
+    fontWeight: '600',
+    textAlign: 'center',
+    flexShrink: 1,
   },
 });
 
