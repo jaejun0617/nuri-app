@@ -4,11 +4,14 @@ import { getSecureStorageReceipt, secureSessionStorage as storage } from '../src
 
 const encrypted = new Map<string, string>();
 const legacy = new Map<string, string>();
-const key = 'sb-qa-auth-token';
-const service = `nuri.auth.v1.${key}`;
+let testSequence = 0;
+let key: string;
+let service: string;
 
 beforeEach(() => {
   jest.resetAllMocks();
+  key = `sb-qa-${++testSequence}-auth-token`;
+  service = `nuri.auth.v1.${key}`;
   encrypted.clear();
   legacy.clear();
   jest.mocked(AsyncStorage.getItem).mockImplementation(async name => legacy.get(name) ?? null);
@@ -124,4 +127,78 @@ it('does not reuse a successful receipt for a later failed write', async () => {
   expect(getSecureStorageReceipt(key)).toEqual({
     version: 2, secureWrite: false, readback: false, legacyAbsent: false, migrated: false,
   });
+});
+
+it('decrypts a verified session once for repeated and concurrent API reads', async () => {
+  encrypted.set(service, 'synthetic-session');
+  const reads = Array.from({ length: 20 }, () => storage.getItem(key));
+  expect(await Promise.all(reads)).toEqual(Array(20).fill('synthetic-session'));
+  expect(await storage.getItem(key)).toBe('synthetic-session');
+  expect(Keychain.getGenericPassword).toHaveBeenCalledTimes(1);
+  expect(AsyncStorage.removeItem).toHaveBeenCalledTimes(1);
+  expect(AsyncStorage.getAllKeys).toHaveBeenCalledTimes(1);
+});
+
+it('publishes a refreshed session only after encrypted write, readback and legacy removal', async () => {
+  await storage.setItem(key, 'synthetic-before');
+  await storage.setItem(key, 'synthetic-refreshed');
+  const readbackCalls = jest.mocked(Keychain.getGenericPassword).mock.calls.length;
+  expect(await storage.getItem(key)).toBe('synthetic-refreshed');
+  expect(Keychain.getGenericPassword).toHaveBeenCalledTimes(readbackCalls);
+  expect(AsyncStorage.setItem).not.toHaveBeenCalled();
+});
+
+it('invalidates a verified value before a failed refresh instead of serving stale credentials', async () => {
+  await storage.setItem(key, 'synthetic-before');
+  jest.mocked(Keychain.setGenericPassword).mockResolvedValueOnce(false);
+  await expect(storage.setItem(key, 'synthetic-after')).rejects.toThrow('SECURE_SESSION_STORAGE_FAILED');
+  jest.mocked(Keychain.getGenericPassword).mockRejectedValueOnce(new Error('private native failure'));
+  await expect(storage.getItem(key)).rejects.toThrow(/^SECURE_SESSION_STORAGE_FAILED$/);
+});
+
+it('does not cache a write whose secure readback or legacy removal failed', async () => {
+  jest.mocked(Keychain.getGenericPassword).mockResolvedValueOnce(false);
+  await expect(storage.setItem(key, 'synthetic-value')).rejects.toThrow('SECURE_SESSION_STORAGE_FAILED');
+  jest.mocked(Keychain.getGenericPassword).mockRejectedValueOnce(new Error('private failure'));
+  await expect(storage.getItem(key)).rejects.toThrow('SECURE_SESSION_STORAGE_FAILED');
+
+  legacy.set(key, 'synthetic-leftover');
+  jest.mocked(AsyncStorage.removeItem).mockResolvedValueOnce();
+  await expect(storage.setItem(key, 'synthetic-value')).rejects.toThrow('SECURE_SESSION_STORAGE_FAILED');
+  jest.mocked(Keychain.getGenericPassword).mockRejectedValueOnce(new Error('private failure'));
+  await expect(storage.getItem(key)).rejects.toThrow('SECURE_SESSION_STORAGE_FAILED');
+});
+
+it('orders cached reads, refresh and logout without resurrecting the previous account', async () => {
+  await storage.setItem(key, 'synthetic-a');
+  const refresh = storage.setItem(key, 'synthetic-a-refreshed');
+  const refreshedRead = storage.getItem(key);
+  const logout = storage.removeItem(key);
+  const loggedOutRead = storage.getItem(key);
+  const nextAccount = storage.setItem(key, 'synthetic-b');
+  const nextAccountRead = storage.getItem(key);
+  await refresh;
+  expect(await refreshedRead).toBe('synthetic-a-refreshed');
+  await logout;
+  expect(await loggedOutRead).toBeNull();
+  await nextAccount;
+  expect(await nextAccountRead).toBe('synthetic-b');
+});
+
+it('does not serve a cached session after failed native deletion', async () => {
+  await storage.setItem(key, 'synthetic-session');
+  jest.mocked(Keychain.resetGenericPassword).mockResolvedValueOnce(false);
+  await expect(storage.removeItem(key)).rejects.toThrow('SECURE_SESSION_STORAGE_FAILED');
+  jest.mocked(Keychain.getGenericPassword).mockRejectedValueOnce(new Error('private failure'));
+  await expect(storage.getItem(key)).rejects.toThrow('SECURE_SESSION_STORAGE_FAILED');
+});
+
+it('bounds verified in-memory entries and rereads evicted keys from encrypted storage', async () => {
+  await storage.setItem(key, 'synthetic-first');
+  for (let index = 0; index < 8; index += 1) {
+    await storage.setItem(`${key}-${index}`, 'synthetic-other');
+  }
+  jest.mocked(Keychain.getGenericPassword).mockClear();
+  expect(await storage.getItem(key)).toBe('synthetic-first');
+  expect(Keychain.getGenericPassword).toHaveBeenCalledTimes(1);
 });
