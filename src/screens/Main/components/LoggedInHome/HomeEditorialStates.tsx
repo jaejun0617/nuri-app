@@ -10,10 +10,12 @@ import {
 import AppText from '../../../../app/ui/AppText';
 import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
 import { HomeSectionHeader } from '../../../../components/home/HomeSectionHeader';
+import { useHomeContentTextStyle } from '../../../../components/home/HomeSeasonContext';
 import type { HomeCommunityTab } from '../../../../services/home/communityHighlights';
 import type { SeasonKey } from '../../../../theme/seasonal/season';
 import { HomeEditorialArtwork } from './HomeEditorialArtwork';
 import type { HomeEmptyDataState } from './HomeEmptySectionState';
+import { HomeTipSeasonalArtwork } from './HomeTipSeasonalArtwork';
 import { styles as homeStyles } from './LoggedInHome.styles';
 
 export const TODAY_HOME_TIP = {
@@ -52,6 +54,7 @@ export const TodayHomeTipSection = memo(function TodayHomeTipSectionView({
   season: SeasonKey;
   accentColor: string;
 }) {
+  const contentTextStyle = useHomeContentTextStyle();
   const { width, fontScale } = useWindowDimensions();
   const stack = shouldStackEditorialCopy(width, fontScale);
   return (
@@ -63,12 +66,12 @@ export const TodayHomeTipSection = memo(function TodayHomeTipSectionView({
             <AppText
               preset="unifiedTitle"
               styleOverridesPreset
-              style={styles.tipTitle}
+              style={[styles.tipTitle, contentTextStyle]}
             >
               {TODAY_HOME_TIP.title}
             </AppText>
           </View>
-          <HomeEditorialArtwork kind="today-tip" season={season} />
+          <HomeTipSeasonalArtwork season={season} />
         </View>
         <View style={styles.divider} pointerEvents="none" />
         <AppText
@@ -95,6 +98,7 @@ export const RecentRecordsEmptyState = memo(
     accentColor: string;
     onPressRecord: () => void;
   }) {
+    const contentTextStyle = useHomeContentTextStyle();
     const { width, fontScale } = useWindowDimensions();
     const stack = shouldStackEditorialCopy(width, fontScale);
 
@@ -125,7 +129,7 @@ export const RecentRecordsEmptyState = memo(
               typographyRole="celebration"
               preset="unifiedTitle"
               styleOverridesPreset
-              style={styles.emptyTitle}
+              style={[styles.emptyTitle, contentTextStyle]}
             >
               아직 기록이 없어요
             </AppText>

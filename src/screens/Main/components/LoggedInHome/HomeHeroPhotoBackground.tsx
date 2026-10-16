@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useEffect, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 
 type PhotoSize = { uri: string; aspectRatio: number };
 
@@ -76,6 +77,25 @@ export const HomeHeroPhotoBackground = memo(function HeroPhotoBackground({
         accessible={false}
         style={[styles.photo, { aspectRatio }]}
       />
+      {/* Clip the header shade to the original photo, including short panoramas. */}
+      <View
+        testID="home-hero-photo-shade-clip"
+        pointerEvents="none"
+        accessible={false}
+        importantForAccessibility="no-hide-descendants"
+        style={[styles.photo, { aspectRatio }, styles.shadeClip]}
+      >
+        <LinearGradient
+          testID="home-hero-photo-top-shade"
+          colors={['rgba(0,0,0,0.36)', 'rgba(0,0,0,0.14)', 'rgba(0,0,0,0)']}
+          locations={[0, 0.5, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          pointerEvents="none"
+          accessible={false}
+          style={styles.topShade}
+        />
+      </View>
     </View>
   );
 });
@@ -90,5 +110,15 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     width: '100%',
+  },
+  shadeClip: {
+    overflow: 'hidden',
+  },
+  topShade: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 128,
   },
 });

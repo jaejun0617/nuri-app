@@ -18,8 +18,10 @@ import Feather from '../../../../components/icons/NuriFeatherIcon';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../../app/ui/AppText';
+import { SEASON_CTA } from '../../../../app/theme/ctaPalette';
 import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
 import { HomeSectionHeader } from '../../../../components/home/HomeSectionHeader';
+import { useHomeContentTextStyle } from '../../../../components/home/HomeSeasonContext';
 import type { CommunityPost } from '../../../../types/community';
 import type { SeasonKey } from '../../../../theme/seasonal/season';
 import { CommunityEmptyState } from './HomeEditorialStates';
@@ -100,6 +102,7 @@ const PostRow = memo(function PostRow({
   onPress,
 }: PostCardProps) {
   const theme = useTheme();
+  const contentTextStyle = useHomeContentTextStyle();
   const title = useMemo(() => resolveCommunityPostTitle(post), [post]);
   const category = resolveCommunityPostCategoryLabel(post);
   const excerpt = post.content.trim();
@@ -128,7 +131,7 @@ const PostRow = memo(function PostRow({
         {featured && category ? (
           <AppText
             preset="caption"
-            style={[styles.category, { color: accentColor }]}
+            style={[styles.category, { color: contentTextStyle?.color ?? accentColor }]}
           >
             {category}
           </AppText>
@@ -139,7 +142,7 @@ const PostRow = memo(function PostRow({
           ellipsizeMode="tail"
           style={[
             featured ? styles.featuredTitle : styles.supportTitle,
-            { color: theme.colors.textPrimary },
+            { color: contentTextStyle?.color ?? theme.colors.textPrimary },
           ]}
         >
           {title}
@@ -159,7 +162,7 @@ const PostRow = memo(function PostRow({
             <AppText
               preset="caption"
               numberOfLines={1}
-              style={[styles.category, { color: accentColor }]}
+              style={[styles.category, { color: contentTextStyle?.color ?? accentColor }]}
             >
               {category}
             </AppText>
@@ -230,6 +233,7 @@ const CommunitySection = memo(function CommunitySection({
   onPressAll,
 }: CommunitySectionProps) {
   const theme = useTheme();
+  const chipPalette = SEASON_CTA[season];
   const [activeTab, setActiveTab] = useState<HomeCommunityTab>('popular');
   const [state, setState] = useState<CommunitySectionState>(() => {
     const cached = getHomeCommunityHighlightsCache('popular');
@@ -361,9 +365,11 @@ const CommunitySection = memo(function CommunitySection({
                     styles.pillVisual,
                     {
                       backgroundColor: isActive
-                        ? accentColor
+                        ? chipPalette.primary
                         : theme.colors.surfaceElevated,
-                      borderColor: isActive ? accentColor : borderColor,
+                      borderColor: isActive
+                        ? chipPalette.primary
+                        : chipPalette.border,
                     },
                   ]}
                 >

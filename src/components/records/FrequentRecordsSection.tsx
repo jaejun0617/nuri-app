@@ -19,6 +19,7 @@ import {
 } from '../../services/home/frequentRecords';
 import type { buildPetThemePalette } from '../../services/pets/themePalette';
 import { HomeSectionGlass } from '../home/HomeSectionGlass';
+import { useHomeContentTextStyle } from '../home/HomeSeasonContext';
 import {
   HomeSectionHeader,
   isHomeSectionConfirmedEmpty,
@@ -66,6 +67,7 @@ function RecordSummaryCard({
   onPress: () => void;
 }) {
   const { fontScale } = useWindowDimensions();
+  const contentTextStyle = useHomeContentTextStyle();
   const enlarged = fontScale > 1;
   const meta = CATEGORY_META[item.category];
   const accessibilityLabel = item.hasRecentRecord
@@ -103,7 +105,7 @@ function RecordSummaryCard({
         <View style={styles.recordTitleSlot}>
           <AppText
             preset="unifiedLabel"
-            style={styles.recordLabel}
+            style={[styles.recordLabel, contentTextStyle]}
             numberOfLines={1}
           >
             {meta.label}
@@ -114,7 +116,7 @@ function RecordSummaryCard({
             <View style={styles.relativeTimeLabel}>
               <AppText
                 preset="unifiedBody"
-                style={styles.relativeTimeText}
+                style={[styles.relativeTimeText, contentTextStyle]}
               >
                 {item.relativeTimeLabel}
               </AppText>

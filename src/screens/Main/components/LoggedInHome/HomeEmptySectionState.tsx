@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 
 import AppText from '../../../../app/ui/AppText';
+import { useHomeContentTextStyle } from '../../../../components/home/HomeSeasonContext';
 import type { SeasonKey } from '../../../../theme/seasonal/season';
 import { styles as homeStyles } from './LoggedInHome.styles';
 
@@ -89,6 +90,7 @@ export const HomeEmptySectionState = memo(function HomeEmptySectionStateView({
   accentDeepColor,
   onPressAction,
 }: Props) {
+  const contentTextStyle = useHomeContentTextStyle();
   const petName = usePetDisplayName();
   const { width, fontScale } = useWindowDimensions();
   const copy = HOME_EMPTY_SECTION_COPY[kind];
@@ -157,7 +159,7 @@ export const HomeEmptySectionState = memo(function HomeEmptySectionStateView({
             typographyRole="celebration"
             preset="unifiedTitle"
             styleOverridesPreset
-            style={[styles.title, kind === 'schedule' ? styles.centered : null]}
+            style={[styles.title, kind === 'schedule' ? styles.centered : null, contentTextStyle]}
           >
             {copy.title}
           </AppText>

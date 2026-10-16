@@ -120,9 +120,12 @@ describe('seasonal editorial Home sections', () => {
       expect(output).toContain(TODAY_HOME_TIP.title);
       expect(output).toContain(TODAY_HOME_TIP.description);
       expect(renderer.root.findAllByType(RN.TouchableOpacity)).toHaveLength(0);
-      expect(renderer.root.findByType(RN.Image).props.source).toBe(
-        HOME_EDITORIAL_ART['today-tip'][season],
-      );
+      expect(
+        renderer.root.findAllByType(RN.Image).map(image => image.props.source),
+      ).not.toContain(HOME_EDITORIAL_ART['today-tip'][season]);
+      expect(
+        renderer.root.findAllByProps({ testID: 'home-today-tip-seasonal-art' }),
+      ).not.toHaveLength(0);
       await act(async () => renderer.unmount());
     },
   );

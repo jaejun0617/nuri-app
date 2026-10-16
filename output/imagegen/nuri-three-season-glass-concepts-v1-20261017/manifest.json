@@ -1,0 +1,124 @@
+{
+  "schema_version": 1,
+  "created_date": "2026-10-17",
+  "collection": "NURI Spring Summer Winter Colored Glass Concept Collections v1",
+  "status": "METRO_CANDIDATE_INTEGRATED_AS_READ_ONLY_ATLAS",
+  "asset_type": "COLLECTION_PREVIEWS_NOT_INDIVIDUAL_RUNTIME_ASSETS",
+  "generation_method": "built-in image_gen",
+  "app_integration": true,
+  "creation_source_edit": 0,
+  "runtime_manifest": "../../../src/assets/seasonal/home/home-colored-glass-seasons-v1.source.json",
+  "runtime_usage": "Byte-identical atlas copies; fixed native viewports for cluster, accent and pearl only. Original approved optical starlight remains common to every season. No physical cutout extraction or raster editing.",
+  "build": 0,
+  "install": 0,
+  "commit": 0,
+  "push": 0,
+  "style_reference": "../nuri-autumn-glass-v1-20261017/autumn-glass-hero-leaf-cluster-v1.png",
+  "source_bytes_preserved": true,
+  "processing": "Exact copies only; no cropping, resampling, color change, compression, or alpha cleanup.",
+  "validation_notes": [
+    "All three PNGs decode with a real alpha channel and 57.58–64.48 percent fully transparent pixels.",
+    "Core alpha-64 subject bounds are within the canvas; all three collection sheets were visually inspected.",
+    "Some original canvas-edge/corner pixels have alpha 1. They are preserved rather than silently thresholded; the strict all-zero-corner check did not pass for spring/winter.",
+    "PO subsequently approved placement in the remaining three Home seasons. The original sheets are now reused through clipped viewports; individual cutout PNGs were not created. Native pixel/performance approval remains PO Metro review, separate from local tests.",
+    "The first read-only image-inspection attempt used an unavailable Sharp subpath; using the installed package entry resolved that environment-only inspection error."
+  ],
+  "assets": [
+    {
+      "season": "spring",
+      "name": "봄",
+      "file": "spring-colored-glass-collection-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1441955,
+      "sha256": "c8ea920017ae2f468ee4457aa37cf39c4102f77a9354b55da9dfa8a9796a5d5c",
+      "format": "png",
+      "hasAlpha": true,
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentRatio": 0.6281322415797359,
+      "coreBoundsAlpha64": [
+        48,
+        72,
+        1223,
+        1213
+      ],
+      "edgeAlphaMax": 1,
+      "cornerAlpha": [
+        0,
+        0,
+        1,
+        0
+      ],
+      "exactSourceMatch": true,
+      "generated_source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-a05681fe-f522-4341-8c9b-8ddc1cec8985.png",
+      "prompt": "Use case: stylized-concept.\nAsset type: NURI mobile app SPRING colored-glass ornament COLLECTION PREVIEW, not an app screenshot.\nInput image 1 is ONLY the established NURI autumn glass MATERIAL reference; replace the autumn subjects and amber palette, not the polished optical-glass workmanship.\nCreate one spacious transparent square collection sheet of SIX isolated ornaments in a neat invisible 2-column, 3-row arrangement, NO labels, NO dividing lines. Clear separation and generous transparent padding around every specimen. Top row has the slightly larger hero grouping on the left and one single flower on the right; second row a leaf and two loose petals; third row a small pearl and one light glint. Never merge neighboring specimens.\nSIX SPECIMENS EXACTLY: (1) an elegant gently curving corner grouping of two five-petal cherry blossoms and two small fresh leaves on a short delicate glass stem; (2) one single recognizably five-petal cherry blossom with a very subtle champagne center; (3) one fresh spring leaf with slender glass stem, softly sculpted central vein, slightly tilted; (4) exactly two separate softly cupped cherry-blossom petals as one loose-petal pair; (5) one perfectly round small translucent blush-champagne pearl sphere; (6) one delicate warm-white four-ray optical starlight, vertical rays a little longer.\nMaterial: reference-matching premium translucent colored optical glass, softly thick rounded polished bevels, elegant smooth refraction and controlled soft upper-left white specular light. Keep floral centers clean and quiet, not glittery jewelry. Readable clean silhouettes at mobile size. Premium, cute, calm, softly tactile, NOT plastic, clay, felt or realistic flowers. No metal frames.\nColor: cherry-blossom blush #F7C8D3 with muted rose edges #B46A72, luminous nearly clear pink interiors; soft sage #A8B58A fresh leaves; fine champagne/ivory highlights. Meant to harmonize with the existing pink Home gradient #FADDE4 to #F4C1CF without disappearing.\nGenuinely transparent alpha around and BETWEEN every ornament. NO white/gray/pink background, no checkerboard texture baked into pixels, no ground plane, cast ground shadows, broad halo clouds or bokeh. Entire blossoms, stems and leaf tips fully uncropped with 8 percent transparent perimeter. No autumn leaves, acorns, pet pictures, UI, cards, typography, letters, numbers, watermark, logo or extra objects. This is a reusable-family visual concept sheet, not an implemented screen."
+    },
+    {
+      "season": "summer",
+      "name": "여름",
+      "file": "summer-colored-glass-collection-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1311465,
+      "sha256": "8d314a6567877178f8b9fea60b45d934ee90307acd911094e4bc5ae2224206d8",
+      "format": "png",
+      "hasAlpha": true,
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentRatio": 0.6448017063101424,
+      "coreBoundsAlpha64": [
+        168,
+        56,
+        1155,
+        1201
+      ],
+      "edgeAlphaMax": 1,
+      "cornerAlpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "exactSourceMatch": true,
+      "generated_source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-7f5177f3-b347-4b51-9859-08a26e376956.png",
+      "prompt": "Use case: stylized-concept.\nAsset type: NURI mobile app SUMMER colored-glass ornament COLLECTION PREVIEW, not an app screenshot.\nInput image 1 is ONLY the established autumn glass MATERIAL reference; replace all foliage subjects and amber coloring, preserve the same polished rounded translucent optical-glass family.\nOne spacious transparent square collection sheet with SIX isolated ornaments in an invisible 2-column, 3-row arrangement, NO labels/dividers. Large clear transparent separation, no overlaps between separate specimens. Top row larger hero grouping left and single shell right; middle row water drops left and wave right; bottom row pearl left and single glint right.\nSIX SPECIMENS EXACTLY: (1) a gently curved corner grouping of one open scallop seashell with two little clear water droplets nestled beside its lower edge, graceful asymmetrical silhouette; (2) one single fan-shaped scallop shell with five or six soft sculpted ridges and elegant rounded outline; (3) a pair of softly rounded teardrop water droplets, one upright larger drop and one smaller leaning companion, no water splash; (4) one small simple smooth curling wave crest, an elegant clear sea-glass curl, NOT ocean scenery; (5) one small perfectly round translucent seafoam-champagne pearl sphere; (6) one fine cool-ivory FOUR-ray optical starlight, longer vertical rays.\nMaterial: premium colored optical GLASS like the reference, transparent pastel interiors, softly thick bevels, polished edges, delicate refraction, controlled upper-left white highlights. Clean readable mobile silhouettes, premium/cute/calm. Not plastic, metallic jewelry, hard faceted gemstones or photorealistic wet shells.\nColor: pale sky #BFDDE9 and #9CCEE1, turquoise #4CAFB7 with restrained deeper teal #1F8790 rims, near-clear aqua interiors, occasional pale champagne on shell lips and pearl to avoid a monotonous blue set. Harmonize with NURI's sky-to-seafoam Home gradient #BFDDE9 through #ADD7E3 to #ACD4D0. No saturated cobalt or dark navy masses.\nTrue transparent alpha everywhere outside specimens, including gaps. NO backdrop, solid color, gradient field, baked checkerboard, surface, ground/cast shadow, external glow cloud, bokeh, beach illustration, fish, starfish, umbrellas or text. Keep every shell edge, droplet tip and wave completely uncropped with 8 percent outer padding. No UI/cards, pet pictures, logo, numbers or watermark. A collection concept sheet only, not runtime integration."
+    },
+    {
+      "season": "winter",
+      "name": "겨울",
+      "file": "winter-colored-glass-collection-v1.png",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1731761,
+      "sha256": "bbab29343802974ad673d6c8c00812bb8a2c998b366b2e71c417a2d45ba82c4d",
+      "format": "png",
+      "hasAlpha": true,
+      "alphaRange": [
+        0,
+        255
+      ],
+      "transparentRatio": 0.5758014544844059,
+      "coreBoundsAlpha64": [
+        77,
+        22,
+        1186,
+        1224
+      ],
+      "edgeAlphaMax": 1,
+      "cornerAlpha": [
+        0,
+        0,
+        1,
+        1
+      ],
+      "exactSourceMatch": true,
+      "generated_source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-d10b2aa8-0453-43a1-b67f-90bcc55a085a.png",
+      "prompt": "Use case: stylized-concept.\nAsset type: NURI mobile app WINTER colored-glass ornament COLLECTION PREVIEW, not an app screenshot.\nInput image 1 is solely the established NURI colored-glass MATERIAL reference. Preserve its polished luminous rounded glass craftsmanship and restrained cute premium mood; replace autumn subject matter.\nOne spacious transparent square collection sheet of SIX isolated ornaments, invisible 2-column by 3-row arrangement. NO labels, lines or frames. Generous clear alpha separation. Upper row: hero grouping left and snowflake right; middle row: pinecone left and pine sprig right; bottom row: pearl left and single glint right.\nSIX SPECIMENS EXACTLY: (1) one graceful corner grouping of a single six-armed clear ice-glass snowflake with a short delicate pale-sage glass pine sprig and one tiny champagne glass pinecone at its base; (2) one single symmetric SIX-armed snowflake with softly rounded bevels and simple branches, complete clean tips, not excessively filigreed; (3) one plump small oval PINECONE, recognizable layered glass scales, smoky-champagne transparent glass with a short stem; (4) one short curved winter PINE SPRIG with restrained frosted sage-glass needles, each gently thick and rounded, not real vegetation; (5) one perfectly round small pearl sphere in milky ice-blue glass with a pale champagne reflection; (6) one delicate cool ivory-white FOUR-ray optical starlight with longer vertical rays, not a solid star ornament.\nMaterial: premium translucent colored optical glass, smooth rounded thick edges, subtle internal refraction, soft controlled upper-left highlights. Cool and cozy rather than sharp/glittery or Christmas-themed. Soft scale detail on the glass cone must remain readable small. NO metal outline, glitter, wood, felt, clay, plastic, faceted gemstones.\nColor: pale frosty blue #AFC7D6, gentle steel-sky #6D9CBF, very restrained #467293 rims on snowflakes; pale desaturated sage in needles and light champagne in the cone and pearl for quiet warmth. Keep bodies mostly light and translucent, matching NURI's winter Home background without vanishing. No dark navy blocks.\nTrue transparent alpha outside all objects and in open gaps. NO white/gray/blue background, checkerboard drawn in pixels, landscape, snow ground, ground plane/cast shadow, broad haze or bokeh. Complete unclipped snowflake tips, pine stem and cone with 8 percent transparent perimeter. No holly, red bows, Santa, gifts, ornaments with hooks, pet pictures, app UI, card panels, letters, numbers, logos, watermark or extra props. This is one coherent concept collection, not app integration."
+    }
+  ]
+}

@@ -56,26 +56,29 @@ export const styles = StyleSheet.create({
   header: {
     position: 'relative',
     marginBottom: 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: 8,
+    paddingBottom: 16,
   },
   brandContentStack: {
-    width: '100%',
-    paddingTop: 8,
+    flex: 1,
+    minWidth: 0,
     alignItems: 'flex-start',
-    gap: 7,
-    marginBottom: 16,
   },
-  autumnBrandContentStack: {
+  seasonalHeader: {
     paddingTop: 4,
-    marginBottom: 12,
-    gap: 4,
+    paddingBottom: 12,
   },
   brandLockup: {
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
   brandWordmark: {
-    fontSize: 24,
+    fontSize: 22,
     lineHeight: 28,
+    color: '#FFFFFF',
     fontFamily: typography.family.display,
     fontWeight: '400',
     letterSpacing: 0,
@@ -85,9 +88,7 @@ export const styles = StyleSheet.create({
     marginLeft: 2,
   },
   notificationAnchor: {
-    position: 'absolute',
-    top: 5,
-    right: 0,
+    flexShrink: 0,
     zIndex: 1,
   },
   title: { fontSize: 16, fontWeight: '900', color: BRAND_DEEP },
@@ -107,12 +108,6 @@ export const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderWidth: 0,
     position: 'relative',
-  },
-  headerNotificationGlass: {
-    ...ABS_FILL,
-    borderRadius: 17,
-    borderWidth: 0,
-    overflow: 'hidden',
   },
   headerNotificationBadge: {
     position: 'absolute',

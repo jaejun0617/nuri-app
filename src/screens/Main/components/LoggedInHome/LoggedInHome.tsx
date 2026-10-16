@@ -8,8 +8,6 @@ import CtaButton, { CtaText } from '../../../../app/ui/CtaButton';
 // - 최근 기록은 홈 전용 세로 프리뷰 섹션으로, 최신 3개만 압축 노출한다.
 
 import AppText from '../../../../app/ui/AppText';
-import { SEASON_CTA } from '../../../../app/theme/ctaPalette';
-import { useEffectiveSeason } from '../../../../app/providers/SeasonPreferenceProvider';
 import { FixedTypographyBoundary } from '../../../../app/providers/AppFontPreferenceProvider';
 import React, {
   useEffect,
@@ -65,13 +63,9 @@ import Animated, {
 
 import Screen from '../../../../components/layout/Screen';
 import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
-import {
-  HOME_FLOATING_WIDGET_MATERIAL,
-  HomeFloatingWidgetSurface,
-} from '../../../../components/home/HomeWidgetMaterial';
 import { useHealthVisualQa } from '../../../../components/health/healthVisualQa';
 import { HomeScheduleCalendar } from '../../../../components/home/HomeScheduleCalendar';
-import { HomeSeasonProvider } from '../../../../components/home/HomeSeasonContext';
+import { HomeSeasonProvider, useHomeContentTextStyle } from '../../../../components/home/HomeSeasonContext';
 import {
   HomeSectionHeader,
   isHomeSectionConfirmedEmpty,
@@ -99,7 +93,7 @@ import {
 } from '../../../../services/memories/categoryMeta';
 import { getPrimaryMemoryImageRef } from '../../../../services/records/imageSources';
 import { useAuthStore } from '../../../../store/authStore';
-import { usePetStore, type Pet } from '../../../../store/petStore';
+import { usePetStore } from '../../../../store/petStore';
 import {
   useRecordStore,
   type PetRecordsState,
@@ -125,10 +119,16 @@ import {
   useHomeHeroPhoto,
 } from './HomeHeroPhotoBackground';
 import {
-  HOME_HERO_PANEL_OVERLAP,
   HomeHeroContentSheet,
   HomeHeroInfoPanel,
 } from './HomeHeroInfoPanel';
+import {
+  HomeHeroFooterOrnaments,
+  HomeHeroPhotoStarlights,
+} from './HomeHeroDecorations';
+import { HomeSectionDecorations } from './HomeSectionDecorations';
+import { HomePetSelectionSheet } from './HomePetSelectionSheet';
+import { HomePetSheetHeader } from './HomePetSheetHeader';
 import {
   HomePetBasicInfoSection,
   type HomePetBasicInfoValues,
@@ -188,7 +188,6 @@ import {
   buildFrequentRecordSummary,
   type FrequentRecordCategory,
 } from '../../../../services/home/frequentRecords';
-import { buildHomeHeroMemoryChip } from '../../../../services/home/heroMemoryChip';
 import {
   createTimelineEntryRequestId,
   HOME_TOTAL_SUMMARY_ENTRY_SOURCE,
@@ -232,7 +231,6 @@ import { getAgeInMonthsFromBirthDate } from '../../../../services/guides/agePoli
 import { buildGuideEventMetadata } from '../../../../services/guides/analytics';
 import {
   getGuideDataSourceDescription,
-  getGuideDataSourceLabel,
 } from '../../../../services/guides/source';
 import { isLocalGuideSeedGuide } from '../../../../services/guides/seed';
 import { getGuideRotationWindowKey } from '../../../../services/guides/rotation';
@@ -433,6 +431,7 @@ const HomeRecentRecordRow = React.memo(function HomeRecentRecordRow({
   showDivider: boolean;
 }) {
   const categoryLabel = getMemoryCategoryChipLabel(item);
+  const contentTextStyle = useHomeContentTextStyle();
   const categoryTone = getMemoryCategoryChipTone(item);
   const isGrooming = categoryLabel === '미용';
   const summary = getHomeRecentSummary(item);
@@ -467,7 +466,7 @@ const HomeRecentRecordRow = React.memo(function HomeRecentRecordRow({
       <View style={styles.recentRecordBody}>
         <AppText
           preset="unifiedLabel"
-          style={styles.recentRecordCategory}
+          style={[styles.recentRecordCategory, contentTextStyle]}
           numberOfLines={1}
         >
           {categoryLabel}
@@ -510,49 +509,6 @@ const HOME_RECENT_RECORDS_MAX = 3;
 /* ---------------------------------------------------------
  * 3) sub components (hooks-safe)
  * -------------------------------------------------------- */
-const PetChipButton = React.memo(function PetChipButton({
-  petId,
-  isActive,
-  imageUri,
-  petThemePrimary,
-  onPress,
-}: {
-  petId: string;
-  isActive: boolean;
-  imageUri: string | null;
-  petThemePrimary: string;
-  onPress: (petId: string) => void;
-}) {
-  const handlePress = useCallback(() => {
-    onPress(petId);
-  }, [onPress, petId]);
-
-  return (
-    <TouchableOpacity
-      activeOpacity={0.85}
-      style={[
-        styles.petChip,
-        isActive
-          ? [
-              styles.petChipActive,
-              {
-                borderColor: petThemePrimary,
-                shadowColor: petThemePrimary,
-              },
-            ]
-          : null,
-      ]}
-      onPress={handlePress}
-    >
-      {imageUri ? (
-        <Image source={{ uri: imageUri }} style={styles.petChipImage} />
-      ) : (
-        <View style={styles.petChipPlaceholder} />
-      )}
-    </TouchableOpacity>
-  );
-});
-
 const MonthlyDiaryCard = React.memo(function MonthlyDiaryCard({
   item,
   onPress,
@@ -561,6 +517,7 @@ const MonthlyDiaryCard = React.memo(function MonthlyDiaryCard({
   onPress: (memoryId: string) => void;
 }) {
   const imageRef = getPrimaryMemoryImageRef(item);
+  const contentTextStyle = useHomeContentTextStyle();
   const { signedUrl } = useSignedMemoryImage(imageRef);
 
   return (
@@ -581,7 +538,7 @@ const MonthlyDiaryCard = React.memo(function MonthlyDiaryCard({
       <AppText
         typographyRole="sectionTitle"
         preset="unifiedLabel"
-        style={styles.monthDiaryTitle}
+        style={[styles.monthDiaryTitle, contentTextStyle]}
         numberOfLines={1}
       >
         {item.title?.trim() || '기록'}
@@ -1122,20 +1079,10 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
 
 const HomeHeaderSection = React.memo(function HomeHeaderSection({
   season,
-  visiblePets,
-  activePetId,
-  petThemePrimary,
-  onPressPetChip,
-  onPressAddPet,
   onPressNotifications,
   notificationUnreadCount,
 }: {
   season: SeasonalHomeVisual['season'] | null;
-  visiblePets: Pet[];
-  activePetId: string | null;
-  petThemePrimary: string;
-  onPressPetChip: (petId: string) => void;
-  onPressAddPet: () => void;
   onPressNotifications: () => void;
   notificationUnreadCount: number;
 }) {
@@ -1147,25 +1094,15 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
     notificationUnreadCount > 0
       ? `알림 목록 열기, 읽지 않은 알림 ${notificationUnreadCount}개`
       : '알림 목록 열기';
-  const brandColor = SEASON_CTA[useEffectiveSeason()].primary;
 
   return (
-    <View style={styles.header}>
-      <View
-        style={[
-          styles.brandContentStack,
-          isAutumn || isWinter || isSpring || isSummer
-            ? styles.autumnBrandContentStack
-            : null,
-        ]}
-      >
+    <View style={[
+      styles.header,
+      isAutumn || isWinter || isSpring || isSummer ? styles.seasonalHeader : null,
+    ]}>
+      <View style={styles.brandContentStack}>
         <View style={styles.brandLockup}>
-          <AppText
-            style={[
-              styles.brandWordmark,
-              { color: brandColor },
-            ]}
-          >
+          <AppText style={styles.brandWordmark}>
             NURI
           </AppText>
           <NuriSemanticIcon
@@ -1173,7 +1110,7 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
             preserveOriginal
             name="heart"
             size={12}
-            color={brandColor}
+            color={styles.brandWordmark.color}
             style={styles.brandPaw}
           />
         </View>
@@ -1187,19 +1124,14 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
           accessibilityLabel={notificationAccessibilityLabel}
           accessibilityRole="button"
         >
-          <View
-            testID="home-notification-glass"
-            pointerEvents="none"
-            accessible={false}
-            importantForAccessibility="no-hide-descendants"
-            style={[HOME_FLOATING_WIDGET_MATERIAL, styles.headerNotificationGlass]}
-          >
-            <HomeFloatingWidgetSurface
-              radius={17}
-              testIDPrefix="home-notification-glass"
-            />
-          </View>
-          <Feather name="bell" size={18} color="rgba(11,18,32,0.75)" />
+          <NuriIcon
+            testID="home-notification-icon"
+            name="bell"
+            size={18}
+            color="#FFFFFF"
+            colorMode="theme"
+            variant="outline"
+          />
           {notificationUnreadCount > 0 ? (
             <View style={styles.headerNotificationBadge}>
               <AppText
@@ -1213,34 +1145,6 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
         </TouchableOpacity>
       </View>
 
-      <View style={styles.petSwitcherRow}>
-        {visiblePets.map(p => (
-          <PetChipButton
-            key={p.id}
-            petId={p.id}
-            isActive={p.id === activePetId}
-            imageUri={p.avatarUrl?.trim() || null}
-            petThemePrimary={petThemePrimary}
-            onPress={onPressPetChip}
-          />
-        ))}
-
-        <TouchableOpacity
-          accessibilityRole="button"
-          accessibilityLabel="반려동물 등록"
-          activeOpacity={0.9}
-          style={styles.petAddChip}
-          onPress={onPressAddPet}
-        >
-          <NuriSemanticIcon
-            family="feather"
-            name="plus"
-            size={20}
-            color="#FFFFFF"
-            preserveOriginal
-          />
-        </TouchableOpacity>
-      </View>
     </View>
   );
 });
@@ -1842,9 +1746,7 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
 
 const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
   visible,
-  petTheme,
   profilePetName,
-  selectedAvatarUri,
   basicInfo,
   hobbies,
   likes,
@@ -1856,9 +1758,7 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
   onCloseComplete,
 }: {
   visible: boolean;
-  petTheme: ReturnType<typeof buildPetThemePalette>;
   profilePetName: string;
-  selectedAvatarUri: string | null;
   basicInfo: HomePetBasicInfoValues;
   hobbies: string[];
   likes: string[];
@@ -1932,14 +1832,14 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
       transparent
       statusBarTranslucent
       animationType="none"
-      onRequestClose={requestClose}
+      onRequestClose={() => requestClose()}
     >
       <View style={styles.profileSheetRoot}>
         <Pressable
           accessibilityLabel="프로필 상세 바깥 영역 닫기"
           accessibilityRole="button"
           style={styles.profileSheetBackdropPressable}
-          onPress={requestClose}
+          onPress={() => requestClose()}
         >
           <RNAnimated.View
             style={[styles.profileSheetBackdrop, { opacity: backdropOpacity }]}
@@ -2108,77 +2008,18 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
               isSummer ? styles.summerProfileSheetHandle : null,
             ]}
           />
-          <View
-            style={[
-              styles.profileSheetHeader,
-              { marginHorizontal: contentHorizontalInset },
-            ]}
-          >
-            <View style={styles.profileSheetHeaderIdentity}>
-              <View
-                style={[
-                  styles.profileSheetThumbnail,
-                  { borderColor: petTheme.border },
-                ]}
-              >
-                {selectedAvatarUri ? (
-                  <Image
-                    source={{ uri: selectedAvatarUri }}
-                    style={styles.profileSheetThumbnailImage}
-                    accessibilityLabel={`${profilePetName} 프로필 사진`}
-                  />
-                ) : (
-                  <MaterialCommunityIcons
-                    name="image-outline"
-                    size={20}
-                    color={petTheme.deep}
-                  />
-                )}
-              </View>
-              <View style={styles.profileSheetTitleWrap}>
-                <AppText
-                  style={[
-                    styles.profileSheetTitle,
-                    isWinter ? styles.winterProfileSheetTitle : null,
-                    isSpring ? styles.springProfileSheetTitle : null,
-                    isSummer ? styles.summerProfileSheetTitle : null,
-                  ]}
-                >
-                  {`${profilePetName}의 소개와 취향`}
-                </AppText>
-                <AppText
-                  style={[
-                    styles.profileSheetSubtitle,
-                    isWinter ? styles.winterProfileSheetSubtitle : null,
-                    isSpring ? styles.springProfileSheetSubtitle : null,
-                    isSummer ? styles.summerProfileSheetSubtitle : null,
-                  ]}
-                >
-                  작고 소중한 취향을 살펴보세요
-                </AppText>
-              </View>
-            </View>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              accessibilityLabel="프로필 상세 닫기"
-              accessibilityRole="button"
-              style={[
-                styles.profileSheetCloseButton,
-                isWinter ? styles.winterProfileSheetCloseButton : null,
-                isSpring ? styles.springProfileSheetCloseButton : null,
-                isSummer ? styles.summerProfileSheetCloseButton : null,
-              ]}
-              onPress={requestClose}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <NuriSemanticIcon
-                family="feather"
-                preserveOriginal
-                name="x"
-                size={19}
-                color="#000000"
-              />
-            </TouchableOpacity>
+          <View style={{ marginHorizontal: contentHorizontalInset }}>
+            <HomePetSheetHeader
+              title={`${profilePetName}의 소개와 취향`}
+              titleColor={
+                isWinter ? styles.winterProfileSheetTitle.color
+                  : isSpring ? styles.springProfileSheetTitle.color
+                  : isSummer ? styles.summerProfileSheetTitle.color
+                  : styles.profileSheetTitle.color
+              }
+              closeLabel="프로필 상세 닫기"
+              onClose={() => requestClose()}
+            />
           </View>
 
           <ScrollView
@@ -2297,7 +2138,7 @@ const RecommendationTipsSection = React.memo(
     onPressMore: () => void;
   }) {
     const petName = usePetDisplayName();
-    const debugSourceLabel = getGuideDataSourceLabel(source);
+    const contentTextStyle = useHomeContentTextStyle();
 
     return (
       <HomeSectionGlass
@@ -2326,29 +2167,13 @@ const RecommendationTipsSection = React.memo(
                 }
           }
         />
-        {__DEV__ ? (
-          <View
-            style={[
-              styles.guideDebugBadge,
-              source === 'local-seed'
-                ? styles.guideDebugBadgeSeed
-                : source === 'remote'
-                ? styles.guideDebugBadgeRemote
-                : styles.guideDebugBadgeEmpty,
-            ]}
-          >
-            <AppText preset="unifiedLabel" style={styles.guideDebugBadgeText}>
-              {debugSourceLabel}
-            </AppText>
-          </View>
-        ) : null}
 
         {isMemorial ? (
           <View style={styles.emptyBox}>
             <AppText
               typographyRole="celebration"
               preset="unifiedTitle"
-              style={styles.emptyTitle}
+              style={[styles.emptyTitle, contentTextStyle]}
             >
               케어 추천은 잠시 쉬어둘게요
             </AppText>
@@ -2362,7 +2187,7 @@ const RecommendationTipsSection = React.memo(
             <AppText
               typographyRole="celebration"
               preset="unifiedTitle"
-              style={styles.emptyTitle}
+              style={[styles.emptyTitle, contentTextStyle]}
             >
               추천 팁을 불러오는 중이에요
             </AppText>
@@ -2375,7 +2200,7 @@ const RecommendationTipsSection = React.memo(
             <AppText
               typographyRole="celebration"
               preset="unifiedTitle"
-              style={styles.emptyTitle}
+              style={[styles.emptyTitle, contentTextStyle]}
             >
               추천 팁을 불러오지 못했어요
             </AppText>
@@ -2388,7 +2213,7 @@ const RecommendationTipsSection = React.memo(
             <AppText
               typographyRole="celebration"
               preset="unifiedTitle"
-              style={styles.emptyTitle}
+              style={[styles.emptyTitle, contentTextStyle]}
             >
               추천 가능한 공개 가이드가 아직 없어요
             </AppText>
@@ -2732,6 +2557,7 @@ export default function LoggedInHome() {
   const [notificationModalVisible, setNotificationModalVisible] =
     useState(false);
   const [profileSheetVisible, setProfileSheetVisible] = useState(false);
+  const [petSelectionOwnerId, setPetSelectionOwnerId] = useState<string | null>(null);
   const [homeViewportHeight, setHomeViewportHeight] = useState(0);
   const [ambientSectionLayouts, setAmbientSectionLayouts] =
     useState<HomeAmbientSectionLayouts>({});
@@ -2815,6 +2641,7 @@ export default function LoggedInHome() {
   }, []);
 
   const openProfileInfoSheet = useCallback(() => {
+    setPetSelectionOwnerId(null);
     setProfileSheetVisible(true);
   }, []);
 
@@ -3350,7 +3177,14 @@ export default function LoggedInHome() {
     Number.isFinite(heroPhotoHeight) && heroPhotoHeight > 0
       ? heroPhotoHeight
       : seasonalHeroViewportHeight;
-  const visiblePets = useMemo(() => pets.slice(0, 4), [pets]);
+  const hasMultiplePets = pets.length > 1;
+  const petSelectionVisible = hasMultiplePets && isScreenFocused &&
+    petSelectionOwnerId !== null && petSelectionOwnerId === sessionUserId;
+  useEffect(() => {
+    if (!hasMultiplePets || !isScreenFocused || petSelectionOwnerId !== sessionUserId) {
+      setPetSelectionOwnerId(null);
+    }
+  }, [hasMultiplePets, isScreenFocused, petSelectionOwnerId, sessionUserId]);
   const petTheme = useMemo(
     () => buildPetThemePalette(selectedPet?.themeColor),
     [selectedPet?.themeColor],
@@ -3389,9 +3223,19 @@ export default function LoggedInHome() {
   // ---------------------------------------------------------
   // 7) actions
   // ---------------------------------------------------------
-  const onPressAddPet = useCallback(() => {
-    navigation.navigate('PetCreate', { from: 'header_plus' });
+  const onPressManagePets = useCallback(() => {
+    navigation.navigate('PetManagement', { entrySource: 'home' });
   }, [navigation]);
+
+  const openPetSelectionSheet = useCallback(() => {
+    if (!hasMultiplePets || !sessionUserId) return;
+    setProfileSheetVisible(false);
+    setPetSelectionOwnerId(sessionUserId);
+  }, [hasMultiplePets, sessionUserId]);
+
+  const closePetSelectionSheet = useCallback(() => {
+    setPetSelectionOwnerId(null);
+  }, []);
 
   const onPressTimeline = useCallback(() => {
     navigation.navigate('TimelineTab', {
@@ -3799,16 +3643,6 @@ export default function LoggedInHome() {
     }
   }, []);
 
-  const heroMemoryChip = useMemo(
-    () =>
-      seasonalHomeVisual?.season === 'autumn' ||
-      seasonalHomeVisual?.season === 'winter' ||
-      seasonalHomeVisual?.season === 'spring' ||
-      seasonalHomeVisual?.season === 'summer'
-        ? buildHomeHeroMemoryChip(recordItems, plainPetName)
-        : null,
-    [plainPetName, recordItems, seasonalHomeVisual?.season],
-  );
   const ambientBubbleCanvasEnabled = seasonalHomeVisual !== null;
   const handleAmbientContentLayout = useCallback((event: LayoutChangeEvent) => {
     const y = Math.round(event.nativeEvent.layout.y * 2) / 2;
@@ -3836,11 +3670,6 @@ export default function LoggedInHome() {
   const homeHeader = (
     <HomeHeaderSection
       season={seasonalHomeVisual?.season ?? null}
-      visiblePets={visiblePets}
-      activePetId={activePetId}
-      petThemePrimary={petTheme.primary}
-      onPressPetChip={onPressPetChip}
-      onPressAddPet={onPressAddPet}
       onPressNotifications={openHomeNotifications}
       notificationUnreadCount={homeNotificationUnreadCount}
     />
@@ -3890,6 +3719,7 @@ export default function LoggedInHome() {
         style={[styles.lowerHomeSectionList, styles.heroConnectedLowerSectionList]}>
         <View onLayout={ambientSectionLayoutHandlers.frequent}>
           {frequentRecordsSection}
+          <HomeSectionDecorations season={ambientSeason} zone="frequent" />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.summary}>
           <TotalSummarySection
@@ -3916,6 +3746,7 @@ export default function LoggedInHome() {
             onPressLife={onPressTotalLife}
             onPressAllRecords={onPressTotalSummaryAllRecords}
           />
+          <HomeSectionDecorations season={ambientSeason} zone="summary" />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.recent}>
           <TodayRecordsSection
@@ -3927,6 +3758,7 @@ export default function LoggedInHome() {
             accentDeepColor={NEUTRAL_UI_PALETTE.deep}
             season={ambientSeason}
           />
+          <HomeSectionDecorations season={ambientSeason} zone="recent" />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.community}>
           <CommunitySection
@@ -3938,6 +3770,7 @@ export default function LoggedInHome() {
             onPressPost={onPressCommunityPost}
             onPressAll={onPressCommunityAll}
           />
+          <HomeSectionDecorations season={ambientSeason} zone="community" />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.recommendation}>
           <RecommendationTipsSection
@@ -3951,6 +3784,7 @@ export default function LoggedInHome() {
             onPressGuide={onPressGuideDetail}
             onPressMore={onPressGuideList}
           />
+          <HomeSectionDecorations season={ambientSeason} zone="recommendation" />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.schedule}>
           <ScheduleSection
@@ -3972,6 +3806,7 @@ export default function LoggedInHome() {
             accentColor={NEUTRAL_UI_PALETTE.primary}
             accentDeepColor={NEUTRAL_UI_PALETTE.deep}
           />
+          <HomeSectionDecorations season={ambientSeason} zone="schedule" />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.health}>
           <HealthRecentActivitiesSection
@@ -3990,12 +3825,14 @@ export default function LoggedInHome() {
             accentColor={NEUTRAL_UI_PALETTE.primary}
             accentDeepColor={NEUTRAL_UI_PALETTE.deep}
           />
+          <HomeSectionDecorations season={ambientSeason} zone="health" />
         </View>
         <View onLayout={ambientSectionLayoutHandlers['today-tip']}>
           <TodayHomeTipSection
             season={ambientSeason}
             accentColor={NEUTRAL_UI_PALETTE.primary}
           />
+          <HomeSectionDecorations season={ambientSeason} zone="today-tip" />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.diary}>
           <MonthlyDiarySection
@@ -4008,6 +3845,7 @@ export default function LoggedInHome() {
             onPressRecordItem={onPressRecordItem}
             accentDeepColor={NEUTRAL_UI_PALETTE.deep}
           />
+          <HomeSectionDecorations season={ambientSeason} zone="diary" />
         </View>
       </View>
     </View>
@@ -4017,7 +3855,10 @@ export default function LoggedInHome() {
   // 10) render
   // ---------------------------------------------------------
   return (
-    <HomeSeasonProvider season={HOME_FOREGROUND_UI_SEASON}>
+    <HomeSeasonProvider
+      season={HOME_FOREGROUND_UI_SEASON}
+      headingSeason={ambientSeason}
+    >
       <Screen style={[styles.screen, { backgroundColor: homeBackgroundColor }]}>
         {seasonalHomeVisual ? (
           <HomeAmbientBubbleCanvas
@@ -4025,9 +3866,7 @@ export default function LoggedInHome() {
             season={ambientSeason}
             heroHeight={seasonalHeroViewportHeight}
             sectionLayouts={ambientSectionLayouts}
-            sectionOrigin={
-              ambientContentY + ambientLowerY - HOME_HERO_PANEL_OVERLAP
-            }
+            sectionOrigin={ambientContentY + ambientLowerY}
           />
         ) : null}
         <ScrollView
@@ -4056,11 +3895,18 @@ export default function LoggedInHome() {
               ambientSeason={ambientSeason}
               minHeight={heroStageMinHeight}
               background={
-                <HomeHeroPhotoBackground
-                  uri={selectedAvatarUri}
-                  aspectRatio={heroPhoto.aspectRatio}
-                  onError={heroPhoto.onError}
-                />
+                <>
+                  <HomeHeroPhotoBackground
+                    uri={selectedAvatarUri}
+                    aspectRatio={heroPhoto.aspectRatio}
+                    onError={heroPhoto.onError}
+                  />
+                  <HomeHeroPhotoStarlights
+                    season={ambientSeason}
+                    aspectRatio={heroPhoto.aspectRatio}
+                    active={isScreenFocused}
+                  />
+                </>
               }
             >
               {homeHeader}
@@ -4099,12 +3945,12 @@ export default function LoggedInHome() {
                 profilePetName={profilePetName}
                 titleBadge={homeTitleBadge}
                 togetherDays={togetherDays}
-                heroMemoryChip={heroMemoryChip}
-                onPressPetProfileEdit={onPressPetProfileEdit}
+                hasMultiplePets={hasMultiplePets}
+                onPressPetSelect={openPetSelectionSheet}
                 onPressProfileInfo={openProfileInfoSheet}
-                onPressMemoryChip={onPressRecordItem}
-                onPressCreateMemory={onPressRecord}
+                onPressPetProfileEdit={onPressPetProfileEdit}
               />
+              <HomeHeroFooterOrnaments season={ambientSeason} />
               <FixedTypographyBoundary>
                 <HomeWeatherSection
                   weather={weatherGuide}
@@ -4123,11 +3969,21 @@ export default function LoggedInHome() {
           </Animated.View>
         </ScrollView>
 
+        <HomePetSelectionSheet
+          key={sessionUserId ?? 'guest'}
+          visible={petSelectionVisible}
+          pets={pets}
+          selectedPetId={activePetId}
+          season={ambientSeason}
+          accentColor={petTheme.primary}
+          onClose={closePetSelectionSheet}
+          onSelect={onPressPetChip}
+          onManage={onPressManagePets}
+        />
+
         <ProfileInfoBottomSheet
           visible={profileSheetVisible}
-          petTheme={petTheme}
           profilePetName={profilePetName}
-          selectedAvatarUri={selectedAvatarUri}
           basicInfo={profileBasicInfo}
           hobbies={hobbies}
           likes={likes}

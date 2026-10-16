@@ -4,6 +4,7 @@ import Feather from '../icons/NuriFeatherIcon';
 
 import AppText from '../../app/ui/AppText';
 import MarkerText from '../../app/ui/MarkerText';
+import { useHomeContentTextStyle } from '../home/HomeSeasonContext';
 import {
   getGuideCategoryLabel,
 } from '../../services/guides/presentation';
@@ -29,6 +30,7 @@ function GuideRecommendationCardBase({
   onPress,
   debugBadgeText,
 }: Props) {
+  const contentTextStyle = useHomeContentTextStyle();
   // Keep the catalog's metadata; the mockup's sample copy is not content.
   const tags = useMemo(
     () =>
@@ -54,14 +56,14 @@ function GuideRecommendationCardBase({
         <View style={styles.content}>
           <AppText
             preset="unifiedMeta"
-            style={[styles.eyebrow, { color: accentColor }]}
+            style={[styles.eyebrow, { color: contentTextStyle?.color ?? accentColor }]}
           >
             {getGuideCategoryLabel(guide.category)}
           </AppText>
           <MarkerText
             preset="unifiedBody"
             styleOverridesPreset
-            style={styles.title}
+            style={[styles.title, contentTextStyle]}
           >
             {`“${guide.title}”`}
           </MarkerText>
@@ -89,7 +91,7 @@ function GuideRecommendationCardBase({
             >
               <AppText
                 preset="unifiedMeta"
-                style={[styles.tagText, { color: accentDeepColor }]}
+                style={[styles.tagText, { color: contentTextStyle?.color ?? accentDeepColor }]}
               >
                 {tag.startsWith('#') ? tag : `#${tag}`}
               </AppText>

@@ -4,6 +4,8 @@ import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 
 import { createTheme } from '../src/app/theme/theme';
+import { SEASON_CTA } from '../src/app/theme/ctaPalette';
+import { HomeSeasonProvider } from '../src/components/home/HomeSeasonContext';
 import * as fontPreference from '../src/app/providers/AppFontPreferenceProvider';
 import CommunitySection from '../src/screens/Main/components/LoggedInHome/CommunitySection';
 import { styles as communityStyles } from '../src/screens/Main/components/LoggedInHome/CommunitySection.styles';
@@ -74,11 +76,13 @@ function makePost(id: string, title = `게시글 ${id}`): CommunityPost {
 function renderSection(options: {
   isFocused?: boolean;
   season?: SeasonKey;
+  headingSeason?: SeasonKey;
   onPressPost?: (postId: string) => void;
   onPressAll?: () => void;
 } = {}) {
   return TestRenderer.create(
     <ThemeProvider theme={createTheme('light')}>
+      <HomeSeasonProvider season="autumn" headingSeason={options.headingSeason}>
       <CommunitySection
         isFocused={options.isFocused ?? true}
         season={options.season ?? 'autumn'}
@@ -88,6 +92,7 @@ function renderSection(options: {
         onPressPost={options.onPressPost ?? jest.fn()}
         onPressAll={options.onPressAll ?? jest.fn()}
       />
+      </HomeSeasonProvider>
     </ThemeProvider>,
   );
 }
@@ -97,6 +102,64 @@ function serialized(renderer: TestRenderer.ReactTestRenderer) {
 }
 
 describe('CommunitySection', () => {
+  it.each([
+    ['spring', '#62505A'], ['summer', '#405A56'],
+    ['autumn', '#625448'], ['winter', '#4A5968'],
+  ] as const)('uses %s muted charcoal for post titles without recoloring chips or metadata', async (season, color) => {
+    mockedGetHomeCommunityHighlightsCache.mockReturnValue({
+      items: [makePost('tone', '계절빛 게시글')], fetchedAt: Date.now(), isFresh: true,
+    });
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => { renderer = renderSection({ season, headingSeason: season }); });
+    const title = renderer.root.findAllByType(Text).find(node => node.props.children === '계절빛 게시글');
+    expect(StyleSheet.flatten(title?.props.style).color).toBe(color);
+    const metadata = renderer.root.findAllByType(Text).filter(node =>
+      Array.isArray(node.props.children) && ['좋아요 ', '댓글 '].includes(node.props.children[0]),
+    );
+    expect(metadata).toHaveLength(2);
+    for (const item of metadata) expect(StyleSheet.flatten(item.props.style).color).toBe(createTheme('light').colors.textMuted);
+    const inactive = renderer.root.find(node => node.props.accessibilityLabel === '질문 탭');
+    const label = inactive.findAllByType(Text).find(node => node.props.children === '질문');
+    expect(StyleSheet.flatten(label?.props.style).color).toBe(createTheme('light').colors.textPrimary);
+    expect(mockedFetchHomeCommunityHighlights).not.toHaveBeenCalled();
+    await act(async () => renderer.unmount());
+  });
+
+  it.each(['spring', 'summer', 'autumn', 'winter'] as const)(
+    '%s uses seasonal selected chips and unselected borders without changing their geometry or neutral text',
+    async season => {
+      mockedGetHomeCommunityHighlightsCache.mockReturnValue({
+        items: [makePost('cached')], fetchedAt: Date.now(), isFresh: true,
+      });
+      let renderer!: TestRenderer.ReactTestRenderer;
+      await act(async () => { renderer = renderSection({ season }); });
+      for (const label of ['인기 탭', '질문 탭', '자유 탭']) {
+        const selected = renderer.root.find(node => node.props.accessibilityLabel === label);
+        await act(async () => selected.props.onPress());
+        const tabs = renderer.root.findAll(node =>
+          node.props.accessibilityRole === 'tab' &&
+          typeof node.props.onPress === 'function',
+        );
+        expect(tabs.filter(node => node.props.accessibilityState.selected)).toHaveLength(1);
+        for (const tab of tabs) {
+          const active = tab.props.accessibilityState.selected;
+          const visual = tab.findAllByType(View).find(node => StyleSheet.flatten(node.props.style)?.backgroundColor);
+          expect(StyleSheet.flatten(tab.props.style)).toEqual(communityStyles.pillTouch);
+          expect(StyleSheet.flatten(visual?.props.style)).toEqual({
+            ...communityStyles.pillVisual,
+            backgroundColor: active ? SEASON_CTA[season].primary : createTheme('light').colors.surfaceElevated,
+            borderColor: active ? SEASON_CTA[season].primary : SEASON_CTA[season].border,
+          });
+          const text = tab.findAllByType(Text).find(node => typeof node.props.children === 'string');
+          expect(StyleSheet.flatten(text?.props.style).color).toBe(active ? '#FFFFFF' : createTheme('light').colors.textPrimary);
+          expect(typeof tab.props.children).not.toBe('function');
+          expect(tab.props.android_ripple).toBeUndefined();
+        }
+      }
+      expect(mockedFetchHomeCommunityHighlights).not.toHaveBeenCalled();
+      await act(async () => renderer.unmount());
+    },
+  );
   it('reuses fresh zero-item results and reveals illustration/copy together after the matching image loads', async () => {
     mockedGetHomeCommunityHighlightsCache.mockReturnValue({ items: [], fetchedAt: Date.now(), isFresh: true });
     let renderer!: TestRenderer.ReactTestRenderer;
@@ -135,7 +198,7 @@ describe('CommunitySection', () => {
         expect(typeof node.props.children).not.toBe('function');
         expect(node.props.android_ripple).toBeUndefined();
         const visual = node.findAllByType(View).find(value => StyleSheet.flatten(value.props.style)?.backgroundColor);
-        expect(StyleSheet.flatten(visual?.props.style).backgroundColor).toBe(node.props.accessibilityState.selected ? '#6D6AF8' : createTheme('light').colors.surfaceElevated);
+        expect(StyleSheet.flatten(visual?.props.style).backgroundColor).toBe(node.props.accessibilityState.selected ? SEASON_CTA.autumn.primary : createTheme('light').colors.surfaceElevated);
       }
     }
     await act(async () => renderer.unmount());

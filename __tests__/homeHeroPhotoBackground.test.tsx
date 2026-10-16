@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import React from 'react';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import TestRenderer from 'react-test-renderer';
 import {
   HomeHeroPhotoBackground,
@@ -27,7 +28,7 @@ describe('Home Hero original photo review wiring', () => {
       homeSource.indexOf('<SeasonalHomeAutumnStage'),
       homeSource.indexOf('</SeasonalHomeAutumnStage>'),
     );
-    expect(stage).toMatch(/background=\{\s*<HomeHeroPhotoBackground/);
+    expect(stage).toContain('<HomeHeroPhotoBackground');
     expect(stage).toContain('uri={selectedAvatarUri}');
     expect(stage).toContain('aspectRatio={heroPhoto.aspectRatio}');
     expect(stage).toContain('{homeHeader}');
@@ -35,6 +36,19 @@ describe('Home Hero original photo review wiring', () => {
     expect(stage).toContain('{homeHero}');
     expect(stage).not.toContain('codex-clipboard');
     expect(stage).not.toContain('resizeMode="cover"');
+  });
+
+  it('places seasonal photo starlights behind the header with real photo bounds and the Home focus gate', () => {
+    const stage = homeSource.slice(
+      homeSource.indexOf('<SeasonalHomeAutumnStage'),
+      homeSource.indexOf('</SeasonalHomeAutumnStage>'),
+    );
+    expect(stage).toContain('<HomeHeroPhotoStarlights');
+    const lights = stage.slice(stage.indexOf('<HomeHeroPhotoStarlights'));
+    expect(lights).toContain('aspectRatio={heroPhoto.aspectRatio}');
+    expect(lights).toContain('season={ambientSeason}');
+    expect(lights).toContain('active={isScreenFocused}');
+    expect(lights.indexOf('active={isScreenFocused}')).toBeLessThan(lights.indexOf('{homeHeader}'));
   });
 
   it('temporarily hides the ring while preserving edit and the lower information wiring', () => {
@@ -228,6 +242,33 @@ describe('original-ratio Hero photo background', () => {
     },
   );
 
+  it('limits a subtle untouchable shade to the photo top without changing the image geometry', async () => {
+    await render();
+    expect(renderer.root.findAllByType(LinearGradient)).toHaveLength(0);
+    await resolve(photoUri, { width: 1200, height: 1600 });
+    const clip = renderer.root.findByProps({ testID: 'home-hero-photo-shade-clip' });
+    expect(StyleSheet.flatten(clip.props.style)).toMatchObject({
+      position: 'absolute', top: 0, left: 0, width: '100%',
+      aspectRatio: 0.75, overflow: 'hidden',
+    });
+    const shade = clip.findByType(LinearGradient);
+    expect(shade.props.colors).toEqual([
+      'rgba(0,0,0,0.36)', 'rgba(0,0,0,0.14)', 'rgba(0,0,0,0)',
+    ]);
+    expect(shade.props.locations).toEqual([0, 0.5, 1]);
+    expect(shade.props.start).toEqual({ x: 0.5, y: 0 });
+    expect(shade.props.end).toEqual({ x: 0.5, y: 1 });
+    expect(StyleSheet.flatten(shade.props.style)).toMatchObject({
+      position: 'absolute', top: 0, left: 0, right: 0, height: 128,
+    });
+    expect(clip.props.pointerEvents).toBe('none');
+    expect(clip.props.accessible).toBe(false);
+    expect(clip.props.importantForAccessibility).toBe('no-hide-descendants');
+    expect(shade.props.pointerEvents).toBe('none');
+    expect(shade.props.accessible).toBe(false);
+    expect(renderer.root.findByType(Image).props.resizeMode).toBe('contain');
+  });
+
   it.each([320, 384, 430])(
     'allows a tall original photo to fit at %s dp without clipping it',
     async width => {
@@ -258,6 +299,7 @@ describe('original-ratio Hero photo background', () => {
     await render(null);
     expect(Image.getSize).not.toHaveBeenCalled();
     expect(renderer.root.findAllByType(Image)).toHaveLength(0);
+    expect(renderer.root.findAllByType(LinearGradient)).toHaveLength(0);
     await TestRenderer.act(async () =>
       renderer.update(<Harness uri={photoUri} />),
     );
@@ -267,6 +309,7 @@ describe('original-ratio Hero photo background', () => {
       request.reject(new Error('fixture unavailable')),
     );
     expect(renderer.root.findAllByType(Image)).toHaveLength(0);
+    expect(renderer.root.findAllByType(LinearGradient)).toHaveLength(0);
   });
 
   it('removes the old pet photo immediately and ignores its late metadata', async () => {

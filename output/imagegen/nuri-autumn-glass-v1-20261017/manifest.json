@@ -1,0 +1,252 @@
+{
+  "manifest_version": 1,
+  "created_date": "2026-10-17",
+  "collection": "NURI Autumn Colored Glass v1",
+  "status": "CANDIDATE_PENDING_PO_VISUAL_REVIEW",
+  "generation_method": "built-in image_gen",
+  "reference_image": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-c20639cc-8ed3-486e-a0ce-fb54a4b58721.png",
+  "app_integration": true,
+  "integration_scope": "UPPER_HERO_PRESERVED_LOWER_HOME_STARS_WITH_FIVE_TINY_PEARLS_METRO_CANDIDATE",
+  "runtime_asset_manifest": "../../../src/assets/seasonal/home/autumn/glass/autumn-glass-home-composition-v1.source.json",
+  "integrated_asset_ids": ["hero-leaf-cluster", "pearl", "starlight", "maple"],
+  "retained_undisplayed_copy_ids": ["ginkgo", "acorns"],
+  "runtime_asset_replacement": false,
+  "byte_preserving_copies": true,
+  "processing": "No cropping, resampling, alpha cleanup, compression or color editing applied.",
+  "validation_notes": [
+    "PNG decode, RGBA mode, transparent corners, alpha range, visible subject bounds and source/copy SHA-256 verified.",
+    "Starlight has maximum alpha 254, which is valid for a translucent light effect.",
+    "Some generated cutouts contain alpha-1 fringe pixels at the canvas edge; these are preserved, not silently thresholded.",
+    "Visual approval and small-size/device rendering are pending; these are source candidates, not frozen runtime assets."
+  ],
+  "assets": [
+    {
+      "id": "hero-leaf-cluster",
+      "label": "히어로 색유리 잎 묶음",
+      "file": "autumn-glass-hero-leaf-cluster-v1.png",
+      "generated_source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-0d7ec6bd-3d78-4e40-a6bb-3da28ae01d12.png",
+      "format": "PNG",
+      "mode": "RGBA",
+      "width": 1293,
+      "height": 1217,
+      "bytes": 1344108,
+      "sha256": "4802c0afed55b530e9b2c229685721663fa92d0dd4a8fb4623dff16c309ca22a",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "transparent_pixel_ratio": 0.5983,
+      "alpha_bounds": [
+        0,
+        19,
+        1279,
+        1217
+      ],
+      "core_bounds_alpha_64": [
+        104,
+        38,
+        1192,
+        1156
+      ],
+      "max_alpha_on_canvas_edge": 1,
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "alpha_gate": "PASS",
+      "prompt": "Use case: background-extraction.\nExtract and faithfully recreate ONLY the upper-left COLOR-GLASS AUTUMN LEAF CLUSTER from the reference NURI mockup as a standalone high-resolution transparent PNG ornament. This is an asset extraction, not a new screen.\nSubject: a gracefully curved grouping of two translucent honey-amber GINKGO leaves and one pale coral/orange MAPLE leaf, with short delicate curved glass stems joining at the lower-left. Fan-shaped radiating ginkgo veins and recognizable lobed maple silhouette. Arrange the foliage sweeping gently upward/right so it can rest on a rounded or wavy corner.\nMatch the reference's premium thick colored-glass material: pale golden amber, soft champagne and translucent muted coral; polished rounded bevel edges, subtle internal refraction, controlled white specular highlights, soft upper-left light, clean elegant 3D depth. NOT clay, felt, wood, opaque plastic or a metal-framed pendant.\nBackground must be genuine transparent alpha, including empty gaps between stems and leaves. Do NOT keep ANY screenshot, pet photo, UI, text, beige background, gradient field, halo, star, sphere or shadow plate. No cast ground shadow and no glow cloud. The glass itself may have semitransparent colored interiors and bright bevels.\nExactly ONE grouped ornament, completely uncropped with 8 percent clear transparent padding on all sides; keep stems intact and leaf outlines clean. Large enough to inspect delicate glass workmanship and also read at small mobile sizes. No extra leaves or objects."
+    },
+    {
+      "id": "maple",
+      "label": "코럴 색유리 단풍잎",
+      "file": "autumn-glass-maple-coral-v1.png",
+      "generated_source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-407aded8-73ca-4ae5-a10f-5241998f08ca.png",
+      "format": "PNG",
+      "mode": "RGBA",
+      "width": 1374,
+      "height": 1145,
+      "bytes": 1289271,
+      "sha256": "02a43a9e13a322949103414db9456b4296a841648d6b006cde910bb9e46171e2",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "transparent_pixel_ratio": 0.6368,
+      "alpha_bounds": [
+        0,
+        21,
+        1354,
+        1121
+      ],
+      "core_bounds_alpha_64": [
+        146,
+        61,
+        1261,
+        1049
+      ],
+      "max_alpha_on_canvas_edge": 1,
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "alpha_gate": "PASS",
+      "prompt": "Use case: background-extraction.\nExtract and recreate ONLY the small coral COLOR-GLASS MAPLE LEAF from the RIGHT MARGIN BETWEEN THE HERO CTAs AND WEATHER CARD in the reference mockup. Deliver one high-resolution transparent PNG decorative asset, no screen.\nOne complete single maple leaf, elegant seven-lobed silhouette, warm pale coral-orange colored optical glass, polished beveled edges, gently sculpted radiating veins, thick but translucent body, controlled soft white highlights from upper left. Reference-matching premium, cute and calm glass object. Short curved matching coral glass stem points diagonally down-left, crown points up-right, a gentle three-quarter angle. Recognizably glass, not opaque resin, felt, wood or metal.\nGenuine transparent alpha background, also no ground plane, no external shadow, no broad colored haze or glows. Preserve semitransparent interiors and clean luminous bevels. Exactly one maple leaf, not a branch or cluster. No sphere, star, UI, words, number, logo or watermark. Fully visible uncropped stem and leaf tips with at least 8 percent transparent padding on all sides. Make it read as an elegant small edge accent, not a faceted jewel."
+    },
+    {
+      "id": "ginkgo",
+      "label": "호박빛 색유리 은행잎",
+      "file": "autumn-glass-ginkgo-amber-v1.png",
+      "generated_source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-2152c8ed-2354-47c7-9788-1dce9491ff81.png",
+      "format": "PNG",
+      "mode": "RGBA",
+      "width": 1247,
+      "height": 1261,
+      "bytes": 1131332,
+      "sha256": "16a4bd11030fad0501f6965b04c68cb1a6fd01693b2435a6f49862af850743b5",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "transparent_pixel_ratio": 0.6363,
+      "alpha_bounds": [
+        0,
+        23,
+        1231,
+        1261
+      ],
+      "core_bounds_alpha_64": [
+        57,
+        28,
+        1224,
+        1220
+      ],
+      "max_alpha_on_canvas_edge": 1,
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "alpha_gate": "PASS",
+      "prompt": "Use case: background-extraction.\nExtract and recreate ONLY one honey-amber COLOR-GLASS GINKGO LEAF from the upper-left ornament in the provided NURI mockup. Standalone high-resolution PNG with genuine transparent alpha, no application screenshot.\nOne elegant complete fan-shaped ginkgo leaf with softly scalloped crown, a subtle central notch, radial fan veins, slender curved stem pointing down-left. Honey-yellow and pale champagne optical glass, polished rounded bevels, gentle thickness and elegant internal refraction; translucent not opaque. Soft controlled studio highlights from upper-left, matching the reference's glass leaves. Premium, calm, cute without being a toy.\nA slight three-quarter tilt makes the thickness visible. NO metal outline, gold frame, pendant holes, wood, clay, fabric, card, background, text, sparkles or spheres. No ground, no cast shadow, no broad halo. Keep the background and spaces around its entire silhouette transparent. Clean leaf tips and stem; leave 8–10 percent clear padding. A single mobile corner accent, fully uncropped, not a bundle or tree."
+    },
+    {
+      "id": "acorns",
+      "label": "색유리 도토리 두 알",
+      "file": "autumn-glass-acorn-pair-v1.png",
+      "generated_source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-91321772-3799-4a3c-a414-3734c0d72edb.png",
+      "format": "PNG",
+      "mode": "RGBA",
+      "width": 1466,
+      "height": 1073,
+      "bytes": 1131402,
+      "sha256": "5f57a26779118de2d63ed874b3ad91ff95af0808d5f0d7815b402234045afa81",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "transparent_pixel_ratio": 0.6515,
+      "alpha_bounds": [
+        57,
+        29,
+        1444,
+        1073
+      ],
+      "core_bounds_alpha_64": [
+        230,
+        143,
+        1271,
+        945
+      ],
+      "max_alpha_on_canvas_edge": 1,
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "alpha_gate": "PASS",
+      "prompt": "Use case: background-extraction.\nExtract and recreate ONLY the TWO LITTLE ACORNS at the bottom-right of the provided NURI mockup as one standalone high-resolution transparent PNG decorative asset. Remove the ginkgo leaf behind them; output just the two acorns.\nMaterial: the nuts are translucent toasted honey/amber COLORED GLASS with soft apricot depth, gently rounded shape, polished curved highlights from upper-left; the caps are finely textured warm smoky-amber GLASS, not actual rough wood. A larger acorn tilts slightly left and a smaller companion tilts slightly right, naturally nestled together, short tiny stems. Premium, cute, calm, tactile but visibly glass, matching the glass leaves in the reference.\nGenuine transparent alpha outside the two acorns and in any open gaps; semitransparent glass interiors. No background, no ground surface, no cast shadow, no large color halo, no tree, leaves, stars, pearls, UI, text, number or watermark. No metallic jewelry fittings. Exactly one paired-acorn ornament; fully uncropped with 10 percent transparent padding. Clear, readable silhouette for use as a small mobile card-corner accent."
+    },
+    {
+      "id": "pearl",
+      "label": "살구빛 작은 구체",
+      "file": "autumn-glass-pearl-apricot-v1.png",
+      "generated_source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-58d2a4a5-8e2e-4329-af9b-6cf254f357bf.png",
+      "format": "PNG",
+      "mode": "RGBA",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 649411,
+      "sha256": "c77613b185ffbea999a44afafb07a4d42224d04670a697d804e4a18dfaf79697",
+      "alpha_extrema": [
+        0,
+        255
+      ],
+      "transparent_pixel_ratio": 0.6979,
+      "alpha_bounds": [
+        87,
+        103,
+        1240,
+        1254
+      ],
+      "core_bounds_alpha_64": [
+        241,
+        236,
+        1013,
+        1007
+      ],
+      "max_alpha_on_canvas_edge": 1,
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "alpha_gate": "PASS",
+      "prompt": "Use case: background-extraction.\nExtract and recreate just ONE of the SMALL PEACH PEARL SPHERES from the reference NURI autumn Home mockup as a high-resolution standalone PNG with genuine transparent alpha.\nExactly one perfectly round softly translucent apricot/champagne pearl sphere, gentle peach center and creamy golden rim, pearlescent glass surface. Soft bright but controlled rounded highlight on upper left, subtle reflected warm light on lower right. Premium, cute, calm. Visually light, smooth, glowing only INSIDE the sphere, not a magical energy ball. Preserve a crisp smooth circular silhouette and semi-transparent glass rim. The sphere itself occupies about 70 percent of the square canvas diameter, leaving generous clear transparent padding.\nNO external glow cloud, no orange background or gradient, no ground, no cast shadow, no sparkle flecks on or around it, no stars, leaves, acorns, UI, letters, texture plate, logo or watermark. Background must have zero alpha outside the circular sphere and its thin antialiased edge. Do not reproduce any app screenshot. Soft polished apricot pearl, matching the small spheres in the reference, not a sharply faceted crystal or iridescent rainbow soap bubble."
+    },
+    {
+      "id": "starlight",
+      "label": "따뜻한 네 갈래 별빛",
+      "file": "autumn-starlight-four-point-v1.png",
+      "generated_source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-e3ca2cde-e320-43ae-94f6-e2a4871824f9.png",
+      "format": "PNG",
+      "mode": "RGBA",
+      "width": 1280,
+      "height": 1229,
+      "bytes": 325797,
+      "sha256": "c42ef5dd6f07e5d3a947292926b5326556650209479ec4888572fdd4ddd2fbf7",
+      "alpha_extrema": [
+        0,
+        254
+      ],
+      "transparent_pixel_ratio": 0.8917,
+      "alpha_bounds": [
+        49,
+        39,
+        1226,
+        1171
+      ],
+      "core_bounds_alpha_64": [
+        393,
+        306,
+        891,
+        914
+      ],
+      "max_alpha_on_canvas_edge": 0,
+      "corner_alpha": [
+        0,
+        0,
+        0,
+        0
+      ],
+      "alpha_gate": "PASS",
+      "prompt": "Use case: background-extraction.\nExtract and recreate ONE of the tiny warm-white FOUR-POINT STARLIGHT GLINTS from the NURI reference mockup, as an isolated high-resolution PNG with true transparent alpha. This is a raster light-effect asset, not a flat star icon and not a screenshot.\nA single elegant soft optical glint with exactly FOUR tapered rays, upright vertical and horizontal. Vertical rays a little longer than horizontal rays. A fine luminous ivory-white center with a very gentle pale champagne warmth, smoothly tapering pointed ends. Compact soft light falloff immediately around the center and rays; outside that tiny localized falloff the image must be fully transparent. The glint should stay delicate and readable when reduced to 12–20dp.\nOnly one centered glint. No extra stars, no scattered glitter dots, no sphere, no leaf, no lens flare rings, no bokeh, no backdrop, no dark rectangular plate, no gradient background, no metallic 3D star, no text, logo or app UI. The center is a tiny light intersection, NOT a large circular glow blob. Leave ample transparent margin, around 20 percent. Pure fine light that can be composited over the existing warm autumn page without changing its background."
+    }
+  ]
+}

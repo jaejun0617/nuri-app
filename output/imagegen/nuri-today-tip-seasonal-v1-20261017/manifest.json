@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "purpose": "Today Tip seasonal glass artwork; replace only its existing illustration",
+  "status": "METRO_CANDIDATE_PENDING_PO_VISUAL_REVIEW",
+  "date": "2026-10-17",
+  "tool": "built-in image_gen",
+  "use_case": "compositing",
+  "runtime_owner": "../../../src/screens/Main/components/LoggedInHome/HomeTipSeasonalArtwork.tsx",
+  "runtime_manifest": "../../../src/assets/seasonal/home/home-colored-glass-seasons-v1.source.json",
+  "season_contract": {
+    "autumn": "Existing coral colored-glass maple, full contained PNG",
+    "spring": "Existing single cherry blossom, accent window from spring atlas",
+    "winter": "Existing single snowflake, accent window from winter atlas",
+    "summer": "New composed colored-glass wave and two water droplets; no shell"
+  },
+  "generation": {
+    "prompt": "Use case: compositing.\nAsset type: one NURI SUMMER colored-glass ornament for the existing Today Tip image slot, standalone transparent PNG, not a screen.\nThe input sheet is the exact established NURI glass style and subject reference. Use ONLY its turquoise CURLING WAVE from the middle-right and its two WATER DROPLETS from the middle-left. Recompose those into ONE cohesive, compact corner ornament: a softly rounded curling sea-glass wave rises behind, with one upright larger teardrop and one smaller leaning droplet nestling at the lower-left base, partly overlapping the wave. Keep all three recognizable and clean, no additional objects. The wave is dominant and the droplets are secondary; an elegant triangular grouping, balanced enough to read inside a roughly 90dp square. No sea shell at all.\nPreserve the reference's premium translucent sky/aqua/turquoise optical glass, thick polished rounded edges, controlled upper-left white highlights, subtle pale champagne reflections and smooth internal refraction. Cute, calm, refined, not plastic or an opaque toy. No metal frames or faceted jewel style. No extra splashes, spheres, stars or scattered glitter.\nTrue transparent alpha outside and in empty gaps; no background plate, white field, checkerboard pattern, ground, cast ground shadow, broad colored halo or bokeh. Leave clear 8-10 percent transparent margin on ALL sides so the full wave crest and droplet tips are completely uncropped. Occupy roughly 80 percent of a square canvas. No UI, cards, pet photographs, text, numbers, logo or watermark. One grouped ornament only.",
+    "reference": "../nuri-three-season-glass-concepts-v1-20261017/summer-colored-glass-collection-v1.png",
+    "generated_original": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-c2e667be-7d34-46f8-909f-839aced15f58.png",
+    "file": "summer-wave-droplets-glass-v1.png",
+    "runtime_copy": "../../../src/assets/seasonal/home/summer/glass/summer-wave-droplets-glass-v1.png",
+    "sha256": "697cb36e9893b776372ba9351841f437980c95ca127c5070cdafa1d74a526bf5",
+    "bytes": 1347255,
+    "width": 1254,
+    "height": 1254,
+    "has_alpha": true,
+    "transparent_fraction": 0.6054774641402695,
+    "edge_alpha64_pixels": 0,
+    "alpha64_bounds": {
+      "left": 128,
+      "top": 233,
+      "right": 1208,
+      "bottom": 1086
+    },
+    "processing": "Exact copies of generated PNG, no crop/recolor/resize/alpha cleanup",
+    "source_copy_hash_match": true,
+    "runtime_copy_hash_match": true
+  },
+  "display_contract": {
+    "slot_width": "30%",
+    "max_width_dp": 108,
+    "aspect_ratio": 1,
+    "spring_winter_occupancy": 0.92,
+    "decorative_only": true,
+    "pointer_events": "none",
+    "accessible": false,
+    "tip_copy_delta": 0,
+    "card_geometry_delta": 0,
+    "typography_delta": 0,
+    "other_home_decoration_delta": 0,
+    "tip_details": {
+      "small_specimens": 2,
+      "specimens_by_season": {
+        "autumn": {
+          "files": [
+            "autumn/glass/autumn-glass-maple-coral-v1.png",
+            "autumn/glass/autumn-glass-ginkgo-amber-v1.png"
+          ],
+          "subjects": [
+            "maple",
+            "ginkgo"
+          ]
+        },
+        "spring": {
+          "file": "spring/glass/spring-colored-glass-collection-v1.png",
+          "region": {
+            "left": 660,
+            "top": 650,
+            "width": 230,
+            "height": 275
+          },
+          "subject": "petal"
+        },
+        "summer": {
+          "file": "summer/glass/summer-colored-glass-collection-v1.png",
+          "region": {
+            "left": 200,
+            "top": 545,
+            "width": 390,
+            "height": 340
+          },
+          "subject": "water droplet pair"
+        },
+        "winter": {
+          "file": "winter/glass/winter-colored-glass-collection-v1.png",
+          "region": "accent",
+          "subject": "snowflake"
+        }
+      },
+      "specimen_frame_dp": [
+        17,
+        21
+      ],
+      "seasonal_pearl": 1,
+      "pearl_frame_dp": 16,
+      "common_starlights": 3,
+      "starlight_frame_dp": [
+        28,
+        18,
+        22
+      ],
+      "clip_scope": "Existing art slot only, never adjacent tip copy",
+      "animation_and_timer_added": 0
+    },
+    "old_source_assets_deleted": 0
+  },
+  "validation": {
+    "fail_first_cases": 8,
+    "targeted_suites": 8,
+    "targeted_tests": 243,
+    "typescript": "PASS",
+    "eslint_errors": 0,
+    "eslint_warnings": 0,
+    "metro_bundle_http": 200,
+    "metro_four_asset_exact_bytes": "PASS",
+    "original_dirty": 181,
+    "original_dirty_status_and_content_hash": "UNCHANGED",
+    "device_visual_qa": "NOT_PERFORMED_PO_METRO_REVIEW",
+    "build": 0,
+    "install": 0,
+    "commit": 0,
+    "push": 0,
+    "server_mutation": 0,
+    "scope": "Initial Today Tip asset integration gate; current follow-up gate is recorded under corrective_validation"
+  },
+  "corrective_validation": {
+    "suites": 9,
+    "tests": 273,
+    "typescript": "PASS",
+    "eslint_errors": 0,
+    "eslint_existing_warnings": 15,
+    "eslint_new_warnings": 0,
+    "metro_bundle_http": 200,
+    "po_design_approval": "PO_METRO_REVIEW_PENDING_AFTER_ARTWORK_REMOVAL",
+    "build": 0,
+    "install": 0,
+    "commit": 0,
+    "push": 0
+  },
+  "recommendation_followup": "Recommendation artwork disconnected; reserved header slot removed; original20dp gap retained. No PNG deletion."
+}

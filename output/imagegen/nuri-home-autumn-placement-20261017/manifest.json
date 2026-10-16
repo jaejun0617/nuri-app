@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "created_date": "2026-10-17",
+  "status": "PO_PLACEMENT_REVIEW_ONLY",
+  "generation_method": "built-in image_gen",
+  "generated_boards_applied_to_app": false,
+  "capture_root": "/Users/shinjaejun/.codex/nuri-design-evidence/home-ornament-mockups-20261017-v3Fgdy",
+  "reference_images": [
+    "/Users/shinjaejun/.codex/nuri-design-evidence/home-ornament-mockups-20261017-v3Fgdy/home-00-weather.png",
+    "/Users/shinjaejun/.codex/nuri-design-evidence/home-ornament-mockups-20261017-v3Fgdy/home-02-records-summary.png",
+    "/Users/shinjaejun/.codex/nuri-design-evidence/home-ornament-mockups-20261017-v3Fgdy/home-04-guides-schedule.png",
+    "/Users/shinjaejun/.codex/nuri-design-evidence/home-ornament-mockups-20261017-v3Fgdy/home-06-health-tips-diary.png",
+    "/Users/shinjaejun/.codex/nuri-design-evidence/home-ornament-mockups-20261017-v3Fgdy/home-08-tip-diary.png"
+  ],
+  "layout": "Three sequential Home scroll slices per board, starting at weather; this is a composition proposal, not pixel-exact runtime evidence.",
+  "common_prompt": "Use case: ui-mockup / precise-object-edit.\nCreate ONE polished NURI home decoration-placement design BOARD from the real Galaxy S24 screenshots. All five references are consecutive-scroll samples of the SAME CURRENT APP: preserve its actual visual identity and information architecture. For ornaments use translucent thick polished colored glass with warm amber radiating-vein fan-shaped ginkgo leaves, coral-orange lobed maple leaves, amber/brown quilt-cap glass acorns, and opalescent apricot pearl spheres, matching the premium glass rendering of the actual iridescent memory-box illustration.\nThe board has THREE equal-width vertical mobile-scroll STRIPS side by side, separated by a small neutral gap, NO phone bezels, NO perspective, NO floating device mockups. Each strip is a sequential slice of ONE home scroll, not three alternative designs. This lets the whole home be reviewed on one board.\nLEFT STRIP: start at the existing standalone weather card (12°C, cloudy, Korean weather fields), then the existing 2x2 '자주 쓰는 기록' widgets, then '전체 요약' (20 records and the existing iridescent memory box). MIDDLE STRIP: '최근 기록', '반려인들이 주목한 이야기' community list, and '누리를 위한 추천 팁'. RIGHT STRIP: '누리 일정' calendar with its orange '일정 등록하기' CTA, '건강관리 최근 활동', '오늘의 팁', and '이번 달 누리 일기'. Continue content in original order. Show actual screenshot styling, do not invent new product sections or claim new functionality.\nPreserve the photographed/current dusty autumn peach-beige canvas, its subtle top-to-bottom gradient (approximately #E5D1C0 -> #DFCAB8), pale translucent reflective/beveled glass, thin bright white card rims, current restrained small Korean type in dark charcoal, existing orange semantic accent, existing icon styles, unchanged section widths and internal layouts. No Hero/pet photo needed: begin at WEATHER. Omit repeated Android status/nav bars inside strips; this is a content placement board.\nONLY DECORATIVE EDITS: beautifully place translucent polished colored-glass coral maple, honey amber ginkgo, amber acorn pair, tiny apricot pearl spheres, and small four-point champagne-white glints. Reuse their glass realism from supplied assets. Varied scale. Not flat emoji or clip art. No full tree, roots, wood trunks, hanging strings or gift-ribbon frame.\nABSOLUTE EXCLUSION ZONES: all card text, all CTA/buttons and their tap rectangles, calendar/date cells, charts, list rows, weather data, 2x2 widget interiors and their icons. Every character remains clear. Place art in the existing gaps and outer side margins, with 8–12dp clear space from text and CTAs. Do not put ornaments ON, BEHIND or INSIDE fonts/buttons. Art can gently touch an EMPTY external glass corner only. Never increase card padding to create space or move content to fit ornaments.\nPremium, cute, calm NURI, sophisticated glass, readable not crowded. Controlled soft glint glow only; no large glow clouds, bokeh or sparkly fog. Preserve large calm areas. No explanatory annotations or design prose inside the app, no badges naming the concept, no giant header. High-resolution front-on composition with crisp Korean headings. Make a complete three-strip board, not a single isolated asset.",
+  "variants": [
+    {
+      "file": "01-airy-balance.png",
+      "source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-8df28edb-8ced-4d6e-acdf-fffd36cd959d.png",
+      "id": "a",
+      "name": "여백 균형형",
+      "path": "/Users/shinjaejun/.codex/worktrees/mint-background-review/nuri/output/imagegen/nuri-home-autumn-placement-20261017/01-airy-balance.png",
+      "bytes": 1743131,
+      "width": 1214,
+      "height": 1295,
+      "sha256": "d2b335977edcd7a563861f72be18cbc69859c0adb30bcbbac27c4d45b9bcceb5",
+      "prompt": "COMPOSITION A — RESTRAINED CORNER BALANCE, recommended production direction. Use the fewest major foliage objects: small amber ginkgo at upper weather-to-record gap left, coral maple at summary bottom/right gap, a paired amber acorn at calendar-to-health gap left, one slender ginkgo at diary outer right. Alternate pearl spheres of 3 distinct sizes in intervening gaps. Tiny four-point champagne glints accompany objects in groups of 1–3, not a uniform star wallpaper. Reserve much clear negative space. Glass foliage visible widths about 12–17% of a screen column, pearls 3–6%, star cores 0.8–1.4%. Four principal foliage groups across the ENTIRE Home, not per card. Calm, intentional, premium. Accent groups may touch only the OUTER empty bevel at a card corner; they never enter a text, icon, CTA or widget area.",
+      "application_status": "NOT_APPLIED"
+    },
+    {
+      "file": "02-diagonal-flow.png",
+      "source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-2beb8e53-a233-468b-8191-576ef835704f.png",
+      "id": "b",
+      "name": "대각 흐름형",
+      "path": "/Users/shinjaejun/.codex/worktrees/mint-background-review/nuri/output/imagegen/nuri-home-autumn-placement-20261017/02-diagonal-flow.png",
+      "bytes": 1723053,
+      "width": 1024,
+      "height": 1536,
+      "sha256": "05da401d8a6ac140c078434ad42f0eb7e4f075032b78ced0fe537d63103f5e18",
+      "prompt": "COMPOSITION B — DIAGONAL DRIFT. Make a coherent gentle S-shaped diagonal visual trail DOWN THE ENTIRE HOME using alternating right/left tiny glass foliage groups ONLY in empty gaps. Begin with coral maple on weather's outer right bottom corner, then ginkgo in the frequent-record-to-summary left gap, acorns near recent/community right gap, a ginkgo near recommendations/calendar left gap, a coral leaf near health/tips right gap, acorn pair at diary's outer left bottom. Vary object rotation slightly and vary pearl diameters 2–7% screen width. Small glints trace short arcs between adjacent objects, never connect into a drawn line, never create a border. Slightly livelier than A but lots of calm clear card interiors. Medium density overall, all major ornaments about 11–16% column width and never obstruct anything.",
+      "application_status": "NOT_APPLIED"
+    },
+    {
+      "file": "03-mini-gardens.png",
+      "source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-7f5be6b8-8555-447e-9d38-842c94701381.png",
+      "id": "c",
+      "name": "작은 정원형",
+      "path": "/Users/shinjaejun/.codex/worktrees/mint-background-review/nuri/output/imagegen/nuri-home-autumn-placement-20261017/03-mini-gardens.png",
+      "bytes": 1661661,
+      "width": 1536,
+      "height": 1024,
+      "sha256": "f0b80e6c70489debbaa874e72eb5cf37061fd4847692ba05688e42654ae39da7",
+      "prompt": "COMPOSITION C — MINI GLASS AUTUMN GARDENS. More cute and dimensional, but organized into ONLY three distinct little still-life clusters in large empty gaps: (1) a ginkgo leaf plus miniature amber acorn and a small pearl between weather and frequent records, (2) coral maple plus small glass ginkgo and two pearls between community/recommendations, (3) an elegant acorn pair with amber leaf at calendar/health or tips/diary outer gap. Each cluster uses two different object scales and tiny star glints, occupies only an outer-side portion of its gap, not a full row. In other gaps use one very small star or pearl, leaving several gaps almost empty. Clear card interiors and all buttons. Never produce a full tree, branch border, scattered confetti, heavy glow clouds, or ornamental objects behind text. Most playful of the three, still quiet premium NURI colored glass.",
+      "application_status": "NOT_APPLIED"
+    }
+  ],
+  "recommendation": "A: quieter spacing, then selective motifs after PO approval.",
+  "limitations": [
+    "Generated board copy, data values and some card proportions differ from the screenshots; do not use these to change product contracts.",
+    "Final implemented ornament positions must exclude all text, CTA hit targets and calendar cells.",
+    "Current Metro source already contains the earlier requested stars/pearls candidate; these new foliage layout boards are not that runtime."
+  ]
+}

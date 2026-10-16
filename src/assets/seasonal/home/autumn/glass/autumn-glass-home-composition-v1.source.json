@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "purpose": "Preserved upper Hero ornaments and approved lower stars with five tiny pearl companions",
+  "classification": "CURRENT_DESIGN_REFERENCE",
+  "status": "METRO_CANDIDATE_NOT_DESIGN_FROZEN",
+  "runtime_asset": true,
+  "season": "autumn",
+  "source_manifest": "../../../../../../output/imagegen/nuri-autumn-glass-v1-20261017/manifest.json",
+  "source_bytes_preserved": true,
+  "processing": "Exact runtime copies, contain sizing and native resize only; no raster edits.",
+  "assets": [
+    {
+      "file": "autumn-glass-hero-leaf-cluster-v1.png",
+      "sha256": "4802c0afed55b530e9b2c229685721663fa92d0dd4a8fb4623dff16c309ca22a",
+      "bytes": 1344108,
+      "instances": 1,
+      "source": "../../../../../../output/imagegen/nuri-autumn-glass-v1-20261017/autumn-glass-hero-leaf-cluster-v1.png"
+    },
+    {
+      "file": "autumn-glass-pearl-apricot-v1.png",
+      "sha256": "c77613b185ffbea999a44afafb07a4d42224d04670a697d804e4a18dfaf79697",
+      "bytes": 649411,
+      "instances": 8,
+      "source": "../../../../../../output/imagegen/nuri-autumn-glass-v1-20261017/autumn-glass-pearl-apricot-v1.png"
+    },
+    {
+      "file": "autumn-starlight-four-point-v1.png",
+      "sha256": "c42ef5dd6f07e5d3a947292926b5326556650209479ec4888572fdd4ddd2fbf7",
+      "bytes": 325797,
+      "instances": 83,
+      "source": "../../../../../../output/imagegen/nuri-autumn-glass-v1-20261017/autumn-starlight-four-point-v1.png"
+    },
+    {
+      "file": "autumn-glass-maple-coral-v1.png",
+      "sha256": "02a43a9e13a322949103414db9456b4296a841648d6b006cde910bb9e46171e2",
+      "bytes": 1289271,
+      "instances": 1,
+      "source": "../../../../../../output/imagegen/nuri-autumn-glass-v1-20261017/autumn-glass-maple-coral-v1.png"
+    },
+    {
+      "file": "autumn-glass-ginkgo-amber-v1.png",
+      "sha256": "16a4bd11030fad0501f6965b04c68cb1a6fd01693b2435a6f49862af850743b5",
+      "bytes": 1131332,
+      "instances": 0,
+      "displayed": false,
+      "retained_for": "Design source and byte-preserving runtime copy; removed from current presentation, not deleted",
+      "source": "../../../../../../output/imagegen/nuri-autumn-glass-v1-20261017/autumn-glass-ginkgo-amber-v1.png"
+    },
+    {
+      "file": "autumn-glass-acorn-pair-v1.png",
+      "sha256": "5f57a26779118de2d63ed874b3ad91ff95af0808d5f0d7815b402234045afa81",
+      "bytes": 1131402,
+      "instances": 0,
+      "displayed": false,
+      "retained_for": "Design source and byte-preserving runtime copy; removed from current presentation, not deleted",
+      "source": "../../../../../../output/imagegen/nuri-autumn-glass-v1-20261017/autumn-glass-acorn-pair-v1.png"
+    }
+  ],
+  "composition_owners": [
+    "../../../../../screens/Main/components/LoggedInHome/HomeHeroDecorations.tsx",
+    "../../../../../screens/Main/components/LoggedInHome/HomeSectionDecorations.tsx"
+  ],
+  "placement": {
+    "wave_left": {
+      "top_dp": -40,
+      "previous_top_dp": -48,
+      "lowered_dp": 8
+    },
+    "wave_right": "Coral maple and two glints outside the central identity column.",
+    "photo": {
+      "star_count": 18,
+      "twinkling_star_count": 4,
+      "native_clock_count": 1,
+      "period_ms": 7600,
+      "header_clearance_dp": 112,
+      "bottom_clearance_dp": 48,
+      "stop_on_home_blur": true,
+      "stop_on_background": true,
+      "respect_reduced_motion": true
+    },
+    "footer": "Two pearls and three stars in the unchanged 52dp gap after the profile actions.",
+    "lower_sections": [
+      "frequent",
+      "summary",
+      "recent",
+      "community",
+      "recommendation",
+      "schedule",
+      "health",
+      "today-tip",
+      "diary"
+    ],
+    "lower_section_contract": "Preserve the approved 57 static stars and their exact placements. Add only five 20-26dp pearl frames near selected stars in frequent, recent, recommendation, health and diary gaps, opacity 0.8. No foliage or behind-card ornaments. Absolute 52dp clipping prevents overlap with card contents; no new measurement, scroll state, padding or card geometry.",
+    "touch": "pointerEvents none, inaccessible decorative images",
+    "new_lower_foliage": "NONE",
+    "behind_cards": "NONE"
+  },
+  "latest_direction": "PO approved the star composition and requested just a few small pearls nearby. Keep every star and upper Hero ornament unchanged, adding only five tiny pearls. No other props or device control, build, install, commit or push.",
+  "generated_boards_applied": false,
+  "original_design_sources_preserved": 6,
+  "existing_runtime_assets_replaced": 0,
+  "wave_geometry_delta": 0
+}

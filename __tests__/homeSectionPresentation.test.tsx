@@ -49,6 +49,65 @@ const source = fs.readFileSync(
 );
 
 describe('Home section rhythm and material', () => {
+  it('removes recommendation artwork and its reserved layout while retaining the original card gap', () => {
+    const section = source.slice(source.indexOf('const RecommendationTipsSection'), source.indexOf('const TodayRecordsSection'));
+    expect(section).not.toContain('emphasisArtwork');
+    expect(section).not.toContain('HomeRecommendationTipArtwork');
+    expect(homeStyles.section.gap).toBe(20);
+    expect(section).toContain("'아이의 건강한 하루를 위한\\n맞춤형 팁을 확인해보세요.'");
+    expect(section).toContain("accessibilityLabel: '추천 팁 전체 보기'");
+    expect(section).not.toContain('guideDebugBadge');
+  });
+
+  it('keeps recommendation fetching intact without the developer data-source badge', () => {
+    const section = source.slice(source.indexOf('const RecommendationTipsSection'), source.indexOf('const TodayRecordsSection'));
+    expect(section).not.toContain('debugSourceLabel');
+    expect(section).not.toContain('styles.guideDebugBadge');
+    expect(section).toContain('sourceReason');
+    expect(section).toContain('getGuideDataSourceDescription');
+    expect(section).toContain('guides.map(guide =>');
+  });
+
+  it('places recommendation artwork beside the emphasis copy below the independent action', async () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <ThemeProvider theme={createTheme('light')}>
+          <HomeSectionHeader
+            title="누리를 위한"
+            color="#243044"
+            emphasis={{ title: '추천 팁', color: '#2563EB' }}
+            description={'아이의 건강한 하루를 위한\n맞춤형 팁을 확인해보세요.'}
+            emphasisArtwork={<View testID="recommendation-art-test" />}
+            action={{ onPress: jest.fn(), accessibilityLabel: '추천 팁 전체 보기' }}
+          />
+        </ThemeProvider>,
+      );
+    });
+    expect(renderer.root.findAllByProps({ testID: 'recommendation-art-test' }).length).toBeGreaterThan(0);
+    const row = renderer.root.findByProps({ testID: 'home-section-emphasis-with-artwork' });
+    expect(StyleSheet.flatten(row.props.style)).toMatchObject({ flexDirection: 'row', gap: 12 });
+    expect(row.findAll(node => node.props.accessibilityLabel === '추천 팁 전체 보기')).toHaveLength(0);
+    await act(async () => renderer.unmount());
+  });
+
+  it.each(['frequent', 'summary', 'recent', 'community', 'recommendation', 'schedule', 'health', 'today-tip', 'diary'])(
+    'removes the previous ornament backdrop from the %s card',
+    zone => {
+      const boundary = zone === 'today-tip'
+        ? "<View onLayout={ambientSectionLayoutHandlers['today-tip']}>"
+        : `<View onLayout={ambientSectionLayoutHandlers.${zone}}>`;
+      const body = source.slice(source.indexOf(boundary), source.indexOf('</View>', source.indexOf(boundary)));
+      expect(body.includes('<HomeSectionBackdrop')).toBe(false);
+    },
+  );
+  it.each(['frequent', 'summary', 'recent', 'community', 'recommendation', 'schedule', 'health', 'today-tip', 'diary'])(
+    'adds only non-layout seasonal sparkle ornaments to the existing %s section',
+    zone => {
+      expect(source.includes(`<HomeSectionDecorations season={ambientSeason} zone="${zone}" />`)).toBe(true);
+    },
+  );
+
   beforeEach(() => {
     jest.spyOn(ReactNative, 'useWindowDimensions').mockReturnValue({
       width: 384, height: 800, scale: 3, fontScale: 1,
@@ -56,7 +115,21 @@ describe('Home section rhythm and material', () => {
   });
   afterEach(() => jest.restoreAllMocks());
 
-  it('keeps the notification touch target around a borderless transparent glass circle', () => {
+  it('aligns the compact white wordmark and bare notification in one centered header row', () => {
+    expect(homeStyles.brandWordmark).toMatchObject({
+      fontSize: 22, lineHeight: 28, color: '#FFFFFF', letterSpacing: 0,
+    });
+    const header = source.slice(source.indexOf('const HomeHeaderSection'), source.indexOf('const HeroProfileIdentity'));
+    expect(header).toContain('style={styles.brandWordmark}');
+    expect(header).toMatch(/preserveOriginal\s+name="heart"\s+size=\{12\}\s+color=\{styles\.brandWordmark\.color\}/);
+    expect(homeStyles.header).toMatchObject({ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' });
+    expect(homeStyles.brandContentStack).toMatchObject({ flex: 1, minWidth: 0, alignItems: 'flex-start' });
+    expect(homeStyles.notificationAnchor).toMatchObject({ flexShrink: 0 });
+    expect(homeStyles.notificationAnchor).not.toHaveProperty('position');
+    expect(homeStyles.notificationAnchor).not.toHaveProperty('top');
+  });
+
+  it('removes notification glass while preserving the white icon, target and badge', () => {
     const header = source.slice(
       source.indexOf('const HomeHeaderSection'),
       source.indexOf('const HeroProfileIdentity'),
@@ -72,26 +145,26 @@ describe('Home section rhythm and material', () => {
     expect(header).toContain('style={styles.headerIconBtn}');
     expect(header).not.toContain('styles.autumnHeaderIconBtn');
     expect(header).not.toContain('styles.winterHeaderIconBtn');
-    expect(StyleSheet.flatten([
-      HOME_FLOATING_WIDGET_MATERIAL,
-      homeStyles.headerNotificationGlass,
-    ])).toMatchObject({
-      position: 'absolute', top: 0, bottom: 0, left: 0, right: 0,
-      backgroundColor: HOME_FLOATING_WIDGET_MATERIAL.backgroundColor,
-      borderRadius: 17,
-      borderWidth: 0,
-      overflow: 'hidden',
-    });
-    expect(header).toContain('testID="home-notification-glass"');
-    expect(header).toMatch(/testID="home-notification-glass"\s+pointerEvents="none"\s+accessible=\{false\}\s+importantForAccessibility="no-hide-descendants"/);
-    expect(header).toContain('HOME_FLOATING_WIDGET_MATERIAL, styles.headerNotificationGlass');
-    expect(header).toMatch(/<HomeFloatingWidgetSurface\s+radius=\{17\}\s+testIDPrefix="home-notification-glass"/);
+    expect(header).not.toContain('home-notification-glass');
+    expect(header).not.toContain('HomeFloatingWidgetSurface');
+    expect(header).not.toContain('HOME_FLOATING_WIDGET_MATERIAL');
     expect(header).toContain('onPress={onPressNotifications}');
     expect(header).toContain('accessibilityLabel={notificationAccessibilityLabel}');
     expect(header).toContain('accessibilityRole="button"');
-    expect(header).toContain('name="bell" size={18}');
+    expect(header).toMatch(/<NuriIcon\s+testID="home-notification-icon"\s+name="bell"\s+size=\{18\}\s+color="#FFFFFF"\s+colorMode="theme"\s+variant="outline"/);
     expect(header).toContain('notificationUnreadCount > 0');
     expect(header).toContain('styles.headerNotificationBadge');
+  });
+
+  it('renders the existing notification glyph in white without its original palette', async () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(<NuriIcon name="bell" size={18} color="#FFFFFF" colorMode="theme" variant="outline" />);
+    });
+    const glyphs = renderer.root.findAllByType(Text).filter(node => StyleSheet.flatten(node.props.style).fontFamily === 'NuriIcons');
+    expect(glyphs.length).toBeGreaterThan(0);
+    for (const glyph of glyphs) expect(StyleSheet.flatten(glyph.props.style).color).toBe('#FFFFFF');
+    await act(async () => renderer.unmount());
   });
 
   it('uses a black profile-sheet close icon without changing its close action or hit slop', async () => {
@@ -99,13 +172,12 @@ describe('Home section rhythm and material', () => {
       source.indexOf('const ProfileInfoBottomSheet'),
       source.indexOf('const HeroProfileSection'),
     );
-    expect(sheet).toMatch(
-      /<NuriSemanticIcon\s+family="feather"\s+preserveOriginal\s+name="x"\s+size=\{19\}\s+color="#000000"/,
-    );
-    expect(sheet).toContain('accessibilityLabel="프로필 상세 닫기"');
-    expect(sheet).toContain('onPress={requestClose}');
-    expect(sheet).toContain('hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}');
-    expect(sheet).toContain('styles.profileSheetCloseButton');
+    expect(sheet).toContain('<HomePetSheetHeader');
+    expect(sheet).toContain('closeLabel="프로필 상세 닫기"');
+    expect(sheet).toContain('onClose={() => requestClose()}');
+    expect(sheet).not.toContain('onEdit=');
+    expect(sheet).not.toContain('onPressPetProfileEdit');
+    expect(sheet).toContain('if (finished) onCloseComplete();');
 
     let renderer!: TestRenderer.ReactTestRenderer;
     await act(async () => {
@@ -159,7 +231,7 @@ describe('Home section rhythm and material', () => {
     await act(async () => renderer.unmount());
   });
 
-  it('keeps the photo edit geometry while moving the memory action into the lower information panel', () => {
+  it('preserves the photo geometry and profile actions without the Hero record connection', () => {
     expect(homeStyles.autumnHeroBodyGroup.paddingTop).toBe(14 + 16);
     expect(homeStyles.autumnHeroBodyGroup).not.toHaveProperty('transform');
     expect(homeStyles.autumnMemoryChipAnchor).toMatchObject({
@@ -179,21 +251,25 @@ describe('Home section rhythm and material', () => {
     const hero = source.slice(source.indexOf('const HeroProfileSection'), source.indexOf('const RecommendationTipsSection'));
     expect(hero).not.toContain('heroMemoryChip');
     const info = source.slice(source.indexOf('<HomeHeroInfoPanel'), source.indexOf('<FixedTypographyBoundary>', source.indexOf('<HomeHeroInfoPanel')));
-    expect(info).toContain('heroMemoryChip={heroMemoryChip}');
-    expect(info).toContain('onPressMemoryChip={onPressRecordItem}');
-    expect(info).toContain('onPressCreateMemory={onPressRecord}');
+    expect(info).not.toContain('heroMemoryChip=');
+    expect(info).not.toContain('onPressMemoryChip=');
+    expect(info).not.toContain('onPressCreateMemory=');
+    expect(source).toContain('onPressRecordItem={onPressRecordItem}');
+    expect(source).toContain('onPressCategory={onPressFrequentRecord}');
   });
 
-  it('keeps neutral profile actions on the approved seasonal lower panel', () => {
+  it('keeps neutral profile actions and user-colored identity on the seasonal lower panel', () => {
     const panel = fs.readFileSync(path.join(__dirname, '../src/screens/Main/components/LoggedInHome/HomeHeroInfoPanel.tsx'), 'utf8');
     expect(panel).toContain('HOME_SEASONAL_BACKGROUND_GRADIENTS[season]');
     expect(panel).not.toContain('HomeFrostedGlass');
-    expect(source).toContain('const brandColor = SEASON_CTA[useEffectiveSeason()].primary');
+    expect(homeStyles.brandWordmark.color).toBe('#FFFFFF');
     expect(panel).toContain('color: NEUTRAL_UI_PALETTE.primary');
-    expect(panel).toContain('color={NEUTRAL_UI_PALETTE.primary}');
+    expect(panel).toContain('color={petTheme.primary}');
+    expect(panel).toContain('const identityTextStyle = { color: petTheme.primary }');
     expect(panel).toContain('onPress={onPressProfileInfo}');
-    expect(panel).toContain('name="chevron-right"');
-    expect(panel).toContain("textAlign: 'left'");
+    expect(panel).not.toContain('name="chevron-right"');
+    expect(panel).toContain('name="chevron-down"');
+    expect(panel).toContain("textAlign: 'center'");
   });
 
   it('lets record tiles grow with enlarged copy instead of painting outside a square', async () => {

@@ -14,6 +14,7 @@ import NuriSemanticIcon from '../../../../components/icons/NuriSemanticIcon';
 
 import AppText from '../../../../app/ui/AppText';
 import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
+import { useHomeHeadingColor, useHomeContentTextStyle } from '../../../../components/home/HomeSeasonContext';
 import {
   HomeSectionHeader,
   isHomeSectionConfirmedEmpty,
@@ -75,6 +76,8 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
   onPressAllRecords,
 }: Props) {
   const petName = usePetDisplayName();
+  const totalColor = useHomeHeadingColor() ?? accentDeepColor;
+  const contentTextStyle = useHomeContentTextStyle();
   const { width, fontScale } = useWindowDimensions();
   const summary = useMemo(
     () => (records === null ? null : buildTotalSummary(records)),
@@ -143,7 +146,7 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
           <AppText
             preset="unifiedLabel"
             styleOverridesPreset
-            style={styles.totalLabel}
+            style={[styles.totalLabel, contentTextStyle]}
           >
             전체 기록
           </AppText>
@@ -161,7 +164,7 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
                 style={[
                   styles.totalValue,
                   {
-                    color: accentDeepColor,
+                    color: totalColor,
                     fontSize: countFontSize,
                     lineHeight: countFontSize + 10,
                   },
@@ -171,7 +174,7 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
                 <AppText
                   preset="unifiedBody"
                   styleOverridesPreset
-                  style={styles.totalUnit}
+                  style={[styles.totalUnit, { color: totalColor }]}
                 >
                   {' '}
                   개
@@ -213,14 +216,14 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
             <AppText
               preset="unifiedBody"
               styleOverridesPreset
-              style={styles.daysText}
+              style={[styles.daysText, contentTextStyle]}
             >
               기록한 날{' '}
               <AppText
                 testID="home-summary-days-value"
                 preset="unifiedBody"
                 styleOverridesPreset
-                style={[styles.daysValue, { color: accentDeepColor }]}
+                style={[styles.daysValue, { color: contentTextStyle?.color ?? accentDeepColor }]}
               >
                 {summary
                   ? `${summary.recordDays}일`
@@ -282,7 +285,7 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
             <AppText
               preset="unifiedLabel"
               styleOverridesPreset
-              style={styles.metricLabel}
+              style={[styles.metricLabel, contentTextStyle]}
             >
               {metric.label}
             </AppText>
@@ -293,7 +296,7 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
               styleOverridesPreset
               style={[
                 styles.metricValue,
-                { color: accentDeepColor },
+                { color: contentTextStyle?.color ?? accentDeepColor },
                 metric.value !== null && String(metric.value).length > 3
                   ? styles.longMetricValue
                   : null,
@@ -303,7 +306,7 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
               <AppText
                 preset="unifiedBody"
                 styleOverridesPreset
-                style={styles.metricUnit}
+                style={[styles.metricUnit, contentTextStyle]}
               >
                 {' '}
                 기록
@@ -334,7 +337,7 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
           <AppText
             preset="unifiedLabel"
             styleOverridesPreset
-            style={styles.insightTitle}
+            style={[styles.insightTitle, contentTextStyle]}
           >
             전체 기록 한 줄 요약
           </AppText>

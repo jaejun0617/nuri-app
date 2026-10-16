@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "purpose": "Home Hero photo-to-seasonal-canvas wave edge",
+  "classification": "CURRENT_PRODUCT_ASSET",
+  "source": "hero-wave-edge-v1.svg",
+  "asset": "hero-wave-edge-v1.png",
+  "source_sha256": "db5d0fbf3343b350ae99f94b2989112c3c5266e8f83ee473995591e246755dfe",
+  "asset_sha256": "4aace20fe40050649b28c3319561f84cea007db4d7aadec5acb3bf04cd39b271",
+  "authored_geometry": "M0 3 C84 3 104 36 224 36 C306 36 340 8 400 16 L400 40 L0 40 Z",
+  "rasterization": "sharp SVG to PNG, compressionLevel 9, no resize",
+  "intrinsic_size": {
+    "width": 1600,
+    "height": 160
+  },
+  "runtime_size": {
+    "width": "100%",
+    "height_dp": 40
+  },
+  "runtime_color": "HOME_SEASONAL_BACKGROUND_GRADIENTS[season][0] via Image.tintColor",
+  "content_layout": "40dp wave consumes the existing 40dp photo overlap; content stays below its trough.",
+  "bytes": 5201,
+  "transparent_top": true,
+  "bottom_row_opaque": true,
+  "top_boundary_samples_alpha_128": [
+    {
+      "x": 0,
+      "y": 12
+    },
+    {
+      "x": 320,
+      "y": 58
+    },
+    {
+      "x": 640,
+      "y": 129
+    },
+    {
+      "x": 895,
+      "y": 144
+    },
+    {
+      "x": 1279,
+      "y": 92
+    },
+    {
+      "x": 1519,
+      "y": 58
+    },
+    {
+      "x": 1599,
+      "y": 64
+    }
+  ],
+  "no_new_native_dependency": true,
+  "generated_design_ornaments_imported": false
+}

@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "purpose": "Autumn-only glass ornaments on the upper-left Home Hero wave",
+  "classification": "CURRENT_DESIGN_REFERENCE",
+  "status": "METRO_CANDIDATE_PENDING_PO_VISUAL_REVIEW",
+  "retained_as_initial_copy_receipt": true,
+  "superseded_for_layout_by": "autumn-glass-home-composition-v1.source.json",
+  "runtime_asset": true,
+  "season": "autumn",
+  "source_bytes_preserved": true,
+  "processing": "Byte-preserving runtime copies; no crop, resampling, alpha cleanup, compression or color changes.",
+  "source_manifest": "../../../../../../output/imagegen/nuri-autumn-glass-v1-20261017/manifest.json",
+  "placement": {
+    "anchor": "HomeHeroContentSheet upper-left wave crest",
+    "top_dp": -48,
+    "left_dp": 0,
+    "width_dp": 140,
+    "height_dp": 106,
+    "layout": "Absolute, non-interactive overlay ending before the first identity text row; no content height or spacing change.",
+    "image_resize_mode": "contain",
+    "android_resize_method": "resize",
+    "animation": "NONE"
+  },
+  "assets": [
+    {
+      "file": "autumn-glass-hero-leaf-cluster-v1.png",
+      "source": "../../../../../../output/imagegen/nuri-autumn-glass-v1-20261017/autumn-glass-hero-leaf-cluster-v1.png",
+      "sha256": "4802c0afed55b530e9b2c229685721663fa92d0dd4a8fb4623dff16c309ca22a",
+      "bytes": 1344108,
+      "intrinsic_size": { "width": 1293, "height": 1217 },
+      "frame_dp": { "left": -8, "top": 0, "width": 108, "height": 102 },
+      "instances": 1
+    },
+    {
+      "file": "autumn-glass-pearl-apricot-v1.png",
+      "source": "../../../../../../output/imagegen/nuri-autumn-glass-v1-20261017/autumn-glass-pearl-apricot-v1.png",
+      "sha256": "c77613b185ffbea999a44afafb07a4d42224d04670a697d804e4a18dfaf79697",
+      "bytes": 649411,
+      "intrinsic_size": { "width": 1254, "height": 1254 },
+      "frame_dp": { "left": 8, "top": 72, "width": 34, "height": 34 },
+      "instances": 1
+    },
+    {
+      "file": "autumn-starlight-four-point-v1.png",
+      "source": "../../../../../../output/imagegen/nuri-autumn-glass-v1-20261017/autumn-starlight-four-point-v1.png",
+      "sha256": "c42ef5dd6f07e5d3a947292926b5326556650209479ec4888572fdd4ddd2fbf7",
+      "bytes": 325797,
+      "intrinsic_size": { "width": 1280, "height": 1229 },
+      "frames_dp": [
+        { "left": 80, "top": 20, "width": 42, "height": 42 },
+        { "left": 38, "top": 75, "width": 30, "height": 30 }
+      ],
+      "instances": 2
+    }
+  ],
+  "original_design_sources_preserved": 6,
+  "existing_runtime_assets_replaced": 0,
+  "lower_section_ornaments_added": 0,
+  "wave_geometry_delta": 0
+}

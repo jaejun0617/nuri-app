@@ -108,7 +108,7 @@ function sectionFields(
   ]);
 }
 
-// Only the background selection changes. The approved Home foreground stays frozen.
+// Materials and controls stay frozen; section headings use a separate seasonal tint.
 export const HOME_FOREGROUND_UI_SEASON: SeasonKey = 'autumn';
 
 // Home-only palette; shared hubs and reading surfaces keep their current canvas.
@@ -120,6 +120,22 @@ export const HOME_SEASONAL_BACKGROUND_GRADIENTS = {
 } as const satisfies Record<SeasonKey, readonly [string, string, string]>;
 
 export const HOME_SEASONAL_BACKGROUND_LOCATIONS = [0, 0.45, 1] as const;
+
+/** Home section titles only; existing action and material palettes stay unchanged. */
+export const HOME_SEASONAL_HEADING_COLORS = {
+  spring: '#7A4654',
+  summer: '#205D62',
+  autumn: '#704C33',
+  winter: '#35556B',
+} as const satisfies Record<SeasonKey, string>;
+
+/** Low-chroma Home content tones; captions and action palettes are independent. */
+export const HOME_SEASONAL_CONTENT_COLORS = {
+  spring: '#62505A',
+  summer: '#405A56',
+  autumn: '#625448',
+  winter: '#4A5968',
+} as const satisfies Record<SeasonKey, string>;
 
 export type HomeAmbientSectionLight = HomeAmbientLight & {
   zone: HomeAmbientBubbleZone;

@@ -9,6 +9,7 @@ import { useTheme } from 'styled-components/native';
 import Feather from '../../../../components/icons/NuriFeatherIcon';
 import NuriSemanticIcon from '../../../../components/icons/NuriSemanticIcon';
 import AppText from '../../../../app/ui/AppText';
+import { useHomeContentTextStyle } from '../../../../components/home/HomeSeasonContext';
 import type { PetSchedule } from '../../../../services/supabase/schedules';
 import type { HealthActivityItem } from '../../../../services/health-report/viewModel';
 import {
@@ -168,6 +169,7 @@ export const HomeHealthActivityList = memo(function HomeHealthActivityListView({
   onPress: (ymd: string) => void;
 }) {
   const theme = useTheme();
+  const contentTextStyle = useHomeContentTextStyle();
   const { width, fontScale } = useWindowDimensions();
   const { stackedMetadata } = resolveHomePopulatedLayout(width, fontScale);
   return (
@@ -208,7 +210,7 @@ export const HomeHealthActivityList = memo(function HomeHealthActivityListView({
                   stackedMetadata && styles.stacked,
                 ]}
               >
-                <AppText preset="unifiedMicro" color={accentColor}>
+                <AppText preset="unifiedMicro" color={contentTextStyle?.color ?? accentColor}>
                   {kind.label}
                 </AppText>
                 <AppText
@@ -222,7 +224,7 @@ export const HomeHealthActivityList = memo(function HomeHealthActivityListView({
               <AppText
                 preset="cardTitle"
                 style={styles.activityTitle}
-                color={theme.colors.textPrimary}
+                color={contentTextStyle?.color ?? theme.colors.textPrimary}
               >
                 {title}
               </AppText>

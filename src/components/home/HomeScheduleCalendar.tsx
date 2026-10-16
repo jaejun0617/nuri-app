@@ -22,6 +22,7 @@ import { getKstYmd } from '../../utils/date';
 import type { SeasonKey } from '../../theme/seasonal/season';
 import { ScheduleCalendarSheet } from './ScheduleCalendarSheet';
 import { HomeReflectiveGlass } from './HomeReflectiveGlass';
+import { useHomeHeadingColor, useHomeContentTextStyle } from './HomeSeasonContext';
 import {
   buildHomeScheduleCalendar,
   homeCalendarDayLabel,
@@ -59,6 +60,8 @@ export const HomeScheduleCalendar = memo(function HomeScheduleCalendarView({
 }: Props) {
   const petName = usePetDisplayName(petId);
   const theme = useTheme();
+  const headingColor = useHomeHeadingColor();
+  const contentTextStyle = useHomeContentTextStyle();
   const { fontScale } = useWindowDimensions();
   const [today, setToday] = useState(() => getKstYmd());
   const [month, setMonth] = useState(() => homeCalendarMonth(today));
@@ -140,7 +143,7 @@ export const HomeScheduleCalendar = memo(function HomeScheduleCalendarView({
         </AppText>
         <AppText
           preset="cardTitle"
-          color={theme.colors.textPrimary}
+          color={contentTextStyle?.color ?? theme.colors.textPrimary}
           numberOfLines={preview ? 2 : undefined}
         >
           {item.schedule.title}
@@ -166,16 +169,13 @@ export const HomeScheduleCalendar = memo(function HomeScheduleCalendarView({
       ? '일정을 불러오고 있어요'
       : '';
   return (
-    <HomeReflectiveGlass
-      testID="home-glass-schedule"
-      style={styles.section}
-    >
+    <HomeReflectiveGlass testID="home-glass-schedule" style={styles.section}>
       <View style={[styles.header, fontScale >= 1.3 && styles.stackedHeader]}>
         <AppText
           accessibilityRole="header"
           preset="unifiedTitle"
           styleOverridesPreset
-          color={accentDeepColor}
+          color={headingColor ?? accentDeepColor}
           style={[
             styles.headerTitle,
             fontScale >= 1.3 && styles.stackedHeaderTitle,
@@ -186,7 +186,7 @@ export const HomeScheduleCalendar = memo(function HomeScheduleCalendarView({
         {!(canConfirmEmpty && items.length === 0) ? (
           <SectionHeaderAction
             label="전체 일정"
-            color={accentDeepColor}
+            color={headingColor ?? accentDeepColor}
             onPress={onPressAll}
             accessibilityLabel="전체 일정 목록 보기"
             size="compact"

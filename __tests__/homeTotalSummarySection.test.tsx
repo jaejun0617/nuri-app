@@ -24,7 +24,12 @@ import {
   HOME_AMBIENT_SCROLL_BUBBLES,
   getHomeAmbientBubbleSize,
 } from '../src/theme/home/ambientMesh';
-import { HOME_AMBIENT_SECTION_LIGHTS } from '../src/theme/home/seasonalAmbient';
+import {
+  HOME_AMBIENT_SECTION_LIGHTS,
+  HOME_SEASONAL_HEADING_COLORS,
+  HOME_SEASONAL_CONTENT_COLORS,
+} from '../src/theme/home/seasonalAmbient';
+import { HomeSeasonProvider } from '../src/components/home/HomeSeasonContext';
 
 jest.mock('../src/app/ui/AppText', () => 'AppText');
 
@@ -78,6 +83,53 @@ const render = (
 
 describe('Total Summary seasonal concept', () => {
   afterEach(() => jest.restoreAllMocks());
+
+  it.each(SEASONS)(
+    '%s keeps the total in its deep heading tone and secondary metrics in the muted seasonal charcoal',
+    async season => {
+      let renderer!: TestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = TestRenderer.create(
+          <HomeSeasonProvider season="autumn" headingSeason={season}>
+            {render({ season })}
+          </HomeSeasonProvider>,
+        );
+      });
+      const total = renderer.root.findByProps({
+        testID: 'home-summary-total-value',
+      });
+      const unit = total.findAll(
+        node => String(node.type) === 'AppText' && node.props.preset === 'unifiedBody',
+      )[0];
+      const title = renderer.root.find(
+        node => String(node.type) === 'AppText' && node.props.children === '전체 요약',
+      );
+      const label = renderer.root.find(
+        node => String(node.type) === 'AppText' && node.props.children === '전체 기록',
+      );
+      expect(RN.StyleSheet.flatten(title.props.style).color).toBe(HOME_SEASONAL_HEADING_COLORS[season]);
+      expect(RN.StyleSheet.flatten(total.props.style)).toEqual({
+        ...styles.totalValue,
+        color: HOME_SEASONAL_HEADING_COLORS[season],
+        fontSize: resolveSummaryCountFontSize(5),
+        lineHeight: resolveSummaryCountFontSize(5) + 10,
+      });
+      expect(RN.StyleSheet.flatten(unit.props.style)).toEqual({
+        ...styles.totalUnit,
+        color: HOME_SEASONAL_HEADING_COLORS[season],
+      });
+      expect(RN.StyleSheet.flatten(label.props.style)).toEqual({
+        ...styles.totalLabel, color: HOME_SEASONAL_CONTENT_COLORS[season],
+      });
+      for (const key of ['walk', 'meal', 'life', 'days']) {
+        expect(RN.StyleSheet.flatten(renderer.root.findByProps({
+          testID: `home-summary-${key}-value`,
+        }).props.style).color).toBe(HOME_SEASONAL_CONTENT_COLORS[season]);
+      }
+      expect(total.props.children[0]).toBe(5);
+      await act(async () => renderer.unmount());
+    },
+  );
 
   it.each(SEASONS)(
     '%s uses transparent art with bounded native layout and layered glass',

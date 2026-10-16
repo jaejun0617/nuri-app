@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 
 import AppText from '../../../../app/ui/AppText';
+import { useHomeContentTextStyle } from '../../../../components/home/HomeSeasonContext';
 import type { PetRecordsState } from '../../../../store/recordStore';
 import type { SeasonKey } from '../../../../theme/seasonal/season';
 import { styles as homeStyles } from './LoggedInHome.styles';
@@ -38,6 +39,7 @@ export const MonthlyDiaryEmptyState = memo(function MonthlyDiaryEmptyStateView({
   accentDeepColor,
   onPressRecord,
 }: Props) {
+  const contentTextStyle = useHomeContentTextStyle();
   const petName = usePetDisplayName();
   // An unavailable list is not evidence that this month's diary is empty.
   if (recordStatus !== 'ready') {
@@ -84,7 +86,7 @@ export const MonthlyDiaryEmptyState = memo(function MonthlyDiaryEmptyStateView({
           typographyRole="celebration"
           preset="unifiedTitle"
           styleOverridesPreset
-          style={styles.title}
+          style={[styles.title, contentTextStyle]}
         >
           이번 달 일기가 아직 없어요
         </AppText>

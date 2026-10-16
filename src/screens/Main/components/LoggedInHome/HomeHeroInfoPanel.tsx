@@ -1,12 +1,11 @@
 import React, { memo, type PropsWithChildren } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 
 import AppText from '../../../../app/ui/AppText';
 import Feather from '../../../../components/icons/NuriFeatherIcon';
 import MaterialCommunityIcons from '../../../../components/icons/NuriMaterialIcon';
 import NuriIcon from '../../../../components/icons/NuriIcon';
-import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
 import {
   HOME_FLOATING_WIDGET_MATERIAL,
   HomeFloatingWidgetSurface,
@@ -15,12 +14,12 @@ import {
   buildPetThemePalette,
   NEUTRAL_UI_PALETTE,
 } from '../../../../services/pets/themePalette';
-import type { HomeHeroMemoryChip } from '../../../../services/home/heroMemoryChip';
 import type { SeasonKey } from '../../../../theme/seasonal/season';
 import {
   HOME_SEASONAL_BACKGROUND_GRADIENTS,
   HOME_SEASONAL_BACKGROUND_LOCATIONS,
 } from '../../../../theme/home/seasonalAmbient';
+import { HomeHeroWaveOrnaments } from './HomeHeroDecorations';
 
 export const HOME_HERO_PANEL_OVERLAP = 40;
 
@@ -30,21 +29,40 @@ export function HomeHeroContentSheet({
   children,
 }: PropsWithChildren<{ season: SeasonKey }>) {
   return (
-    <LinearGradient
+    <View
       testID="home-hero-content-sheet"
-      colors={[...HOME_SEASONAL_BACKGROUND_GRADIENTS[season]]}
-      locations={[...HOME_SEASONAL_BACKGROUND_LOCATIONS]}
-      start={{ x: 0.5, y: 0 }}
-      end={{ x: 0.5, y: 1 }}
       pointerEvents="box-none"
       accessible={false}
-      style={[
-        styles.sheet,
-        { backgroundColor: HOME_SEASONAL_BACKGROUND_GRADIENTS[season][0] },
-      ]}
+      style={styles.sheet}
     >
-      {children}
-    </LinearGradient>
+      {/* Only the 40 dp edge is rasterized; no full-page native mask is needed. */}
+      <Image
+        testID="home-hero-wave"
+        source={require('../../../../assets/seasonal/home/hero-wave-edge-v1.png')}
+        tintColor={HOME_SEASONAL_BACKGROUND_GRADIENTS[season][0]}
+        resizeMode="stretch"
+        accessible={false}
+        importantForAccessibility="no-hide-descendants"
+        pointerEvents="none"
+        style={styles.wave}
+      />
+      <LinearGradient
+        testID="home-hero-content-gradient"
+        colors={[...HOME_SEASONAL_BACKGROUND_GRADIENTS[season]]}
+        locations={[...HOME_SEASONAL_BACKGROUND_LOCATIONS]}
+        start={{ x: 0.5, y: 0 }}
+        end={{ x: 0.5, y: 1 }}
+        pointerEvents="box-none"
+        accessible={false}
+        style={[
+          styles.sheetBody,
+          { backgroundColor: HOME_SEASONAL_BACKGROUND_GRADIENTS[season][0] },
+        ]}
+      >
+        {children}
+      </LinearGradient>
+      <HomeHeroWaveOrnaments season={season} />
+    </View>
   );
 }
 
@@ -53,11 +71,10 @@ type Props = {
   profilePetName: string;
   titleBadge: string | null;
   togetherDays: number | null;
-  heroMemoryChip: HomeHeroMemoryChip | null;
-  onPressPetProfileEdit: () => void;
+  hasMultiplePets: boolean;
+  onPressPetSelect: () => void;
   onPressProfileInfo: () => void;
-  onPressMemoryChip: (memoryId: string) => void;
-  onPressCreateMemory: () => void;
+  onPressPetProfileEdit: () => void;
 };
 
 export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
@@ -65,24 +82,27 @@ export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
   profilePetName,
   titleBadge,
   togetherDays,
-  heroMemoryChip,
-  onPressPetProfileEdit,
+  hasMultiplePets,
+  onPressPetSelect,
   onPressProfileInfo,
-  onPressMemoryChip,
-  onPressCreateMemory,
+  onPressPetProfileEdit,
 }: Props) {
+  const identityTextStyle = { color: petTheme.primary };
   const dayLabel =
     togetherDays !== null ? togetherDays.toLocaleString('ko-KR') : null;
 
   return (
-    <HomeSectionGlass testID="home-hero-info" style={styles.info}>
+    <View testID="home-hero-info" style={styles.info}>
       <View testID="home-hero-identity" style={styles.identity}>
         <TouchableOpacity
-          testID="home-hero-profile-edit"
+          testID="home-hero-pet-selector"
           activeOpacity={0.86}
-          accessibilityRole="button"
-          accessibilityLabel={`${profilePetName} 프로필 수정`}
-          onPress={onPressPetProfileEdit}
+          disabled={!hasMultiplePets}
+          accessibilityRole={hasMultiplePets ? 'button' : undefined}
+          accessibilityLabel={
+            hasMultiplePets ? `${profilePetName}, 아이 선택` : profilePetName
+          }
+          onPress={onPressPetSelect}
           style={styles.nameAction}
         >
           {titleBadge ? (
@@ -91,12 +111,12 @@ export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
                 <MaterialCommunityIcons
                   name="medal-outline"
                   size={styles.name.fontSize}
-                  color={petTheme.deep}
+                  color={petTheme.primary}
                 />
                 <AppText
                   preset="unifiedMeta"
                   styleOverridesPreset
-                  style={[styles.badgeText, { color: petTheme.deep }]}
+                  style={[styles.badgeText, identityTextStyle]}
                 >
                   {titleBadge}
                 </AppText>
@@ -106,7 +126,7 @@ export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
                 preset="unifiedMeta"
                 styleOverridesPreset
                 accessible={false}
-                style={styles.titleSeparator}
+                style={[styles.titleSeparator, identityTextStyle]}
               >
                 ·
               </AppText>
@@ -115,16 +135,18 @@ export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
           <AppText
             preset="unifiedTitle"
             styleOverridesPreset
-            style={styles.name}
+            style={[styles.name, identityTextStyle]}
           >
             {profilePetName}
           </AppText>
-          <Feather
-            name="chevron-right"
-            size={18}
-            color={NEUTRAL_UI_PALETTE.primary}
-            accessible={false}
-          />
+          {hasMultiplePets ? (
+            <Feather
+              name="chevron-down"
+              size={18}
+              color={petTheme.primary}
+              accessible={false}
+            />
+          ) : null}
         </TouchableOpacity>
         {dayLabel !== null ? (
           <View
@@ -138,19 +160,19 @@ export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
             <AppText
               preset="unifiedMeta"
               styleOverridesPreset
-              style={styles.togetherText}
+              style={[styles.togetherText, identityTextStyle]}
             >
               함께한 시간{' '}
               <AppText
                 preset="unifiedMeta"
                 styleOverridesPreset
-                style={styles.days}
+                style={[styles.days, identityTextStyle]}
               >
                 {dayLabel}
                 <AppText
                   preset="unifiedMeta"
                   styleOverridesPreset
-                  style={styles.dayUnit}
+                  style={[styles.dayUnit, identityTextStyle]}
                 >
                   일
                 </AppText>
@@ -162,69 +184,74 @@ export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
       </View>
 
       <View testID="home-hero-footer" style={styles.footer}>
-        {heroMemoryChip ? (
+        <View testID="home-hero-profile-actions" style={styles.profileActions}>
           <TouchableOpacity
-            testID="home-hero-memory"
+            testID="home-hero-profile-info"
             activeOpacity={0.86}
             accessibilityRole="button"
-            accessibilityLabel={heroMemoryChip.accessibilityLabel}
-            onPress={() => {
-              if (heroMemoryChip.recordId) {
-                onPressMemoryChip(heroMemoryChip.recordId);
-                return;
-              }
-              onPressCreateMemory();
-            }}
+            accessibilityLabel={`${profilePetName} 더 알아보기`}
+            onPress={onPressProfileInfo}
             style={styles.actionButton}
           >
             <HomeFloatingWidgetSurface
               radius={12}
-              testIDPrefix="home-hero-memory-glass"
+              testIDPrefix="home-hero-profile-glass"
+            />
+            <View
+              testID="home-hero-profile-info-leading"
+              accessible={false}
+              importantForAccessibility="no-hide-descendants"
+              style={styles.actionIconSlot}
             />
             <AppText
-              preset="unifiedMeta"
+              preset="unifiedLabel"
               styleOverridesPreset
-              style={styles.memoryText}
+              style={styles.actionText}
             >
-              {heroMemoryChip.label}
+              {profilePetName} 더 알아보기
             </AppText>
-            <Feather
-              name="chevron-right"
-              size={18}
-              color={NEUTRAL_UI_PALETTE.primary}
+            <View
+              testID="home-hero-profile-info-trailing"
               accessible={false}
+              importantForAccessibility="no-hide-descendants"
+              style={styles.actionIconSlot}
             />
           </TouchableOpacity>
-        ) : null}
-
-        <TouchableOpacity
-          testID="home-hero-profile-info"
-          activeOpacity={0.86}
-          accessibilityRole="button"
-          accessibilityLabel={`${profilePetName} 더 알아보기`}
-          onPress={onPressProfileInfo}
-          style={styles.actionButton}
-        >
-          <HomeFloatingWidgetSurface
-            radius={12}
-            testIDPrefix="home-hero-profile-glass"
-          />
-          <AppText
-            preset="unifiedLabel"
-            styleOverridesPreset
-            style={styles.actionText}
+          <TouchableOpacity
+            testID="home-hero-profile-edit"
+            activeOpacity={0.86}
+            accessibilityRole="button"
+            accessibilityLabel={`${profilePetName} 프로필 수정하기`}
+            onPress={onPressPetProfileEdit}
+            style={styles.actionButton}
           >
-            {profilePetName} 더 알아보기
-          </AppText>
-          <Feather
-            name="chevron-right"
-            size={18}
-            color={NEUTRAL_UI_PALETTE.primary}
-            accessible={false}
-          />
-        </TouchableOpacity>
+            <HomeFloatingWidgetSurface
+              radius={12}
+              testIDPrefix="home-hero-edit-glass"
+            />
+            <View
+              testID="home-hero-profile-edit-leading"
+              accessible={false}
+              importantForAccessibility="no-hide-descendants"
+              style={styles.actionIconSlot}
+            />
+            <AppText
+              preset="unifiedLabel"
+              styleOverridesPreset
+              style={styles.actionText}
+            >
+              프로필 수정하기
+            </AppText>
+            <View
+              testID="home-hero-profile-edit-trailing"
+              accessible={false}
+              importantForAccessibility="no-hide-descendants"
+              style={styles.actionIconSlot}
+            />
+          </TouchableOpacity>
+        </View>
       </View>
-    </HomeSectionGlass>
+    </View>
   );
 });
 
@@ -233,18 +260,15 @@ const styles = StyleSheet.create({
     width: 'auto',
     marginHorizontal: -16,
     marginTop: -HOME_HERO_PANEL_OVERLAP,
-    paddingHorizontal: 16,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
     borderWidth: 0,
     elevation: 0,
     shadowOpacity: 0,
-    overflow: 'hidden',
+    overflow: 'visible',
   },
+  wave: { width: '100%', height: HOME_HERO_PANEL_OVERLAP },
+  sheetBody: { paddingHorizontal: 16 },
   info: {
-    // Only this glass reaches the sheet edges; its content keeps the Home inset.
+    // Keep the existing geometry while exposing the seasonal canvas underneath.
     width: 'auto',
     marginHorizontal: -16,
     marginTop: 0,
@@ -293,6 +317,7 @@ const styles = StyleSheet.create({
     alignItems: 'stretch',
     gap: 10,
   },
+  profileActions: { flexDirection: 'column', alignItems: 'stretch', gap: 10 },
   together: {
     // Move only the passive readout closer; preserve the 48 dp heading target.
     marginTop: -4,
@@ -329,20 +354,22 @@ const styles = StyleSheet.create({
     gap: 4,
     ...HOME_FLOATING_WIDGET_MATERIAL,
   },
-  memoryText: {
-    flex: 1,
-    minWidth: 0,
+  actionText: {
     fontSize: 12,
     lineHeight: 18,
-    color: NEUTRAL_UI_PALETTE.primary,
-  },
-  actionText: {
-    fontSize: 13,
-    lineHeight: 20,
     fontWeight: '600',
     color: NEUTRAL_UI_PALETTE.primary,
-    textAlign: 'left',
+    textAlign: 'center',
     flex: 1,
     flexShrink: 1,
+    minWidth: 0,
+  },
+  // Preserve equal side spacing so removing arrows does not shift the labels.
+  actionIconSlot: {
+    width: 20,
+    height: 20,
+    flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

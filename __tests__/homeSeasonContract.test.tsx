@@ -147,9 +147,12 @@ describe('approved Home season contract', () => {
     expect(header).not.toContain('greetingCopy');
     expect(header).toContain('NURI');
     expect(header).toContain('onPress={onPressNotifications}');
-    expect(header).toContain('styles.petSwitcherRow');
-    expect(header).toContain('const brandColor = SEASON_CTA[useEffectiveSeason()].primary');
-    expect(header).toMatch(/styles\.brandWordmark,\s*\{ color: brandColor \}/);
+    expect(header).not.toContain('styles.petSwitcherRow');
+    expect(header).not.toContain('onPressAddPet');
+    expect(header).not.toContain('PetChipButton');
+    expect(header).toContain('style={styles.brandWordmark}');
+    expect(header).toContain('color={styles.brandWordmark.color}');
+    expect(header).not.toContain('const brandColor = SEASON_CTA');
     expect(header).not.toContain('headerPalette?.copy');
     expect(source).toContain(
       'getSeasonalHomeVisual(HOME_FOREGROUND_UI_SEASON)',

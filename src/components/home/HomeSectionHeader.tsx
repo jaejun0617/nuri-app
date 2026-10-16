@@ -3,12 +3,14 @@ import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import AppText from '../../app/ui/AppText';
 import { SectionHeaderAction } from '../../app/ui/SectionHeaderAction';
+import { useHomeHeadingColor } from './HomeSeasonContext';
 
 type Props = {
   title: string;
   color: string;
   description?: string;
   emphasis?: { title: string; color: string };
+  emphasisArtwork?: React.ReactNode;
   hideAction?: boolean;
   action?: { onPress: () => void; accessibilityLabel: string };
 };
@@ -27,11 +29,41 @@ export const HomeSectionHeader = memo(function HomeSectionHeaderView({
   color,
   description,
   emphasis,
+  emphasisArtwork,
   hideAction = false,
   action,
 }: Props) {
   const { fontScale } = useWindowDimensions();
+  const headingColor = useHomeHeadingColor();
   const stackAction = !!action && !hideAction && fontScale >= 1.3;
+  const emphasisCopy = emphasis ? (
+    <View
+      testID={emphasisArtwork ? 'home-section-emphasis-copy' : undefined}
+      style={
+        emphasisArtwork
+          ? [styles.emphasisBlock, styles.emphasisCopy]
+          : styles.emphasisBlock
+      }
+    >
+      <AppText
+        accessibilityRole="header"
+        typographyRole="sectionTitle"
+        preset="unifiedTitle"
+        styleOverridesPreset
+        style={[
+          styles.emphasisTitle,
+          { color: headingColor ?? emphasis.color },
+        ]}
+      >
+        {emphasis.title}
+      </AppText>
+      {description ? (
+        <AppText preset="unifiedBody" style={styles.description}>
+          {description}
+        </AppText>
+      ) : null}
+    </View>
+  ) : null;
 
   return (
     <View style={styles.container}>
@@ -39,7 +71,9 @@ export const HomeSectionHeader = memo(function HomeSectionHeaderView({
         testID="home-section-header"
         style={[styles.row, stackAction ? styles.stackedRow : null]}
       >
-        <View style={[styles.heading, stackAction ? styles.stackedHeading : null]}>
+        <View
+          style={[styles.heading, stackAction ? styles.stackedHeading : null]}
+        >
           <AppText
             accessibilityRole="header"
             typographyRole="sectionTitle"
@@ -48,7 +82,7 @@ export const HomeSectionHeader = memo(function HomeSectionHeaderView({
             style={[
               styles.title,
               emphasis ? styles.leadTitle : null,
-              { color },
+              { color: headingColor ?? color },
             ]}
           >
             {title}
@@ -61,7 +95,7 @@ export const HomeSectionHeader = memo(function HomeSectionHeaderView({
         </View>
         {action && !hideAction ? (
           <SectionHeaderAction
-            color={color}
+            color={headingColor ?? color}
             onPress={action.onPress}
             accessibilityLabel={action.accessibilityLabel}
             textPreset="unifiedMicro"
@@ -69,24 +103,17 @@ export const HomeSectionHeader = memo(function HomeSectionHeaderView({
           />
         ) : null}
       </View>
-      {emphasis ? (
-        <View style={styles.emphasisBlock}>
-          <AppText
-            accessibilityRole="header"
-            typographyRole="sectionTitle"
-            preset="unifiedTitle"
-            styleOverridesPreset
-            style={[styles.emphasisTitle, { color: emphasis.color }]}
-          >
-            {emphasis.title}
-          </AppText>
-          {description ? (
-            <AppText preset="unifiedBody" style={styles.description}>
-              {description}
-            </AppText>
-          ) : null}
+      {emphasis && emphasisArtwork ? (
+        <View
+          testID="home-section-emphasis-with-artwork"
+          style={styles.emphasisRow}
+        >
+          {emphasisCopy}
+          {emphasisArtwork}
         </View>
-      ) : null}
+      ) : (
+        emphasisCopy
+      )}
     </View>
   );
 });
@@ -113,6 +140,8 @@ const styles = StyleSheet.create({
   },
   leadTitle: { fontSize: 22, lineHeight: 30 },
   emphasisBlock: { gap: 10 },
+  emphasisRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  emphasisCopy: { flex: 1, minWidth: 0 },
   emphasisTitle: {
     fontSize: 30,
     lineHeight: 38,
