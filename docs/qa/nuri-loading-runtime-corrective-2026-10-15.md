@@ -5,11 +5,13 @@
 - Base: `fd1c35f11196c50280f6bcb05c27b3ae3803ae2f`.
 - Branch: `codex/loading-runtime-corrective`.
 - Product delta: only `src/services/auth/secureSessionStorage.ts`.
-- Local corrective validation PASS. PO has approved a selective corrective
-  commit, one canonical QA Release build and one install-r, retaining the existing
-  package, signer, account and data. Push and server changes are not approved.
-  Execution is pending at this source checkpoint; actual results belong to the
-  external closeout receipt. STORE HOLD.
+- Local corrective validation and approved S24 installation/comparison PASS.
+  Runtime commit: `eb7283fe9a080e747302be8b6558bc4668cc66cd`.
+  One canonical QA Release build was invoked before the PO pause. On explicit
+  resume, its completed artifacts were recovered and independently reverified;
+  no second build was performed. One install-r completed with the existing
+  package, signer, account and data. Push and server changes remain prohibited.
+  STORE HOLD; broader performance and full security re-audit are not claimed.
 - Original dirty181, accepted source ancestry, existing design, Walk/native,
   queries, RPC/RLS and remote schema are outside the change.
 
@@ -109,10 +111,63 @@ The current changelog was checked; no dependency upgrade or API change is needed
 - External evidence:
   `~/.codex/nuri-design-evidence/loading-corrective-20261015-sQWlkS/`.
 
-## Next gate
+## Approved release closeout: 2026-10-17
 
-Execute the PO-approved selective corrective commit and one canonical QA Release
-build/install-r with the existing signer/package/data. Then repeat the same
-measurement with the replacement APK and report measured improvement or the
-remaining bottleneck. Until then, do not claim device performance is fixed.
-No push, Store action or automatic Walk work.
+The PO pause stopped the outer release coordinator with exit 130. Its empty
+outer log is not a successful command-exit receipt. Inspection on resume found
+the completed APK/AAB, static ACCEPTED verifier, exact-source provenance and
+captured artifact inventory, all timestamped before the pause. Their SHA-256
+values match the inventory and provenance. The existing APK was independently
+reverified, and the AAB signature was verified separately. No blind rebuild or
+additional Gradle invocation was needed.
+
+- APK SHA-256:
+  `87e433f1fee246c2a0fff129e87d335742a110734c881b4ab93b324e1467b5e6`.
+- AAB SHA-256:
+  `3aed8e205b11facef16feeec5ea47e812c33809b4927615110de56118eda865f`.
+- Signer SHA-256:
+  `08efb41ea4729792ce9fc3d242be9704e84a8ea3eadcbbcf1c8426884db689d3`.
+- Package `com.nuri.app`, embedded JS, debuggable false, cleartext false and
+  backup false PASS. Installed APK hash matches exactly.
+- Build invocations total: 1; new builds on resume: 0; install-r total: 1.
+- UID 10402, first install `2026-06-02 19:16:57`, 1080x2340, density450 and
+  fontScale1.0 unchanged. No re-login, uninstall, clear-data or GPS was required.
+- Home and the selected pet's existing profile-edit action are visible; no Walk
+  service runs. The app is left on Home and device control is stopped.
+
+### Measured comparison
+
+| Observation | Before | After |
+| --- | ---: | ---: |
+| Main navigation ready after cold launch | 35.172s | 6.593s |
+| Home ready including restored-route navigation | 37.453s | 6.593s |
+| Community first rows after tab selection | 78.089s | 2.707s |
+| Expense amount after More revisit | 15.767s | 2.610s |
+| Expense ready during first short More visit | No at 4.773s | Yes at 2.723s |
+
+First post-install launch was separately observed ready at 7.343s. These are
+UIAutomator upper-bound observations with hierarchy-dump overhead. Before cold
+launch restored Community and then navigated Home; after cold launch went
+directly Home. Use the main-navigation row for the cleaner startup comparison.
+Runs occurred on different dates, so identical network/server/cache conditions
+are not established. Both Community runs display seven visible rows.
+
+The before process sample contains 29 verified-read completion events; the
+post-corrective process contains one across startup and the measured screen
+visits, consistent with removal of repeated native-read queuing. Observed
+process-scoped fatal and React Native JS error counts are zero. Only allowlisted
+event names, relative times and counts were retained; no raw logs/screens were
+saved. This proves a substantial improvement for the reported wait, not instant
+startup, a frame-jank result, or completion of the broader performance roadmap.
+
+The tested product/test hashes are unchanged. The previous final full suite
+(252 suites / 2,982 tests), typecheck and lint remain applicable; no full-suite
+repeat was needed for this artifact-only resume. Follow-up documentation does
+not change the installed runtime and does not require another build.
+
+Evidence under the external root:
+`approved-release/resumed-20261017-rDIKHe/`, plus
+`before-device-loading.json` and `after-device-loading.json`.
+Original dirty181 and its content/status hashes remain protected. No push,
+server schema/policy/product-data change, Store action or automatic Walk work.
+Next: PO reviews the installed loading behavior; stop pending direction.
