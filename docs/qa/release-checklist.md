@@ -1,5 +1,11 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-10-17 Home Seasonal Design Delivery
+
+- [전달 보고서](nuri-home-seasonal-design-delivery-2026-10-17.md): 디자인 `ee0f3e0`80경로 선택 커밋. 최종 제품/테스트 source 전체260 suites/3174 tests 정확히1회·타입·source/import/secret guards PASS, 코드38파일 lint 오류0/기존17경고/신규0, 원본 dirty181/accepted ancestry 보존.
+- Clean source QA Release1회·S24 install-r1회, APK `cda029ed51acb44b0341dbc50c878c8f3936009a1521f6114e13853259686790`. 승인 signer/설치 hash·내장 JS·debuggable/cleartext/backup false·AAB 서명/보호 입력 보존 PASS. UID/최초 설치/표시 설정·로그인/누리 홈 표시 유지, 현재 process fatal/JS error0. 설치 sanity이며 새 전체 native 디자인/실보행 QA는 아니다.
+- 후속 문서 commit·전용 `codex/hero-cta-review-20261017` 정상 push만 수행한다. 원격 수락 SHA는 외부 `home-seasonal-delivery-20261017-fdIeur/delivery-result.json`이 소유한다. Metro OFF, main·태그·Store·서버·cleanup·자동 후속 작업0, STORE HOLD.
+
 ## 2026-10-15 Hero / Pet Profile Follow-Up Delivery
 
 - [전달 보고서](nuri-hero-profile-release-2026-10-15.md): 디자인/runtime `28e7ccf`22경로 선택 커밋. 전체252 suites/2975 tests 1회·타입·source/import/secret guards PASS, 대상18파일 lint 오류0/기존 경고18/신규0, 원본 dirty181/보안 ancestry 보존.
