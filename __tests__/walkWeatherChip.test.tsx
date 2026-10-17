@@ -36,13 +36,19 @@ const current = () => ({
   staleUntil: new Date(now + 60 * 60000).toISOString(),
 });
 
+function readText(node: Renderer.ReactTestInstance): string {
+  return node.children
+    .map(child => (typeof child === 'string' ? child : readText(child)))
+    .join('');
+}
+
 describe('Walk weather shares the Home cache without new collection', () => {
   let tree: Renderer.ReactTestRenderer;
   const original = useWeatherStore.getState();
   const text = () =>
     tree.root
       .findAll(n => (n.type as unknown) === 'AppText')
-      .map(n => n.props.children)
+      .map(readText)
       .join(' ');
   const mount = async () => {
     await act(async () => {
@@ -148,6 +154,17 @@ describe('Walk weather shares the Home cache without new collection', () => {
     expect(text()).not.toMatch(/22|맑음/);
     expect(tree.root.findAllByType(Text)).toHaveLength(0);
   });
+  it('omits pre-walk weather without modifying the shared Home cache', async () => {
+    save();
+    const snapshot = useWeatherStore.getState().currentSnapshot;
+    await mountQa('PRE_WALK');
+    expect(
+      tree.root.findAllByProps({ testID: 'walk-weather-chip' }),
+    ).toHaveLength(0);
+    expect(text()).not.toMatch(/22°|맑음|날씨 확인 중/);
+    expect(text()).toContain('우리만의 추억을 쌓아가요.');
+    expect(useWeatherStore.getState().currentSnapshot).toBe(snapshot);
+  });
   it('marks preview data as recent and removes measurements after expiry', async () => {
     save();
     await mount();
@@ -158,7 +175,7 @@ describe('Walk weather shares the Home cache without new collection', () => {
     expect(text()).not.toContain('22°');
   });
   it.each(GALLERY_STATES)(
-    'uses the actual Home weather in QA state %s, not synthetic weather',
+    'uses actual Home weather only where the QA state %s requires it',
     async state => {
       save({
         ...current(),
@@ -168,11 +185,20 @@ describe('Walk weather shares the Home cache without new collection', () => {
       });
       const snapshot = useWeatherStore.getState().currentSnapshot;
       await mountQa(state);
+      if (['PRE_WALK', 'FINISH_CONFIRM', 'FINISHED_LOCAL'].includes(state)) {
+        expect(
+          tree.root.findAllByProps({ testID: 'walk-weather-chip' }),
+        ).toHaveLength(0);
+        expect(text()).not.toMatch(/17°|흐림|날씨 확인 중/);
+        expect(useWeatherStore.getState().currentSnapshot).toBe(snapshot);
+        return;
+      }
       expect(text()).toContain('17°');
       expect(text()).toContain('흐림');
-      expect(tree.root.findByType(Text).props.children).toBe(
-        getWeatherEmoji('weather-cloudy'),
-      );
+      expect(
+        tree.root.findAllByProps({ testID: 'walk-weather-icon' }).at(-1)!.props
+          .children,
+      ).toBe(getWeatherEmoji('weather-cloudy'));
       expect(
         tree.root.findAllByProps({ testID: 'walk-weather-chip' }).at(-1)!.props
           .accessibilityLabel,

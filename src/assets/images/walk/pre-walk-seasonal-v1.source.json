@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "purpose": "PO-approved spring, summer and winter illustration-only PRE_WALK extensions; no UI or private data.",
+  "consumer": "src/screens/DevTest/walkPresentation/WalkPreWalk.tsx",
+  "framingReference": {
+    "asset": "src/assets/images/walk/pre-walk-autumn-v1.png",
+    "sha256": "95a1785af0c4f1ed03804853e7c2546c5b83bad88cb70bc304101ff88ff300e3",
+    "width": 1402,
+    "height": 1122
+  },
+  "assets": [
+    {
+      "season": "spring",
+      "asset": "src/assets/images/walk/pre-walk-spring-v1.png",
+      "sha256": "4e073ac1141abf4a0dc24c69e11d7d48870b1826ac5d51421a5f231f833d5746",
+      "width": 1402,
+      "height": 1122,
+      "bytes": 1848894,
+      "reference": {
+        "description": "PO-supplied spring splash artwork, used as an illustration reference only",
+        "sha256": "5086d5069d935761e3e0261a1a8ae3d47ee9d017e1024bead43009784a0d1d5f"
+      },
+      "generation": {
+        "tool": "built-in image_gen",
+        "output": "exec-1f7d3b13-a023-421d-a86f-11ea4976ceec.png",
+        "prompt": "Use case: precise-object-edit. Asset type: illustration-only bitmap for the NURI Android PRE_WALK screen. Image 1 is the PO-approved SPRING artwork to adapt; Image 2 is the already-shipped autumn illustration and is ONLY a framing / canvas / painterly-style guide. Remove the NURI Korean logo, paw logo and tagline completely from Image 1. Preserve its spring characters and loving facial expressions: golden retriever with pink scarf, cockatiel perched on its head, grey-white kitten with blossoms, bunny, guinea pig, hedgehog and smiling turtle, surrounded by pale cherry blossoms, petals, fresh grass and a low white fence. Recompose only the lower illustration into a standalone landscape 5:4 canvas matching Image 2 (about 1402x1122). Keep all faces, ears, paws, bird crest and turtle inside the canvas, no cropped characters. Scale the group like Image 2, with the bird near the upper third and paws toward the lower fifth. Pure white #FFFFFF upper background, no large empty portrait sky; soft blossom scenery may touch side edges but leave the center above heads white. The lower grass and petals dissolve gently into pure white at the bottom edge, like Image 2. Preserve soft detailed plush painted fur and restrained pastel pink/fresh-green spring mood. No autumn leaves. NO text, NO branding, NO weather, NO buttons, NO UI, NO frame, NO border, NO phone screenshot. Deliver just one polished spring illustration asset, not a collage."
+      }
+    },
+    {
+      "season": "summer",
+      "asset": "src/assets/images/walk/pre-walk-summer-v1.png",
+      "sha256": "cd31de3508c239002693ba5761d065c46668372f31a306a9fb9a911f0f409141",
+      "width": 1402,
+      "height": 1122,
+      "bytes": 1936652,
+      "reference": {
+        "description": "PO-supplied summer splash artwork, used as an illustration reference only",
+        "sha256": "6d5de4a510f305472664fefa3ce21abff98e77b99603aab0e6f08cea5653ab09"
+      },
+      "generation": {
+        "tool": "built-in image_gen",
+        "output": "exec-b4c8b646-3bff-4ef9-883e-51b502e6df45.png",
+        "prompt": "Use case: precise-object-edit. Asset type: illustration-only bitmap for the NURI Android PRE_WALK screen. Image 1 is the PO-approved SUMMER artwork to adapt; Image 2 is the already-shipped autumn illustration and is ONLY a framing / canvas / painterly-style guide. Remove the NURI Korean logo, paw logo and tagline completely from Image 1. Preserve the summer characters, identities and cheerful expressions: golden retriever wearing a straw hat with blue-white budgie perched above, grey-white kitten with teal floral bandana, bunny holding a carrot, guinea pig, hedgehog, smiling turtle, and little hamster holding watermelon at the far right on a low log. Preserve fresh summer grass, small white flowers, sunflowers at left, distant blue lake and hills, small sailboat, picnic cloth hint and a restrained pale lemonade glass at lower right. Recompose only the lower illustration into a standalone landscape 5:4 canvas matching Image 2 (about 1402x1122). Keep every face, ear, paw, bird crest, turtle and hamster inside the frame. Scale the main group like Image 2, with the bird near the upper third and paws toward the lower fifth. Upper edge pure white #FFFFFF; white airy central background above the animals. Keep lake/green scenery mainly at side edges, not a solid sky rectangle. The lower grass / picnic edge dissolves gently into pure white at the bottom edge to blend into a white app surface. Match the detailed soft plush painterly material of Image 2, but preserve Image 1's fresh green/teal/sky-blue summer mood. NO autumn leaves, NO cherry blossoms, NO snow. NO text, NO branding, NO weather, NO buttons, NO UI, NO frame or border, NO phone screenshot. Deliver one polished summer illustration asset, not a collage."
+      }
+    },
+    {
+      "season": "winter",
+      "asset": "src/assets/images/walk/pre-walk-winter-v1.png",
+      "sha256": "c04fcee76f7c1cec7b8291959bc08f3ca270b60c15eb3f74fbb65838cece3272",
+      "width": 1402,
+      "height": 1122,
+      "bytes": 1729058,
+      "reference": {
+        "description": "PO-supplied winter splash artwork, used as an illustration reference only",
+        "sha256": "30faf6dd6f084007efe565c760c85c7219c20e6a83117025deea62ca66cf89d3"
+      },
+      "generation": {
+        "tool": "built-in image_gen",
+        "output": "exec-90b5ccfb-221b-4247-96e9-1ab026bbd773.png",
+        "prompt": "Use case: precise-object-edit. Asset type: illustration-only bitmap for the NURI Android PRE_WALK screen. Image 1 is the PO-approved WINTER artwork to adapt; Image 2 is the already-shipped autumn illustration and is ONLY a framing / canvas / painterly-style guide. Remove the NURI Korean logo, paw logo and tagline completely from Image 1. Preserve its winter animals and affectionate happy expressions: golden retriever with blue snowflake scarf, blue-white budgie perched above, grey-white kitten with muted coral knitted scarf, bunny with cream scarf, guinea pig with green scarf, hedgehog with mustard scarf, plus the small friendly snowman with blue cap/scarf at right. Preserve pale blue snow-covered firs, low distant snowy hills, a few delicate snowflakes and small winter twigs. Recompose only the lower illustration into a standalone landscape 5:4 canvas matching Image 2 (about 1402x1122). Match Image 2's group scale: bird near upper third, paws/snowbanks toward lower fifth; keep all faces, ears, paws, bird and snowman completely inside the frame. Upper edge must be pure white #FFFFFF and center above heads airy white, not a solid blue sky. Low side scenery may reach left/right edges. Snow at the bottom softly dissolves into pure white by the bottom edge for seamless use on a white app screen. Preserve detailed plush painted fur and knitted textures, calm pale blue/lilac snow with warm animal faces. No autumn leaves or cherry blossoms. NO text, NO logo, NO branding, NO weather, NO buttons, NO UI, NO frame or border, NO phone screenshot. Deliver a single polished winter illustration asset, not a collage."
+      }
+    }
+  ],
+  "preservation": "All PO reference originals, generated originals and the autumn runtime asset/manifest remain unchanged. Generated PNGs copied byte-for-byte, without cropping or transformations.",
+  "cleanupGate": "SOURCE_MANIFEST_SCAN and JSON_ASSET_REFERENCE_SCAN are mandatory before any future deletion."
+}

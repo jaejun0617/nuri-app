@@ -27,6 +27,11 @@ import {
 import { WALK_SHEET_OVERLAP, WALK_TEXT } from './visuals';
 import WalkWeatherChip from './WalkWeatherChip';
 import WalkElapsedMetric from './WalkElapsedMetric';
+import WalkPreWalk from './WalkPreWalk';
+import WalkFinishSheet from './WalkFinishSheet';
+import WalkLocalResult from './WalkLocalResult';
+import { lightColors } from '../../../app/theme/tokens/colors';
+import { walkCopyAccent } from './walkAccent';
 
 const Surface = styled.View`
   background-color: ${({ theme }) => theme.colors.surfaceElevated};
@@ -59,7 +64,7 @@ const Panel = styled(Surface)`
   width: 100%;
   max-width: 480px;
 `;
-function WalkContextRow({ copy }: { copy: string }) {
+function WalkContextRow({ copy, season }: { copy: string; season: SeasonKey }) {
   const theme = useTheme();
   return (
     <View testID="walk-context-row" style={styles.stateLine}>
@@ -68,7 +73,10 @@ function WalkContextRow({ copy }: { copy: string }) {
           testID="walk-supporting-copy"
           preset="caption"
           accessibilityLiveRegion="polite"
-          style={[WALK_TEXT.caption, { color: theme.colors.textSecondary }]}
+          style={[
+            WALK_TEXT.caption,
+            { color: walkCopyAccent(season, theme.mode === 'dark') },
+          ]}
         >
           {copy}
         </AppText>
@@ -275,11 +283,13 @@ export function IconControl({
   icon,
   onPress,
   testID,
+  paper = false,
 }: {
   label: string;
   icon: string;
   onPress: () => void;
   testID?: string;
+  paper?: boolean;
 }) {
   const theme = useTheme();
   return (
@@ -291,16 +301,23 @@ export function IconControl({
       style={({ pressed }) => [
         styles.icon,
         {
-          backgroundColor: theme.colors.surfaceElevated,
+          backgroundColor: paper
+            ? lightColors.surfaceElevated
+            : theme.colors.surfaceElevated,
           opacity: pressed ? 0.7 : 1,
         },
       ]}
     >
-      <Feather name={icon} size={22} color={theme.colors.textPrimary} />
+      <Feather
+        name={icon}
+        size={22}
+        color={paper ? lightColors.textPrimary : theme.colors.textPrimary}
+      />
     </Pressable>
   );
 }
 type Props = {
+  preWalkIntroSeen?: { current: boolean };
   state: PresentationState;
   petName: string;
   season: SeasonKey;
@@ -319,6 +336,9 @@ type Props = {
   freeLook: boolean;
   error: boolean;
   qualityLabel: string;
+  qualityNeedsReview?: boolean;
+  routeAvailable?: boolean;
+  routePartial?: boolean;
   onClose: () => void;
   onQa: () => void;
   onRecenter: () => void;
@@ -330,6 +350,7 @@ export default function WalkView(props: Props) {
   const { state, petName, season, preview, distanceM, activeMs, busy } = props;
   const theme = useTheme(),
     { width, height, fontScale } = useWindowDimensions();
+  const copyAccent = walkCopyAccent(season, theme.mode === 'dark');
   const copy = WALK_COPY[state],
     seasonal = SEASON_CTA[season];
   const result =
@@ -338,6 +359,7 @@ export default function WalkView(props: Props) {
     recovery = state === 'RECOVERY_REQUIRED';
   const pre = state === 'PRE_WALK',
     confirm = state === 'FINISH_CONFIRM';
+  const paper = pre || state === 'FINISHED_LOCAL';
   const supporting = props.designReview
     ? props.designMessage ?? copy.supporting
     : paused
@@ -357,39 +379,90 @@ export default function WalkView(props: Props) {
     : paused
     ? '산책 계속하기'
     : '잠시 쉬기';
+  const header = (
+    <Header
+      style={[
+        { paddingTop: props.insetTop + 8 },
+        paper && { backgroundColor: lightColors.surfaceElevated },
+      ]}
+    >
+      <IconControl
+        label="산책 화면 닫기"
+        icon="arrow-left"
+        onPress={props.onClose}
+        testID="walk-close"
+        paper={paper}
+      />
+      <View style={styles.headerText}>
+        <AppText
+          preset="titleSm"
+          style={[WALK_TEXT.title, paper && { color: lightColors.textPrimary }]}
+          testID="walk-header-title"
+        >
+          오늘의 산책
+        </AppText>
+        <AppText
+          preset="bodySm"
+          numberOfLines={2}
+          testID="walk-header-pet"
+          style={[
+            WALK_TEXT.body,
+            { color: theme.colors.textSecondary },
+            paper && {
+              fontSize: 12,
+              lineHeight: 18,
+              color: lightColors.textSecondary,
+            },
+          ]}
+        >
+          {formatPetCopy('우리 아이와 함께', petName)}
+        </AppText>
+      </View>
+      <IconControl
+        label="QA 정보 열기"
+        icon="sliders"
+        onPress={props.onQa}
+        testID="walk-qa-open"
+        paper={paper}
+      />
+    </Header>
+  );
+  if (pre) {
+    return (
+      <WalkPreWalk
+        header={header}
+        petName={petName}
+        season={season}
+        insetBottom={props.insetBottom}
+        busy={busy}
+        error={props.error}
+        introSeen={props.preWalkIntroSeen}
+        onPrimary={props.onPrimary}
+      />
+    );
+  }
+  if (state === 'FINISHED_LOCAL') {
+    return (
+      <WalkLocalResult
+        header={header}
+        map={props.map}
+        petName={petName}
+        season={season}
+        distanceM={distanceM}
+        activeMs={activeMs}
+        sessionKey={props.clockSessionKey}
+        routeAvailable={props.routeAvailable ?? preview}
+        routePartial={props.routePartial}
+        qualityNeedsReview={!!props.qualityNeedsReview}
+        insetBottom={props.insetBottom}
+        busy={busy}
+        onClose={props.onPrimary}
+      />
+    );
+  }
   return (
     <Root testID="walk-product-screen">
-      <Header style={{ paddingTop: props.insetTop + 8 }}>
-        <IconControl
-          label="산책 화면 닫기"
-          icon="arrow-left"
-          onPress={props.onClose}
-          testID="walk-close"
-        />
-        <View style={styles.headerText}>
-          <AppText
-            preset="titleSm"
-            style={WALK_TEXT.title}
-            testID="walk-header-title"
-          >
-            오늘의 산책
-          </AppText>
-          <AppText
-            preset="bodySm"
-            numberOfLines={2}
-            testID="walk-header-pet"
-            style={[WALK_TEXT.body, { color: theme.colors.textSecondary }]}
-          >
-            {formatPetCopy('우리 아이와 함께', petName)}
-          </AppText>
-        </View>
-        <IconControl
-          label="QA 정보 열기"
-          icon="sliders"
-          onPress={props.onQa}
-          testID="walk-qa-open"
-        />
-      </Header>
+      {header}
       <View style={styles.mapStage}>
         {props.map}
         <View
@@ -397,23 +470,19 @@ export default function WalkView(props: Props) {
           style={styles.mapTop}
           testID="walk-mode-label-layer"
         >
-          {(preview || props.designReview) && (
+          {props.designReview && (
             <Chip $accent={theme.colors.surfaceElevated}>
               <AppText
                 preset="caption"
                 style={[WALK_TEXT.caption, { color: theme.colors.textPrimary }]}
               >
-                {props.designReview
-                  ? '현재 위치 · 디자인 확인'
-                  : props.publicPreview
-                  ? '합성 미리보기'
-                  : '합성 경로 · 내 펫'}
+                현재 위치 · 디자인 확인
               </AppText>
             </Chip>
           )}
         </View>
         {paused && <View pointerEvents="none" style={styles.dim} />}
-        {(pre || recovery || confirm || result) && (
+        {(recovery || result) && (
           <View style={styles.center} testID="walk-state-overlay">
             <ScrollView
               contentContainerStyle={styles.centerContent}
@@ -423,12 +492,12 @@ export default function WalkView(props: Props) {
                 <Feather name={copy.icon} size={30} color={seasonal.primary} />
                 <AppText
                   preset="titleLg"
-                  style={WALK_TEXT.title}
+                  style={[WALK_TEXT.title, { color: copyAccent }]}
                   accessibilityRole="header"
                 >
                   {copy.title}
                 </AppText>
-                <WalkContextRow copy={supporting} />
+                <WalkContextRow copy={supporting} season={season} />
                 {(result || confirm || recovery) && (
                   <AppText
                     preset="display"
@@ -445,25 +514,6 @@ export default function WalkView(props: Props) {
                 )}
                 {result && (
                   <AppText preset="bodySm">{props.qualityLabel}</AppText>
-                )}
-                {confirm && (
-                  <>
-                    <WalkAction
-                      label="산책 마치기"
-                      season={season}
-                      role="destructiveConfirm"
-                      onPress={props.onFinish}
-                      disabled={busy}
-                      testID="walk-finish-confirm"
-                    />
-                    <WalkAction
-                      label="계속 걷기"
-                      season={season}
-                      role="primary"
-                      onPress={props.onCancelFinish}
-                      testID="walk-finish-cancel"
-                    />
-                  </>
                 )}
                 {state === 'FUTURE_RECORD_CTA_PREVIEW' && (
                   <>
@@ -512,7 +562,7 @@ export default function WalkView(props: Props) {
             contentContainerStyle={styles.bottomContent}
           >
             {!pre && !recovery && !result && (
-              <WalkContextRow copy={supporting} />
+              <WalkContextRow copy={supporting} season={season} />
             )}
             {!pre && !result && (
               <View style={styles.metrics}>
@@ -534,11 +584,18 @@ export default function WalkView(props: Props) {
                     <AppText
                       preset="display"
                       fontModeOverride="pretendard"
-                      style={[WALK_TEXT.metric, styles.metricValue]}
+                      style={[
+                        WALK_TEXT.metric,
+                        styles.metricValue,
+                        { color: copyAccent },
+                      ]}
                       testID="walk-distance-value"
                     >
                       {metricDistance(distanceM)}
-                      <AppText preset="bodySm" style={WALK_TEXT.body}>
+                      <AppText
+                        preset="bodySm"
+                        style={[WALK_TEXT.body, { color: copyAccent }]}
+                      >
                         {' '}
                         km
                       </AppText>
@@ -580,7 +637,11 @@ export default function WalkView(props: Props) {
                           'GPS_LOST',
                         ].includes(state)
                       }
-                      style={[WALK_TEXT.metric, styles.metricValue]}
+                      style={[
+                        WALK_TEXT.metric,
+                        styles.metricValue,
+                        { color: copyAccent },
+                      ]}
                     />
                   </View>
                 </View>
@@ -632,6 +693,22 @@ export default function WalkView(props: Props) {
             )}
           </View>
         </Bottom>
+      )}
+      {confirm && (
+        <WalkFinishSheet
+          visible
+          season={season}
+          insetTop={props.insetTop}
+          insetBottom={props.insetBottom}
+          distanceM={distanceM}
+          activeMs={activeMs}
+          sessionKey={props.clockSessionKey}
+          running={!!props.clockRunning && !preview && !props.designReview}
+          busy={busy}
+          error={props.error}
+          onDismiss={props.onCancelFinish}
+          onFinish={props.onFinish}
+        />
       )}
     </Root>
   );

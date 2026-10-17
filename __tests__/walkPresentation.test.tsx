@@ -1,6 +1,14 @@
 import React from 'react';
 import Renderer, { act } from 'react-test-renderer';
-import { AppState, Button, Dimensions, Image, Modal } from 'react-native';
+import {
+  AccessibilityInfo,
+  Animated,
+  AppState,
+  Button,
+  Dimensions,
+  Image,
+  Modal,
+} from 'react-native';
 import { ThemeProvider } from 'styled-components/native';
 import Panel from '../src/screens/DevTest/WalkDistanceQaPanel';
 import { createTheme } from '../src/app/theme/theme';
@@ -217,6 +225,182 @@ describe('Walk presentation privacy and mode boundaries', () => {
       r.root.findAllByType(Button)[0].props.onPress();
     });
   };
+  test('pause preview opens a rest sheet; dismiss keeps time and distance paused', async () => {
+    await open();
+    await press(r, 'walk-primary');
+    expect(r.root.findByType(WalkView).props.state).toBe('PAUSED');
+    expect(
+      r.root.findAllByProps({ testID: 'walk-rest-sheet' }).length,
+    ).toBeGreaterThan(0);
+    const before = r.root.findByType(WalkView).props.activeMs;
+    await press(r, 'walk-rest-later');
+    expect(r.root.findByType(WalkView).props.state).toBe('PAUSED');
+    expect(r.root.findByType(WalkView).props.activeMs).toBe(before);
+    expect(mutateNativeWalk).not.toHaveBeenCalled();
+    await press(r, 'walk-primary');
+    expect(r.root.findByType(WalkView).props.state).toBe('WALKING');
+  });
+  test('actual rest sheet waits for a committed native pause', async () => {
+    jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot());
+    let resolvePause: (s: WalkNativeSnapshot) => void = () => {
+      throw Error('pause not started');
+    };
+    jest.mocked(mutateNativeWalk).mockImplementation(
+      () =>
+        new Promise(resolve => {
+          resolvePause = resolve;
+        }),
+    );
+    await open();
+    await press(r, 'walk-mode-actual');
+    await press(r, 'walk-primary');
+    expect(r.root.findAllByProps({ testID: 'walk-rest-sheet' })).toHaveLength(
+      0,
+    );
+    expect(r.root.findByType(WalkView).props.state).not.toBe('PAUSED');
+    await act(async () => resolvePause(nativeSnapshot('PAUSED')));
+    expect(r.root.findByType(WalkView).props.state).toBe('PAUSED');
+    expect(
+      r.root.findAllByProps({ testID: 'walk-rest-sheet' }).length,
+    ).toBeGreaterThan(0);
+    expect(mutateNativeWalk).toHaveBeenCalledTimes(1);
+    expect(jest.mocked(mutateNativeWalk).mock.calls[0][0]).toBe('pauseWalk');
+  });
+  test('failed native pause does not show a misleading rest sheet', async () => {
+    jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot());
+    jest
+      .mocked(mutateNativeWalk)
+      .mockRejectedValue(new Error('WALK_REVISION_CONFLICT'));
+    await open();
+    await press(r, 'walk-mode-actual');
+    await press(r, 'walk-primary');
+    expect(r.root.findAllByProps({ testID: 'walk-rest-sheet' })).toHaveLength(
+      0,
+    );
+    expect(r.root.findByType(WalkView).props.state).not.toBe('PAUSED');
+  });
+  test('rest sheet resumes only on its explicit resume action', async () => {
+    await open();
+    await press(r, 'walk-primary');
+    await press(r, 'walk-rest-resume');
+    expect(r.root.findByType(WalkView).props.state).toBe('WALKING');
+    expect(mutateNativeWalk).not.toHaveBeenCalled();
+  });
+  test('parent hardware back during sheet presentation closes only the rest notice', async () => {
+    await open();
+    await press(r, 'walk-primary');
+    const outer = r.root
+      .findAllByType(Modal)
+      .find(modal => modal.props.testID !== 'walk-rest-modal')!;
+    await act(async () => {
+      outer.props.onRequestClose();
+    });
+    expect(outer.props.visible).toBe(true);
+    expect(r.root.findByType(WalkView).props.state).toBe('PAUSED');
+    expect(mutateNativeWalk).not.toHaveBeenCalled();
+  });
+  test('failed resume keeps the rest sheet paused and offers a retry', async () => {
+    jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot());
+    jest
+      .mocked(mutateNativeWalk)
+      .mockResolvedValueOnce(nativeSnapshot('PAUSED'));
+    await open();
+    await press(r, 'walk-mode-actual');
+    await press(r, 'walk-primary');
+    jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot('PAUSED'));
+    jest
+      .mocked(mutateNativeWalk)
+      .mockRejectedValueOnce(new Error('WALK_REVISION_CONFLICT'));
+    await press(r, 'walk-rest-resume');
+    expect(r.root.findByType(WalkView).props.state).toBe('PAUSED');
+    expect(
+      r.root.findAllByProps({ testID: 'walk-rest-error' }).length,
+    ).toBeGreaterThan(0);
+    expect(mutateNativeWalk).toHaveBeenCalledTimes(2);
+    expect(jest.mocked(mutateNativeWalk).mock.calls[1][0]).toBe('resumeWalk');
+  });
+  test('selecting the public paused gallery shows the same rest sheet without native writes', async () => {
+    await open();
+    await press(r, 'walk-qa-open');
+    await press(r, 'walk-gallery-PAUSED');
+    expect(
+      r.root.findAllByProps({ testID: 'walk-rest-sheet' }).length,
+    ).toBeGreaterThan(0);
+    expect(mutateNativeWalk).not.toHaveBeenCalled();
+  });
+  test('dismissing a committed pause stays paused on foreground without reopening the notice', async () => {
+    jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot());
+    jest
+      .mocked(mutateNativeWalk)
+      .mockResolvedValueOnce(nativeSnapshot('PAUSED'));
+    await open();
+    await press(r, 'walk-mode-actual');
+    await press(r, 'walk-primary');
+    await press(r, 'walk-rest-later');
+    jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot('PAUSED'));
+    const listeners = jest
+      .mocked(AppState.addEventListener)
+      .mock.calls.map(call => call[1]);
+    await act(async () => {
+      listeners.forEach(listener => listener('background'));
+    });
+    await act(async () => {
+      listeners.forEach(listener => listener('active'));
+    });
+    expect(r.root.findByType(WalkView).props.state).toBe('PAUSED');
+    expect(r.root.findAllByProps({ testID: 'walk-rest-sheet' })).toHaveLength(
+      0,
+    );
+    expect(mutateNativeWalk).toHaveBeenCalledTimes(1);
+  });
+  test('double resume taps use one native command and only close after success', async () => {
+    jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot());
+    jest
+      .mocked(mutateNativeWalk)
+      .mockResolvedValueOnce(nativeSnapshot('PAUSED'));
+    await open();
+    await press(r, 'walk-mode-actual');
+    await press(r, 'walk-primary');
+    jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot('PAUSED'));
+    let finishResume: (s: WalkNativeSnapshot) => void = () => {
+      throw Error('resume not started');
+    };
+    jest.mocked(mutateNativeWalk).mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          finishResume = resolve;
+        }),
+    );
+    await press(r, 'walk-rest-resume');
+    await press(r, 'walk-rest-resume');
+    expect(mutateNativeWalk).toHaveBeenCalledTimes(2);
+    expect(r.root.findByType(WalkView).props.state).toBe('PAUSED');
+    await act(async () => finishResume(nativeSnapshot()));
+    expect(r.root.findByType(WalkView).props.state).not.toBe('PAUSED');
+  });
+  test('a notification-side resume clears the visible sheet and preserves the normal back contract', async () => {
+    jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot());
+    jest
+      .mocked(mutateNativeWalk)
+      .mockResolvedValueOnce(nativeSnapshot('PAUSED'));
+    await open();
+    await press(r, 'walk-mode-actual');
+    await press(r, 'walk-primary');
+    const receive = jest.mocked(observeNativeWalk).mock.calls.at(-1)![0];
+    await act(async () => {
+      receive(nativeSnapshot());
+    });
+    const outer = r.root
+      .findAllByType(Modal)
+      .find(modal => modal.props.testID !== 'walk-rest-modal')!;
+    await act(async () => {
+      outer.props.onRequestClose();
+    });
+    expect(
+      r.root.findAllByProps({ testID: 'walk-minimize-confirm' }).length,
+    ).toBeGreaterThan(0);
+    expect(mutateNativeWalk).toHaveBeenCalledTimes(1);
+  });
   test('technical JSON is absent while diagnostics are collapsed', async () => {
     await open();
     expect(r.root.findAllByProps({ testID: 'walk-map-receipt' })).toHaveLength(
@@ -229,6 +413,62 @@ describe('Walk presentation privacy and mode boundaries', () => {
       r.root.findAllByProps({ testID: 'walk-wizard-receipt' }),
     ).toHaveLength(0);
   });
+  test('finish confirmation stays visible until native success and keeps failure retryable', async () => {
+    jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot());
+    let rejectFinish: (e: Error) => void = () => {
+      throw Error('finish not started');
+    };
+    jest.mocked(mutateNativeWalk).mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectFinish = reject;
+        }),
+    );
+    await open();
+    await press(r, 'walk-mode-actual');
+    await press(r, 'walk-finish');
+    await press(r, 'walk-finish-confirm');
+    expect(r.root.findByType(WalkView).props.state).toBe('FINISH_CONFIRM');
+    await act(async () => rejectFinish(new Error('WALK_REVISION_CONFLICT')));
+    expect(r.root.findByType(WalkView).props.state).toBe('FINISH_CONFIRM');
+    expect(
+      r.root.findAllByProps({ testID: 'walk-finish-error' }).length,
+    ).toBeGreaterThan(0);
+  });
+  test('outer Back at finish confirmation cancels only the confirmation', async () => {
+    await open();
+    await press(r, 'walk-finish');
+    const outer = r.root.findAllByType(Modal).find(m => !m.props.testID)!;
+    await act(async () => {
+      outer.props.onRequestClose();
+    });
+    expect(outer.props.visible).toBe(true);
+    expect(r.root.findByType(WalkView).props.state).toBe('WALKING');
+    expect(mutateNativeWalk).not.toHaveBeenCalled();
+  });
+  test.each(['external finish', 'session replacement'] as const)(
+    '%s clears confirmation state before a later walking snapshot',
+    async boundary => {
+      jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot());
+      await open();
+      await press(r, 'walk-mode-actual');
+      await press(r, 'walk-finish');
+      const receive = jest.mocked(observeNativeWalk).mock.calls.at(-1)![0];
+      await act(async () =>
+        receive(
+          boundary === 'external finish'
+            ? nativeSnapshot('FINISHED_LOCAL')
+            : {
+                ...nativeSnapshot(),
+                sessionId: '22222222-2222-4222-8222-222222222222',
+              },
+        ),
+      );
+      await act(async () => receive(nativeSnapshot()));
+      expect(r.root.findByType(WalkView).props.state).toBe('WALKING');
+      expect(mutateNativeWalk).not.toHaveBeenCalled();
+    },
+  );
   test('foreground refresh reads native elapsed time without mutating the walk', async () => {
     jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot());
     await open();
@@ -258,15 +498,15 @@ describe('Walk presentation privacy and mode boundaries', () => {
       r.root.findAllByProps({ testID: 'walk-mode-actual' }).length,
     ).toBeGreaterThan(0);
   });
-  test('synthetic mode label remains above the finished result overlay', async () => {
+  test('finished result hides synthetic labels and does not mount the map by default', async () => {
     await open();
     await press(r, 'walk-qa-open');
     await press(r, 'walk-gallery-FINISHED_LOCAL');
-    const label = r.root.findAllByProps({ testID: 'walk-mode-label-layer' })[0];
-    const overlay = r.root.findAllByProps({ testID: 'walk-state-overlay' })[0];
-    expect(label.props.style.zIndex).toBeGreaterThan(
-      overlay.props.style.zIndex,
-    );
+    expect(visibleText(r)).not.toMatch(/합성 미리보기|합성 경로|합성 결과/);
+    expect(host(r, 'MapView')).toHaveLength(0);
+    expect(
+      r.root.findAllByProps({ testID: 'walk-result-screen' }).length,
+    ).toBeGreaterThan(0);
   });
   test('a bounded tail page cannot misrepresent its first point as the session start', async () => {
     jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot());
@@ -311,14 +551,14 @@ describe('Walk presentation privacy and mode boundaries', () => {
       uri: mockAvatarUrl,
     });
     expect(visibleText(r)).toContain('보리와 함께');
-    expect(visibleText(r)).toContain('합성 경로 · 내 펫');
+    expect(visibleText(r)).not.toMatch(/합성 미리보기|합성 경로/);
     expect(getWalkRoutePage).not.toHaveBeenCalled();
     expect(mutateNativeWalk).not.toHaveBeenCalled();
     await press(r, 'walk-qa-open');
     await press(r, 'walk-gallery-WALKING');
     expect(r.root.findAllByType(Image)).toHaveLength(0);
     expect(visibleText(r)).toContain('누리와 함께');
-    expect(visibleText(r)).toContain('합성 미리보기');
+    expect(visibleText(r)).not.toMatch(/합성 미리보기|합성 경로/);
     expect(visibleText(r)).not.toContain('보리');
   });
   test('actual mode without a filtered fix has no synthetic camera or marker', async () => {
@@ -472,20 +712,26 @@ describe('Walk presentation privacy and mode boundaries', () => {
       await open();
       await press(r, 'walk-qa-open');
       await press(r, `walk-gallery-${state}`);
-      expect(visibleText(r)).toContain(
-        state === 'WALKING'
-          ? WALK_COPY.WALKING.supporting
-          : state === 'PAUSED'
-          ? '시간과 거리 기록을 멈췄어요'
-          : ['GPS_WEAK', 'GPS_LOST'].includes(state)
-          ? '함께하는 이 순간을 즐겨요.'
-          : state === 'GPS_ACQUIRING'
-          ? '잠시만 기다려 주세요'
-          : WALK_COPY[state].title,
-      );
-      expect(
-        host(r, 'AppText').some(n => n.props.children === '합성 미리보기'),
-      ).toBe(true);
+      if (state === 'PRE_WALK') {
+        expect(
+          r.root.findAllByProps({ testID: 'walk-pre-title' }).at(-1)!.props
+            .accessibilityLabel,
+        ).toBe('누리야, 산책 가자!');
+        expect(host(r, 'MapView')).toHaveLength(0);
+      } else {
+        expect(visibleText(r)).toContain(
+          state === 'WALKING'
+            ? WALK_COPY.WALKING.supporting
+            : state === 'PAUSED'
+            ? '시간과 거리 기록을 멈췄어요'
+            : ['GPS_WEAK', 'GPS_LOST'].includes(state)
+            ? '함께하는 이 순간을 즐겨요.'
+            : state === 'GPS_ACQUIRING'
+            ? '잠시만 기다려 주세요'
+            : WALK_COPY[state].title,
+        );
+      }
+      expect(visibleText(r)).not.toMatch(/합성 미리보기|합성 경로|합성 결과/);
     },
   );
   test.each(['spring', 'summer', 'autumn', 'winter'] as const)(
@@ -501,15 +747,32 @@ describe('Walk presentation privacy and mode boundaries', () => {
       expect(host(r, 'MapView')[0].props.initialRegion).toEqual(before);
     },
   );
+  test('pre-walk entrance does not replay when returning from the QA inspector', async () => {
+    jest
+      .spyOn(AccessibilityInfo, 'isReduceMotionEnabled')
+      .mockResolvedValue(false);
+    const timing = jest.spyOn(Animated, 'timing');
+    await open();
+    await press(r, 'walk-qa-open');
+    await press(r, 'walk-gallery-PRE_WALK');
+    expect(timing).toHaveBeenCalledTimes(6);
+    await press(r, 'walk-qa-open');
+    await press(r, 'walk-qa-close');
+    expect(timing).toHaveBeenCalledTimes(6);
+    expect(mutateNativeWalk).not.toHaveBeenCalled();
+  });
   test('finish requires confirmation; fixture result makes no lifetime, reward, server or memory claim', async () => {
+    jest
+      .spyOn(AccessibilityInfo, 'isReduceMotionEnabled')
+      .mockResolvedValue(true);
     await open();
     await press(r, 'walk-finish');
-    expect(visibleText(r)).toContain('산책을 마칠까요?');
+    expect(visibleText(r)).toContain('오늘 산책, 기분 좋게 마칠까요?');
     expect(mutateNativeWalk).not.toHaveBeenCalled();
     await press(r, 'walk-finish-cancel');
     await press(r, 'walk-finish');
     await press(r, 'walk-finish-confirm');
-    expect(visibleText(r)).toContain('기기에 안전하게 저장');
+    expect(visibleText(r)).toContain('산책 결과를 기기에 저장했어요.');
     expect(visibleText(r)).not.toMatch(
       /Lifetime|Walk Lv|XP|경험치|서버 저장|기록 생성/,
     );

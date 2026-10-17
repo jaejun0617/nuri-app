@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "purpose": "Approved autumn PRE_WALK illustration candidate; no UI text or private data.",
+  "asset": "src/assets/images/walk/pre-walk-autumn-v1.png",
+  "sha256": "95a1785af0c4f1ed03804853e7c2546c5b83bad88cb70bc304101ff88ff300e3",
+  "width": 1402,
+  "height": 1122,
+  "consumer": "src/screens/DevTest/walkPresentation/WalkPreWalk.tsx",
+  "reference": {
+    "description": "PO-supplied redesigned pre-walk screen",
+    "sha256": "63c5a5e312ccc61f7e0c101dbff4d3be1912147953760bb2078c65f0630b5d27"
+  },
+  "generation": {
+    "tool": "built-in image_gen",
+    "output": "exec-ca3143e6-bc8f-4c1e-b569-89e5b663b80b.png",
+    "prompt": "Use case: precise-object-edit. Asset type: production illustration-only bitmap for NURI Android pre-walk screen. Edit target: the supplied approved mobile mockup. Extract and faithfully preserve ONLY its lower autumn animal illustration, removing ALL interface, text, weather, buttons, status bars, and navigation. Keep the same six characters and their faces/poses/relative placement: smiling golden retriever left, cockatiel perched above its head, grey-white kitten center, small hedgehog front-left, rabbit behind right, guinea pig front-right. Keep the same gentle painted fur, autumn maple leaves, muted golden trees at side edges, white airy background and sparse falling leaves. Do not redesign or add characters, don't change the affectionate mood. Deliver a standalone landscape 5:4 illustration canvas tightly encompassing the entire existing illustration including falling leaves. All ears, paws, tails and bird crest intact. Full-bleed painted autumn scene to left/right edges in the lower portion; the upper edge is pure white #FFFFFF, background above heads is clean white, bottom foliage softly dissolves into pure white #FFFFFF by the bottom edge so it blends into an actual white UI. No frame, no border, no shadow, no text of any kind, no logo, no UI. This is an illustration asset, NOT another phone screenshot."
+  },
+  "preservation": "Generated illustration-only derivative. Original reference and generated source remain unchanged. No crop or byte transformation after generation.",
+  "seasonalScope": "This asset is the approved autumn candidate. Other seasonal illustrations are not approved by this change. Existing four-season CTA mapping remains unchanged.",
+  "cleanupGate": "Source manifest scan and JSON asset reference scan are mandatory before deletion."
+}

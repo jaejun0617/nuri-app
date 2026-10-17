@@ -53,12 +53,12 @@ export const WALK_COPY: Record<
     icon: 'rotate-ccw',
   },
   FINISH_CONFIRM: {
-    title: '산책을 마칠까요?',
+    title: '오늘 산책, 기분 좋게 마칠까요?',
     supporting: '함께 걸은 순간을 기기에 안전하게 남겨요.',
     icon: 'flag',
   },
   FINISHED_LOCAL: {
-    title: '오늘도 함께 잘 걸었어요',
+    title: '우리, 오늘도 잘 다녀왔어요!',
     supporting: '산책 결과를 기기에 안전하게 저장했어요.',
     icon: 'check-circle',
   },
@@ -83,7 +83,7 @@ export const WALK_GPS_STATUS: Record<
   RECOVERY_REQUIRED: { label: '복구 대기', icon: 'rotate-ccw' },
   FINISH_CONFIRM: { label: '산책 종료 확인 중', icon: 'flag' },
   FINISHED_LOCAL: { label: '기기 저장 완료', icon: 'check-circle' },
-  FUTURE_RECORD_CTA_PREVIEW: { label: '합성 결과 미리보기', icon: 'eye' },
+  FUTURE_RECORD_CTA_PREVIEW: { label: '향후 기록 시안', icon: 'eye' },
 };
 
 export function presentationState(

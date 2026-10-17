@@ -46,6 +46,7 @@ import WalkMapStage, {
   type PetMarkerImageStatus,
 } from './walkPresentation/WalkMapStage';
 import WalkView, { IconControl, WalkAction } from './walkPresentation/WalkView';
+import WalkRestSheet from './walkPresentation/WalkRestSheet';
 import {
   GALLERY_STATES,
   hasActiveWalk,
@@ -86,6 +87,7 @@ export default function WalkDistanceQaPanel() {
   const [visible, setVisible] = useState(false),
     [qaOpen, setQaOpen] = useState(false);
   const openedOwner = useRef<string | null>(null);
+  const preWalkIntroSeen = useRef(false);
   const [snapshot, setSnapshot] = useState<WalkNativeSnapshot | null>(null);
   const [page, setPage] = useState<WalkRoutePage | null>(null);
   const [protocol, setProtocol] = useState<WalkQaProtocol | null>(null);
@@ -99,6 +101,7 @@ export default function WalkDistanceQaPanel() {
   const [gallerySeason, setGallerySeason] = useState<SeasonKey | null>(null);
   const [finishConfirm, setFinishConfirm] = useState(false),
     [minimizeConfirm, setMinimizeConfirm] = useState(false);
+  const [restSheetOpen, setRestSheetOpen] = useState(false);
   const [physical, setPhysical] = useState(false),
     [reviewComplete, setReviewComplete] = useState(false);
   const [mapReady, setMapReady] = useState(false),
@@ -131,6 +134,16 @@ export default function WalkDistanceQaPanel() {
   );
   const petImage =
     preview && publicGallery ? null : pet?.avatarUrl?.trim() || null;
+
+  // The inspector unmounts presentation. Keep entrance history for this entry only.
+  useEffect(() => {
+    const preWalk = preview
+      ? galleryState === 'PRE_WALK'
+      : presentationState(snapshot, false) === 'PRE_WALK';
+    if (!open || !preWalk || designReview || finishConfirm) {
+      preWalkIntroSeen.current = false;
+    }
+  }, [open, preview, galleryState, snapshot, designReview, finishConfirm]);
 
   const loadPage = useCallback(
     async (
@@ -175,6 +188,7 @@ export default function WalkDistanceQaPanel() {
     setMapReady(false);
     setMapLoaded(false);
     setMode('FOLLOW');
+    setRestSheetOpen(false);
     if (!open) {
       setSnapshot(null);
       setProtocol(null);
@@ -185,12 +199,15 @@ export default function WalkDistanceQaPanel() {
     const receive = (s: WalkNativeSnapshot | null) => {
       if (token !== epoch.current) return;
       if (latest.current?.sessionId !== s?.sessionId) {
+        setFinishConfirm(false);
+        setRestSheetOpen(false);
         selectedPage.current = null;
         setPage(null);
         requestedRevision.current = '';
       }
       latest.current = s;
       setSnapshot(s);
+      if (s?.runtimeState === 'FINISHED_LOCAL') setFinishConfirm(false);
       if (preview || !s?.distanceSummary) {
         setPage(null);
         selectedPage.current = null;
@@ -262,6 +279,7 @@ export default function WalkDistanceQaPanel() {
     if (!valid()) return;
     latest.current = current;
     setSnapshot(current);
+    if (current?.runtimeState === 'FINISHED_LOCAL') setFinishConfirm(false);
     if (!current?.distanceSummary || preview) {
       setPage(null);
       selectedPage.current = null;
@@ -285,6 +303,13 @@ export default function WalkDistanceQaPanel() {
       if (!valid()) return;
       latest.current = result;
       setSnapshot(result);
+      if (result.runtimeState === 'FINISHED_LOCAL') setFinishConfirm(false);
+      // A rest notice is presentation, never an optimistic native pause.
+      if (action === 'pauseWalk' && result.runtimeState === 'PAUSED') {
+        setRestSheetOpen(true);
+      } else if (result.runtimeState !== 'PAUSED') {
+        setRestSheetOpen(false);
+      }
       const receipt = decodeWalkQaProtocol(await runWalkQaCommand('GET'));
       if (valid()) setProtocol(receipt);
     });
@@ -318,6 +343,7 @@ export default function WalkDistanceQaPanel() {
     setPage(null);
     selectedPage.current = null;
     setFinishConfirm(false);
+    setRestSheetOpen(false);
     setMode('FOLLOW');
     setPreview(nextPreview);
     setQaOpen(false);
@@ -343,6 +369,9 @@ export default function WalkDistanceQaPanel() {
           galleryState === 'RECOVERY_REQUIRED'
           ? 'WALKING'
           : 'PAUSED',
+      );
+      setRestSheetOpen(
+        !['PRE_WALK', 'PAUSED', 'RECOVERY_REQUIRED'].includes(galleryState),
       );
       return;
     }
@@ -396,10 +425,15 @@ export default function WalkDistanceQaPanel() {
       setFinishConfirm(false);
       return;
     }
-    setFinishConfirm(false);
     if (protocol?.steps[protocol.stepIndex]?.status === 'IN_PROGRESS')
       qa('FINISH_STEP');
     else mutate('finishWalk');
+  };
+  const cancelFinish = () => {
+    if (operationRunning.current) return;
+    setFinishConfirm(false);
+    if (preview && galleryState === 'FINISH_CONFIRM')
+      setGalleryState('WALKING');
   };
   if (!enabled) return null;
   const step = protocol?.steps[protocol.stepIndex];
@@ -408,9 +442,16 @@ export default function WalkDistanceQaPanel() {
     : presentationState(snapshot, !!page?.current);
   const state = designReview
     ? 'WALKING'
-    : finishConfirm
+    : finishConfirm && baseState !== 'FINISHED_LOCAL'
     ? 'FINISH_CONFIRM'
     : baseState;
+  const restSheetVisible =
+    open &&
+    !qaOpen &&
+    !minimizeConfirm &&
+    !designReview &&
+    state === 'PAUSED' &&
+    restSheetOpen;
   const metrics = designReview
     ? { distanceM: null, activeMs: '0' }
     : preview
@@ -495,10 +536,14 @@ export default function WalkDistanceQaPanel() {
       <Modal
         visible={open}
         onRequestClose={
-          minimizeConfirm
+          restSheetVisible
+            ? () => setRestSheetOpen(false)
+            : minimizeConfirm
             ? () => setMinimizeConfirm(false)
             : qaOpen
             ? () => setQaOpen(false)
+            : state === 'FINISH_CONFIRM'
+            ? cancelFinish
             : close
         }
         animationType="fade"
@@ -566,6 +611,7 @@ export default function WalkDistanceQaPanel() {
                           switchMode(true);
                           setPublicGallery(true);
                           setGalleryState(s);
+                          setRestSheetOpen(s === 'PAUSED');
                         }}
                       />
                     </View>
@@ -586,7 +632,7 @@ export default function WalkDistanceQaPanel() {
                   }}
                 />
                 <WalkAction
-                  label={preview ? '실제 GPS 화면 열기' : '합성 미리보기 열기'}
+                  label={preview ? '실제 GPS 화면 열기' : '미리보기 화면 열기'}
                   icon="map"
                   season={season}
                   role="secondary"
@@ -803,6 +849,7 @@ export default function WalkDistanceQaPanel() {
           ) : (
             <View style={styles.flex}>
               <WalkView
+                preWalkIntroSeen={preWalkIntroSeen}
                 state={state}
                 petName={
                   preview && publicGallery ? '누리' : pet?.name ?? '반려동물'
@@ -836,6 +883,18 @@ export default function WalkDistanceQaPanel() {
                     ? '위치 기록 품질: 양호'
                     : '위치 기록 품질: 확인 필요'
                 }
+                qualityNeedsReview={
+                  !preview &&
+                  snapshot?.distanceSummary?.recommendation ===
+                    'INELIGIBLE_CANDIDATE'
+                }
+                routeAvailable={
+                  preview ||
+                  !!page?.segments.some(segment => segment.points.length > 0)
+                }
+                routePartial={
+                  !preview && !!(page?.hasEarlier || page?.hasLater)
+                }
                 onClose={close}
                 onQa={() => setQaOpen(true)}
                 onPrimary={primary}
@@ -848,11 +907,7 @@ export default function WalkDistanceQaPanel() {
                     ? finish
                     : () => setFinishConfirm(true)
                 }
-                onCancelFinish={() => {
-                  setFinishConfirm(false);
-                  if (preview && galleryState === 'FINISH_CONFIRM')
-                    setGalleryState('WALKING');
-                }}
+                onCancelFinish={cancelFinish}
                 map={
                   <WalkMapStage
                     key={`${
@@ -910,6 +965,18 @@ export default function WalkDistanceQaPanel() {
               onPress={() => setMinimizeConfirm(false)}
             />
           </View>
+        )}
+        {open && (
+          <WalkRestSheet
+            visible={restSheetVisible}
+            season={season}
+            insetTop={insets.top}
+            insetBottom={insets.bottom}
+            busy={busy}
+            error={error.startsWith('WALK_')}
+            onDismiss={() => setRestSheetOpen(false)}
+            onResume={primary}
+          />
         )}
       </Modal>
     </>

@@ -134,7 +134,7 @@ describe('PO active Walk design candidate', () => {
       { state, publicPreview: true },
     ]),
   )(
-    'renders one weather summary for $state with publicPreview=$publicPreview',
+    'preserves state-specific weather visibility for $state with publicPreview=$publicPreview',
     async ({ state, publicPreview }) => {
       await render(
         <WalkView {...props} state={state} publicPreview={publicPreview} />,
@@ -144,6 +144,17 @@ describe('PO active Walk design candidate', () => {
           typeof node.type === 'string' &&
           node.props.testID === 'walk-weather-chip',
       );
+      if (['PRE_WALK', 'FINISH_CONFIRM', 'FINISHED_LOCAL'].includes(state)) {
+        expect(weather).toHaveLength(0);
+        if (state === 'PRE_WALK')
+          expect(
+            StyleSheet.flatten(host('walk-pre-emotional-copy').props.style),
+          ).toMatchObject({ alignItems: 'center', marginTop: 12 });
+        expect(
+          tree.root.findAllByProps({ testID: 'walk-context-row' }),
+        ).toHaveLength(0);
+        return;
+      }
       expect(weather).toHaveLength(1);
       expect(weather[0].props.accessibilityLabel).toMatch(/^날씨,/);
       expect(weather[0].props.accessibilityLabel).not.toContain('합성 날씨');
@@ -164,7 +175,21 @@ describe('PO active Walk design candidate', () => {
     async state => {
       await render(<WalkView {...props} state={state} />);
       const actions = tree.root.findAllByType(WalkAction);
-      expect(actions.length).toBeGreaterThan(0);
+      if (['PRE_WALK', 'FINISH_CONFIRM', 'FINISHED_LOCAL'].includes(state)) {
+        const id =
+          state === 'FINISH_CONFIRM' ? 'walk-finish-confirm' : 'walk-primary';
+        if (state === 'PRE_WALK')
+          expect(host('walk-primary-label').props.children).toBe(
+            '함께 산책 시작하기',
+          );
+        expect(
+          button(id).findAll(node =>
+            ['Feather', 'SemanticIcon'].includes(
+              node.type as unknown as string,
+            ),
+          ),
+        ).toHaveLength(0);
+      } else expect(actions.length).toBeGreaterThan(0);
       for (const action of actions) {
         expect(action.props.icon).toBeUndefined();
         expect(
@@ -318,7 +343,7 @@ describe('PO active Walk design candidate', () => {
   );
 
   it.each(
-    GALLERY_STATES.flatMap(state =>
+    GALLERY_STATES.filter(state => state !== 'FINISH_CONFIRM').flatMap(state =>
       (['spring', 'summer', 'autumn', 'winter'] as const).map(season => ({
         state,
         season,
@@ -328,11 +353,10 @@ describe('PO active Walk design candidate', () => {
     '$state uses the canonical $season primary CTA without changing the action',
     async ({ state, season }) => {
       await render(<WalkView {...props} state={state} season={season} />);
-      const id =
-        state === 'FINISH_CONFIRM' ? 'walk-finish-cancel' : 'walk-primary';
+      const id = 'walk-primary';
       const action = button(id);
       const faceStyle = (pressed: boolean) =>
-        state === 'FINISH_CONFIRM'
+        state === 'FINISHED_LOCAL' || state === 'PRE_WALK'
           ? StyleSheet.flatten(action.props.style({ pressed }))
           : StyleSheet.flatten(action.props.children({ pressed }).props.style);
       expect(faceStyle(false).backgroundColor).toBe(SEASON_CTA[season].primary);
@@ -340,8 +364,8 @@ describe('PO active Walk design candidate', () => {
       expect(StyleSheet.flatten(host(`${id}-label`).props.style)).toMatchObject(
         {
           color: '#FFFFFF',
-          fontSize: 15,
-          lineHeight: 21,
+          fontSize: state === 'FINISHED_LOCAL' ? 13 : 15,
+          lineHeight: state === 'FINISHED_LOCAL' ? 20 : 21,
         },
       );
       expect(tree.root.findAllByProps({ testID: `${id}-icon` })).toHaveLength(
@@ -355,8 +379,6 @@ describe('PO active Walk design candidate', () => {
           ? '산책 계속하기'
           : state === 'RECOVERY_REQUIRED'
           ? '산책 이어가기'
-          : state === 'FINISH_CONFIRM'
-          ? '계속 걷기'
           : ['FINISHED_LOCAL', 'FUTURE_RECORD_CTA_PREVIEW'].includes(state)
           ? '산책 화면 닫기'
           : '잠시 쉬기',
@@ -381,7 +403,8 @@ describe('PO active Walk design candidate', () => {
     });
     expect(host('walk-primary').props.accessibilityState.disabled).toBe(true);
     expect(
-      StyleSheet.flatten(host('walk-primary-face').props.style).backgroundColor,
+      StyleSheet.flatten(button('walk-primary').props.style({ pressed: false }))
+        .backgroundColor,
     ).toBe(disabled.background);
   });
 

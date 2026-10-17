@@ -1,0 +1,26 @@
+{
+  "generator": "built-in image_gen",
+  "scope": "PO approved finish-confirm and finished-local illustration assets, autumn only; other seasons reuse existing art",
+  "prompts": {
+    "confirmation": "Asset type: production mobile illustration PNG, not a UI mockup.\nCreate ONLY the small autumn animal vignette inside the bottom sheet of reference Image1. Image1 is the approved NURI finish-confirmation UI concept; do NOT include ANY of its UI, map, text, panel, handle, buttons, shadows or screen frame. Image2 supplies existing NURI character identity and soft dimensional storybook rendering.\nThe golden dog lies resting, front paws visible, smiling with relaxed closed eyes; a gray-white cat curls against the dog's right cheek, eyes closed; a tiny yellow cockatiel perches gently on the dog's head. They rest on a shallow strip of golden and orange autumn leaves. A very few maple leaves at the far sides, no huge floating leaf. All three complete silhouettes comfortably inside a wide approximately1200x600 canvas, with enough transparent margin for ears and tail. This is a quiet post-walk moment, cute but calm, polished soft painterly/fur detail matching the reference, NOT generic vector clip art.\nGenuinely TRANSPARENT background with natural soft semi-transparent leaf edges. No opaque white rectangle, no white matte, no checkerboard baked into the pixels. No backdrop trees, no extra animal, no icon, no typography of any kind, no border or card.\nKeep the subject compact and legible at approximately160x80dp. Keep source canvas wide about2:1 so no image cropping will be necessary.",
+    "result": "Asset type: production illustration PNG for NURI mobile post-walk result.\nCreate ONLY the illustration scene shown in reference Image1's upper half, NOT its UI. Image1 is an approved result-screen mockup; Image2 is existing NURI art reference. No letters, numbers, logo, status bar, buttons, map, panel, card, frame or icons.\nDepict exactly the same affectionate NURI character family finishing a peaceful autumn walk: golden dog lying/sitting with relaxed smile and front paws visible, gray-white cat leaning against the dog, a small tan rabbit nestled alongside, hedgehog in front, guinea pig at right, yellow cockatiel gently perched on the dog. Soft dimensional storybook painterly fur, cute calm premium feel. Complete figures, small golden/orange maple-leaf bed and softly implied autumn trees at far left/right behind them. Keep the group closely composed across the width without cropping any face, ears or paws. White/light airy space around upper part, naturally feathered edges above and below, warm gentle daylight. No confetti, glitter, orb decorations or extra creatures.\nCanvas landscape approximately1402x1122, about5:4, matching the existing pre-walk illustration frame, scene fills most of canvas but with comfortable5% margin. GENUINELY TRANSPARENT surrounding background; trees/leaves fade with semitransparent alpha, not an opaque white rectangle. This asset will be rendered with contain on a pure-white result screen. No baked checkerboard. Preserve character identities and rendering, but use the relaxed post-walk grouping of Image1."
+  },
+  "images": [
+    {
+      "source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-a510ea40-2997-4c46-b989-a0eaa0a10566.png",
+      "name": "finish-confirm-autumn-v1.png",
+      "width": 1774,
+      "height": 887,
+      "sha256": "50623147935cefd2015febdededdfdcf08e76a8a3ea2063c977261f88c3d46a0",
+      "colorType": 6
+    },
+    {
+      "source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-756f17c5-ec33-4d1c-a4e1-4e8a7afc9d90.png",
+      "name": "finished-local-autumn-v1.png",
+      "width": 1402,
+      "height": 1122,
+      "sha256": "af65cc56094cbf620a28b905cd191bb2b4c312b5721bfb3da1f8260b8513c76d",
+      "colorType": 6
+    }
+  ]
+}
