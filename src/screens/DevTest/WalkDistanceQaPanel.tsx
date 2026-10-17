@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
+  AppState,
   Button,
   Modal,
   PermissionsAndroid,
@@ -220,9 +221,18 @@ export default function WalkDistanceQaPanel() {
         if (token === epoch.current) setError(safeWalkError(e));
       });
     const stop = observeNativeWalk(receive);
+    const foreground = AppState.addEventListener('change', state => {
+      if (state !== 'active' || token !== epoch.current) return;
+      getWalkSnapshot()
+        .then(receive)
+        .catch(e => {
+          if (token === epoch.current) setError(safeWalkError(e));
+        });
+    });
     return () => {
       epoch.current++;
       stop();
+      foreground.remove();
       latest.current = null;
     };
   }, [open, preview, loadPage]);
@@ -804,6 +814,15 @@ export default function WalkDistanceQaPanel() {
                 designMessage={designLocation.message}
                 distanceM={metrics.distanceM}
                 activeMs={metrics.activeMs}
+                clockSessionKey={
+                  preview || designReview ? null : snapshot?.sessionId
+                }
+                clockRunning={
+                  !preview &&
+                  !designReview &&
+                  snapshot?.runtimeState === 'WALKING' &&
+                  snapshot.serviceRunning
+                }
                 busy={busy}
                 insetTop={insets.top}
                 insetBottom={insets.bottom}

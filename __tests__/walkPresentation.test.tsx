@@ -1,6 +1,6 @@
 import React from 'react';
 import Renderer, { act } from 'react-test-renderer';
-import { Button, Dimensions, Image, Modal } from 'react-native';
+import { AppState, Button, Dimensions, Image, Modal } from 'react-native';
 import { ThemeProvider } from 'styled-components/native';
 import Panel from '../src/screens/DevTest/WalkDistanceQaPanel';
 import { createTheme } from '../src/app/theme/theme';
@@ -25,6 +25,7 @@ import {
   metricTime,
 } from '../src/screens/DevTest/walkPresentation/model';
 import { PetPosition } from '../src/screens/DevTest/walkPresentation/WalkMapStage';
+import WalkView from '../src/screens/DevTest/walkPresentation/WalkView';
 import Geolocation from '@react-native-community/geolocation';
 import { getLocationPermissionGrant } from '../src/services/location/permission';
 let mockPetName = '누리';
@@ -227,6 +228,25 @@ describe('Walk presentation privacy and mode boundaries', () => {
     expect(
       r.root.findAllByProps({ testID: 'walk-wizard-receipt' }),
     ).toHaveLength(0);
+  });
+  test('foreground refresh reads native elapsed time without mutating the walk', async () => {
+    jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot());
+    await open();
+    await press(r, 'walk-mode-actual');
+    const before = jest.mocked(getWalkSnapshot).mock.calls.length;
+    const callbacks = jest
+      .mocked(AppState.addEventListener)
+      .mock.calls.filter(([event]) => event === 'change')
+      .map(([, listener]) => listener);
+    jest.mocked(getWalkSnapshot).mockResolvedValue({
+      ...nativeSnapshot(),
+      elapsedActiveMs: '122000',
+    });
+    await act(async () => callbacks.forEach(listener => listener('active')));
+    expect(getWalkSnapshot).toHaveBeenCalledTimes(before + 1);
+    expect(r.root.findByType(WalkView).props.activeMs).toBe('122000');
+    expect(r.root.findByType(WalkView).props.clockRunning).toBe(true);
+    expect(mutateNativeWalk).not.toHaveBeenCalled();
   });
   test('QA mode toggle cannot occupy or overlap the product bottom safe area', async () => {
     await open();

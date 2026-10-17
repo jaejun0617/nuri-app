@@ -26,6 +26,7 @@ import {
 } from './model';
 import { WALK_SHEET_OVERLAP, WALK_TEXT } from './visuals';
 import WalkWeatherChip from './WalkWeatherChip';
+import WalkElapsedMetric from './WalkElapsedMetric';
 
 const Surface = styled.View`
   background-color: ${({ theme }) => theme.colors.surfaceElevated};
@@ -309,6 +310,8 @@ type Props = {
   designMessage?: string;
   distanceM: string | null;
   activeMs: string;
+  clockSessionKey?: string | null;
+  clockRunning?: boolean;
   busy: boolean;
   map: React.ReactNode;
   insetTop: number;
@@ -563,14 +566,22 @@ export default function WalkView(props: Props) {
                     >
                       산책 시간
                     </AppText>
-                    <AppText
-                      preset="titleLg"
+                    <WalkElapsedMetric
+                      activeMs={activeMs}
+                      sessionKey={props.clockSessionKey}
+                      running={
+                        !!props.clockRunning &&
+                        !preview &&
+                        !props.designReview &&
+                        [
+                          'WALKING',
+                          'GPS_ACQUIRING',
+                          'GPS_WEAK',
+                          'GPS_LOST',
+                        ].includes(state)
+                      }
                       style={[WALK_TEXT.metric, styles.metricValue]}
-                      fontModeOverride="pretendard"
-                      testID="walk-time-value"
-                    >
-                      {metricTime(activeMs)}
-                    </AppText>
+                    />
                   </View>
                 </View>
               </View>

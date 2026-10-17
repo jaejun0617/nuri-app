@@ -1,5 +1,10 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-10-17 Walk Timer / Physical Preflight Boundary
+
+- [Walk preflight report](nuri-walk-phase3-timer-preflight-2026-10-17.md): presentation-only1Hz elapsed text corrective, native distance/FGS/Room/receipt/backend unchanged. Final261 suites/3190 tests, TypeScript and scoped lint0/0 PASS; corrective Release/install/device checks pending at this checkpoint.
+- OPEN_A independent1000m confirmed, URBAN reference explicitly unknown. No outdoor start or accuracy verdict. Fixed-zero receipt diagnostics are not physical proof. Phase3 physical acceptance remains open; Phase4 NO, push NO, STORE HOLD.
+
 ## 2026-10-17 Home Seasonal Design Delivery
 
 - [전달 보고서](nuri-home-seasonal-design-delivery-2026-10-17.md): 디자인 `ee0f3e0`80경로 선택 커밋. 최종 제품/테스트 source 전체260 suites/3174 tests 정확히1회·타입·source/import/secret guards PASS, 코드38파일 lint 오류0/기존17경고/신규0, 원본 dirty181/accepted ancestry 보존.
