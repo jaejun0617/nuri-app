@@ -93,6 +93,8 @@ import type { AppTabParamList, RecordCreateReturnTo } from './AppTabsNavigator';
 import type { RouteSignInNotice } from '../services/auth/notices';
 import type { PolicyDocumentId } from '../services/legal/presentation';
 import { FixedTypographyBoundary } from '../app/providers/AppFontPreferenceProvider';
+import { rootTransitionOptions } from './navigationTransitionPolicy';
+import { useNavigationMotion } from './useNavigationMotion';
 
 export type RootStackParamList = {
   SecurityValidation: undefined;
@@ -329,10 +331,11 @@ const FixedCommunityBlockedUsersScreen = () => (
 );
 
 export default function RootNavigator() {
+  const reduceMotion = useNavigationMotion();
   return (
     <Stack.Navigator
       initialRouteName="Splash"
-      screenOptions={{
+      screenOptions={({ route }) => ({
         // ---------------------------------------------------------
         // ✅ 공통: 스택 헤더 텍스트 제거
         // - headerBackTitleVisible는 버전에 따라 없을 수 있어 사용하지 않음
@@ -340,7 +343,8 @@ export default function RootNavigator() {
         headerTitle: '',
         headerBackTitle: '',
         headerShadowVisible: false,
-      }}
+        ...rootTransitionOptions(route.name, reduceMotion),
+      })}
     >
       {/* Splash (탭 없음) */}
       <Stack.Screen

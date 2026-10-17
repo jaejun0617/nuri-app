@@ -22,7 +22,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import type { NavigatorScreenParams } from '@react-navigation/native';
+import { CommonActions, getFocusedRouteNameFromRoute, type NavigatorScreenParams } from '@react-navigation/native';
 import { useTheme } from 'styled-components/native';
 
 import MainScreen from '../screens/Main/MainScreen';
@@ -33,12 +33,14 @@ import CommunityTabStackNavigator from './CommunityTabStackNavigator';
 import GuestbookScreen from '../screens/Guestbook/GuestbookScreen';
 
 import MoreDrawer from '../components/MoreDrawer/MoreDrawer';
-import AppNavigationToolbar from '../components/navigation/AppNavigationToolbar';
+import AppNavigationToolbar, { type ActiveTabKey } from '../components/navigation/AppNavigationToolbar';
 import { ToolbarHeightContext } from '../components/navigation/ToolbarHeightContext';
 import { useUiStore } from '../store/uiStore';
 import type { HealthReportTabKey } from '../services/health-report/viewModel';
 import { FixedTypographyBoundary } from '../app/providers/AppFontPreferenceProvider';
 import type { ScheduleDetailReturnContext } from './scheduleReturn';
+import { isRootTabBarVisible, tabTransitionOptions } from './navigationTransitionPolicy';
+import { useNavigationMotion } from './useNavigationMotion';
 
 export type RecordCreateReturnTo =
   | { tab: 'ScheduleDetail'; params: ScheduleDetailReturnContext }
@@ -65,6 +67,9 @@ export type AppTabParamList = {
 };
 
 const Tab = createBottomTabNavigator<AppTabParamList>();
+const toolbarRoutes = {
+  home: 'HomeTab', timeline: 'TimelineTab', community: 'CommunityTab', guestbook: 'GuestbookTab',
+} satisfies Record<Exclude<ActiveTabKey, 'more'>, keyof AppTabParamList>;
 
 function MoreNull() {
   const theme = useTheme();
@@ -85,7 +90,8 @@ function CustomTabBar(
   },
 ) {
   const { state } = props;
-  const currentRouteName = state.routes[state.index]?.name;
+  const currentRoute = state.routes[state.index];
+  const currentRouteName = currentRoute?.name;
   const activeKey =
     currentRouteName === 'TimelineTab'
       ? 'timeline'
@@ -103,16 +109,29 @@ function CustomTabBar(
     if (route?.name !== 'HomeTab') return;
     props.navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
   };
+  if (!isRootTabBarVisible(currentRouteName, currentRoute && getFocusedRouteNameFromRoute(currentRoute))) {
+    return null;
+  }
+  const onNavigateTab = (target: Exclude<ActiveTabKey, 'more'>) => {
+    const route = state.routes.find(item => item.name === toolbarRoutes[target]);
+    if (!route) return;
+    const event = props.navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
+    if (!event.defaultPrevented) {
+      props.navigation.dispatch({ ...CommonActions.navigate({ name: route.name, merge: true }), target: state.key });
+    }
+  };
   return (
     <AppNavigationToolbar
       activeKey={activeKey}
       onPressActiveHome={onPressActiveHome}
+      onNavigateTab={onNavigateTab}
       onLayout={props.onToolbarLayout}
     />
   );
 }
 
 export default function AppTabsNavigator() {
+  const reduceMotion = useNavigationMotion();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [toolbarHeight, setToolbarHeight] = useState<number | null>(null);
@@ -142,6 +161,7 @@ export default function AppTabsNavigator() {
           screenOptions={{
             headerShown: false,
             tabBarHideOnKeyboard: true,
+            ...tabTransitionOptions(reduceMotion),
           }}
           tabBar={renderTabBar}
         >

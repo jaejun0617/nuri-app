@@ -1,6 +1,6 @@
 // 파일: src/navigation/TimelineStackNavigator.tsx
 // 역할:
-// - Timeline 탭 내부에서 상세/수정 화면까지 하단 탭을 유지하는 Stack 네비게이터
+// - Timeline 탭 내부의 상세/수정 Stack을 관리하며 하위 화면에서는 루트 탭바를 숨긴다.
 // - TimelineMain, RecordDetail, RecordEdit 사이의 타입 안전한 라우팅 경계를 제공
 // - 타임라인 흐름을 루트 스택과 분리해 화면 전환 책임을 명확히 유지
 
@@ -16,6 +16,8 @@ import type { MemoryOtherSubCategory } from '../services/memories/categoryMeta';
 import type { HomeTotalSummaryEntryRequest } from '../screens/Records/timelineEntry';
 import type { ScreenEntrySource } from './entry';
 import type { ScheduleDetailReturnContext } from './scheduleReturn';
+import { timelineTransitionOptions } from './navigationTransitionPolicy';
+import { useNavigationMotion } from './useNavigationMotion';
 
 export type TimelineStackParamList = {
   MonthlyExpenses: {
@@ -52,8 +54,12 @@ export type TimelineStackParamList = {
 const Stack = createNativeStackNavigator<TimelineStackParamList>();
 
 export default function TimelineStackNavigator() {
+  const reduceMotion = useNavigationMotion();
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator screenOptions={({ route }) => ({
+      headerShown: false,
+      ...timelineTransitionOptions(route.name, reduceMotion),
+    })}>
       <Stack.Screen name="TimelineMain" component={TimelineScreen} />
       <Stack.Screen
         name="TimelineEntryGate"

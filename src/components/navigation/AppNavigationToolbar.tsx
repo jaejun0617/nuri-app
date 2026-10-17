@@ -32,13 +32,14 @@ import { useAuthStore } from '../../store/authStore';
 
 import { openMoreDrawer } from '../../store/uiStore';
 
-type ActiveTabKey = 'home' | 'timeline' | 'community' | 'guestbook' | 'more';
+export type ActiveTabKey = 'home' | 'timeline' | 'community' | 'guestbook' | 'more';
 
 type Props = {
   activeKey: ActiveTabKey;
   onBeforeNavigate?: () => void;
   onPressMore?: () => void;
   onPressActiveHome?: () => void;
+  onNavigateTab?: (target: Exclude<ActiveTabKey, 'more'>) => void;
   onLayout?: (event: LayoutChangeEvent) => void;
 };
 
@@ -49,6 +50,7 @@ export default function AppNavigationToolbar({
   onBeforeNavigate,
   onPressMore,
   onPressActiveHome,
+  onNavigateTab,
   onLayout,
 }: Props) {
   const navigation = useNavigation<Nav>();
@@ -85,6 +87,12 @@ export default function AppNavigationToolbar({
         return;
       }
 
+      // Root tabs keep existing nested params; detail/drawer entry behavior stays unchanged.
+      if (onNavigateTab) {
+        onNavigateTab(target);
+        return;
+      }
+
       if (target === 'timeline') {
         navigation.navigate('AppTabs', {
           screen: 'TimelineTab',
@@ -114,7 +122,7 @@ export default function AppNavigationToolbar({
         screen: 'HomeTab',
       });
     },
-    [activeKey, navigation, onBeforeNavigate, onPressMore, onPressActiveHome],
+    [activeKey, navigation, onBeforeNavigate, onPressMore, onPressActiveHome, onNavigateTab],
   );
 
   const tabs = useMemo(
