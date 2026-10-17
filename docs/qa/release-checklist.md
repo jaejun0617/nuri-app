@@ -2,8 +2,8 @@
 
 ## 2026-10-17 Walk Timer / Physical Preflight Boundary
 
-- [Walk preflight report](nuri-walk-phase3-timer-preflight-2026-10-17.md): presentation-only1Hz elapsed text corrective, native distance/FGS/Room/receipt/backend unchanged. Final261 suites/3190 tests, TypeScript and scoped lint0/0 PASS; corrective Release/install/device checks pending at this checkpoint.
-- OPEN_A independent1000m confirmed, URBAN reference explicitly unknown. No outdoor start or accuracy verdict. Fixed-zero receipt diagnostics are not physical proof. Phase3 physical acceptance remains open; Phase4 NO, push NO, STORE HOLD.
+- [Walk preflight report](nuri-walk-phase3-timer-preflight-2026-10-17.md): presentation-only1Hz text corrective `23993fa`, native distance/FGS/Room/receipt/backend unchanged. Final261 suites/3190 tests, TypeScript, scoped lint0/0 and QA Main Release1/install-r1 identity/flags preservation PASS.14 public fixture PNG originals verified; actual location captures0.
+- PO still observes occasional holds/two-second jumps: TIMER_DEVICE_EXIT_GATE:NOT_PASS, residual cause NOT_CONFIRMED. Pause/resume/finish/QA-only cleanup/service OFF passed, not a smoothness PASS. No second blind build. OPEN_A independent1000m confirmed; URBAN unknown. OUTDOOR_QA_READY:NO; no outdoor start/accuracy verdict, Phase4 NO, push NO, STORE HOLD. Fixed-zero receipt diagnostics are not physical proof.
 
 ## 2026-10-17 Home Seasonal Design Delivery
 

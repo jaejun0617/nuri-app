@@ -23,11 +23,24 @@
 
 ## Release / Device Gate
 
-- Corrective source commit, fresh QA Release, install-r and timer-specific S24 checks are pending this document's initial checkpoint. Final receipts and a documentation-only update will record actual outcomes; this is not a build or device PASS declaration.
-- Requested screenshot set:10 public synthetic states plus4 seasonal WALKING screens,14 images, after the final candidate is installed. No actual location screenshots or raw route export.
+- Corrective source `23993fa52bfaccc8d707e984c5aa0e7a4bc39ee4`, tree `350a9187160a1cba57c3d502a9a691a3a9340974`. New QA Main Release1/install-r1; no initial rebuild was necessary before the exact timer defect. No second corrective build, push or Metro.
+- APK SHA-256 `9cc3d1e72438cd1f47adfbcd32e868ee385a735cca81b762cf43611a5427570e`; AAB `bfc6a316a43ac33e88f6999e54b2ac694cd4a0334eb3284b1bc696612eccb63d`. Approved signer `08efb41ea4729792ce9fc3d242be9704e84a8ea3eadcbbcf1c8426884db689d3` matches; APK flags debuggable/cleartext/backup false, embedded JS, installed SHA and separate AAB signature verification PASS.
+- S24 UID10402, firstInstallTime `2026-06-02 19:16:57`, account/pet flow, permissions,1080x2340/density450/fontScale1.0/screen timeout and location setting preserved. No uninstall, clear-data or account change. Both owned READINESS sessions ended, checksummed allowlisted receipts and QA-only route cleanup PASS; final tracking service OFF and app returned Home. Older unrelated finished checkpoints were preserved.
+- Requested screenshot set completed:10 public state screens plus4 seasonal WALKING screens,14 unedited1080x2340 PNGs in external `qa-screenshots/`. All14 decode and match SHA manifest. Map/route/profile/metrics are fixtures; existing Home weather summary is retained without region text. No actual location screenshots, user profile photos or raw route export. `qa-screenshots/README.md` is the design reference index.
+
+## Timer Residual — NOT PASS
+
+- PO observed normal one-second updates, but occasional brief holds followed by a two-second jump. This observation supersedes any assumption that passing unit tests means the device symptom is fully resolved. TIMER_DEVICE_EXIT_GATE:NOT_PASS.
+- Pause freeze verified at `01:13` and later `03:29`; resume and finish operate, service stops. The original sparse-checkpoint display dependency is corrected, but the residual cause is NOT_CONFIRMED. JS scheduling, frame delivery and native-anchor reconciliation are hypotheses, not findings.
+- The UI hierarchy inspector failed once waiting for an idle screen during continuous updates. Two read-only accessibility-event attempts did not yield timer text; the reviewed attempt saw48 app events but no exported duration text. Neither is quantitative1Hz proof. No actual-map screen recording was used as a workaround.
+- The304667ms automated indoor sample reports CPU peak5.35%, PSS peak549346KiB, thermalMax0 and app-vsync late5643/9759. These are limited app-level estimates, not a timer-correlated JS trace or Google Maps GPU verdict. They do not establish the residual root cause or a physical performance PASS.
+- The approved minimal corrective build/install has been used. Do not tune thresholds, slow elapsed time to hide skipped seconds or make an unmeasured second build. The next proposed task is an explicitly scoped timer scheduling/anchor diagnostic, approved before another candidate build.
 
 ## Physical Handoff Remains Blocked
 
 - OPEN_A independent reference:1000m, supplied by PO. URBAN reference:미정, explicitly confirmed by PO. Do not substitute OPEN_A for URBAN or configure a fabricated reference.
 - Some current receipt summary fields (`pauseDistanceDeltaM`, `endpointLoss`, `segmentMerge`, `gapBridgeM`) are constants, not independent measured proof. Future physical verdicts require observed evidence and must not treat those zeros alone as PASS. Native evidence schema is not changed by this UI corrective.
-- OUTDOOR_QA_READY:NO until the independent URBAN reference and final preflight gates are satisfied. PHYSICAL_QA_STARTED:NO. Phase3 remains implemented pending physical evidence; Phase4 is not opened. No outdoor walking, reboot protocol, server mutation or automatic next phase is performed here.
+- OUTDOOR_QA_READY:NO until the timer device gate and independent URBAN reference are resolved. PHYSICAL_QA_STARTED:NO. Phase3 remains implemented pending timer closure and physical evidence; Phase4 is not opened. No outdoor walking, reboot protocol, server mutation or automatic next phase is performed here.
+- Original181/status/content hashes unchanged; protected source44 files match before. Native/engine/server/XP/progression delta0, accepted security baseline20/20 preserved, not re-audited. No linked remote query or remote mutation was performed. Runtime commit remains unchanged by the final documentation-only closeout; exact final HEAD is recorded externally.
+
+PO 승인을 기다립니다.
