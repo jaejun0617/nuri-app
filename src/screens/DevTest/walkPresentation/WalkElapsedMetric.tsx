@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AppState, type StyleProp, type TextStyle } from 'react-native';
 import AppText from '../../../app/ui/AppText';
 import { metricTime } from './model';
@@ -29,9 +29,18 @@ export default function WalkElapsedMetric({
   const anchor = useRef<Anchor | null>(null);
   const pendingTrace = useRef<TimerTraceEvent | null>(null);
   const displayed = useRef(Number(activeMs));
+  const requested = useRef(Number(activeMs));
+  const reschedule = useRef<(() => void) | null>(null);
   const nativeMs = /^\d+$/.test(activeMs) ? Number(activeMs) : NaN;
-  const ticking =
-    running && foreground && !!sessionKey && Number.isSafeInteger(nativeMs);
+  const projectable = running && !!sessionKey && Number.isSafeInteger(nativeMs);
+  const ticking = projectable && foreground;
+  const publish = useCallback((value: number, event: TimerTraceEvent | null) => {
+    // Checkpoints may arrive between second boundaries. Only changed text needs a commit.
+    if (Math.floor(requested.current / 1000) === Math.floor(value / 1000)) return;
+    requested.current = value;
+    pendingTrace.current = event;
+    setDisplayMs(String(value));
+  }, []);
 
   useEffect(() => {
     let previousState = AppState.currentState;
@@ -39,8 +48,8 @@ export default function WalkElapsedMetric({
       if (state === previousState) return;
       previousState = state;
       timerTrace('APP_STATE', { firedTickMonoMs: performance.now() });
-      // Background time belongs to native runtime, never a suspended JS interval.
-      anchor.current = null;
+      // Stop scheduling in background, but retain the active monotonic anchor until
+      // the foreground GET resolves. Native pause/recovery still invalidates it.
       setForeground(state === 'active');
     });
     return () => {
@@ -58,25 +67,29 @@ export default function WalkElapsedMetric({
   });
 
   useEffect(() => {
-    if (!ticking || !sessionKey) {
-      pendingTrace.current = timerTrace('FREEZE', {
+    if (!projectable || !sessionKey) {
+      const event = timerTrace('FREEZE', {
         nativeActiveMs: nativeMs,
         computedElapsedMs: nativeMs,
         stateSetMonoMs: performance.now(),
       });
       anchor.current = null;
-      setDisplayMs(activeMs);
+      publish(nativeMs, event);
       return;
     }
+    if (anchor.current?.sessionKey !== sessionKey) anchor.current = null;
+    if (!foreground) return;
     const now = performance.now();
     const previous = anchor.current;
     const projected =
       previous?.sessionKey === sessionKey
         ? previous.activeMs + Math.max(0, now - previous.sampledAt)
         : nativeMs;
-    // Reconcile sparse checkpoints without double-counting or moving backwards.
+    // A stale/equal checkpoint must not reanchor or publish an off-cadence second.
+    // A genuinely newer native duration remains authoritative; never smooth it away.
+    if (previous && nativeMs <= projected) return;
     const nextMs = Math.max(nativeMs, projected);
-    pendingTrace.current = timerTrace('ANCHOR', {
+    const event = timerTrace('ANCHOR', {
       nativeActiveMs: nativeMs,
       anchorMonoMs: now,
       anchorActiveMs: nextMs,
@@ -87,21 +100,34 @@ export default function WalkElapsedMetric({
       stateSetMonoMs: now,
     });
     anchor.current = { sessionKey, activeMs: nextMs, sampledAt: now };
-    setDisplayMs(String(Math.floor(nextMs)));
-  }, [activeMs, nativeMs, sessionKey, ticking]);
+    publish(Math.floor(nextMs), event);
+    reschedule.current?.();
+  }, [foreground, nativeMs, projectable, publish, sessionKey]);
 
   useEffect(() => {
     if (!ticking) return;
-    let expected = performance.now() + 1000;
-    timerTrace('INTERVAL_START', { expectedTickMonoMs: expected });
-    const timer = setInterval(() => {
+    let alive = true;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const schedule = () => {
+      if (timer !== undefined) clearTimeout(timer);
       const current = anchor.current;
-      if (!current) return;
+      if (!alive || current?.sessionKey !== sessionKey) return;
+      const now = performance.now();
+      const elapsed = current.activeMs + Math.max(0, now - current.sampledAt);
+      // Recompute the next absolute second boundary after every callback. The
+      // minimum avoids a hot loop when Android delivers a callback just early.
+      const delay = Math.max(16, Math.ceil(1000 - (elapsed % 1000)));
+      const expected = now + delay;
+      timer = setTimeout(() => tick(expected), delay);
+    };
+    const tick = (expected: number) => {
+      const current = anchor.current;
+      if (!alive || current?.sessionKey !== sessionKey) return;
       const fired = performance.now();
       const computed = Math.floor(
         current.activeMs + Math.max(0, fired - current.sampledAt),
       );
-      pendingTrace.current = timerTrace('TICK', {
+      const event = timerTrace('TICK', {
         anchorMonoMs: current.sampledAt,
         anchorActiveMs: current.activeMs,
         expectedTickMonoMs: expected,
@@ -112,14 +138,19 @@ export default function WalkElapsedMetric({
         displaySecondAfter: Math.floor(computed / 1000),
         stateSetMonoMs: performance.now(),
       });
-      expected += 1000;
-      setDisplayMs(String(computed));
-    }, 1000);
+      publish(computed, event);
+      schedule();
+    };
+    reschedule.current = schedule;
+    timerTrace('INTERVAL_START', { firedTickMonoMs: performance.now() });
+    tick(performance.now());
     return () => {
-      clearInterval(timer);
+      alive = false;
+      if (timer !== undefined) clearTimeout(timer);
+      if (reschedule.current === schedule) reschedule.current = null;
       timerTrace('INTERVAL_STOP', { firedTickMonoMs: performance.now() });
     };
-  }, [ticking]);
+  }, [publish, sessionKey, ticking]);
 
   return (
     <AppText

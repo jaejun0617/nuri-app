@@ -27,3 +27,13 @@ Initial behavioral fail-first reproduces an early frame-boundary callback: callb
 ## Gate ownership
 
 External final report/receipt owns exact candidate hashes, scenario durations, event counts and device verdicts. TIMER_DEVICE_EXIT_GATE remains NOT_PASS during diagnosis. No full suite is repeated on the diagnostic source; the single required full run belongs to the final corrective product source. Diagnostic targeted output preserves the expected behavioral failure separately from build/type/test harness errors.
+
+## Correlated S24 diagnosis and minimal corrective
+
+Diagnostic source a31f91d completed indoor static605s, map185s, pause/resume245s and AppState165s observations. The PO independently reported intermittent holds in minutes3-4, then normal cadence. The static trace has12 long holds in minute3 and14 in minute4; none from minute6 onward. There is one committed337-to339 second jump within the independent605s observation window. Polling can miss briefly displayed seconds, so observer skipped values are not counted as actual app jumps.
+
+Classification: MIXED_CONFIRMED. A nominal1000ms interval actually spaced at median1001.168ms accumulated phase drift. Snapshot reconciliation also published projected elapsed between interval callbacks even when anchor correction was zero, creating short/long pairs of visible seconds. Static React layout commit delay peaked at24.147ms, not a one-second render stall. The data does not justify blaming MapView or a long JS stall. Foreground additionally discarded a still-valid anchor before an asynchronous GET returned a stored checkpoint.
+
+The corrective changes only the elapsed leaf: one owned timeout schedules the next absolute elapsed-second boundary, early callbacks retry with a16ms minimum, stale/equal checkpoints neither reanchor nor publish, and an active monotonic anchor survives background until native state invalidates it. Native duration ahead of projection remains authoritative; late callbacks show real time, never fabricated intermediate seconds. Pause/recovery/session replacement invalidate anchors. Native runtime, map geometry, route projection, navigation and Home entry remain unchanged.
+
+Expanded fail-first had3 behavioral failures and21 passes before the corrective, without a compilation failure. The corrective device verdict remains pending. Native accessibility-node observation is independent of React commit but is not compositor/pixel evidence. Final device results and cleanup are recorded externally without changing the exact installed runtime identity.

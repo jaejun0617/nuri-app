@@ -149,6 +149,67 @@ describe('Walk foreground elapsed-time presentation', () => {
     expect(time()).toBe('01:07');
   });
 
+  it('aligns a fractional native anchor to second boundaries, not mount time', () => {
+    render({ activeMs: '60600' });
+    act(() => jest.advanceTimersByTime(400));
+    expect(time()).toBe('01:01');
+    act(() => jest.advanceTimersByTime(50));
+    update({ activeMs: '61050' });
+    act(() => jest.advanceTimersByTime(950));
+    expect(time()).toBe('01:02');
+  });
+
+  it.each([999, 1001])('keeps the next deadline across a native snapshot at %ims', at => {
+    render();
+    act(() => jest.advanceTimersByTime(at));
+    update({ activeMs: String(60000 + at) });
+    act(() => jest.advanceTimersByTime(2000 - at));
+    expect(time()).toBe('01:02');
+    expect(jest.getTimerCount()).toBe(1);
+  });
+
+  it('does not restart or publish an off-boundary second for repeated stale checkpoints', () => {
+    render({ activeMs: '60600' });
+    for (let index = 0; index < 20; index++) {
+      act(() => jest.advanceTimersByTime(100));
+      update({ activeMs: String(60000 + index * 10) });
+      expect(jest.getTimerCount()).toBe(1);
+      expect(time()).toBe(index < 3 ? '01:00' : index < 13 ? '01:01' : '01:02');
+    }
+  });
+
+  it('accepts an authoritative native value ahead of the local projection', () => {
+    render();
+    act(() => jest.advanceTimersByTime(1000));
+    update({ activeMs: '64000' });
+    expect(time()).toBe('01:04');
+    act(() => jest.advanceTimersByTime(1000));
+    expect(time()).toBe('01:05');
+    expect(jest.getTimerCount()).toBe(1);
+  });
+
+  it('keeps ten minutes of fractional checkpoints on the same second cadence', () => {
+    render({ activeMs: '60600' });
+    for (let second = 1; second <= 600; second++) {
+      act(() => jest.advanceTimersByTime(second === 1 ? 400 : 1000));
+      expect(time()).toBe(`${String(Math.floor((60 + second) / 60)).padStart(2, '0')}:${String((60 + second) % 60).padStart(2, '0')}`);
+      update({ activeMs: String(60000 + second * 1000 - 200) });
+      expect(jest.getTimerCount()).toBe(1);
+    }
+  });
+
+  it('invalidates an active anchor on recovery and never counts recovery time', () => {
+    render();
+    act(() => jest.advanceTimersByTime(2000));
+    update({ state: 'RECOVERY_REQUIRED', clockRunning: false, activeMs: '62000' });
+    expect(jest.getTimerCount()).toBe(0);
+    act(() => jest.advanceTimersByTime(60000));
+    expect(time()).toBe('01:02');
+    update({ state: 'WALKING', clockRunning: true });
+    act(() => jest.advanceTimersByTime(1000));
+    expect(time()).toBe('01:03');
+  });
+
   it('freezes at native pause time and resumes without counting the pause', () => {
     render();
     act(() => jest.advanceTimersByTime(2000));
@@ -209,6 +270,21 @@ describe('Walk foreground elapsed-time presentation', () => {
     act(() => tree.unmount());
     expect(listeners.size).toBe(0);
     expect(jest.getTimerCount()).toBe(0);
+  });
+
+  it('preserves the active monotonic anchor until the foreground GET resolves', () => {
+    render();
+    act(() => jest.advanceTimersByTime(2000));
+    appState('background');
+    expect(jest.getTimerCount()).toBe(0);
+    act(() => jest.advanceTimersByTime(60000));
+    appState('active');
+    expect(time()).toBe('02:02');
+    update({ activeMs: '120000' });
+    expect(time()).toBe('02:02');
+    act(() => jest.advanceTimersByTime(1000));
+    expect(time()).toBe('02:03');
+    expect(jest.getTimerCount()).toBe(1);
   });
 
   it('does not rerender the map at each display tick', () => {
