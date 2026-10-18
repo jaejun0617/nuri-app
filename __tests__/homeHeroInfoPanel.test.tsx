@@ -163,6 +163,23 @@ describe('Home Hero lower panel presentation and actions', () => {
     return renderer!;
   }
 
+  it('places the temporary Walk QA entry directly below more information', async () => {
+    const renderer = await renderPanel({
+      walkQaEntry: <View testID="walk-home-entry-probe" />,
+    });
+    const actions = renderer.root.findAllByProps({
+      testID: 'home-hero-profile-actions',
+    }).slice(-1)[0];
+    const ids = actions.children
+      .filter((child): child is TestRenderer.ReactTestInstance => typeof child !== 'string')
+      .map(child => child.props.testID);
+    expect(ids).toEqual([
+      'home-hero-profile-info',
+      'walk-home-entry-probe',
+      'home-hero-profile-edit',
+    ]);
+  });
+
   beforeEach(() => {
     jest.spyOn(ReactNative, 'useWindowDimensions').mockReturnValue({
       width: 384,

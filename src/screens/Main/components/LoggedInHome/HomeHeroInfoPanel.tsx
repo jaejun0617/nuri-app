@@ -75,6 +75,7 @@ type Props = {
   onPressPetSelect: () => void;
   onPressProfileInfo: () => void;
   onPressPetProfileEdit: () => void;
+  walkQaEntry?: React.ReactNode;
 };
 
 export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
@@ -86,6 +87,7 @@ export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
   onPressPetSelect,
   onPressProfileInfo,
   onPressPetProfileEdit,
+  walkQaEntry,
 }: Props) {
   const identityTextStyle = { color: petTheme.primary };
   const dayLabel =
@@ -217,6 +219,7 @@ export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
               style={styles.actionIconSlot}
             />
           </TouchableOpacity>
+          {walkQaEntry}
           <TouchableOpacity
             testID="home-hero-profile-edit"
             activeOpacity={0.86}
