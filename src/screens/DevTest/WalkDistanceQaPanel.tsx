@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import {
   AppState,
   Button,
@@ -63,6 +63,8 @@ import {
 } from './walkPresentation/model';
 import { fixtureMetrics } from './walkPresentation/fixtures';
 import { useWalkDesignLocation } from './walkPresentation/useWalkDesignLocation';
+import WalkTimerTraceControls from './walkPresentation/WalkTimerTraceControls';
+import { clearTimerTrace, timerTrace, timerTraceContext } from './walkPresentation/timerTrace';
 
 const SEASONS: { key: SeasonKey; label: string }[] = [
   { key: 'spring', label: '봄' },
@@ -132,6 +134,15 @@ export default function WalkDistanceQaPanel({ initialMode, onClose }: Props) {
     tail = useRef(true),
     operationRunning = useRef(false);
   const enabled = isWalkDistanceQaEnabled();
+  useLayoutEffect(() => {
+    if (enabled) timerTrace('HOST_COMMIT', { renderCommitMonoMs: performance.now() });
+  });
+  useEffect(() => {
+    if (enabled && !preview) timerTraceContext(snapshot?.sessionId ?? null,
+      snapshot?.runtimeState ?? 'IDLE', snapshot?.revision ?? '0', snapshot?.elapsedActiveMs ?? '0',
+      mode, snapshot?.distanceSummary?.routeRevision ?? '0');
+  }, [enabled, preview, snapshot, mode]);
+  useEffect(() => () => clearTimerTrace(), []);
   const open =
     visible && owner !== null && owner === openedOwner.current && enabled;
   const designLocation = useWalkDesignLocation(open, owner);
@@ -649,6 +660,7 @@ export default function WalkDistanceQaPanel({ initialMode, onClose }: Props) {
                 contentContainerStyle={styles.inspectorContent}
                 keyboardShouldPersistTaps="handled"
               >
+                <WalkTimerTraceControls />
                 <AppText preset="sectionTitle">공개 상태 미리보기</AppText>
                 <View style={styles.row}>
                   {SEASONS.map(s => (

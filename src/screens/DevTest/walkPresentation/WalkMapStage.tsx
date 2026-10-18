@@ -19,6 +19,7 @@ import type {
 } from '../../../services/walk/runtime/distanceProjection';
 import { PUBLIC_ROUTE } from './fixtures';
 import { WALK_MAP_STYLE, WALK_SHEET_OVERLAP } from './visuals';
+import { timerTrace } from './timerTrace';
 
 export type PetMarkerImageStatus = 'NONE' | 'LOADING' | 'LOADED' | 'FAILED';
 
@@ -209,6 +210,9 @@ export default function WalkMapStage({
   onDrag,
   onImageStatus,
 }: Props) {
+  useLayoutEffect(() => {
+    if (!preview) timerTrace('MAP_COMMIT', { renderCommitMonoMs: performance.now() });
+  });
   const map = useRef<MapView>(null);
   const [ready, setReady] = useState(false);
   const target = preview

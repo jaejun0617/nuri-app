@@ -111,6 +111,30 @@ describe('Walk foreground elapsed-time presentation', () => {
     expect(time()).toBe('01:02');
   });
 
+  it('publishes the next second promptly after an early frame-boundary callback', () => {
+    let mono = 0;
+    jest.spyOn(performance, 'now').mockImplementation(() => mono);
+    render();
+    mono = 999.6;
+    act(() => jest.advanceTimersByTime(1000));
+    expect(time()).toBe('01:00');
+    mono = 1050;
+    act(() => jest.advanceTimersByTime(50));
+    expect(time()).toBe('01:01');
+  });
+
+  it.each([1400, 2100])(
+    'uses real elapsed time for a %ims late callback',
+    late => {
+      let mono = 0;
+      jest.spyOn(performance, 'now').mockImplementation(() => mono);
+      render();
+      mono = late;
+      act(() => jest.advanceTimersByTime(1000));
+      expect(time()).toBe(late < 2000 ? '01:01' : '01:02');
+    },
+  );
+
   it('reconciles a five-second checkpoint without double-counting or resetting the interval', () => {
     render();
     act(() => jest.advanceTimersByTime(5000));
