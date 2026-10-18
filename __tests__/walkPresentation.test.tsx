@@ -7,6 +7,7 @@ import {
   Button,
   Dimensions,
   Image,
+  Linking,
   Modal,
 } from 'react-native';
 import { ThemeProvider } from 'styled-components/native';
@@ -34,6 +35,8 @@ import {
 } from '../src/screens/DevTest/walkPresentation/model';
 import { PetPosition } from '../src/screens/DevTest/walkPresentation/WalkMapStage';
 import WalkView from '../src/screens/DevTest/walkPresentation/WalkView';
+import WalkNoticeSheet from '../src/screens/DevTest/walkPresentation/WalkNoticeSheet';
+import { WALK_NOTICE_COPY } from '../src/screens/DevTest/walkPresentation/noticeModel';
 import Geolocation from '@react-native-community/geolocation';
 import { getLocationPermissionGrant } from '../src/services/location/permission';
 let mockPetName = '누리';
@@ -225,6 +228,68 @@ describe('Walk presentation privacy and mode boundaries', () => {
       r.root.findAllByType(Button)[0].props.onPress();
     });
   };
+  test.each(
+    Object.keys(WALK_NOTICE_COPY) as Array<keyof typeof WALK_NOTICE_COPY>,
+  )(
+    'public %s notice cannot change settings or native walk state',
+    async kind => {
+      const settings = jest.spyOn(Linking, 'openSettings').mockResolvedValue();
+      const intent = jest.spyOn(Linking, 'sendIntent').mockResolvedValue();
+      await open();
+      await press(r, 'walk-qa-open');
+      await press(r, `walk-notice-gallery-${kind}`);
+      expect(r.root.findByType(WalkNoticeSheet).props.kind).toBe(kind);
+      expect(visibleText(r)).toContain(WALK_NOTICE_COPY[kind].title);
+      await press(
+        r,
+        kind.startsWith('MINIMIZE_')
+          ? 'walk-minimize-confirm'
+          : 'walk-notice-primary',
+      );
+      expect(settings).not.toHaveBeenCalled();
+      expect(intent).not.toHaveBeenCalled();
+      expect(mutateNativeWalk).not.toHaveBeenCalled();
+      expect(Geolocation.getCurrentPosition).not.toHaveBeenCalled();
+      expect(
+        jest
+          .mocked(runWalkQaCommand)
+          .mock.calls.every(([command]) => command === 'GET'),
+      ).toBe(true);
+    },
+  );
+  test.each(['PAUSED', 'RECOVERY_REQUIRED'] as const)(
+    'minimize %s neither claims active recording nor resumes it',
+    async state => {
+      jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot(state));
+      await open();
+      await press(r, 'walk-mode-actual');
+      await press(r, 'walk-close');
+      expect(visibleText(r)).not.toContain('기록은 이어져요');
+      expect(r.root.findByType(WalkNoticeSheet).props.kind).toBe(
+        `MINIMIZE_${state === 'PAUSED' ? 'PAUSED' : 'RECOVERY'}`,
+      );
+      await press(r, 'walk-minimize-confirm');
+      expect(r.root.findByType(Modal).props.visible).toBe(false);
+      expect(mutateNativeWalk).not.toHaveBeenCalled();
+    },
+  );
+  test('failed request checks state without replaying a mutation', async () => {
+    jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot());
+    jest
+      .mocked(mutateNativeWalk)
+      .mockRejectedValue(new Error('WALK_SERVICE_UNAVAILABLE'));
+    await open();
+    await press(r, 'walk-mode-actual');
+    await press(r, 'walk-primary');
+    expect(r.root.findByType(WalkNoticeSheet).props.kind).toBe(
+      'REQUEST_FAILED',
+    );
+    const reads = jest.mocked(getWalkSnapshot).mock.calls.length;
+    await press(r, 'walk-notice-primary');
+    expect(getWalkSnapshot).toHaveBeenCalledTimes(reads + 1);
+    expect(mutateNativeWalk).toHaveBeenCalledTimes(1);
+    expect(r.root.findAllByType(WalkNoticeSheet)).toHaveLength(0);
+  });
   test('pause preview opens a rest sheet; dismiss keeps time and distance paused', async () => {
     await open();
     await press(r, 'walk-primary');
@@ -318,6 +383,10 @@ describe('Walk presentation privacy and mode boundaries', () => {
     ).toBeGreaterThan(0);
     expect(mutateNativeWalk).toHaveBeenCalledTimes(2);
     expect(jest.mocked(mutateNativeWalk).mock.calls[1][0]).toBe('resumeWalk');
+    expect(r.root.findAllByType(WalkNoticeSheet)).toHaveLength(0);
+    const outer = r.root.findAllByType(Modal).find(m => !m.props.testID)!;
+    await act(async () => outer.props.onRequestClose());
+    expect(r.root.findAllByType(WalkNoticeSheet)).toHaveLength(0);
   });
   test('selecting the public paused gallery shows the same rest sheet without native writes', async () => {
     await open();
@@ -434,6 +503,9 @@ describe('Walk presentation privacy and mode boundaries', () => {
     expect(
       r.root.findAllByProps({ testID: 'walk-finish-error' }).length,
     ).toBeGreaterThan(0);
+    expect(r.root.findAllByType(WalkNoticeSheet)).toHaveLength(0);
+    await act(async () => r.root.findByType(WalkView).props.onCancelFinish());
+    expect(r.root.findAllByType(WalkNoticeSheet)).toHaveLength(0);
   });
   test('outer Back at finish confirmation cancels only the confirmation', async () => {
     await open();
@@ -725,9 +797,9 @@ describe('Walk presentation privacy and mode boundaries', () => {
             : state === 'PAUSED'
             ? '시간과 거리 기록을 멈췄어요'
             : ['GPS_WEAK', 'GPS_LOST'].includes(state)
-            ? '함께하는 이 순간을 즐겨요.'
+            ? '함께하는 발걸음을 소중히 기록해요.'
             : state === 'GPS_ACQUIRING'
-            ? '잠시만 기다려 주세요'
+            ? '첫 위치를 확인하고 있어요.'
             : WALK_COPY[state].title,
         );
       }
@@ -810,7 +882,7 @@ describe('Walk presentation privacy and mode boundaries', () => {
     await open();
     await press(r, 'walk-mode-actual');
     await press(r, 'walk-close');
-    expect(visibleText(r)).toContain('화면을 닫아도 산책은 계속 기록돼요.');
+    expect(visibleText(r)).toContain('화면을 닫아도 산책 기록은 이어져요.');
     await press(r, 'walk-minimize-confirm');
     expect(r.root.findByType(Modal).props.visible).toBe(false);
     expect(mutateNativeWalk).not.toHaveBeenCalled();

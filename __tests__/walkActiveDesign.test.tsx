@@ -175,15 +175,29 @@ describe('PO active Walk design candidate', () => {
     async state => {
       await render(<WalkView {...props} state={state} />);
       const actions = tree.root.findAllByType(WalkAction);
-      if (['PRE_WALK', 'FINISH_CONFIRM', 'FINISHED_LOCAL'].includes(state)) {
+      if (
+        [
+          'PRE_WALK',
+          'FINISH_CONFIRM',
+          'FINISHED_LOCAL',
+          'FUTURE_RECORD_CTA_PREVIEW',
+        ].includes(state)
+      ) {
         const id =
-          state === 'FINISH_CONFIRM' ? 'walk-finish-confirm' : 'walk-primary';
+          state === 'FINISH_CONFIRM'
+            ? 'walk-finish-confirm'
+            : state === 'FUTURE_RECORD_CTA_PREVIEW'
+            ? 'walk-future-record'
+            : 'walk-primary';
         if (state === 'PRE_WALK')
           expect(host('walk-primary-label').props.children).toBe(
             '함께 산책 시작하기',
           );
         expect(
-          button(id).findAll(node =>
+          (state === 'FUTURE_RECORD_CTA_PREVIEW'
+            ? host(id)
+            : button(id)
+          ).findAll(node =>
             ['Feather', 'SemanticIcon'].includes(
               node.type as unknown as string,
             ),
@@ -226,7 +240,9 @@ describe('PO active Walk design candidate', () => {
       expect(
         tree.root.findAllByProps({ testID: 'walk-weather-chip' }).length,
       ).toBeGreaterThan(0);
-      expect(text()).not.toMatch(/GPS|위치 신호|신호 대기/);
+      expect(text()).not.toMatch(/GPS 기록 중|GPS 신호 양호|신호 대기/);
+      if (state === 'GPS_WEAK' || state === 'GPS_LOST')
+        expect(host('walk-signal-status')).toBeDefined();
     },
   );
 
@@ -343,7 +359,10 @@ describe('PO active Walk design candidate', () => {
   );
 
   it.each(
-    GALLERY_STATES.filter(state => state !== 'FINISH_CONFIRM').flatMap(state =>
+    GALLERY_STATES.filter(
+      state =>
+        state !== 'FINISH_CONFIRM' && state !== 'FUTURE_RECORD_CTA_PREVIEW',
+    ).flatMap(state =>
       (['spring', 'summer', 'autumn', 'winter'] as const).map(season => ({
         state,
         season,
@@ -356,7 +375,9 @@ describe('PO active Walk design candidate', () => {
       const id = 'walk-primary';
       const action = button(id);
       const faceStyle = (pressed: boolean) =>
-        state === 'FINISHED_LOCAL' || state === 'PRE_WALK'
+        ['FINISHED_LOCAL', 'FUTURE_RECORD_CTA_PREVIEW', 'PRE_WALK'].includes(
+          state,
+        )
           ? StyleSheet.flatten(action.props.style({ pressed }))
           : StyleSheet.flatten(action.props.children({ pressed }).props.style);
       expect(faceStyle(false).backgroundColor).toBe(SEASON_CTA[season].primary);
@@ -364,8 +385,16 @@ describe('PO active Walk design candidate', () => {
       expect(StyleSheet.flatten(host(`${id}-label`).props.style)).toMatchObject(
         {
           color: '#FFFFFF',
-          fontSize: state === 'FINISHED_LOCAL' ? 13 : 15,
-          lineHeight: state === 'FINISHED_LOCAL' ? 20 : 21,
+          fontSize: ['FINISHED_LOCAL', 'FUTURE_RECORD_CTA_PREVIEW'].includes(
+            state,
+          )
+            ? 13
+            : 15,
+          lineHeight: ['FINISHED_LOCAL', 'FUTURE_RECORD_CTA_PREVIEW'].includes(
+            state,
+          )
+            ? 20
+            : 21,
         },
       );
       expect(tree.root.findAllByProps({ testID: `${id}-icon` })).toHaveLength(
@@ -450,7 +479,7 @@ describe('PO active Walk design candidate', () => {
     await render(<WalkView {...props} state="GPS_ACQUIRING" />);
     expect(text()).not.toContain('산책 준비 중');
     expect(host('walk-supporting-copy').props.children).toBe(
-      '잠시만 기다려 주세요',
+      '함께 걸을 준비를 하고 있어요.',
     );
     const row = host('walk-context-row');
     expect(

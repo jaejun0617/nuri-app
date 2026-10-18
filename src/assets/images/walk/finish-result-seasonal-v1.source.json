@@ -1,0 +1,85 @@
+{
+  "created": "2026-10-18",
+  "purpose": "dedicated seasonal finish-confirmation and finished-local illustrations",
+  "autumnUnchanged": true,
+  "assets": [
+    {
+      "key": "SpringConfirm",
+      "name": "finish-confirm-spring-v1.png",
+      "prompt": "Use case: illustration-story. Create a production NURI pet walking app illustration, SPRING finish-confirmation vignette. Reference image 1 is the exact approved autumn confirmation composition and character/style reference; reference image 2 gives spring materials only. Reinterpret image1 as spring, not a pre-walk invitation: golden retriever and silver tabby kitten comfortably resting cheek to cheek with a friendly cockatiel perched on dog's head after a lovely walk. Closed contented eyes, soft premium cute 3D storybook painted fur, restrained warm light. Ground is a small island of fresh grass, tiny white daisies and pale cherry petals. Dog wears a subtle pink spring scarf, kitten a tiny flower. Calm, no exuberant extra elements. Landscape 2:1 canvas, entire animals and feathers inside 5% safe margins. Transparent alpha background around softly feathered ground vignette, no rectangle, no UI, no text, no logo, no frame, no badges or confetti. Match approved NURI style closely.",
+      "source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-3940346d-d541-46ce-8d40-de0c41ed214c.png",
+      "path": "src/assets/images/walk/finish-confirm-spring-v1.png",
+      "sha256": "e8e52eb0ed22f98e3682caa0a0d2821b1cf43a1f53ffbe27143c432a47e9bbee",
+      "width": 1774,
+      "height": 887,
+      "pngColorType": 6,
+      "transparentRequested": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "key": "SpringResult",
+      "name": "finished-local-spring-v1.png",
+      "prompt": "Use case: illustration-story. Asset: dedicated SPRING completed-walk result illustration for NURI, not splash or pre-walk. Reference approved autumn result image for exact polished soft-fur storybook 3D painted style and kind cast. Reference spring invitation image for colors only, create a NEW homecoming/rest composition. Golden retriever with pink kerchief, silver tabby with tiny cherry flower, cockatiel, rabbit, hedgehog, guinea pig and small tortoise cuddle and relax on a fresh grassy picnic patch AFTER a walk, small folded leash lying harmlessly at the side. Close warm friendship, calm proud little smiles; no running pose. Background silhouette consists only of sparse pale cherry branches at the far sides and a few petals, no solid sky or rectangular background. Landscape 5:4 canvas like 1402:1122. Full animals inside canvas, low cluster fills lower 75%, fluffy heads not cropped, delicate grass/flower edges fade into genuinely transparent alpha. Attractive on white app screen edge to edge. No text, no UI/card, no logo, no medals, no rewards or stars, no watermark. Preserve NURI premium cute calm emotional character.",
+      "source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-2c0c6987-88da-42c1-b6e0-5606e4e530bf.png",
+      "path": "src/assets/images/walk/finished-local-spring-v1.png",
+      "sha256": "2b4d955af2084de3e38013e530abf3cab502e608f8f143b2422665149fb59929",
+      "width": 1486,
+      "height": 1059,
+      "pngColorType": 6,
+      "transparentRequested": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "key": "SummerConfirm",
+      "name": "finish-confirm-summer-v1.png",
+      "prompt": "Use case: illustration-story. Asset: dedicated SUMMER finish confirmation transparent illustration for NURI mobile pet walking app. Reference image1 is approved autumn confirmation composition/style, image2 summer cast and colors. Create a NEW summer post-walk resting vignette: friendly golden retriever in a small straw sunhat resting beside a silver tabby with sage-green lightweight kerchief, a tiny blue-and-white budgie gently perched on the hat. All three contented and relaxed after walking, soft eyes, cozy premium cute 3D storybook fur, natural anatomy. Ground a low island of green grass with few tiny white summer flowers and one folded green lead off to side. No autumn leaves, no cherry blossoms, no winter snow. Restrained leafy green and cool aqua accents with warm golden fur. Landscape 2:1, all ears/tails/hat inside generous safe margins, ground feathered into TRUE TRANSPARENT ALPHA all around, no rectangular sky or solid background. No text, UI, frame, watermark, badges or reward imagery. Match references' soft rendering and calm emotional tone.",
+      "source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-9a23099c-8ab4-4a4f-bf39-c2882a5da978.png",
+      "path": "src/assets/images/walk/finish-confirm-summer-v1.png",
+      "sha256": "6cb4a6b17e545bd35da530bfd4863f00f8d5ab434b8f408a818fb7e30e7a4ce7",
+      "width": 1774,
+      "height": 887,
+      "pngColorType": 6,
+      "transparentRequested": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "key": "SummerResult",
+      "name": "finished-local-summer-v1.png",
+      "prompt": "Use case: illustration-story. Asset: dedicated SUMMER completed-walk result illustration for NURI pet walking app. Use approved autumn result reference for character fidelity and polished premium soft 3D painted fur. Summer reference supplies the blue/green kerchief, straw hat, grass and budgie. NEW composition, AFTER walking, resting happily together on a small pale mint picnic blanket beneath light leafy branches: golden retriever in sunhat leaning gently against silver tabby with sage-green kerchief, blue-white budgie on hat, rabbit, guinea pig, hedgehog and little smiling tortoise clustered in front. Small folded lead at one side, few meadow daisies and a small shallow pet water bowl, tasteful calm summer homecoming mood. No running, no invitations, no lake rectangle or broad backdrop. Landscape 5:4, all characters complete, low edge-to-edge cluster, sparse leafy silhouettes at sides only, gently feathered grass perimeter into TRANSPARENT alpha across rest of canvas. No text, logos, UI, borders, watermarks or reward imagery. Do not reuse the pre-walk scene; show calm post-walk togetherness.",
+      "source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-18da70a3-b759-48c8-bbac-d641927bdf7e.png",
+      "path": "src/assets/images/walk/finished-local-summer-v1.png",
+      "sha256": "49752b2fa6d5c94a2da72c23afdda056c47d9a8dbafdd3a4920ce3180a4ad0c7",
+      "width": 1402,
+      "height": 1122,
+      "pngColorType": 6,
+      "transparentRequested": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "key": "WinterConfirm",
+      "name": "finish-confirm-winter-v1.png",
+      "prompt": "Use case: illustration-story. Dedicated WINTER finish-confirmation cutout for NURI. Reinterpret the approved autumn confirmation vignette using winter reference for warm blue and dusty rose knit scarves and blue-white budgie. Golden retriever resting comfortably cheek to cheek with silver tabby kitten, tiny blue-white budgie perched on dog's head; gentle happy closed eyes, cozy post-walk pause. Small island of soft powder snow, one understated snowflake detail, delicate softly feathered edges, warm friendly faces, premium cute 3D painted storybook texture like reference. No pine-tree wall, no full landscape, no Christmas decorations, no text. Landscape 2:1 frame, all animals/feathers inside 5% safe margins, isolated TRANSPARENT ALPHA background, no matte rectangle/frame/UI/logo/watermark. Winter-specific NEW scene for asking whether to finish a walk, calm and reassuring.",
+      "source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-feabcb7e-a562-42e7-9f67-a4b18627ed98.png",
+      "path": "src/assets/images/walk/finish-confirm-winter-v1.png",
+      "sha256": "7cf5b2ef8dd340fabd37d1a037ad996ccb18848564d4b8045a2079cc52e625bb",
+      "width": 1774,
+      "height": 887,
+      "pngColorType": 6,
+      "transparentRequested": true,
+      "tool": "built-in image_gen"
+    },
+    {
+      "key": "WinterResult",
+      "name": "finished-local-winter-v1.png",
+      "prompt": "Use case: illustration-story. Dedicated WINTER completed-walk RESULT illustration for NURI. Approved autumn result image defines soft premium cute 3D painted-fur style and friendly cast; winter reference gives snowy palette and scarves. Create a NEW post-walk homecoming/rest moment: golden retriever in blue snowflake knit scarf, silver tabby in dusty rose scarf, tiny blue-white budgie on head, rabbit in ivory scarf, guinea pig in green scarf and hedgehog in mustard scarf snuggle close on a soft snowy patch. Small folded blue lead at far side. Relaxed affectionate expressions after walking, warm faces despite cool pale blue snow. A small friendly snowman may sit at far side but not dominate. Sparse snowy pines at outer edges only, no full rectangular landscape. Landscape 5:4 canvas, all ears and bodies complete within safe margins, cluster fills lower 75% and full width, soft snow silhouette feathered into genuine transparent alpha. No text, no logo, no card/UI, no badges/rewards, no Christmas ornaments, no watermark. Match NURI calm friendly autumn quality without simply recoloring the pre-walk invitation.",
+      "source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-81083cb8-d965-467c-abe8-3b6e9cc81349.png",
+      "path": "src/assets/images/walk/finished-local-winter-v1.png",
+      "sha256": "fe110dff8c869fa1b8e622b54f15132ebdf9d111855c6120f3c289a214a3d2ff",
+      "width": 1402,
+      "height": 1122,
+      "pngColorType": 6,
+      "transparentRequested": true,
+      "tool": "built-in image_gen"
+    }
+  ]
+}

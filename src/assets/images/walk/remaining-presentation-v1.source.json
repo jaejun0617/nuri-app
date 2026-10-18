@@ -1,0 +1,18 @@
+{
+  "generator": "built-in image_gen",
+  "assets": [
+    {
+      "file": "gps-acquiring-companions-v1.png",
+      "source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-39b0c2c8-d51d-4298-9421-10dcfa021049.png",
+      "prompt": "Use case: illustration-story. Asset type: transparent in-app GPS acquiring illustration for NURI pet walking app. Reference is a UI proposal; generate ONLY its dog-and-cat illustration, never the UI. A soft premium cute golden retriever puppy with an orange-brown leash loosely coiled by its front paws and a small gray-white tabby kitten, sitting side by side and looking gently upwards while patiently waiting. Refine the anatomy, natural paws, soft detailed fur, balanced expressions, neat leash, no GPS symbols or pin. Calm affection, polished 3D storybook painted finish consistent with reference. Make this SEASON-NEUTRAL: remove all maple leaves and trees; just a very faint soft ground shadow. Complete silhouettes without cropping, broad landscape 3:2 composition, subjects centered occupying 85% height. Transparent background with real alpha. No lettering, logo, frame, border, card, map, weather, gradient panel or decorative particles.",
+      "sha256": "4ba55abcd37f460cb29976ba5f3eb351107c370130e5b67433d4bddfe4d9b4df"
+    },
+    {
+      "file": "recovery-autumn-v1.png",
+      "source": "/Users/shinjaejun/.codex/generated_images/019e64c4-5ab9-7e72-910a-0c8175b0791c/exec-21c14d54-6fae-4c4d-9886-edec9383f5ee.png",
+      "prompt": "Use case: background-extraction. Asset type: transparent illustration for a NURI recovery bottom sheet. Input image is a UI mockup. Extract and faithfully reproduce ONLY the illustration of the resting golden retriever puppy, sleeping gray-and-white tabby kitten nestled beside it, cockatiel sitting on puppy head, autumn maple leaves and brown leash at their paws. Preserve the proposed illustration's exact soft painted 3D storybook character style, reclining pose, cozy expressions and wide low composition. No redesign of characters. Remove ALL UI, map, white backdrop, text, buttons, weather, progress bars and screen frame. Transparent real alpha around the illustration; no halo or large blurred glow; tiny soft ground shadow only. Wide landscape ratio about 2:1. Entire illustration visible, no cropped paws/ears. No lettering, logo or watermark.",
+      "sha256": "4fb2016cad4b75a614b2d3c5bf680cbd4457ea16b91e1b1615d27ed912dcfe72"
+    }
+  ],
+  "recoveryOtherSeasons": "reuse dedicated approved finish-confirm seasonal illustrations; no autumn fallback"
+}

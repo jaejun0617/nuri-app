@@ -31,6 +31,8 @@ type Props = {
   insetBottom: number;
   busy: boolean;
   onClose: () => void;
+  fixtureOnly?: boolean;
+  fixtureContext?: React.ReactNode;
 };
 export default function WalkLocalResult(props: Props) {
   const [routeOpen, setRouteOpen] = useState(false);
@@ -80,7 +82,9 @@ export default function WalkLocalResult(props: Props) {
       >
         <View testID="walk-result-artwork-frame" style={styles.artFrame}>
           <Image
-            testID="walk-result-artwork"
+            testID={
+              props.fixtureOnly ? 'walk-future-artwork' : 'walk-result-artwork'
+            }
             source={finishArtwork(props.season)}
             resizeMode="contain"
             accessible={false}
@@ -88,15 +92,22 @@ export default function WalkLocalResult(props: Props) {
             style={styles.art}
           />
         </View>
-        <View style={styles.summary}>
-          <View style={styles.heading}>
+        <View
+          style={[styles.summary, props.fixtureOnly && styles.fixtureSummary]}
+        >
+          <View
+            testID={props.fixtureOnly ? 'walk-future-copy' : undefined}
+            style={props.fixtureOnly ? styles.fixtureHeading : styles.heading}
+          >
             <AppText
               testID="walk-result-title"
               preset="titleSm"
               accessibilityRole="header"
               style={[styles.title, { color: accent }]}
             >
-              우리, 오늘도 잘 다녀왔어요!
+              {props.fixtureOnly
+                ? '함께 걸은 오늘을 남겨볼까요?'
+                : '우리, 오늘도 잘 다녀왔어요!'}
             </AppText>
             <AppText
               testID="walk-result-pet-copy"
@@ -111,9 +122,11 @@ export default function WalkLocalResult(props: Props) {
             activeMs={props.activeMs}
             accent={accent}
           />
-          <AppText preset="caption" style={styles.note}>
-            산책 결과를 기기에 저장했어요.
-          </AppText>
+          {!props.fixtureOnly && (
+            <AppText preset="caption" style={styles.note}>
+              산책 결과를 기기에 저장했어요.
+            </AppText>
+          )}
           {props.qualityNeedsReview && (
             <AppText
               testID="walk-result-quality-warning"
@@ -124,42 +137,48 @@ export default function WalkLocalResult(props: Props) {
               일부 구간의 위치 기록을 확인해야 해요.
             </AppText>
           )}
-          <Pressable
-            testID="walk-result-route-toggle"
-            accessibilityRole="button"
-            accessibilityLabel={routeOpen ? '걸어온 길 접기' : '걸어온 길 보기'}
-            accessibilityState={{
-              expanded: routeOpen,
-              disabled: !props.routeAvailable,
-            }}
-            disabled={!props.routeAvailable}
-            onPress={() => {
-              if (!props.routeAvailable) return;
-              revealPending.current = !routeOpen;
-              setRouteOpen(!routeOpen);
-            }}
-            style={styles.routeAction}
-          >
-            <AppText
-              testID="walk-result-route-label"
-              preset="button"
-              style={[styles.routeLabel, { color: accent }]}
+          {props.fixtureOnly ? (
+            <View style={styles.fixtureActions}>{props.fixtureContext}</View>
+          ) : (
+            <Pressable
+              testID="walk-result-route-toggle"
+              accessibilityRole="button"
+              accessibilityLabel={
+                routeOpen ? '걸어온 길 접기' : '걸어온 길 보기'
+              }
+              accessibilityState={{
+                expanded: routeOpen,
+                disabled: !props.routeAvailable,
+              }}
+              disabled={!props.routeAvailable}
+              onPress={() => {
+                if (!props.routeAvailable) return;
+                revealPending.current = !routeOpen;
+                setRouteOpen(!routeOpen);
+              }}
+              style={styles.routeAction}
             >
-              {props.routeAvailable
-                ? routeOpen
-                  ? '걸어온 길 접기'
-                  : '걸어온 길 보기'
-                : '표시할 경로가 없어요'}
-            </AppText>
-            {props.routeAvailable && (
-              <Feather
-                name={routeOpen ? 'chevron-up' : 'chevron-right'}
-                color={accent}
-                size={16}
-                accessible={false}
-              />
-            )}
-          </Pressable>
+              <AppText
+                testID="walk-result-route-label"
+                preset="button"
+                style={[styles.routeLabel, { color: accent }]}
+              >
+                {props.routeAvailable
+                  ? routeOpen
+                    ? '걸어온 길 접기'
+                    : '걸어온 길 보기'
+                  : '표시할 경로가 없어요'}
+              </AppText>
+              {props.routeAvailable && (
+                <Feather
+                  name={routeOpen ? 'chevron-up' : 'chevron-right'}
+                  color={accent}
+                  size={16}
+                  accessible={false}
+                />
+              )}
+            </Pressable>
+          )}
           {routeOpen && props.routeAvailable && (
             <>
               {props.routePartial && (
@@ -190,38 +209,65 @@ export default function WalkLocalResult(props: Props) {
         </View>
       </ScrollView>
       <View style={[styles.footer, { paddingBottom: props.insetBottom + 16 }]}>
-        <Pressable
-          testID="walk-primary"
-          accessibilityRole="button"
-          accessibilityLabel="산책 화면 닫기"
-          accessibilityState={{ disabled: props.busy }}
-          disabled={props.busy}
-          onPress={props.onClose}
-          style={({ pressed }) => [
-            styles.primary,
-            {
-              backgroundColor: resolveCtaPalette({
-                role: 'primary',
-                season: props.season,
-                colorScheme: 'light',
-                colors: lightColors,
-                state: props.busy
-                  ? 'disabled'
-                  : pressed
-                  ? 'pressed'
-                  : 'default',
-              }).background,
-            },
-          ]}
-        >
-          <AppText
-            testID="walk-primary-label"
-            preset="button"
-            style={styles.buttonText}
+        {props.fixtureOnly ? (
+          <View style={styles.fixtureFooter}>
+            {(['산책 기록으로 남기기', '나중에 기록하기'] as const).map(
+              (label, index) => (
+                <Pressable
+                  key={label}
+                  testID={
+                    index === 0 ? 'walk-future-record' : 'walk-future-later'
+                  }
+                  disabled
+                  accessibilityRole="button"
+                  accessibilityLabel={label}
+                  accessibilityState={{ disabled: true }}
+                  style={[styles.primary, styles.fixtureDisabled]}
+                >
+                  <AppText
+                    preset="button"
+                    style={[styles.buttonText, styles.fixtureDisabledText]}
+                  >
+                    {label}
+                  </AppText>
+                </Pressable>
+              ),
+            )}
+          </View>
+        ) : (
+          <Pressable
+            testID="walk-primary"
+            accessibilityRole="button"
+            accessibilityLabel="산책 화면 닫기"
+            accessibilityState={{ disabled: props.busy }}
+            disabled={props.busy}
+            onPress={props.onClose}
+            style={({ pressed }) => [
+              styles.primary,
+              {
+                backgroundColor: resolveCtaPalette({
+                  role: 'primary',
+                  season: props.season,
+                  colorScheme: 'light',
+                  colors: lightColors,
+                  state: props.busy
+                    ? 'disabled'
+                    : pressed
+                    ? 'pressed'
+                    : 'default',
+                }).background,
+              },
+            ]}
           >
-            산책 화면 닫기
-          </AppText>
-        </Pressable>
+            <AppText
+              testID="walk-primary-label"
+              preset="button"
+              style={styles.buttonText}
+            >
+              산책 화면 닫기
+            </AppText>
+          </Pressable>
+        )}
       </View>
     </View>
   );
@@ -239,6 +285,16 @@ const styles = StyleSheet.create({
     justifyContent: 'space-evenly',
   },
   heading: { gap: 6 },
+  fixtureSummary: { flexGrow: 0, justifyContent: 'flex-start', gap: 16 },
+  fixtureHeading: { paddingTop: 16, paddingBottom: 16, gap: 8 },
+  fixtureActions: { gap: 12, paddingTop: 8, paddingBottom: 16 },
+  fixtureFooter: { gap: 12 },
+  fixtureDisabled: {
+    backgroundColor: lightColors.surface,
+    borderColor: lightColors.border,
+    borderWidth: 1,
+  },
+  fixtureDisabledText: { color: lightColors.textSecondary },
   title: {
     fontSize: 17,
     lineHeight: 25,

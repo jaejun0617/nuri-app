@@ -1,5 +1,18 @@
 # Walk Phase 3B2 Presentation Candidate
 
+## 2026-10-18 Remaining five-state implementation override
+
+- Latest PO instruction implements the remaining five proposals: acquiring illustration/copy, text-only weak/lost with a bounded native loader, one recovery summary, and fixed-spacing future-result copy with two disabled footer actions. Reduced motion/background use a static loader indicator. Existing native commands, map projection, clock, privacy gate and actual/public boundaries are unchanged.
+- Acquiring/recovery use explicit contain frames; recovery removes the map's minimum height to keep controls in the safe viewport. The approved seasonal finish/result assets and common notices remain. Future fixture uses header/Back to close, never creates a record or navigates to RecordCreate. Actual local-result behavior remains unchanged.
+- [Current preflight](../../qa/nuri-walk-final-preflight-2026-10-18.md) and its external final receipt supersede earlier preview-only status. Both independent route distances are1000m, but timer device exit remains NOT_PASS. Do not equate presentation/local/release validation with outdoor completion or Phase3 closure.
+
+## 2026-10-18 Seasonal finish art and common notice override
+
+- Spring/summer/winter now have separate transparent confirmation/result illustrations instead of pre-walk reuse. Autumn bytes are unchanged. Keep the existing contain frames, full-width result and small fonts/accents/CTA. S24 bounds for artwork/title/distance/time match autumn exactly in all four seasons; illustration silhouettes naturally differ.
+- Existing ActionSheet motion owns6 common notices: active/paused/recovery minimize, permission, location-disabled and request-failed. Minimize closes presentation only; paused/recovery never promise ongoing collection. Failed requests offer snapshot refresh, not automatic replay of a mutation. Public notice fixtures never open settings or mutate native state. Dismissed PAUSED retains explicit stopped-recording copy and a small seasonal accent rule.
+- [Current validation and five preview-only proposals](../../qa/nuri-walk-common-seasonal-design-review-2026-10-18.md):17 suites/481 targeted tests, final full268 suites/3328 tests, TypeScript/lint0/0 PASS. Two full runs bracket a minimal generic-error-sheet stacking corrective; preserve its2 failing assertions. Finish/resume retry sheets retain their own error context without a second modal. Explicitly approved Debug1/install-r1 retains signer/UID/first-install/permissions/settings; no further install or Release/commit/push. Public S24 art/notice/Back/PAUSED/geometry checks PASS; actual permission failure, TalkBack and outdoor readability are not claimed. Capture5 remaining states only after verification; generate5 mockups without applying them.
+- Native/engine/Room/FGS/Wizard protocol/timer/navigation/server/record/XP source and original181 dirty hashes remain unchanged. Timer/URBAN gates remain unresolved. Metro ON, public winter result, service OFF, device control STOPPED, STORE HOLD; next is PO visual review only.
+
 ## 2026-10-18 Finish sheet and local result override
 
 - Latest PO approval replaces finish confirmation with a measured native slide sheet sharing rest-sheet motion and recovery guards. Keep confirmation until native finish succeeds; cancel/Back never finish. The autumn vignette is enlarged to a 264dp maximum, 2:1 frame. The image-led local result uses full viewport width and the original 1402:1122 ratio, without a height cap or cropped animals. Other seasons reuse their own existing artwork.

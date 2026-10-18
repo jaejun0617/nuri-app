@@ -48,7 +48,7 @@ export const WALK_COPY: Record<
     icon: 'wifi-off',
   },
   RECOVERY_REQUIRED: {
-    title: '중단된 산책이 있어요',
+    title: '함께 걷던 길, 이어갈까요?',
     supporting: '마지막으로 안전하게 저장된 지점부터 이어갈 수 있어요.',
     icon: 'rotate-ccw',
   },
@@ -63,7 +63,7 @@ export const WALK_COPY: Record<
     icon: 'check-circle',
   },
   FUTURE_RECORD_CTA_PREVIEW: {
-    title: '오늘의 산책을 기억해요',
+    title: '함께 걸은 오늘을 남겨볼까요?',
     supporting: '함께 걸은 순간을 기록으로 남겨볼까요?',
     icon: 'heart',
   },

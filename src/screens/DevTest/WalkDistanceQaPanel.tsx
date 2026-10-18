@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   AppState,
   Button,
+  Linking,
   Modal,
   PermissionsAndroid,
   Platform,
@@ -47,6 +48,12 @@ import WalkMapStage, {
 } from './walkPresentation/WalkMapStage';
 import WalkView, { IconControl, WalkAction } from './walkPresentation/WalkView';
 import WalkRestSheet from './walkPresentation/WalkRestSheet';
+import WalkNoticeSheet from './walkPresentation/WalkNoticeSheet';
+import {
+  minimizeNotice,
+  noticeForError,
+  type WalkNoticeKind,
+} from './walkPresentation/noticeModel';
 import {
   GALLERY_STATES,
   hasActiveWalk,
@@ -102,6 +109,8 @@ export default function WalkDistanceQaPanel() {
   const [finishConfirm, setFinishConfirm] = useState(false),
     [minimizeConfirm, setMinimizeConfirm] = useState(false);
   const [restSheetOpen, setRestSheetOpen] = useState(false);
+  const [qaNotice, setQaNotice] = useState<WalkNoticeKind | null>(null);
+  const [errorNoticeOpen, setErrorNoticeOpen] = useState(false);
   const [physical, setPhysical] = useState(false),
     [reviewComplete, setReviewComplete] = useState(false);
   const [mapReady, setMapReady] = useState(false),
@@ -124,6 +133,9 @@ export default function WalkDistanceQaPanel() {
   const open =
     visible && owner !== null && owner === openedOwner.current && enabled;
   const designLocation = useWalkDesignLocation(open, owner);
+  useEffect(() => {
+    setErrorNoticeOpen(!!noticeForError(error));
+  }, [error]);
   const season = preview ? gallerySeason ?? effectiveSeason : effectiveSeason;
   const pet = pets.find(
     p =>
@@ -189,7 +201,10 @@ export default function WalkDistanceQaPanel() {
     setMapLoaded(false);
     setMode('FOLLOW');
     setRestSheetOpen(false);
+    setMinimizeConfirm(false);
+    setErrorNoticeOpen(false);
     if (!open) {
+      setQaNotice(null);
       setSnapshot(null);
       setProtocol(null);
       latest.current = null;
@@ -200,6 +215,7 @@ export default function WalkDistanceQaPanel() {
       if (token !== epoch.current) return;
       if (latest.current?.sessionId !== s?.sessionId) {
         setFinishConfirm(false);
+        setMinimizeConfirm(false);
         setRestSheetOpen(false);
         selectedPage.current = null;
         setPage(null);
@@ -207,7 +223,10 @@ export default function WalkDistanceQaPanel() {
       }
       latest.current = s;
       setSnapshot(s);
-      if (s?.runtimeState === 'FINISHED_LOCAL') setFinishConfirm(false);
+      if (s?.runtimeState === 'FINISHED_LOCAL') {
+        setFinishConfirm(false);
+        setMinimizeConfirm(false);
+      }
       if (preview || !s?.distanceSummary) {
         setPage(null);
         selectedPage.current = null;
@@ -264,6 +283,7 @@ export default function WalkDistanceQaPanel() {
       valid = () => token === generation.current;
     operationRunning.current = true;
     setBusy(true);
+    setError('READY');
     try {
       await operation(valid);
       if (valid()) setError('PASS');
@@ -344,6 +364,9 @@ export default function WalkDistanceQaPanel() {
     selectedPage.current = null;
     setFinishConfirm(false);
     setRestSheetOpen(false);
+    setQaNotice(null);
+    setMinimizeConfirm(false);
+    setErrorNoticeOpen(false);
     setMode('FOLLOW');
     setPreview(nextPreview);
     setQaOpen(false);
@@ -435,6 +458,46 @@ export default function WalkDistanceQaPanel() {
     if (preview && galleryState === 'FINISH_CONFIRM')
       setGalleryState('WALKING');
   };
+  const dismissNotice = () => {
+    if (operationRunning.current) return;
+    setQaNotice(null);
+    setMinimizeConfirm(false);
+    setErrorNoticeOpen(false);
+  };
+  const errorNoticeKind = noticeForError(error);
+  // Finish/resume sheets already own their retry context; never stack a generic error sheet above them.
+  const contextualRequestFailure =
+    errorNoticeKind === 'REQUEST_FAILED' && (finishConfirm || restSheetOpen);
+  useEffect(() => {
+    if (contextualRequestFailure) setErrorNoticeOpen(false);
+  }, [contextualRequestFailure]);
+  const noticeKind =
+    qaNotice ??
+    (minimizeConfirm && hasActiveWalk(snapshot)
+      ? minimizeNotice(snapshot?.runtimeState)
+      : errorNoticeOpen && !contextualRequestFailure
+      ? errorNoticeKind
+      : null);
+  const noticeVisible = open && !qaOpen && !!noticeKind;
+  const noticePrimary = () => {
+    if (operationRunning.current || !noticeKind) return;
+    if (noticeKind.startsWith('MINIMIZE_')) {
+      dismissNotice();
+      setVisible(false);
+    } else if (qaNotice || preview) {
+      // Public design fixtures never open settings or issue native commands.
+      dismissNotice();
+    } else if (noticeKind === 'REQUEST_FAILED') {
+      run(refresh);
+    } else {
+      run(async valid => {
+        if (noticeKind === 'LOCATION_DISABLED' && Platform.OS === 'android') {
+          await Linking.sendIntent('android.settings.LOCATION_SOURCE_SETTINGS');
+        } else await Linking.openSettings();
+        if (valid()) dismissNotice();
+      });
+    }
+  };
   if (!enabled) return null;
   const step = protocol?.steps[protocol.stepIndex];
   const baseState = preview
@@ -449,6 +512,7 @@ export default function WalkDistanceQaPanel() {
     open &&
     !qaOpen &&
     !minimizeConfirm &&
+    !noticeVisible &&
     !designReview &&
     state === 'PAUSED' &&
     restSheetOpen;
@@ -523,6 +587,7 @@ export default function WalkDistanceQaPanel() {
           if (operationRunning.current) return;
           openedOwner.current = owner;
           setBusy(false);
+          setError('READY');
           setQaOpen(false);
           setPreview(true);
           setPublicGallery(false);
@@ -536,7 +601,9 @@ export default function WalkDistanceQaPanel() {
       <Modal
         visible={open}
         onRequestClose={
-          restSheetVisible
+          noticeVisible
+            ? dismissNotice
+            : restSheetVisible
             ? () => setRestSheetOpen(false)
             : minimizeConfirm
             ? () => setMinimizeConfirm(false)
@@ -612,6 +679,44 @@ export default function WalkDistanceQaPanel() {
                           setPublicGallery(true);
                           setGalleryState(s);
                           setRestSheetOpen(s === 'PAUSED');
+                        }}
+                      />
+                    </View>
+                  ))}
+                </View>
+                <AppText preset="sectionTitle">공통 안내 디자인</AppText>
+                <View style={styles.row}>
+                  {(
+                    [
+                      ['MINIMIZE_ACTIVE', '기록 중 닫기'],
+                      ['MINIMIZE_PAUSED', '쉬는 중 닫기'],
+                      ['MINIMIZE_RECOVERY', '복구 대기 닫기'],
+                      ['PERMISSION_REQUIRED', '권한 안내'],
+                      ['LOCATION_DISABLED', '위치 꺼짐 안내'],
+                      ['REQUEST_FAILED', '요청 실패 안내'],
+                    ] as const
+                  ).map(([kind, label]) => (
+                    <View key={kind} style={styles.galleryCell}>
+                      <WalkAction
+                        label={label}
+                        season={season}
+                        role="secondary"
+                        testID={`walk-notice-gallery-${kind}`}
+                        onPress={() => {
+                          if (operationRunning.current) return;
+                          switchMode(true);
+                          setPublicGallery(true);
+                          setGalleryState(
+                            kind === 'MINIMIZE_PAUSED'
+                              ? 'PAUSED'
+                              : kind === 'MINIMIZE_RECOVERY'
+                              ? 'RECOVERY_REQUIRED'
+                              : kind === 'PERMISSION_REQUIRED' ||
+                                kind === 'LOCATION_DISABLED'
+                              ? 'PRE_WALK'
+                              : 'WALKING',
+                          );
+                          setQaNotice(kind);
                         }}
                       />
                     </View>
@@ -935,36 +1040,17 @@ export default function WalkDistanceQaPanel() {
               />
             </View>
           ))}
-        {minimizeConfirm && open && (
-          <View
-            style={[
-              styles.minimize,
-              {
-                backgroundColor: theme.colors.surfaceElevated,
-                paddingTop: insets.top + 24,
-                paddingBottom: insets.bottom + 24,
-              },
-            ]}
-          >
-            <AppText preset="titleLg">
-              화면을 닫아도 산책은 계속 기록돼요.
-            </AppText>
-            <WalkAction
-              label="계속 기록하고 닫기"
-              season={season}
-              onPress={() => {
-                setMinimizeConfirm(false);
-                setVisible(false);
-              }}
-              testID="walk-minimize-confirm"
-            />
-            <WalkAction
-              label="산책 화면으로 돌아가기"
-              season={season}
-              role="secondary"
-              onPress={() => setMinimizeConfirm(false)}
-            />
-          </View>
+        {noticeKind && (
+          <WalkNoticeSheet
+            kind={noticeKind}
+            visible={noticeVisible}
+            season={season}
+            insetTop={insets.top}
+            insetBottom={insets.bottom}
+            busy={busy}
+            onDismiss={dismissNotice}
+            onPrimary={noticePrimary}
+          />
         )}
         {open && (
           <WalkRestSheet
@@ -995,11 +1081,5 @@ const styles = StyleSheet.create({
     padding: 10,
     minHeight: 48,
     color: '#0B1220',
-  },
-  minimize: {
-    ...StyleSheet.absoluteFill,
-    paddingHorizontal: 24,
-    justifyContent: 'center',
-    gap: 20,
   },
 });

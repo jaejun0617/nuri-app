@@ -12,6 +12,11 @@ jest.mock(
   '../src/screens/DevTest/walkPresentation/WalkWeatherChip',
   () => 'Weather',
 );
+// Loader accessibility is covered separately; this suite owns only clock behavior.
+jest.mock(
+  '../src/screens/DevTest/walkPresentation/WalkSignalStatus',
+  () => 'SignalStatus',
+);
 jest.mock('react-native/Libraries/AppState/AppState', () => ({
   __esModule: true,
   default: {

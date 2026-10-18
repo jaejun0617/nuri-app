@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Pressable,
+  Image,
   ScrollView,
   StyleSheet,
   View,
@@ -17,19 +18,15 @@ import {
   type CtaRole,
 } from '../../../app/theme/ctaPalette';
 import type { SeasonKey } from '../../../theme/seasonal/season';
-import {
-  averageSpeed,
-  metricDistance,
-  metricTime,
-  WALK_COPY,
-  type PresentationState,
-} from './model';
+import { metricDistance, WALK_COPY, type PresentationState } from './model';
 import { WALK_SHEET_OVERLAP, WALK_TEXT } from './visuals';
 import WalkWeatherChip from './WalkWeatherChip';
 import WalkElapsedMetric from './WalkElapsedMetric';
 import WalkPreWalk from './WalkPreWalk';
 import WalkFinishSheet from './WalkFinishSheet';
 import WalkLocalResult from './WalkLocalResult';
+import WalkSignalStatus from './WalkSignalStatus';
+import { finishArtwork } from './finishArtwork';
 import { lightColors } from '../../../app/theme/tokens/colors';
 import { walkCopyAccent } from './walkAccent';
 
@@ -57,18 +54,30 @@ const Chip = styled.View<{ $accent: string }>`
   border-radius: 8px;
   align-self: flex-start;
 `;
-const Panel = styled(Surface)`
-  padding: 24px;
-  gap: 16px;
-  border-radius: 8px;
-  width: 100%;
-  max-width: 480px;
-`;
-function WalkContextRow({ copy, season }: { copy: string; season: SeasonKey }) {
+function WalkContextRow({
+  copy,
+  season,
+  paused = false,
+}: {
+  copy: string;
+  season: SeasonKey;
+  paused?: boolean;
+}) {
   const theme = useTheme();
   return (
     <View testID="walk-context-row" style={styles.stateLine}>
-      <View style={styles.flex}>
+      <View
+        testID={paused ? 'walk-paused-status' : undefined}
+        style={[
+          styles.flex,
+          paused && {
+            borderLeftWidth: 3,
+            borderLeftColor: walkCopyAccent(season, theme.mode === 'dark'),
+            paddingLeft: 10,
+            paddingVertical: 6,
+          },
+        ]}
+      >
         <AppText
           testID="walk-supporting-copy"
           preset="caption"
@@ -351,23 +360,26 @@ export default function WalkView(props: Props) {
   const theme = useTheme(),
     { width, height, fontScale } = useWindowDimensions();
   const copyAccent = walkCopyAccent(season, theme.mode === 'dark');
-  const copy = WALK_COPY[state],
-    seasonal = SEASON_CTA[season];
+  const copy = WALK_COPY[state];
   const result =
     state === 'FINISHED_LOCAL' || state === 'FUTURE_RECORD_CTA_PREVIEW';
   const paused = state === 'PAUSED',
     recovery = state === 'RECOVERY_REQUIRED';
   const pre = state === 'PRE_WALK',
     confirm = state === 'FINISH_CONFIRM';
-  const paper = pre || state === 'FINISHED_LOCAL';
+  const acquiring = state === 'GPS_ACQUIRING';
+  const signalIssue = state === 'GPS_WEAK' || state === 'GPS_LOST';
+  const paper = pre || result || acquiring;
   const supporting = props.designReview
     ? props.designMessage ?? copy.supporting
     : paused
     ? '시간과 거리 기록을 멈췄어요'
-    : state === 'GPS_ACQUIRING'
-    ? '잠시만 기다려 주세요'
-    : ['GPS_WEAK', 'GPS_LOST'].includes(state)
-    ? '함께하는 이 순간을 즐겨요.'
+    : acquiring
+    ? '함께 걸을 준비를 하고 있어요.'
+    : signalIssue
+    ? '함께하는 발걸음을 소중히 기록해요.'
+    : recovery
+    ? '이어가기를 누르기 전에는 기록하지 않아요.'
     : copy.supporting;
   const stacked = width < 380 || fontScale >= 1.3;
   const primary = result
@@ -441,7 +453,7 @@ export default function WalkView(props: Props) {
       />
     );
   }
-  if (state === 'FINISHED_LOCAL') {
+  if (result) {
     return (
       <WalkLocalResult
         header={header}
@@ -457,14 +469,46 @@ export default function WalkView(props: Props) {
         insetBottom={props.insetBottom}
         busy={busy}
         onClose={props.onPrimary}
+        fixtureOnly={state === 'FUTURE_RECORD_CTA_PREVIEW'}
+        fixtureContext={
+          state === 'FUTURE_RECORD_CTA_PREVIEW' ? (
+            <WalkContextRow copy="기록 연결은 준비 중이에요." season={season} />
+          ) : undefined
+        }
       />
     );
   }
   return (
     <Root testID="walk-product-screen">
       {header}
-      <View style={styles.mapStage}>
-        {props.map}
+      <View style={[styles.mapStage, recovery && styles.recoveryMap]}>
+        {acquiring ? (
+          <ScrollView
+            contentContainerStyle={styles.acquiringContent}
+            showsVerticalScrollIndicator={false}
+          >
+            <View
+              testID="walk-acquiring-artwork-frame"
+              style={styles.acquiringArt}
+            >
+              <Image
+                testID="walk-acquiring-artwork"
+                source={require('../../../assets/images/walk/gps-acquiring-companions-v1.png')}
+                resizeMode="contain"
+                accessible={false}
+                style={styles.containedArt}
+              />
+            </View>
+            <AppText
+              preset="titleSm"
+              style={[styles.stateTitle, { color: copyAccent }]}
+            >
+              함께 걸을 준비를 해요
+            </AppText>
+          </ScrollView>
+        ) : (
+          props.map
+        )}
         <View
           pointerEvents="none"
           style={styles.mapTop}
@@ -482,59 +526,8 @@ export default function WalkView(props: Props) {
           )}
         </View>
         {paused && <View pointerEvents="none" style={styles.dim} />}
-        {(recovery || result) && (
-          <View style={styles.center} testID="walk-state-overlay">
-            <ScrollView
-              contentContainerStyle={styles.centerContent}
-              showsVerticalScrollIndicator={false}
-            >
-              <Panel>
-                <Feather name={copy.icon} size={30} color={seasonal.primary} />
-                <AppText
-                  preset="titleLg"
-                  style={[WALK_TEXT.title, { color: copyAccent }]}
-                  accessibilityRole="header"
-                >
-                  {copy.title}
-                </AppText>
-                <WalkContextRow copy={supporting} season={season} />
-                {(result || confirm || recovery) && (
-                  <AppText
-                    preset="display"
-                    style={WALK_TEXT.metric}
-                    fontModeOverride="pretendard"
-                  >
-                    {metricDistance(distanceM)} km · {metricTime(activeMs)}
-                  </AppText>
-                )}
-                {result && (
-                  <AppText preset="bodySm">
-                    평균 {averageSpeed(distanceM, activeMs)} km/h
-                  </AppText>
-                )}
-                {result && (
-                  <AppText preset="bodySm">{props.qualityLabel}</AppText>
-                )}
-                {state === 'FUTURE_RECORD_CTA_PREVIEW' && (
-                  <>
-                    <AppText preset="caption">향후 기록 연결 시안</AppText>
-                    <WalkAction
-                      label="산책 기록으로 남기기"
-                      season={season}
-                      disabled
-                    />
-                    <WalkAction
-                      label="나중에 기록하기"
-                      season={season}
-                      disabled
-                    />
-                  </>
-                )}
-              </Panel>
-            </ScrollView>
-          </View>
-        )}
-        {!pre && !recovery && !confirm && !result && (
+        {recovery && <View pointerEvents="none" style={styles.dim} />}
+        {!pre && !recovery && !confirm && !result && !acquiring && (
           <View style={styles.recenter}>
             <IconControl
               label="내 위치로 돌아가기"
@@ -553,7 +546,10 @@ export default function WalkView(props: Props) {
       {!confirm && (
         <Bottom
           testID="walk-bottom-sheet"
-          style={{ maxHeight: height * 0.56, marginTop: -WALK_SHEET_OVERLAP }}
+          style={{
+            maxHeight: height * (recovery ? 0.76 : 0.56),
+            marginTop: -WALK_SHEET_OVERLAP,
+          }}
         >
           <ScrollView
             bounces={false}
@@ -561,8 +557,48 @@ export default function WalkView(props: Props) {
             style={styles.sheetScroll}
             contentContainerStyle={styles.bottomContent}
           >
-            {!pre && !recovery && !result && (
-              <WalkContextRow copy={supporting} season={season} />
+            {recovery && (
+              <View style={styles.recoveryContent}>
+                <View
+                  testID="walk-recovery-artwork-frame"
+                  style={styles.recoveryArt}
+                >
+                  <Image
+                    testID="walk-recovery-artwork"
+                    source={
+                      season === 'autumn'
+                        ? require('../../../assets/images/walk/recovery-autumn-v1.png')
+                        : finishArtwork(season, true)
+                    }
+                    resizeMode="contain"
+                    accessible={false}
+                    style={styles.containedArt}
+                  />
+                </View>
+                <AppText
+                  preset="titleSm"
+                  accessibilityRole="header"
+                  style={[styles.stateTitle, { color: copyAccent }]}
+                >
+                  함께 걷던 길, 이어갈까요?
+                </AppText>
+                <AppText preset="bodySm" style={styles.recoveryCopy}>
+                  {'마지막으로 저장한 지점부터\n다시 함께 걸을 수 있어요.'}
+                </AppText>
+              </View>
+            )}
+            {(acquiring || signalIssue) && (
+              <WalkSignalStatus
+                state={state as 'GPS_ACQUIRING' | 'GPS_WEAK' | 'GPS_LOST'}
+                season={season}
+              />
+            )}
+            {!pre && !result && (
+              <WalkContextRow
+                copy={supporting}
+                season={season}
+                paused={paused}
+              />
             )}
             {!pre && !result && (
               <View style={styles.metrics}>
@@ -770,23 +806,28 @@ const styles = StyleSheet.create({
   playGlyph: { transform: [{ translateX: 1 }] },
   controlLabel: { flexShrink: 1, textAlign: 'center' },
   mapStage: { flex: 1, minHeight: 180 },
+  recoveryMap: { minHeight: 0 },
+  containedArt: { width: '100%', height: '100%' },
+  acquiringContent: {
+    flexGrow: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    gap: 8,
+    backgroundColor: lightColors.surfaceElevated,
+  },
+  acquiringArt: { width: '100%', maxWidth: 320, aspectRatio: 1.5 },
+  stateTitle: { fontSize: 16, lineHeight: 24, textAlign: 'center' },
+  recoveryContent: { alignItems: 'center', gap: 8 },
+  recoveryArt: { width: '100%', maxWidth: 320, aspectRatio: 2 },
+  recoveryCopy: { fontSize: 13, lineHeight: 21, textAlign: 'center' },
   mapTop: { position: 'absolute', top: 12, left: 16, right: 16, zIndex: 2 },
   dim: {
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(11,18,32,0.18)',
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  center: {
-    ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(246,247,251,0.88)',
-    zIndex: 1,
-  },
-  centerContent: {
-    padding: 20,
-    flexGrow: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   recenter: {
     position: 'absolute',
