@@ -65,13 +65,39 @@ function productInventory(root) {
   return records;
 }
 
-function validateDryRun(output, onRejectedTask) {
+// Installed RNFB 23.8.6 / Invertase Gradle 1.5 emit these configuration
+// diagnostics before Gradle's task graph. Values/paths never leave this parser.
+function colonDiagnostic(line) {
+  const match = /^:(@?react-native-firebase_(app|crashlytics))(.*)$/.exec(line);
+  const project = match ? (match[2] === 'app' ? 'RNFB_APP' : 'RNFB_CRASHLYTICS')
+    : /^:app(?=[:\s]|$)/.test(line) ? 'APP' : 'OTHER';
+  if (match) {
+    const body = match[3];
+    let category;
+    if (/^ package\.json found at (?:\/|\[REDACTED_INPUT\]\/)[^\r\n]*\/package\.json$/.test(body)) category = 'PACKAGE_JSON_LOCATION';
+    else if (/^:(?:firebase\.bom|play\.play-services-auth) using (?:default|custom) value: \d+\.\d+\.\d+$/.test(body)) category = 'SDK_VERSION';
+    else if (/^:android\.(?:compileSdk|targetSdk|minSdk) using (?:default|custom) value: \d{1,3}$/.test(body)) category = 'ANDROID_SDK';
+    else if (/^:version set from package\.json: \d+\.\d+\.\d+ \(\d+,\d+,\d+ - \d+\)$/.test(body)) category = 'PACKAGE_VERSION';
+    else if (/^:reactNativeAndroidDir (?:\/|\[REDACTED_INPUT\]\/)[^\r\n]*\/node_modules\/react-native\/android$/.test(body)) category = 'RN_SOURCE_LOCATION';
+    else if (project === 'RNFB_APP' && (/^ (?:no firebase\.json found, skipping|firebase\.json found with no react-native config, skipping|found react-native json root in firebase\.json, creating firebase build config)$/.test(body)
+      || /^ firebase\.json found at (?:\/|\[REDACTED_INPUT\]\/)[^\r\n]*\/firebase\.json$/.test(body))) category = 'FIREBASE_JSON_CONFIGURATION';
+    if (category) return { project, category };
+  }
+  return { project, category: 'UNRECOGNIZED_COLON_LINE' };
+}
+
+function validateDryRun(output, onRejectedTask, onDiagnostic) {
   const tasks = [];
   if (!/^BUILD SUCCESSFUL in .+$/m.test(output) || /BUILD FAILED/.test(output)) fail('NURI_AUXILIARY_DRY_RUN_INCOMPLETE');
   for (const line of output.split(/\r?\n/)) {
     if (!line.startsWith(':')) continue;
     const match = /^(:[A-Za-z0-9_.:-]+) SKIPPED$/.exec(line);
-    if (!match) fail('NURI_AUXILIARY_DRY_RUN_MALFORMED');
+    if (!match) {
+      const diagnostic = colonDiagnostic(line);
+      if (typeof onDiagnostic === 'function') onDiagnostic(diagnostic);
+      if (diagnostic.category !== 'UNRECOGNIZED_COLON_LINE') continue;
+      fail('NURI_AUXILIARY_DRY_RUN_MALFORMED');
+    }
     const task = match[1];
     if (task.startsWith(':app:')) {
       const name = task.slice(':app:'.length);
@@ -137,7 +163,7 @@ async function runAndroidAuxiliary(root, expectedHead, env) {
   if (!stat.isDirectory() || stat.isSymbolicLink() || stat.uid !== process.getuid() || (stat.mode & 0o077) || fs.realpathSync(parent) !== parent) fail('NURI_AUXILIARY_EVIDENCE_UNSAFE');
   const directory = fs.mkdtempSync(path.join(parent, `${expectedHead.slice(0, 7)}-`));
   const receipt = { ...source, productApkSha256: PRODUCT_APK_SHA256, productBefore: before,
-    children: [], tasks: [], rejectedTask: null, sourceUnchanged: false, productUnchanged: false, status: 'NOT_STARTED' };
+    children: [], tasks: [], rejectedTask: null, diagnostics: [], sourceUnchanged: false, productUnchanged: false, status: 'NOT_STARTED' };
   let failure;
   try {
     let graph = await runGradle(root, env, true, receipt.children);
@@ -145,7 +171,11 @@ async function runAndroidAuxiliary(root, expectedHead, env) {
     for (const [name, value] of Object.entries(env)) {
       if (name.startsWith('NURI_') && typeof value === 'string' && value) graph = graph.split(value).join('[REDACTED_INPUT]');
     }
-    receipt.tasks = validateDryRun(graph, task => { receipt.rejectedTask = task; });
+    receipt.tasks = validateDryRun(graph, task => { receipt.rejectedTask = task; }, diagnostic => {
+      const previous = receipt.diagnostics.find(item => item.project === diagnostic.project && item.category === diagnostic.category);
+      if (previous) previous.count++;
+      else receipt.diagnostics.push({ ...diagnostic, count: 1 });
+    });
     // Check again BEFORE the sole build: dry-run/configuration is not trusted to be inert.
     if (JSON.stringify(productInventory(root)) !== JSON.stringify(before)) fail('NURI_AUXILIARY_PRODUCT_ARTIFACT_CHANGED');
     requireAuxiliarySource(root, expectedHead);

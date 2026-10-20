@@ -341,6 +341,64 @@ describe('auxiliary-only protected signing, synthetic inputs and mocked children
     for (const name of identity.SIGNING_NAMES) expect(raw).not.toContain(env[name]);
   });
 
+  test('dry-run format: source-proven RNFB configuration rows are not task rows and emit only structural metadata', () => {
+    const diagnostics: unknown[] = [];
+    const configuration = [
+      ':react-native-firebase_app package.json found at /synthetic/private/project/node_modules/@react-native-firebase/app/package.json',
+      ':react-native-firebase_app:firebase.bom using default value: 34.2.0',
+      ':react-native-firebase_app:play.play-services-auth using default value: 21.4.0',
+      ':react-native-firebase_app:android.compileSdk using custom value: 37',
+      ':react-native-firebase_crashlytics:android.minSdk using custom value: 24',
+      ':react-native-firebase_crashlytics:version set from package.json: 23.8.6 (23,8,6 - 23008006)',
+      ':react-native-firebase_app:reactNativeAndroidDir /synthetic/private/project/node_modules/react-native/android',
+      ':react-native-firebase_app no firebase.json found, skipping',
+      ':react-native-firebase_app firebase.json found at /synthetic/private/project/firebase.json',
+      ':react-native-firebase_app found react-native json root in firebase.json, creating firebase build config',
+      ':react-native-firebase_app firebase.json found with no react-native config, skipping',
+    ].join('\n');
+    expect(auxiliary.validateDryRun(configuration + '\n' + graph, undefined, (value: unknown) => diagnostics.push(value))).toEqual(auxiliary.validateDryRun(graph));
+    expect(diagnostics).toHaveLength(11);
+    expect(JSON.stringify(diagnostics)).not.toContain('/synthetic');
+    expect(JSON.stringify(diagnostics)).not.toContain('34.2.0');
+    expect(diagnostics).toContainEqual({ project: 'RNFB_APP', category: 'PACKAGE_JSON_LOCATION' });
+  });
+
+  test.each([
+    ':app:packageRelease SKIPPED', ':app:assembleRelease SKIPPED', ':app:bundleRelease SKIPPED',
+    ':app:packageFutureApk SKIPPED', ':app:createBundleReleaseJsAndAssets SKIPPED',
+  ])('dry-run format: configuration diagnostics never excuse a product or unknown producer: %s', (task: string) => {
+    const prefix = ':react-native-firebase_app:android.compileSdk using custom value: 37\n';
+    expect(() => auxiliary.validateDryRun(prefix + task + '\n' + graph)).toThrow('NURI_AUXILIARY_PRODUCT_TASK_FORBIDDEN');
+  });
+
+  test.each([
+    ':app:packageRelease UP-TO-DATE',
+    ':unreviewed_plugin package.json found at /synthetic/package.json',
+    ':react-native-firebase_app:unknown.setting using custom value: 37',
+    ':react-native-firebase_app package.json found at :app:packageRelease SKIPPED',
+    ':react-native-firebase_app failed to parse firebase.json found at /synthetic/firebase.json.',
+    ':react-native-firebase_app:android.compileSdk using custom value: private-value',
+  ])('dry-run format: unknown diagnostics and malformed task rows still stop with value-free metadata: %s', (line: string) => {
+    const diagnostics: unknown[] = [];
+    expect(() => auxiliary.validateDryRun(line + '\n' + graph, undefined, (value: unknown) => diagnostics.push(value))).toThrow('NURI_AUXILIARY_DRY_RUN_MALFORMED');
+    expect(diagnostics).toHaveLength(1);
+    expect(diagnostics[0]).toMatchObject({ category: 'UNRECOGNIZED_COLON_LINE' });
+    expect(JSON.stringify(diagnostics)).not.toContain(line);
+    expect(JSON.stringify(diagnostics)).not.toContain('private-value');
+  });
+
+  test('dry-run format: a redacted configuration value is not accepted or leaked into a receipt', async () => {
+    mockSource(); mockArtifacts();
+    const spawn = mockGradle([{ code: 0, text: `:react-native-firebase_app:android.compileSdk using custom value: ${env.NURI_UPLOAD_STORE_PASSWORD}\n${graph}` }]);
+    await expect(auxiliary.runAndroidAuxiliary(root, head, env)).rejects.toThrow('NURI_AUXILIARY_DRY_RUN_MALFORMED');
+    expect(spawn).toHaveBeenCalledTimes(1);
+    const parent = path.join(root, '.codex/nuri-walk-real-product-20261020/auxiliary-builds');
+    const raw = fs.readFileSync(path.join(parent, fs.readdirSync(parent)[0], 'result.json'), 'utf8');
+    expect(JSON.parse(raw).diagnostics).toEqual([{ project: 'RNFB_APP', category: 'UNRECOGNIZED_COLON_LINE', count: 1 }]);
+    expect(raw).not.toContain(env.NURI_UPLOAD_STORE_PASSWORD);
+    expect(raw).not.toContain('[REDACTED_INPUT]');
+  });
+
   test.each([0, 1])('nonzero child at phase %s stops, keeps real exit metadata and never retries', async (phase: number) => {
     mockSource(); mockArtifacts();
     const outputs = phase === 0 ? [{ code: 23, text: 'failure' }] : [{ code: 0, text: graph }, { code: 19, text: 'failure' }];
