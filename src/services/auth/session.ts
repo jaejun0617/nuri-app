@@ -31,6 +31,13 @@ import {
   captureWalkFinalDeletion,
   queueConfirmedWalkFinalDeletion,
   isConfirmedFinalAccountDeletion,
+  armWalkFinalDeletion,
+  bindWalkAccountDeletionRequest,
+  assertWalkFinalDeletionCurrent,
+  disposeWalkFinalDeletion,
+  noteRestorableWalkDeletion,
+  releaseWalkFinalDeletion,
+  type WalkFinalDeletionScope,
 } from '../walk/product/finalDeletion';
 import {
   clearAllScheduleNotifications,
@@ -170,17 +177,25 @@ export async function performAccountDeletion(): Promise<AccountDeletionResult> {
   });
   const current = () =>
     !changed && useAuthStore.getState().session?.user.id === owner;
+  let cleanup: WalkFinalDeletionScope | null = null;
+  let invoked = false;
   try {
-    const cleanup = await captureWalkFinalDeletion(owner, null);
+    cleanup = await captureWalkFinalDeletion(owner, null);
     if (!current()) throw new Error('WALK_PRODUCT_CONTEXT_CHANGED');
+    await armWalkFinalDeletion(cleanup);
+    assertWalkFinalDeletionCurrent(cleanup);
     const walkStop = stopWalkForLogout();
     if (walkStop) await walkStop;
     if (!current()) throw new Error('WALK_PRODUCT_CONTEXT_CHANGED');
+    assertWalkFinalDeletionCurrent(cleanup);
+    invoked = true;
     const result = await deleteMyAccount({
+      onRequest: receipt => bindWalkAccountDeletionRequest(cleanup, receipt),
       onResult: async receipt =>
         isConfirmedFinalAccountDeletion(receipt)
           ? queueConfirmedWalkFinalDeletion(cleanup)
           : true,
+      onNonFinalResult: receipt => noteRestorableWalkDeletion(cleanup, receipt),
     });
     if (!current()) return { ...result, localContextChanged: true };
     try {
@@ -208,6 +223,13 @@ export async function performAccountDeletion(): Promise<AccountDeletionResult> {
       ? { ...result, localContextChanged: true }
       : result;
   } finally {
+    if (!invoked && cleanup) {
+      await releaseWalkFinalDeletion(cleanup, {
+        outcome: 'NOT_STARTED',
+        code: 'NOT_INVOKED',
+      }).catch(() => undefined);
+    }
+    disposeWalkFinalDeletion(cleanup);
     unsubscribe();
   }
 }

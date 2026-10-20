@@ -201,7 +201,7 @@ class WalkRuntime internal constructor(private val context: Context,
           "PURGE_RESOLVED" -> { exact("sessionId"); products.purgeResolved(actor, id()) }
           "PURGE_FINAL_SCOPE" -> { exact("petId", "confirmation", "after"); products.purgeFinalScope(actor,
             productNullable(body, "petId"), productString(body, "confirmation"), productString(body, "after")) }
-          "CAPTURE_FINAL_CLEANUP" -> { exact("petId"); finalCleanup.capture(actor, productNullable(body, "petId")) }
+          "CAPTURE_FINAL_CLEANUP" -> { exact("petId"); finalCleanup.captureV2(actor, productNullable(body, "petId")) }
           "SNAPSHOT" -> { exact("sessionId"); val (row, meta) = products.owned(actor, id()); snapshot(row, meta) }
           "ROUTE_PAGE" -> { exact("sessionId", "direction", "cursor", "routeRevision")
             val (row, _) = products.owned(actor, id())
@@ -220,7 +220,16 @@ class WalkRuntime internal constructor(private val context: Context,
   fun finalCleanupCommand(operation: String, ticket: String, done: (String?, String?) -> Unit) = run(done) {
     when (operation) {
       "PENDING" -> finalCleanup.pending().toString()
+      "READ" -> finalCleanup.view(productUuid(ticket)).toString()
+      "ARM" -> {
+        val scope = finalCleanup.armBlock(productUuid(ticket))
+        if (owner == scope.getString("owner")) ownerEpoch.incrementAndGet()
+        quiesceFinalScope(scope, true)
+        finalCleanup.persistArm(ticket); "OK"
+      }
       "CONFIRM" -> {
+        val old = finalCleanup.scope(productUuid(ticket))
+        if (old.optInt("version", 1) != 1 || !old.getBoolean("confirmed")) throw WalkFailure("WALK_FINAL_CLEANUP_INVALID")
         val scope = finalCleanup.block(productUuid(ticket))
         if (owner == scope.getString("owner")) ownerEpoch.incrementAndGet()
         quiesceFinalScope(scope)
@@ -239,11 +248,38 @@ class WalkRuntime internal constructor(private val context: Context,
       else -> throw WalkFailure("WALK_INVALID_PRODUCT_CHECKPOINT")
     }
   }
-  private fun quiesceFinalScope(scope: JSONObject) {
+  fun finalCleanupProof(operation: String, ticket: String, input: String, done: (String?, String?) -> Unit) = run(done) {
+    val id = productUuid(ticket)
+    when (operation) {
+      "REGISTER" -> {
+        val proof = finalCleanup.validateProof(id, input)
+        if (proof.getString("state") != "PENDING") {
+          val scope = finalCleanup.block(id)
+          if (owner == scope.getString("owner")) ownerEpoch.incrementAndGet()
+          quiesceFinalScope(scope)
+        }
+        finalCleanup.recordProof(id, input)
+      }
+      "RELEASE" -> finalCleanup.release(id, input)
+      "RESTORE_INTENT" -> finalCleanup.restoreIntent(id, input)
+      "ACCOUNT_REQUEST" -> finalCleanup.accountRequest(id, input)
+      "CONFIRM" -> {
+        finalCleanup.validateFinalProof(id, input)
+        val scope = finalCleanup.block(id)
+        if (owner == scope.getString("owner")) ownerEpoch.incrementAndGet()
+        quiesceFinalScope(scope)
+        finalCleanup.recordProof(id, input, true)
+      }
+      else -> throw WalkFailure("WALK_FINAL_CLEANUP_INVALID")
+    }
+    "OK"
+  }
+  private fun quiesceFinalScope(scope: JSONObject, freeze: Boolean = false) {
     storage.dao.active()?.let { row ->
       val meta = storage.metadata(row)
       if (finalCleanup.matches(scope, meta.owner, meta.pet)) {
         generation.incrementAndGet(); source.stop(); availability = false; stopServiceAndAwait()
+        if (freeze) sealActive()
         pendingActivation?.takeIf { it.first == row.sessionId }?.second?.let { complete(it, null, "WALK_SESSION_DELETED"); pendingActivation = null }
       }
     }

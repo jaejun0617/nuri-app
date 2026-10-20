@@ -63,7 +63,7 @@ import {
 } from '../../services/auth/session';
 import { showToast } from '../../store/uiStore';
 import { bindWalkAuthenticatedOwner } from '../../services/walk/runtime/nativeWalk';
-import { resumeConfirmedWalkFinalDeletions } from '../../services/walk/product/finalDeletion';
+import { observeWalkFinalDeletionRecovery } from '../../services/walk/product/finalDeletion';
 import {
   appQueryClient,
   clearAppQueryCache,
@@ -86,13 +86,11 @@ const ACCOUNT_DELETION_GATE_TIMEOUT_MS = 2_500;
 
 export default function AppProviders({ children }: Props) {
   useEffect(() => {
-    // Local confirmed journal only: no auth reads, network or GPS collection.
-    const retry = () => { resumeConfirmedWalkFinalDeletions().catch(() => {
+    // Empty journals are local-only; pending watches use scoped proof recovery,
+    // including a bounded owner-ready retry, never Auth reads or GPS collection.
+    return observeWalkFinalDeletionRecovery(() => {
       captureMonitoringException(new Error('WALK_FINAL_CLEANUP_PENDING'));
-    }); };
-    retry();
-    const app = AppState.addEventListener('change', state => { if (state === 'active') retry(); });
-    return () => app.remove();
+    });
   }, []);
   // ---------------------------------------------------------
   // 0) Theme

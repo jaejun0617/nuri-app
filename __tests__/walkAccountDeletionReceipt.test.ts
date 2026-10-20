@@ -9,7 +9,12 @@ const raw = (status: string) => ({
   can_restore: status === 'pending_grace_period',
 });
 const { supabase } = jest.requireMock('../src/services/supabase/client') as {
-  supabase: { rpc: jest.Mock<Promise<{ data: unknown; error: unknown }>, [string, Record<string, unknown>?]> };
+  supabase: {
+    rpc: jest.Mock<
+      Promise<{ data: unknown; error: unknown }>,
+      [string, Record<string, unknown>?]
+    >;
+  };
 };
 const rpc = supabase.rpc;
 beforeEach(() => {
@@ -17,6 +22,21 @@ beforeEach(() => {
   jest.clearAllMocks();
 });
 afterEach(() => jest.useRealTimers());
+test('created account request must be durably bound before the destructive RPC; local bind failure never dispatches it', async () => {
+  rpc.mockResolvedValueOnce({ data: raw('requested'), error: null });
+  const bind = jest.fn(async () => {
+    throw { code: 'WALK_FINAL_CLEANUP_PENDING' };
+  });
+  await expect(deleteMyAccount({ onRequest: bind })).rejects.toMatchObject({
+    code: 'WALK_FINAL_CLEANUP_PENDING',
+  });
+  expect(bind).toHaveBeenCalledWith(
+    expect.objectContaining({ requestId: 'synthetic-request' }),
+  );
+  expect(rpc.mock.calls.map(c => c[0])).toEqual([
+    'create_account_deletion_request',
+  ]);
+});
 test('authoritative final receipt is returned even if scoped cleanup never resolves or throws', async () => {
   for (const cleanup of [
     jest.fn(() => new Promise<boolean>(() => undefined)),
@@ -47,10 +67,35 @@ test('restorable grace is not a final purge and has no cleanup-pending warning',
   expect(cleanup).not.toHaveBeenCalled();
 });
 test('compatibility completed with actual grace remains restorable and never dispatches final cleanup', async () => {
-  rpc.mockResolvedValueOnce({ data: raw('requested'), error: null }).mockResolvedValueOnce({ data: { ...raw('completed'), actual_status: 'pending_grace_period', can_restore: true }, error: null });
-  const cleanup = jest.fn(async () => true); const result = await deleteMyAccount({ onResult: cleanup });
-  expect(result).toMatchObject({ status: 'completed', actualStatus: 'pending_grace_period', canRestore: true });
-  expect(result.walkCleanupPending).toBeUndefined(); expect(cleanup).not.toHaveBeenCalled();
+  rpc
+    .mockResolvedValueOnce({ data: raw('requested'), error: null })
+    .mockResolvedValueOnce({
+      data: {
+        ...raw('completed'),
+        actual_status: 'pending_grace_period',
+        can_restore: true,
+      },
+      error: null,
+    });
+  const cleanup = jest.fn(async () => true);
+  const restorable = jest.fn(async () => undefined);
+  const result = await deleteMyAccount({
+    onResult: cleanup,
+    onNonFinalResult: restorable,
+  });
+  expect(result).toMatchObject({
+    status: 'completed',
+    actualStatus: 'pending_grace_period',
+    canRestore: true,
+  });
+  expect(result.walkCleanupPending).toBeUndefined();
+  expect(cleanup).not.toHaveBeenCalled();
+  expect(restorable).toHaveBeenCalledWith(
+    expect.objectContaining({
+      actualStatus: 'pending_grace_period',
+      canRestore: true,
+    }),
+  );
 });
 test('late authoritative final receipt after unknown deadline still reaches captured scoped hook, not lookup inference', async () => {
   let resolve!: (value: { data: unknown; error: null }) => void;

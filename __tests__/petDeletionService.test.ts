@@ -9,8 +9,25 @@ jest.mock('../src/services/supabase/client', () => ({
 jest.mock('../src/services/supabase/storagePets', () => ({
   cleanupDeletedPetStorage: jest.fn(),
 }));
-jest.mock('../src/services/walk/product/finalDeletion', () => ({ captureWalkFinalDeletion: jest.fn(async () => ({ ticket: 'captured', ownerId: 'user-1', petId: 'pet-2' })), queueConfirmedWalkFinalDeletion: jest.fn(async () => true) }));
-import { captureWalkFinalDeletion, queueConfirmedWalkFinalDeletion } from '../src/services/walk/product/finalDeletion';
+jest.mock('../src/services/walk/product/finalDeletion', () => ({
+  captureWalkFinalDeletion: jest.fn(async () => ({
+    ticket: 'captured',
+    ownerId: 'user-1',
+    petId: 'pet-2',
+  })),
+  queueConfirmedWalkFinalDeletion: jest.fn(async () => true),
+  armWalkFinalDeletion: jest.fn(async () => undefined),
+  assertWalkFinalDeletionCurrent: jest.fn(),
+  disposeWalkFinalDeletion: jest.fn(),
+  releaseWalkFinalDeletion: jest.fn(async () => undefined),
+}));
+import {
+  captureWalkFinalDeletion,
+  queueConfirmedWalkFinalDeletion,
+  armWalkFinalDeletion,
+  disposeWalkFinalDeletion,
+  releaseWalkFinalDeletion,
+} from '../src/services/walk/product/finalDeletion';
 
 import {
   deletePetSafely,
@@ -29,7 +46,11 @@ const { cleanupDeletedPetStorage } = jest.requireMock(
   '../src/services/supabase/storagePets',
 ) as { cleanupDeletedPetStorage: jest.Mock };
 
-function mockPetQueries(ownedPetIds: string[], deletedPetIds: string[] = []) {
+function mockPetQueries(
+  ownedPetIds: string[],
+  deletedPetIds: string[] = [],
+  deleteError: { code: string } | null = null,
+) {
   const order = jest.fn(() =>
     Promise.resolve({
       data: ownedPetIds.map(id => ({ id })),
@@ -42,7 +63,7 @@ function mockPetQueries(ownedPetIds: string[], deletedPetIds: string[] = []) {
   const selectDeleted = jest.fn(() =>
     Promise.resolve({
       data: deletedPetIds.map(id => ({ id })),
-      error: null,
+      error: deleteError,
     }),
   );
   const eqDeleteUser = jest.fn(() => ({ select: selectDeleted }));
@@ -92,6 +113,12 @@ describe('safe pet deletion service', () => {
       userId: 'user-1',
       petId: 'pet-2',
     });
+    expect(
+      jest.mocked(captureWalkFinalDeletion).mock.invocationCallOrder[0],
+    ).toBeLessThan(
+      jest.mocked(armWalkFinalDeletion).mock.invocationCallOrder[0],
+    );
+    expect(disposeWalkFinalDeletion).toHaveBeenCalledTimes(1);
   });
 
   it('does not issue a delete for a pet outside the authenticated user list', async () => {
@@ -104,13 +131,39 @@ describe('safe pet deletion service', () => {
     expect(captureWalkFinalDeletion).not.toHaveBeenCalled();
   });
   it('confirmed DB deletion survives local Walk cleanup pending and still cleans Storage/returns known deleted pet', async () => {
-    mockPetQueries(['pet-1', 'pet-2'], ['pet-2']); jest.mocked(queueConfirmedWalkFinalDeletion).mockResolvedValueOnce(false);
-    await expect(deletePetSafely('pet-2')).resolves.toMatchObject({ deletedPetId: 'pet-2', userId: 'user-1', walkCleanupPending: true });
+    mockPetQueries(['pet-1', 'pet-2'], ['pet-2']);
+    jest.mocked(queueConfirmedWalkFinalDeletion).mockResolvedValueOnce(false);
+    await expect(deletePetSafely('pet-2')).resolves.toMatchObject({
+      deletedPetId: 'pet-2',
+      userId: 'user-1',
+      walkCleanupPending: true,
+    });
     expect(cleanupDeletedPetStorage).toHaveBeenCalledTimes(1);
   });
   it('empty delete confirmation does not erase local Walk scope or infer final deletion', async () => {
     mockPetQueries(['pet-1', 'pet-2'], []);
-    await expect(deletePetSafely('pet-2')).rejects.toMatchObject({ code: 'PET_NOT_FOUND' });
+    await expect(deletePetSafely('pet-2')).rejects.toMatchObject({
+      code: 'PET_NOT_FOUND',
+    });
+    expect(queueConfirmedWalkFinalDeletion).not.toHaveBeenCalled();
+    expect(releaseWalkFinalDeletion).not.toHaveBeenCalled();
+  });
+
+  it('only a definite transaction rollback releases the armed watch, not a lost response', async () => {
+    mockPetQueries(['pet-1', 'pet-2'], [], { code: '23503' });
+    await expect(deletePetSafely('pet-2')).rejects.toMatchObject({
+      code: 'DELETE_FAILED',
+    });
+    expect(releaseWalkFinalDeletion).toHaveBeenCalledWith(
+      expect.objectContaining({ petId: 'pet-2' }),
+      { outcome: 'ROLLED_BACK', code: '23503' },
+    );
+    jest.mocked(releaseWalkFinalDeletion).mockClear();
+    mockPetQueries(['pet-1', 'pet-2'], [], { code: 'NETWORK_ERROR' });
+    await expect(deletePetSafely('pet-2')).rejects.toMatchObject({
+      code: 'DELETE_FAILED',
+    });
+    expect(releaseWalkFinalDeletion).not.toHaveBeenCalled();
     expect(queueConfirmedWalkFinalDeletion).not.toHaveBeenCalled();
   });
 

@@ -14,6 +14,7 @@ import { requireS256OAuthUrl } from '../auth/pkce';
 import { SUPABASE_URL } from './config';
 import { resolveAuthTransition, type AuthEntryRoute } from '../auth/transition';
 import { recordAuthEvent } from '../auth/trace';
+import { captureWalkAccountRestoration } from '../walk/product/finalDeletion';
 import {
   ENABLE_GOOGLE_OAUTH,
   ENABLE_KAKAO_OAUTH,
@@ -619,23 +620,32 @@ export async function fetchMyAccountDeletionGate(): Promise<AccountDeletionGate 
 export async function cancelAccountDeletion(
   requestId?: string | null,
 ): Promise<AccountDeletionResult> {
-  const { data, error } = await supabase.rpc('cancel_account_deletion', {
-    p_request_id: requestId ?? null,
-  });
-  if (error) throw error;
+  const walkRestore = await captureWalkAccountRestoration(requestId);
+  try {
+    const { data, error } = await supabase.rpc('cancel_account_deletion', {
+      p_request_id: requestId ?? null,
+    });
+    if (error) throw error;
 
-  const parsed = parseAccountDeletionResult(data);
-  if (!parsed) {
-    throw new Error('계정 복구 결과를 해석하지 못했어요.');
+    const parsed = parseAccountDeletionResult(data);
+    if (!parsed) {
+      throw new Error('계정 복구 결과를 해석하지 못했어요.');
+    }
+
+    // Authoritative restore success is not downgraded by local proof/disk retry.
+    await walkRestore?.complete(parsed).catch(() => undefined);
+    return parsed;
+  } finally {
+    walkRestore?.dispose();
   }
-
-  return parsed;
 }
 
 export async function deleteMyAccount(options?: {
   requestOrigin?: string;
   timeoutMs?: number;
   onResult?: (result: AccountDeletionResult) => Promise<boolean>;
+  onNonFinalResult?: (result: AccountDeletionResult) => Promise<void>;
+  onRequest?: (result: AccountDeletionResult) => Promise<void>;
 }): Promise<AccountDeletionResult> {
   const timeoutMs = options?.timeoutMs ?? 8000;
   let request: AccountDeletionResult;
@@ -650,6 +660,9 @@ export async function deleteMyAccount(options?: {
     throw error;
   }
 
+  // Bind the exact created request to Walk's armed attempt before the existing
+  // destructive RPC. A stale restore request cannot release a newer attempt.
+  await options?.onRequest?.(request);
   const rpcPromise = supabase
     .rpc('delete_my_account', {
       p_request_id: request.requestId,
@@ -663,7 +676,11 @@ export async function deleteMyAccount(options?: {
       // The authenticated RPC may complete after the UI's unknown-result
       // deadline. Deliver that actual receipt to the captured cleanup scope.
       const final = ['db_deleted', 'cleanup_pending', 'completed', 'completed_with_cleanup_pending'];
-      if (!options?.onResult || !final.includes(parsed.status) || !parsed.actualStatus || !final.includes(parsed.actualStatus) || parsed.canRestore) return parsed;
+      if (!final.includes(parsed.status) || !parsed.actualStatus || !final.includes(parsed.actualStatus) || parsed.canRestore) {
+        options?.onNonFinalResult?.(parsed).catch(() => undefined);
+        return parsed;
+      }
+      if (!options?.onResult) return parsed;
       // Local disk cleanup cannot delay or downgrade this authoritative result.
       // The confirmed Native journal/retry coordinator owns its completion.
       options.onResult(parsed).catch(() => undefined);

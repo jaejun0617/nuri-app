@@ -3,7 +3,6 @@ jest.mock('../src/services/walk/product/invalidation', () => ({
 }));
 import { NativeModules, Platform } from 'react-native';
 import {
-  captureWalkFinalDeletion,
   confirmWalkFinalDeletion,
   isConfirmedFinalAccountDeletion,
   resumeConfirmedWalkFinalDeletions,
@@ -17,7 +16,20 @@ const scope = { ownerId: owner, petId: pet, ticket };
 function fixture() {
   Platform.OS = 'android';
   const command = jest.fn(async (op: string) =>
-    op === 'PENDING' ? JSON.stringify([scope]) : op === 'STEP' ? 'DONE' : 'OK',
+    op === 'PENDING'
+      ? JSON.stringify([
+          { ...scope, version: 1, confirmed: true, nativeDone: false },
+        ])
+      : op === 'READ'
+      ? JSON.stringify({
+          ...scope,
+          version: 1,
+          confirmed: true,
+          nativeDone: false,
+        })
+      : op === 'STEP'
+      ? 'DONE'
+      : 'OK',
   );
   const binding = jest.fn(async () => '1'),
     product = jest.fn(async () => ticket);
@@ -32,22 +44,15 @@ afterEach(() => {
   delete NativeModules.NuriWalk;
   jest.clearAllMocks();
 });
-test('capture precedes destructive operation and records exact scope without GPS; confirm works after unbinding', async () => {
+test('already-confirmed V1 scope keeps exact legacy cleanup compatibility after unbinding without Auth/GPS', async () => {
   const f = fixture();
-  const c = await captureWalkFinalDeletion(owner, pet);
-  expect(c).toEqual(scope);
-  expect(f.product).toHaveBeenCalledWith(
-    owner,
-    '1',
-    'CAPTURE_FINAL_CLEANUP',
-    JSON.stringify({ petId: pet }),
-  );
   expect(purgeWalkProductAfterFinalDeletion).not.toHaveBeenCalled();
   f.binding.mockRejectedValue(Error('now another owner'));
-  await confirmWalkFinalDeletion(c);
-  expect(f.binding).toHaveBeenCalledTimes(1);
+  await confirmWalkFinalDeletion(scope);
+  expect(f.binding).not.toHaveBeenCalled();
+  expect(f.product).not.toHaveBeenCalled();
   expect(f.command.mock.calls.map(call => call[0])).toEqual([
-    'CONFIRM',
+    'READ',
     'STEP',
     'ACK',
   ]);
@@ -108,27 +113,38 @@ test('JS cleanup failure preserves confirmed journal without ACK; boot replays s
   await expect(confirmWalkFinalDeletion(scope)).rejects.toThrow(
     'disk unavailable',
   );
-  expect(f.command.mock.calls.map(c => c[0])).toEqual(['CONFIRM']);
+  expect(f.command.mock.calls.map(c => c[0])).toEqual(['READ']);
   await resumeConfirmedWalkFinalDeletions();
   expect(f.binding).not.toHaveBeenCalled();
   expect(f.product).not.toHaveBeenCalled();
   expect(f.command.mock.calls.map(c => c[0])).toEqual([
-    'CONFIRM',
+    'READ',
     'PENDING',
+    'READ',
     'STEP',
     'ACK',
   ]);
 });
 test('all native pages finish before acknowledgement; no foreign-scope draft/query purge', async () => {
   const f = fixture();
-  f.command
-    .mockResolvedValueOnce('OK')
-    .mockResolvedValueOnce('MORE')
-    .mockResolvedValueOnce('DONE')
-    .mockResolvedValueOnce('OK');
+  let steps = 0;
+  f.command.mockImplementation(async op =>
+    op === 'READ'
+      ? JSON.stringify({
+          ...scope,
+          version: 1,
+          confirmed: true,
+          nativeDone: false,
+        })
+      : op === 'STEP'
+      ? ++steps === 1
+        ? 'MORE'
+        : 'DONE'
+      : 'OK',
+  );
   await confirmWalkFinalDeletion(scope);
   expect(f.command.mock.calls.map(c => c[0])).toEqual([
-    'CONFIRM',
+    'READ',
     'STEP',
     'STEP',
     'ACK',

@@ -5,7 +5,14 @@
 // - profile_image_url(path) → (Public bucket) public URL 변환
 
 import type { Pet } from '../../store/petStore';
-import { captureWalkFinalDeletion, queueConfirmedWalkFinalDeletion } from '../walk/product/finalDeletion';
+import {
+  captureWalkFinalDeletion,
+  queueConfirmedWalkFinalDeletion,
+  armWalkFinalDeletion,
+  assertWalkFinalDeletionCurrent,
+  disposeWalkFinalDeletion,
+  releaseWalkFinalDeletion,
+} from '../walk/product/finalDeletion';
 import {
   normalizePetSpeciesDetailKey,
   normalizePetSpeciesDisplayName,
@@ -458,29 +465,46 @@ export async function deletePetSafely(
   }
 
   const walkCleanup = await captureWalkFinalDeletion(userId, petId);
-  const { data: deletedData, error: deleteError } = await supabase
-    .from('pets')
-    .delete()
-    .eq('id', petId)
-    .eq('user_id', userId)
-    .select('id');
+  let invoked = false;
+  try {
+    await armWalkFinalDeletion(walkCleanup);
+    assertWalkFinalDeletionCurrent(walkCleanup);
+    invoked = true;
+    const { data: deletedData, error: deleteError } = await supabase
+      .from('pets')
+      .delete()
+      .eq('id', petId)
+      .eq('user_id', userId)
+      .select('id');
 
-  if (deleteError) {
-    throw new PetDeleteError(
-      'DELETE_FAILED',
-      '아이 프로필을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.',
-    );
+    if (deleteError) {
+      const code = typeof deleteError.code === 'string' ? deleteError.code : '';
+      if (['42501', '23503', '23514', '22023'].includes(code))
+        await releaseWalkFinalDeletion(walkCleanup, {
+          outcome: 'ROLLED_BACK', code,
+        }).catch(() => undefined);
+      throw new PetDeleteError(
+        'DELETE_FAILED',
+        '아이 프로필을 삭제하지 못했어요. 잠시 후 다시 시도해 주세요.',
+      );
+    }
+
+    const deletedPets = toPetDeleteCandidates(deletedData);
+    if (!deletedPets.some(candidate => candidate.id === petId)) {
+      throw new PetDeleteError(
+        'PET_NOT_FOUND',
+        '삭제할 아이 프로필을 찾을 수 없어요.',
+      );
+    }
+
+    const walkCleanupPending = !(await queueConfirmedWalkFinalDeletion(walkCleanup));
+    const storageCleanup = await cleanupDeletedPetStorage({ userId, petId });
+    return { deletedPetId: petId, userId, storageCleanup, walkCleanupPending };
+  } finally {
+    if (!invoked && walkCleanup)
+      await releaseWalkFinalDeletion(walkCleanup, {
+        outcome: 'NOT_STARTED', code: 'NOT_INVOKED',
+      }).catch(() => undefined);
+    disposeWalkFinalDeletion(walkCleanup);
   }
-
-  const deletedPets = toPetDeleteCandidates(deletedData);
-  if (!deletedPets.some(candidate => candidate.id === petId)) {
-    throw new PetDeleteError(
-      'PET_NOT_FOUND',
-      '삭제할 아이 프로필을 찾을 수 없어요.',
-    );
-  }
-
-  const walkCleanupPending = !(await queueConfirmedWalkFinalDeletion(walkCleanup));
-  const storageCleanup = await cleanupDeletedPetStorage({ userId, petId });
-  return { deletedPetId: petId, userId, storageCleanup, walkCleanupPending };
 }

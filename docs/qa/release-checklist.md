@@ -1,5 +1,12 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-10-21 Walk Native Delete-Recovery Candidate
+
+- [Native/client recovery](../domains/산책-위치기반-기능/nuri-walk-native-final-delete-recovery.md) integrates the applied server watch without altering its SQL/RPC contract. Durable encrypted V2 identity/capability/binding precede destructive calls; exact FINAL precedes erasure; nativeDone precedes server ACK and verified local removal. Restorable grace/explicit cancel only release the captured command attempt, never confirm deletion.
+- Source/host gates are not Android proof. NURI-12 must run the one newly authorized final Full Suite after Master source review, then approved-signature Release/install-r and bounded existing-product device smoke. This Owner runs new Full/build/install/ADB/Metro/remote mutation0. Old Full288/3592/3 failures and affected3/10 PASS remain separate receipts.
+- Actual V2 Keystore/AtomicFile/bridge process-loss gate remains pending. Scoped auxiliary `WalkFinalDeletionDurabilityTest` source uses only isolated files and the existing runner; PO explicitly approved one same-signer auxiliary build/install-r, reserved for NURI-12 after Master source review. This Owner executes none. No real PO account/pet deletion or shipping proof-injection shortcut.
+- Fresh restoration intent durably binds the explicit existing cancel request; after gate clears, exact same-owner RLS `cancelled` status can release only that attempt on restart/owner readiness. Legacy unregistered UNKNOWN/missing capability/unbound old restoration intent remain explicit limits, not blanket privacy PASS. Existing historical A privacy caveat and outdoor quantitative obligations remain.
+
 ## 2026-10-20 Walk Real Product F - Source Candidate, Device Pending
 
 - [F contract](../domains/산책-위치기반-기능/nuri-walk-phase6-real-product.md) and external PHASE6-REAL-PRODUCT-REPORT own the integrated source/test identity. A/B/C/D/E accepted ancestry remains intact. Existing Home first Walk widget now opens production Walk without the QA gate. Temporary QA entry remains pending separate PO removal approval.

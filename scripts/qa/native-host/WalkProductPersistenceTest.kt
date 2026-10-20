@@ -68,6 +68,45 @@ class WalkProductPersistenceTest {
   private fun expect(code: String, block: () -> Unit) {
     try { block(); fail("Expected $code") } catch (e: WalkFailure) { assertEquals(code, e.code) }
   }
+  private fun deletionProof(f: Fixture, ticket: String, state: String): String = JSONObject()
+    .put("version", 1).put("requestId", ticket)
+    .put("purpose", if (f.cleanup.scope(ticket).isNull("pet")) "ACCOUNT_FINAL" else "PET_FINAL")
+    .put("resourceBinding", "b".repeat(64)).put("state", state).put("registeredAt", "2026-10-21T01:00:00.000Z")
+    // Transaction start order is not commit order; inverted times are valid.
+    .put("confirmedAt", if (state == "PENDING") JSONObject.NULL else "2026-10-21T00:50:00.000Z")
+    .put("acknowledgedAt", if (state == "ACKNOWLEDGED") "2026-10-21T00:40:00.000Z" else JSONObject.NULL).toString()
+  private fun registeredTicket(f: Fixture, epoch: String, targetPet: String? = pet): String {
+    val ticket = op(f, epoch, "CAPTURE_FINAL_CLEANUP", JSONObject().put("petId", targetPet ?: JSONObject.NULL)).first!!
+    assertNull(await { f.runtime.finalCleanupProof("REGISTER", ticket, deletionProof(f, ticket, "PENDING"), it) }.second)
+    return ticket
+  }
+  private fun confirmTicket(f: Fixture, ticket: String, done: (String?, String?) -> Unit) =
+    f.runtime.finalCleanupProof("CONFIRM", ticket, deletionProof(f, ticket, "FINAL"), done)
+  private fun acknowledgeTicket(f: Fixture, ticket: String, done: (String?, String?) -> Unit) {
+    assertNull(await { f.runtime.finalCleanupProof("REGISTER", ticket, deletionProof(f, ticket, "ACKNOWLEDGED"), it) }.second)
+    f.runtime.finalCleanupCommand("ACK", ticket, done)
+  }
+  @Test fun deletionCapturePersistsV2RandomCapabilityBeforeNetworking() = Fixture().use { f ->
+    val epoch = binding(f)
+    val ticket = op(f, epoch, "CAPTURE_FINAL_CLEANUP", JSONObject().put("petId", pet)).first!!
+    val saved = f.cleanup.scope(ticket)
+    assertEquals(2, saved.optInt("version", 1))
+    assertTrue(Regex("[0-9a-f]{64}").matches(saved.optString("capability")))
+    val reopened = WalkFinalCleanup(f.storage, java.io.File(f.context.noBackupFilesDir, "walk-final-cleanup-v1"))
+    assertTrue(saved.getString("capability") == reopened.scope(ticket).getString("capability"))
+    val another = reopened.captureV2(b, pet)
+    assertTrue(saved.getString("capability") != reopened.scope(another).getString("capability"))
+    val encrypted = java.io.File(f.context.noBackupFilesDir, "walk-final-cleanup-v1/$ticket").readBytes()
+    assertFalse(String(encrypted, Charsets.ISO_8859_1).contains(saved.getString("capability")))
+    assertFalse(f.source.subscribed)
+  }
+  @Test fun restartEnumeratesUnconfirmedV2IntentRatherThanLosingItsRecoveryIdentity() = Fixture().use { f ->
+    val epoch = binding(f)
+    op(f, epoch, "CAPTURE_FINAL_CLEANUP", JSONObject().put("petId", pet))
+    val reopened = WalkFinalCleanup(f.storage, java.io.File(f.context.noBackupFilesDir, "walk-final-cleanup-v1"))
+    assertEquals(1, reopened.pending().length())
+    assertEquals(0, f.storage.dao.sessionCount())
+  }
   @Test fun prepareIsConstantWorkWithResolvedForeignAndLegacyHistory() = Fixture().use { f ->
     repeat(205) { index ->
       val row = WalkLocalSession().apply { sessionId = id() }
@@ -370,8 +409,8 @@ class WalkProductPersistenceTest {
     val epoch = binding(f); val session = prepare(f).getString("clientSessionId"); apply(f, session, receipt(session))
     val start = JSONObject(op(f, epoch, "START", JSONObject().put("sessionId", session).put("commandId", id())).first!!)
     val paused = JSONObject(op(f, epoch, "MUTATE", JSONObject().put("sessionId", session).put("commandId", id()).put("revision", start.getString("revision")).put("action", "PAUSE")).first!!)
-    val ticket = op(f, epoch, "CAPTURE_FINAL_CLEANUP", JSONObject().put("petId", pet)).first!!
-    assertNull(await { f.runtime.finalCleanupCommand("CONFIRM", ticket, it) }.second)
+    val ticket = registeredTicket(f, epoch)
+    assertNull(await { confirmTicket(f, ticket, it) }.second)
     val fresh = await { f.runtime.productBinding(a, it) }.first!!
     assertEquals("WALK_SESSION_DELETED", op(f, fresh, "MUTATE", JSONObject().put("sessionId", session).put("commandId", id()).put("revision", paused.getString("revision")).put("action", "RESUME")).second)
     assertEquals("WALK_SESSION_DELETED", op(f, fresh, "START", JSONObject().put("sessionId", session).put("commandId", id())).second)
@@ -403,23 +442,25 @@ class WalkProductPersistenceTest {
   }
   @Test fun oldOwnerFinalCleanupAndUnknownOrReplayedCapabilitiesNeverStopNewOwnerCollection() = Fixture().use { f ->
     val aEpoch = binding(f); val aSession = prepare(f).getString("clientSessionId")
-    val ticket = op(f, aEpoch, "CAPTURE_FINAL_CLEANUP", JSONObject().put("petId", JSONObject.NULL)).first!!
+    val ticket = registeredTicket(f, aEpoch, null)
     val bEpoch = binding(f, b)
     val bSession = JSONObject(op(f, bEpoch, "PREPARE", JSONObject().put("petId", pet).put("commandId", id()), b).first!!).getString("clientSessionId")
     f.products.apply(b, bSession, f.products.validateReceipt(b, bSession, receipt(bSession).toString()))
     assertNull(op(f, bEpoch, "START", JSONObject().put("sessionId", bSession).put("commandId", id()), b).second)
     val revision = f.storage.dao.session(bSession).revision
     assertTrue(f.source.subscribed)
+    assertNull(await { f.runtime.finalCleanupCommand("ARM", ticket, it) }.second)
+    assertTrue(f.source.subscribed); assertEquals(revision, f.storage.dao.session(bSession).revision)
     assertEquals("WALK_FINAL_CLEANUP_NOT_FOUND", await { f.runtime.finalCleanupCommand("CONFIRM", id(), it) }.second)
     assertTrue(f.source.subscribed)
     f.failCleanupPromotion = true
-    assertEquals("WALK_FINAL_CLEANUP_PENDING", await { f.runtime.finalCleanupCommand("CONFIRM", ticket, it) }.second)
+    assertEquals("WALK_FINAL_CLEANUP_PENDING", await { confirmTicket(f, ticket, it) }.second)
     assertTrue(f.source.subscribed); assertEquals(revision, f.storage.dao.session(bSession).revision)
     f.failCleanupPromotion = false
-    assertNull(await { f.runtime.finalCleanupCommand("CONFIRM", ticket, it) }.second)
+    assertNull(await { confirmTicket(f, ticket, it) }.second)
     assertEquals("DONE", await { f.runtime.finalCleanupCommand("STEP", ticket, it) }.first)
     assertNull(f.storage.dao.session(aSession)); assertEquals(revision, f.storage.dao.session(bSession).revision); assertTrue(f.source.subscribed)
-    assertNull(await { f.runtime.finalCleanupCommand("ACK", ticket, it) }.second)
+    assertNull(await { acknowledgeTicket(f, ticket, it) }.second)
     for (action in listOf("CONFIRM", "STEP", "ACK")) {
       assertEquals("WALK_FINAL_CLEANUP_NOT_FOUND", await { f.runtime.finalCleanupCommand(action, ticket, it) }.second)
       assertTrue(f.source.subscribed); assertEquals(revision, f.storage.dao.session(bSession).revision)
@@ -440,7 +481,7 @@ class WalkProductPersistenceTest {
     expect("WALK_FINAL_CLEANUP_PENDING") { neverPromote.capture(a, pet) }
     val good = WalkFinalCleanup(f.storage, dir); val ticket = good.capture(a, pet)
     expect("WALK_FINAL_CLEANUP_PENDING") { neverPromote.confirm(ticket) }
-    assertEquals(0, good.pending().length()); good.assertAllowed(b, pet)
+    assertEquals(1, good.pending().length()); assertFalse(good.pending().getJSONObject(0).getBoolean("confirmed")); good.assertAllowed(b, pet)
     good.confirm(ticket); assertTrue(good.step(ticket))
     val neverDelete = WalkFinalCleanup(f.storage, dir, erase = { _ -> Unit })
     expect("WALK_FINAL_CLEANUP_PENDING") { neverDelete.acknowledge(ticket) }
@@ -449,16 +490,151 @@ class WalkProductPersistenceTest {
   @Test fun failedDurableConfirmationStopsOnlyDeletedOwnerAndCannotResumeBeforeSuccessfulRetry() = Fixture().use { f ->
     val epoch = binding(f); val session = prepare(f).getString("clientSessionId"); apply(f, session, receipt(session))
     assertNull(op(f, epoch, "START", JSONObject().put("sessionId", session).put("commandId", id())).second)
-    val ticket = op(f, epoch, "CAPTURE_FINAL_CLEANUP", JSONObject().put("petId", pet)).first!!
+    val ticket = registeredTicket(f, epoch)
     f.failCleanupPromotion = true
-    assertEquals("WALK_FINAL_CLEANUP_PENDING", await { f.runtime.finalCleanupCommand("CONFIRM", ticket, it) }.second)
-    assertFalse(f.source.subscribed); assertNotNull(f.storage.dao.session(session)); assertEquals(0, f.cleanup.pending().length())
+    assertEquals("WALK_FINAL_CLEANUP_PENDING", await { confirmTicket(f, ticket, it) }.second)
+    assertFalse(f.source.subscribed); assertNotNull(f.storage.dao.session(session)); assertFalse(f.cleanup.pending().getJSONObject(0).getBoolean("confirmed"))
     val fresh = await { f.runtime.productBinding(a, it) }.first!!
     assertEquals("WALK_SESSION_DELETED", op(f, fresh, "START", JSONObject().put("sessionId", session).put("commandId", id())).second)
     assertEquals("WALK_SESSION_DELETED", op(f, fresh, "PREPARE", JSONObject().put("petId", pet).put("commandId", id())).second)
     f.failCleanupPromotion = false
-    assertNull(await { f.runtime.finalCleanupCommand("CONFIRM", ticket, it) }.second)
+    assertNull(await { confirmTicket(f, ticket, it) }.second)
     assertEquals("DONE", await { f.runtime.finalCleanupCommand("STEP", ticket, it) }.first)
     assertNull(f.storage.dao.session(session))
+  }
+  @Test fun v2RejectsWrongScopeReverseStateAndTimestampRebindingButAcceptsTransactionStartOrderInversion() = Fixture().use { f ->
+    val ticket = registeredTicket(f, binding(f))
+    assertEquals("WALK_FINAL_CLEANUP_INVALID", await { f.runtime.finalCleanupCommand("CONFIRM", ticket, it) }.second)
+    val wrong = JSONObject(deletionProof(f, ticket, "FINAL")).put("purpose", "ACCOUNT_FINAL").toString()
+    assertEquals("WALK_FINAL_CLEANUP_INVALID", await { f.runtime.finalCleanupProof("CONFIRM", ticket, wrong, it) }.second)
+    val wrongBinding = JSONObject(deletionProof(f, ticket, "FINAL")).put("resourceBinding", "c".repeat(64)).toString()
+    assertEquals("WALK_FINAL_CLEANUP_INVALID", await { f.runtime.finalCleanupProof("CONFIRM", ticket, wrongBinding, it) }.second)
+    for (bad in listOf(JSONObject(deletionProof(f, ticket, "FINAL")).put("version", "1"),
+      JSONObject(deletionProof(f, ticket, "FINAL")).put("registeredAt", "2026-02-30T00:00:00.000Z"),
+      JSONObject(deletionProof(f, ticket, "FINAL")).put("requestId", id()))) {
+      assertEquals("WALK_FINAL_CLEANUP_INVALID", await { f.runtime.finalCleanupProof("CONFIRM", ticket, bad.toString(), it) }.second)
+    }
+    assertNull(await { confirmTicket(f, ticket, it) }.second)
+    val persisted = JSONObject(f.cleanup.scope(ticket).getString("proof"))
+    assertEquals("2026-10-21T01:00:00.000Z", persisted.getString("registeredAt"))
+    assertEquals("2026-10-21T00:50:00.000Z", persisted.getString("confirmedAt"))
+    assertEquals("WALK_FINAL_CLEANUP_INVALID", await { f.runtime.finalCleanupProof("REGISTER", ticket, deletionProof(f, ticket, "PENDING"), it) }.second)
+    assertEquals("DONE", await { f.runtime.finalCleanupCommand("STEP", ticket, it) }.first)
+    assertEquals("WALK_FINAL_CLEANUP_PENDING", await { f.runtime.finalCleanupCommand("ACK", ticket, it) }.second)
+    val changedTime = JSONObject(deletionProof(f, ticket, "ACKNOWLEDGED")).put("confirmedAt", "2026-10-21T00:49:00.000Z").toString()
+    assertEquals("WALK_FINAL_CLEANUP_INVALID", await { f.runtime.finalCleanupProof("REGISTER", ticket, changedTime, it) }.second)
+    assertNull(await { acknowledgeTicket(f, ticket, it) }.second)
+    assertEquals(0, f.cleanup.pending().length())
+  }
+  @Test fun armedUnknownSurvivesRestartAndOnlyAuthoritativeRollbackReleasesItWithoutDeletingOrAutoResuming() = Fixture().use { f ->
+    val epoch = binding(f); val session = prepare(f).getString("clientSessionId"); apply(f, session, receipt(session))
+    assertNull(op(f, epoch, "START", JSONObject().put("sessionId", session).put("commandId", id())).second)
+    val ticket = registeredTicket(f, epoch)
+    val beforeSecret = f.cleanup.scope(ticket).getString("capability")
+    assertNull(await { f.runtime.finalCleanupCommand("ARM", ticket, it) }.second)
+    assertFalse(f.source.subscribed); assertEquals("RECOVERY_REQUIRED", f.storage.dao.session(session).runtimeState)
+    val reopened = WalkFinalCleanup(f.storage, java.io.File(f.context.noBackupFilesDir, "walk-final-cleanup-v1"))
+    assertTrue(beforeSecret == reopened.scope(ticket).getString("capability"))
+    assertTrue(ticket == reopened.captureV2(a, pet)); assertEquals(1, reopened.pending().length())
+    expect("WALK_FINAL_CLEANUP_PENDING") { reopened.assertAllowed(a, pet) }; reopened.assertAllowed(b, pet)
+    expect("WALK_INVALID_STATE_TRANSITION") { reopened.step(ticket) }; assertNotNull(f.storage.dao.session(session))
+    assertNull(await { f.runtime.finalCleanupProof("RELEASE", ticket, JSONObject().put("outcome", "ROLLED_BACK").put("code", "23503").put("attempt", "1").toString(), it) }.second)
+    f.cleanup.assertAllowed(a, pet); assertFalse(f.source.subscribed)
+    val fresh = await { f.runtime.productBinding(a, it) }.first!!
+    assertNull(op(f, fresh, "MUTATE", JSONObject().put("sessionId", session).put("commandId", id()).put("revision", f.storage.dao.session(session).revision.toString()).put("action", "RESUME_RECOVERED")).second)
+    assertTrue(f.source.subscribed); assertFalse(f.cleanup.scope(ticket).getBoolean("confirmed"))
+  }
+  @Test fun graceWatchIsNotFinalOrPermanentCollectionFenceAfterExplicitRestore() = Fixture().use { f ->
+    val epoch = binding(f); val session = prepare(f).getString("clientSessionId"); apply(f, session, receipt(session))
+    assertNull(op(f, epoch, "START", JSONObject().put("sessionId", session).put("commandId", id())).second)
+    val ticket = registeredTicket(f, epoch, null)
+    assertNull(await { f.runtime.finalCleanupCommand("ARM", ticket, it) }.second)
+    val grace = JSONObject().put("outcome", "RESTORABLE").put("status", "completed").put("actualStatus", "pending_grace_period").put("canRestore", true).put("attempt", "1")
+    assertNull(await { f.runtime.finalCleanupProof("RELEASE", ticket, grace.toString(), it) }.second)
+    assertEquals("PENDING", f.cleanup.view(ticket).getString("proofState")); assertEquals("RESTORABLE", f.cleanup.view(ticket).getString("outcome"))
+    assertNotNull(f.storage.dao.session(session)); assertFalse(f.source.subscribed)
+    val fresh = await { f.runtime.productBinding(a, it) }.first!!
+    assertNull(op(f, fresh, "MUTATE", JSONObject().put("sessionId", session).put("commandId", id()).put("revision", f.storage.dao.session(session).revision.toString()).put("action", "RESUME_RECOVERED")).second)
+    assertTrue(f.source.subscribed); assertFalse(f.cleanup.scope(ticket).getBoolean("confirmed"))
+  }
+  @Test fun restartBeforeGraceCallbackAllowsOnlyExplicitExactAttemptRestoreAndKeepsWatch() = Fixture().use { f ->
+    val epoch = binding(f); val ticket = registeredTicket(f, epoch, null)
+    assertNull(await { f.runtime.finalCleanupCommand("ARM", ticket, it) }.second)
+    val reopened = WalkFinalCleanup(f.storage, java.io.File(f.context.noBackupFilesDir, "walk-final-cleanup-v1"))
+    expect("WALK_FINAL_CLEANUP_PENDING") { reopened.assertAllowed(a, pet) }
+    val request = id()
+    reopened.restoreIntent(ticket, JSONObject().put("requestId", request).put("attempt", "1").toString())
+    val restored = JSONObject().put("outcome", "RESTORED").put("status", "cancelled").put("actualStatus", "cancelled").put("attempt", "1").put("requestId", request)
+    reopened.release(ticket, restored.toString()); reopened.assertAllowed(a, pet)
+    assertFalse(reopened.scope(ticket).getBoolean("confirmed")); assertFalse(f.source.subscribed)
+    reopened.armBlock(ticket); reopened.persistArm(ticket)
+    expect("WALK_FINAL_CLEANUP_INVALID") { reopened.release(ticket, restored.toString()) }
+    expect("WALK_FINAL_CLEANUP_PENDING") { reopened.assertAllowed(a, pet) }; reopened.assertAllowed(b, pet)
+  }
+  @Test fun cancelResponseLostAfterUiGateClearsRetainsDurableExactRestoreRequestAndRejectsOtherReceipt() = Fixture().use { f ->
+    val ticket = registeredTicket(f, binding(f), null)
+    assertNull(await { f.runtime.finalCleanupCommand("ARM", ticket, it) }.second)
+    val request = id(); val input = JSONObject().put("requestId", request).put("attempt", "1").toString()
+    assertNull(await { f.runtime.finalCleanupProof("ACCOUNT_REQUEST", ticket, input, it) }.second)
+    val wrongRequest = JSONObject(input).put("requestId", id()).toString()
+    assertEquals("WALK_FINAL_CLEANUP_INVALID", await { f.runtime.finalCleanupProof("RESTORE_INTENT", ticket, wrongRequest, it) }.second)
+    assertNull(await { f.runtime.finalCleanupProof("RESTORE_INTENT", ticket, input, it) }.second)
+    val reopened = WalkFinalCleanup(f.storage, java.io.File(f.context.noBackupFilesDir, "walk-final-cleanup-v1"))
+    val saved = reopened.view(ticket).getJSONObject("restoreIntent")
+    assertEquals(request, saved.getString("requestId")); assertEquals("1", saved.getString("attempt"))
+    val restored = JSONObject().put("outcome", "RESTORED").put("status", "cancelled").put("actualStatus", "cancelled").put("attempt", "1").put("requestId", id())
+    expect("WALK_FINAL_CLEANUP_INVALID") { reopened.release(ticket, restored.toString()) }
+    expect("WALK_FINAL_CLEANUP_PENDING") { reopened.assertAllowed(a, pet) }
+    reopened.release(ticket, restored.put("requestId", request).toString())
+    assertFalse(reopened.scope(ticket).getBoolean("confirmed")); assertFalse(reopened.view(ticket).has("restoreIntent")); reopened.assertAllowed(a, pet)
+  }
+  @Test fun failedArmPromotionStopsOwnedGpsButCannotStartDestructionOrAffectForeignSource() = Fixture().use { f ->
+    val epoch = binding(f); val session = prepare(f).getString("clientSessionId"); apply(f, session, receipt(session))
+    assertNull(op(f, epoch, "START", JSONObject().put("sessionId", session).put("commandId", id())).second)
+    val ticket = registeredTicket(f, epoch); f.failCleanupPromotion = true
+    assertEquals("WALK_FINAL_CLEANUP_PENDING", await { f.runtime.finalCleanupCommand("ARM", ticket, it) }.second)
+    assertFalse(f.source.subscribed); assertNotNull(f.storage.dao.session(session))
+    expect("WALK_FINAL_CLEANUP_PENDING") { f.cleanup.assertAllowed(a, pet) }; f.cleanup.assertAllowed(b, pet)
+    f.failCleanupPromotion = false
+    // No destructive request could begin without ARM readback. Its NOT_STARTED
+    // release uses the unchanged committed attempt, not an invented rollback.
+    f.cleanup.release(ticket, JSONObject().put("outcome", "NOT_STARTED").put("code", "NOT_INVOKED").put("attempt", "0").toString())
+    f.cleanup.assertAllowed(a, pet); assertFalse(f.source.subscribed)
+  }
+  @Test fun acknowledgedV2ReopensAfterRemoteAckAndPhysicalRemovalFailureWithoutLosingProof() = Fixture().use { f ->
+    val ticket = registeredTicket(f, binding(f)); assertNull(await { confirmTicket(f, ticket, it) }.second)
+    assertEquals("DONE", await { f.runtime.finalCleanupCommand("STEP", ticket, it) }.first)
+    val ack = deletionProof(f, ticket, "ACKNOWLEDGED")
+    assertNull(await { f.runtime.finalCleanupProof("REGISTER", ticket, ack, it) }.second)
+    val dir = java.io.File(f.context.noBackupFilesDir, "walk-final-cleanup-v1")
+    val noErase = WalkFinalCleanup(f.storage, dir, erase = { _ -> Unit })
+    expect("WALK_FINAL_CLEANUP_PENDING") { noErase.acknowledge(ticket) }
+    val reopened = WalkFinalCleanup(f.storage, dir)
+    assertTrue(reopened.view(ticket).getBoolean("nativeDone")); assertEquals("ACKNOWLEDGED", reopened.view(ticket).getString("proofState"))
+    val changed = JSONObject(ack).put("acknowledgedAt", "2026-10-21T00:39:00.000Z")
+    expect("WALK_FINAL_CLEANUP_INVALID") { reopened.recordProof(ticket, changed.toString()) }
+    reopened.acknowledge(ticket); assertEquals(0, reopened.pending().length())
+  }
+  @Test fun legacyUnregisteredUnknownCannotBePromotedByCompatibilityConfirmOrEmptyLookup() = Fixture().use { f ->
+    binding(f); val ticket = f.cleanup.capture(a, pet)
+    assertEquals("WALK_FINAL_CLEANUP_INVALID", await { f.runtime.finalCleanupCommand("CONFIRM", ticket, it) }.second)
+    assertEquals(1, f.cleanup.pending().length()); assertFalse(f.cleanup.scope(ticket).getBoolean("confirmed"))
+    val fresh = f.cleanup.captureV2(a, pet)
+    assertTrue(ticket != fresh); assertEquals(2, f.cleanup.pending().length()); f.cleanup.assertAllowed(a, pet)
+  }
+  @Test fun receivedFinalRegistrationStopsOwnedCollectionBeforeDiskWriteButDoesNotEraseUntilConfirmed() = Fixture().use { f ->
+    val epoch = binding(f); val session = prepare(f).getString("clientSessionId"); apply(f, session, receipt(session))
+    assertNull(op(f, epoch, "START", JSONObject().put("sessionId", session).put("commandId", id())).second)
+    val ticket = registeredTicket(f, epoch); val proof = deletionProof(f, ticket, "FINAL")
+    f.failCleanupPromotion = true
+    assertEquals("WALK_FINAL_CLEANUP_PENDING", await { f.runtime.finalCleanupProof("REGISTER", ticket, proof, it) }.second)
+    assertFalse(f.source.subscribed); assertNotNull(f.storage.dao.session(session))
+    expect("WALK_SESSION_DELETED") { f.cleanup.assertAllowed(a, pet) }; f.cleanup.assertAllowed(b, pet)
+    f.failCleanupPromotion = false
+    assertNull(await { f.runtime.finalCleanupProof("REGISTER", ticket, proof, it) }.second)
+    val reopened = WalkFinalCleanup(f.storage, java.io.File(f.context.noBackupFilesDir, "walk-final-cleanup-v1"))
+    expect("WALK_SESSION_DELETED") { reopened.assertAllowed(a, pet) }; reopened.assertAllowed(b, pet)
+    expect("WALK_INVALID_STATE_TRANSITION") { reopened.step(ticket) }
+    reopened.recordProof(ticket, proof, true); assertTrue(reopened.step(ticket)); assertNull(f.storage.dao.session(session))
   }
 }
