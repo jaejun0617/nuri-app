@@ -30,4 +30,5 @@ import java.util.List;
   @Insert(onConflict = OnConflictStrategy.REPLACE) void saveQaProtocol(WalkQaProtocol row);
   @Query("DELETE FROM walk_command_receipts WHERE sessionId = :id") void deleteSessionReceipts(String id);
   @Query("DELETE FROM walk_local_sessions WHERE sessionId = :id") void deleteSession(String id);
+  @Query("DELETE FROM walk_qa_protocol WHERE id = 1") void deleteQaProtocol();
 }

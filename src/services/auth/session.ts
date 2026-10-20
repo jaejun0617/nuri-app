@@ -28,6 +28,11 @@ import { revokeCurrentDevicePushToken } from '../notifications/pushTokenLifecycl
 import { clearAppQueryCache } from '../query/appQueryClient';
 import { stopWalkForLogout } from '../walk/runtime/nativeWalk';
 import {
+  captureWalkFinalDeletion,
+  queueConfirmedWalkFinalDeletion,
+  isConfirmedFinalAccountDeletion,
+} from '../walk/product/finalDeletion';
+import {
   clearAllScheduleNotifications,
   type ScheduleNotificationSyncResult,
 } from '../schedules/notifications';
@@ -98,13 +103,21 @@ export function createAuthBoundaryCleanupQueue() {
   };
 }
 
-export async function clearLocalSessionState(): Promise<void> {
+export async function clearLocalSessionState(
+  current: () => boolean = () => true,
+): Promise<void> {
+  if (!current()) return;
   const walkStop = stopWalkForLogout();
   if (walkStop) await walkStop;
+  if (!current()) return;
   setMonitoringUser({ id: null });
   clearAppQueryCache();
   await clearAllRecentPersonalSearches();
+  if (!current()) return;
   await useAuthStore.getState().signOutLocal();
+  // signOutLocal intentionally changes A to guest; caller fence permits that
+  // owned transition, but never a newer authenticated owner's stores.
+  if (useAuthStore.getState().session?.user.id) return;
   usePetStore.getState().clear();
   useRecordStore.getState().clearAll();
   useScheduleStore.getState().clearAll();
@@ -149,28 +162,52 @@ export async function performLogout(timeoutMs = 1200) {
 }
 
 export async function performAccountDeletion(): Promise<AccountDeletionResult> {
-  const walkStop = stopWalkForLogout();
-  if (walkStop) await walkStop;
-  const result = await deleteMyAccount();
+  const owner = useAuthStore.getState().session?.user.id;
+  if (!owner) throw new Error('WALK_ACTIVE_SESSION_OWNER_MISMATCH');
+  let changed = false;
+  const unsubscribe = useAuthStore.subscribe((next, previous) => {
+    if (next.session?.user.id !== previous.session?.user.id) changed = true;
+  });
+  const current = () =>
+    !changed && useAuthStore.getState().session?.user.id === owner;
   try {
-    await clearRecentLoginProvider();
-  } catch (error: unknown) {
-    captureMonitoringException(error);
-  }
-
-  if (
-    result.status === 'completed' ||
-    result.status === 'completed_with_cleanup_pending'
-  ) {
-    await clearAuthBoundScheduleNotifications();
-
+    const cleanup = await captureWalkFinalDeletion(owner, null);
+    if (!current()) throw new Error('WALK_PRODUCT_CONTEXT_CHANGED');
+    const walkStop = stopWalkForLogout();
+    if (walkStop) await walkStop;
+    if (!current()) throw new Error('WALK_PRODUCT_CONTEXT_CHANGED');
+    const result = await deleteMyAccount({
+      onResult: async receipt =>
+        isConfirmedFinalAccountDeletion(receipt)
+          ? queueConfirmedWalkFinalDeletion(cleanup)
+          : true,
+    });
+    if (!current()) return { ...result, localContextChanged: true };
     try {
-      await revokeCurrentDevicePushToken('account_deleted');
+      await clearRecentLoginProvider();
     } catch (error: unknown) {
       captureMonitoringException(error);
     }
-    await clearLocalSessionState();
-  }
 
-  return result;
+    // Existing compatibility success still logs out during restorable grace.
+    // That isolation policy is independent from confirmed irreversible purge.
+    if (
+      result.status === 'completed' ||
+      result.status === 'completed_with_cleanup_pending'
+    ) {
+      if (!current()) return { ...result, localContextChanged: true };
+      await clearAuthBoundScheduleNotifications();
+      try {
+        if (current()) await revokeCurrentDevicePushToken('account_deleted');
+      } catch (error: unknown) {
+        captureMonitoringException(error);
+      }
+      await clearLocalSessionState(current);
+    }
+    return changed && useAuthStore.getState().session
+      ? { ...result, localContextChanged: true }
+      : result;
+  } finally {
+    unsubscribe();
+  }
 }

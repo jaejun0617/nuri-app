@@ -258,6 +258,29 @@ describe('Home section rhythm and material', () => {
     expect(source).toContain('onPressCategory={onPressFrequentRecord}');
   });
 
+  it('routes the existing first Walk widget to GPS while keeping the other manual categories', async () => {
+    const onCategory = jest.fn();
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => {
+      renderer = TestRenderer.create(
+        <ThemeProvider theme={createTheme('light')}>
+          <FrequentRecordsSection walkStartsGps petTheme={buildPetThemePalette('#2563EB')}
+            records={[]} recordStatus="ready" onPressCategory={onCategory} onPressAll={jest.fn()} />
+        </ThemeProvider>,
+      );
+    });
+    const walk = renderer.root.findAll(node => node.props.testID === 'home-first-walk' && typeof node.props.onPress === 'function')[0];
+    expect(walk.props.accessibilityLabel).toBe('산책 시작 화면 열기');
+    act(() => walk.props.onPress());
+    const meal = renderer.root.findAll(node => String(node.props.accessibilityLabel).startsWith('식사 기록하기') && typeof node.props.onPress === 'function')[0];
+    act(() => meal.props.onPress());
+    expect(onCategory.mock.calls).toEqual([['walk'], ['meal']]);
+    expect(source).toContain("if (category === 'walk')");
+    expect(source).toContain("navigation.navigate('WalkProduct', { petId: activePetId })");
+    expect(source).toContain("navigation.navigate('RecordCreate', {");
+    await act(async () => renderer.unmount());
+  });
+
   it('keeps neutral profile actions and user-colored identity on the seasonal lower panel', () => {
     const panel = fs.readFileSync(path.join(__dirname, '../src/screens/Main/components/LoggedInHome/HomeHeroInfoPanel.tsx'), 'utf8');
     expect(panel).toContain('HOME_SEASONAL_BACKGROUND_GRADIENTS[season]');

@@ -155,7 +155,8 @@ describe('exact Walk display', () => {
     ).not.toMatch(/km|분/);
   });
   it('pending/rejected copy does not confirm reward or distance', () => {
-    expect(walkResultStatusCopy('SYNC_PENDING')).toContain('연결되면');
+    expect(walkResultStatusCopy('SYNC_PENDING')).toContain('연결 후 다시 확인');
+    expect(walkResultStatusCopy('SYNC_PENDING')).not.toContain('연결되면');
     expect(walkResultStatusCopy('REJECTED_SERVER')).toContain('적립되지');
   });
 });

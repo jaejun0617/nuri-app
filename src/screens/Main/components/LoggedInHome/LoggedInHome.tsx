@@ -3381,6 +3381,11 @@ export default function LoggedInHome() {
 
   const onPressFrequentRecord = useCallback(
     (category: FrequentRecordCategory) => {
+      if (category === 'walk') {
+        if (activePetId) navigation.navigate('WalkProduct', { petId: activePetId });
+        else navigation.navigate('PetCreate', { from: 'cta' });
+        return;
+      }
       const initialMainCategory = category === 'grooming' ? 'other' : category;
       navigation.navigate('RecordCreate', {
         petId: activePetId ?? undefined,
@@ -3701,6 +3706,7 @@ export default function LoggedInHome() {
   );
   const frequentRecordsSection = (
     <FrequentRecordsSection
+      walkStartsGps
       petTheme={NEUTRAL_UI_PALETTE}
       records={recordItems}
       recordStatus={recordStatus}

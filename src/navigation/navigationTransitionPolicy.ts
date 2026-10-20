@@ -53,6 +53,7 @@ const rootRoutes: Record<keyof RootStackParamList, TransitionKind> = {
   PolicyDetail: 'detail',
   RecordCreate: 'detail',
   WalkHistory: 'detail',
+  WalkProduct: 'preserve',
   GuideAdminList: 'detail',
   GuideAdminEditor: 'detail',
   EditDone: 'detail',

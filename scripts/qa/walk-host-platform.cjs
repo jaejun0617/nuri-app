@@ -67,11 +67,15 @@ module.exports = function platform(root, output) {
   java.push(put('androidx/core/location/LocationManagerCompat.java', 'package androidx.core.location; public class LocationManagerCompat {public static boolean isLocationEnabled(android.location.LocationManager m){return true;}}'));
   java.push(put('android/util/AtomicFile.java', `package android.util; public class AtomicFile {
     private final java.io.File file; public AtomicFile(java.io.File f){file=f;}
-    public byte[] readFully() throws java.io.IOException{return java.nio.file.Files.readAllBytes(file.toPath());}
+    public byte[] readFully() throws java.io.IOException{
+      java.io.File bak=new java.io.File(file+".bak"),next=new java.io.File(file+".new");
+      if(bak.exists()){file.delete();bak.renameTo(file);} if(next.exists()&&file.exists())next.delete();
+      return java.nio.file.Files.readAllBytes(file.toPath());}
     public java.io.File getBaseFile(){return file;}
-    public java.io.FileOutputStream startWrite() throws java.io.IOException{return new java.io.FileOutputStream(file);}
-    public void finishWrite(java.io.FileOutputStream s) throws java.io.IOException{s.close();}
-    public void failWrite(java.io.FileOutputStream s) throws java.io.IOException{s.close();} public void delete(){file.delete();}
+    public java.io.FileOutputStream startWrite() throws java.io.IOException{return new java.io.FileOutputStream(new java.io.File(file+".new"));}
+    public void finishWrite(java.io.FileOutputStream s) throws java.io.IOException{s.getFD().sync();s.close();new java.io.File(file+".new").renameTo(file);}
+    public void failWrite(java.io.FileOutputStream s) throws java.io.IOException{s.close();new java.io.File(file+".new").delete();}
+    public void delete(){file.delete();new java.io.File(file+".bak").delete();new java.io.File(file+".new").delete();}
   }`));
   java.push(put('androidx/room/Room.java', `package androidx.room; public class Room {
     public static Builder databaseBuilder(android.content.Context c,Class<com.nuri.walk.WalkDatabase> k,String file){return new Builder(file);}

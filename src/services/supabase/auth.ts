@@ -111,6 +111,8 @@ export type AccountDeletionGate = {
 };
 
 export type AccountDeletionResult = {
+  localContextChanged?: boolean;
+  walkCleanupPending?: boolean;
   requestId: string;
   status: AccountDeletionStatus;
   actualStatus: AccountDeletionStatus | null;
@@ -633,6 +635,7 @@ export async function cancelAccountDeletion(
 export async function deleteMyAccount(options?: {
   requestOrigin?: string;
   timeoutMs?: number;
+  onResult?: (result: AccountDeletionResult) => Promise<boolean>;
 }): Promise<AccountDeletionResult> {
   const timeoutMs = options?.timeoutMs ?? 8000;
   let request: AccountDeletionResult;
@@ -657,7 +660,14 @@ export async function deleteMyAccount(options?: {
       if (!parsed) {
         throw new Error('계정 삭제 결과를 해석하지 못했어요.');
       }
-      return parsed;
+      // The authenticated RPC may complete after the UI's unknown-result
+      // deadline. Deliver that actual receipt to the captured cleanup scope.
+      const final = ['db_deleted', 'cleanup_pending', 'completed', 'completed_with_cleanup_pending'];
+      if (!options?.onResult || !final.includes(parsed.status) || !parsed.actualStatus || !final.includes(parsed.actualStatus) || parsed.canRestore) return parsed;
+      // Local disk cleanup cannot delay or downgrade this authoritative result.
+      // The confirmed Native journal/retry coordinator owns its completion.
+      options.onResult(parsed).catch(() => undefined);
+      return { ...parsed, walkCleanupPending: true };
     });
 
   const timeoutPromise = new Promise<AccountDeletionResult>(resolve => {

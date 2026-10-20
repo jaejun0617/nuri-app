@@ -42,6 +42,8 @@ import {
   type AccountDeletionResult,
 } from '../src/services/supabase/auth';
 import { clearRecentLoginProvider } from '../src/services/auth/recentLoginProvider';
+import { useAuthStore } from '../src/store/authStore';
+import { NativeModules } from 'react-native';
 import {
   captureMonitoringException,
   captureMonitoringMessage,
@@ -210,6 +212,7 @@ describe('auth-bound schedule cleanup', () => {
   });
 
   it('cleans only completed account deletion and preserves pending deletion policy', async () => {
+    useAuthStore.setState({ session: { access_token: 'fixture', refresh_token: 'fixture', expires_in: 3600, token_type: 'bearer', user: { id: '11111111-1111-4111-8111-111111111111', aud: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00.000Z' } } });
     mockDeleteMyAccount.mockResolvedValueOnce(
       createDeletionResult('pending_grace_period'),
     );
@@ -221,6 +224,29 @@ describe('auth-bound schedule cleanup', () => {
     );
     await performAccountDeletion();
     expect(mockClearAllScheduleNotifications).toHaveBeenCalledTimes(1);
+  });
+  it.each(['other-owner', 'same-owner-ABA'] as const)('old final deletion response cannot clear newer %s auth/cache/provider state', async mode => {
+    const session = { access_token: 'fixture', refresh_token: 'fixture', expires_in: 3600, token_type: 'bearer' as const, user: { id: '11111111-1111-4111-8111-111111111111', aud: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00.000Z' } };
+    useAuthStore.setState({ session });
+    let resolve!: (r: AccountDeletionResult) => void;
+    mockDeleteMyAccount.mockReturnValueOnce(new Promise(r => { resolve = r; }));
+    const work = performAccountDeletion(); await new Promise<void>(r => setImmediate(r));
+    useAuthStore.setState({ session: null });
+    const replacement = { ...session, user: { ...session.user, id: mode === 'other-owner' ? '22222222-2222-4222-8222-222222222222' : session.user.id } };
+    useAuthStore.setState({ session: replacement });
+    resolve(createDeletionResult('completed')); expect((await work).status).toBe('completed');
+    expect(useAuthStore.getState().session).toBe(replacement);
+    expect(mockClearAllScheduleNotifications).not.toHaveBeenCalled(); expect(mockClearRecentLoginProvider).not.toHaveBeenCalled(); expect(mockRevokeCurrentDevicePushToken).not.toHaveBeenCalled();
+  });
+  it('compatibility completed/grace preserves original signout while never confirming irreversible Walk purge', async () => {
+    useAuthStore.setState({ session: { access_token: 'fixture', refresh_token: 'fixture', expires_in: 3600, token_type: 'bearer', user: { id: '11111111-1111-4111-8111-111111111111', aud: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00.000Z' } } });
+    const final = jest.fn(); NativeModules.NuriWalk = { productGetBinding: jest.fn(async () => '1'), productCommand: jest.fn(async () => '33333333-3333-4333-8333-333333333333'), finalCleanupCommand: final };
+    const compatibility = { ...createDeletionResult('completed'), actualStatus: 'pending_grace_period' as const, canRestore: true };
+    mockDeleteMyAccount.mockImplementationOnce(async options => { await options?.onResult?.(compatibility); return compatibility; });
+    try {
+      const result = await performAccountDeletion(); expect(result.actualStatus).toBe('pending_grace_period'); expect(useAuthStore.getState().session).toBeNull();
+      expect(mockClearAllScheduleNotifications).toHaveBeenCalledTimes(1); expect(final).not.toHaveBeenCalled();
+    } finally { delete NativeModules.NuriWalk; }
   });
 
   it('does not hide failed or unsupported cleanup results', async () => {

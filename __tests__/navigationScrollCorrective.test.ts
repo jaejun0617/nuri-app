@@ -104,7 +104,7 @@ describe('nested entry and edit action contracts', () => {
     expect(submit).not.toContain('resetForm()');
     expect(submit).toContain('completed = true');
     expect(submit).toMatch(
-      /finally\s*\{[\s\S]*if \(!completed\)\s*\{\s*setSaving\(false\);\s*submitLockRef.current = false;/,
+      /finally\s*\{[\s\S]*if \(!completed && \(!isGps \|\| gps.current\(\)\)\)\s*\{\s*setSaving\(false\);\s*submitLockRef.current = false;/,
     );
     expect(submit).toMatch(/catch \(error\)\s*\{\s*completed = false;/);
   });

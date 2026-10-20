@@ -30,7 +30,7 @@ const tools = {
 const java = '/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home/bin/java';
 const mode = process.argv[2] || 'codec';
 const output = process.argv[3];
-if (!output || !path.isAbsolute(output) || !['codec', 'product', 'product-counterexamples'].includes(mode)) throw Error('HOST_OUTPUT_AND_MODE_REQUIRED');
+if (!output || !path.isAbsolute(output) || !['codec', 'product', 'product-counterexamples', 'product-final-counterexamples'].includes(mode)) throw Error('HOST_OUTPUT_AND_MODE_REQUIRED');
 if (!path.relative(root, output).startsWith('..' + path.sep)) throw Error('HOST_OUTPUT_MUST_BE_OUTSIDE_CHECKOUT');
 const productMode = mode.startsWith('product');
 fs.mkdirSync(output, {recursive: true});
@@ -52,7 +52,7 @@ if (productMode) {
   const javac = cp.spawnSync(java.replace(/java$/, 'javac'), ['-parameters', '-cp', runtimeClasspath, '-d', classes, ...platform.java, ...entities], {encoding: 'utf8', timeout: 120000});
   fs.writeFileSync(path.join(output, 'javac.log'), (javac.stdout || '') + (javac.stderr || ''));
   if (javac.status !== 0) { console.log('NATIVE_HOST_PLATFORM_COMPILE_FAIL'); process.exit(1); }
-  sources.push(...platform.kotlin, ...['WalkCipher', 'WalkStorage', 'WalkProductStore', 'WalkDistanceCodec', 'WalkDistanceAndroid', 'WalkRouteProjection', 'WalkRuntime', 'WalkQaContract', 'WalkQaWorkflow'].map(main), test('WalkRuntimePolicyTest'), test('WalkCipherTest'), path.join(root, 'scripts/qa/native-host/WalkProductPersistenceTest.kt'));
+  sources.push(...platform.kotlin, ...['WalkCipher', 'WalkStorage', 'WalkFinalCleanup', 'WalkProductStore', 'WalkDistanceCodec', 'WalkDistanceAndroid', 'WalkRouteProjection', 'WalkRuntime', 'WalkQaContract', 'WalkQaWorkflow'].map(main), test('WalkRuntimePolicyTest'), test('WalkCipherTest'), path.join(root, 'scripts/qa/native-host/WalkProductPersistenceTest.kt'));
   testClasses.push('com.nuri.walk.WalkRuntimePolicyTest', 'com.nuri.walk.WalkCipherTest', 'com.nuri.walk.WalkProductPersistenceTest', 'com.nuri.walk.WalkPersistenceTest');
 }
 if (mode === 'product-counterexamples') {
@@ -75,6 +75,23 @@ if (mode === 'product-counterexamples') {
     if (before === after) throw Error('COUNTEREXAMPLE_NOT_APPLIED');
     const file = path.join(output, name + '.kt');
     fs.writeFileSync(file, after); sources.splice(sources.indexOf(input), 1, file);
+  }
+}
+if (mode === 'product-final-counterexamples') {
+  // Deliberately restore reviewed F defects only in external compiler inputs.
+  // Expected failing behavior is evidence, never a final product PASS.
+  const changes = {
+    WalkRuntime: source => source.replace(/\s*finalCleanup\.assertAllowed\([^\n]+\)/g, '')
+      .replace('val scope = finalCleanup.block(productUuid(ticket))', 'val scope = finalCleanup.confirm(productUuid(ticket))'),
+    WalkFinalCleanup: source => source
+      .replace('if (f.name.endsWith(".new")) return@mapNotNull null', '')
+      .replace('f.name.removeSuffix(".bak")', 'f.name.removeSuffix(".bak").removeSuffix(".new")'),
+  };
+  for (const [name, change] of Object.entries(changes)) {
+    const input = main(name), before = fs.readFileSync(input, 'utf8'), after = change(before);
+    if (before === after) throw Error('F_COUNTEREXAMPLE_NOT_APPLIED');
+    const file = path.join(output, name + '.kt'); fs.writeFileSync(file, after);
+    sources.splice(sources.indexOf(input), 1, file);
   }
 }
 const compile = cp.spawnSync(java, ['-cp', Object.values(tools).join(path.delimiter), 'org.jetbrains.kotlin.cli.jvm.K2JVMCompiler', '-no-stdlib', '-no-reflect', '-jvm-target', '17', '-classpath', runtimeClasspath, '-d', classes, ...sources], {encoding: 'utf8', cwd: root, timeout: 120000, maxBuffer: 4000000});

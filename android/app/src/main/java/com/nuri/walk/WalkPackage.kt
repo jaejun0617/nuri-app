@@ -41,6 +41,7 @@ class WalkModule(private val context: ReactApplicationContext) : ReactContextBas
   @ReactMethod fun getSnapshot(promise: Promise) { runtime.getSnapshot(reply(promise)) }
   @ReactMethod fun getRecoverableSession(promise: Promise) { runtime.getSnapshot(reply(promise)) }
   @ReactMethod fun productGetBinding(ownerId: String, promise: Promise) { runtime.productBinding(ownerId, reply(promise)) }
+  @ReactMethod fun finalCleanupCommand(operation: String, ticket: String, promise: Promise) { runtime.finalCleanupCommand(operation, ticket, reply(promise)) }
   @ReactMethod fun productCommand(ownerId: String, binding: String, operation: String, input: String, promise: Promise) {
     runtime.productCommand(ownerId, binding, operation, input, context.currentActivity != null && WalkVisibility.resumed, reply(promise))
   }

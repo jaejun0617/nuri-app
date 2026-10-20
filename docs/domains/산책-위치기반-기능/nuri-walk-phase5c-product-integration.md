@@ -1,5 +1,7 @@
 # Walk Phase 5C — Product Integration / Batch E
 
+F continuation: [Real Product Integration](nuri-walk-phase6-real-product.md) wires the existing first Home Walk widget to the production route, composes these result APIs and supplies confirmed Native/draft cleanup. E's manual-widget-until-F statement below is historical; E's server/Memory/XP contracts are unchanged. Final release/device proof remains separate.
+
 Owner: NURI-04. Implementation base `798e27eb8cf24f587df4da50e5b4d2a5b38cc056`.
 This document owns E's JS product integration. The external `PHASE5C-PRODUCT-INTEGRATION-REPORT.md/.json` owns final source identity and exact local validation receipts. Native production orchestration, formal GPS start entry, Android build/device proof and the one final integrated Full Suite belong to F. Store remains HOLD; push is not authorized.
 

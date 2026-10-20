@@ -62,6 +62,7 @@ import CommunityEditScreen from '../screens/Community/CommunityEditScreen';
 import CommunityBlockedUsersScreen from '../screens/Community/CommunityBlockedUsersScreen';
 import RecordCreateScreen from '../screens/Records/RecordCreateScreen';
 import WalkHistoryScreen from '../screens/Records/WalkHistoryScreen';
+import WalkProductScreen from '../screens/Walk/WalkProductScreen';
 import UserNotificationsScreen from '../screens/Notifications/UserNotificationsScreen';
 import NuriRankingScreen from '../screens/Ranking/NuriRankingScreen';
 import PolicyCenterScreen from '../screens/Policy/PolicyCenterScreen';
@@ -99,6 +100,7 @@ import { useNavigationMotion } from './useNavigationMotion';
 
 export type RootStackParamList = {
   WalkHistory: { petId: string };
+  WalkProduct: { petId: string };
   SecurityValidation: undefined;
   Splash: undefined;
 
@@ -560,6 +562,7 @@ export default function RootNavigator() {
         options={{ headerShown: false }}
       />
       <Stack.Screen name="WalkHistory" component={WalkHistoryScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="WalkProduct" component={WalkProductScreen} options={{ headerShown: false }} />
       <Stack.Screen
         name="UserNotifications"
         component={UserNotificationsScreen}

@@ -5,6 +5,7 @@
 // - profile_image_url(path) → (Public bucket) public URL 변환
 
 import type { Pet } from '../../store/petStore';
+import { captureWalkFinalDeletion, queueConfirmedWalkFinalDeletion } from '../walk/product/finalDeletion';
 import {
   normalizePetSpeciesDetailKey,
   normalizePetSpeciesDisplayName,
@@ -73,6 +74,7 @@ export class PetDeleteError extends Error {
 }
 
 export type DeletePetSafelyResult = {
+  walkCleanupPending?: boolean;
   deletedPetId: string;
   userId: string;
   storageCleanup: DeletedPetStorageCleanupResult;
@@ -455,6 +457,7 @@ export async function deletePetSafely(
     );
   }
 
+  const walkCleanup = await captureWalkFinalDeletion(userId, petId);
   const { data: deletedData, error: deleteError } = await supabase
     .from('pets')
     .delete()
@@ -477,6 +480,7 @@ export async function deletePetSafely(
     );
   }
 
+  const walkCleanupPending = !(await queueConfirmedWalkFinalDeletion(walkCleanup));
   const storageCleanup = await cleanupDeletedPetStorage({ userId, petId });
-  return { deletedPetId: petId, userId, storageCleanup };
+  return { deletedPetId: petId, userId, storageCleanup, walkCleanupPending };
 }

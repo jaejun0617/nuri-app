@@ -167,6 +167,7 @@ export default function MoreScreen() {
       setDeleting(true);
       setDeleteConfirmationText('');
       const result = await performAccountDeletion();
+      if (result.localContextChanged) return;
 
       if (
         result.status === 'completed' ||

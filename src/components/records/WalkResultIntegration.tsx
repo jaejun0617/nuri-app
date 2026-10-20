@@ -17,6 +17,7 @@ import {
   walkSummaryCopy,
   walkResultStatusCopy,
   type WalkResultServerState,
+  WALK_MILESTONE_LABEL,
 } from '../../services/walk/product/presentation';
 import { invalidateWalkProduct } from '../../services/walk/product/invalidation';
 
@@ -88,7 +89,9 @@ export default function WalkResultIntegration({
           </AppText>
           <AppText preset="unifiedMeta">
             {progression.data.milestones.length
-              ? `달성한 발자국 ${progression.data.milestones.length}개`
+              ? `달성한 발자국 · ${progression.data.milestones
+                  .map(item => WALK_MILESTONE_LABEL[item.key])
+                  .join(' · ')}`
               : '발자국을 함께 모아보세요.'}
           </AppText>
         </>

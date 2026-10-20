@@ -1898,6 +1898,7 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
       setDeleteConfirmVisible(false);
       setDeleteConfirmationText('');
       const result = await performAccountDeletion();
+      if (result.localContextChanged) return;
 
       if (
         result.status === 'completed' ||

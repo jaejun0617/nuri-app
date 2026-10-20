@@ -23,6 +23,7 @@ import { formatPetCopy } from '../../../utils/petDisplayName';
 
 type IntroSeen = { current: boolean };
 type Props = {
+  productLocationNote?: string;
   header: React.ReactNode;
   petName: string;
   season: SeasonKey;
@@ -321,6 +322,7 @@ export default function WalkPreWalk(props: Props) {
               지금 시작하지 못했어요. 산책 상태를 확인한 뒤 다시 시도해 주세요.
             </AppText>
           )}
+          {props.productLocationNote && <AppText preset="caption" style={styles.locationNote}>{props.productLocationNote}</AppText>}
           <Pressable
             testID="walk-primary"
             accessibilityRole="button"
@@ -415,6 +417,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
     textAlign: 'center',
   },
+  locationNote: { color: lightColors.textSecondary, fontSize: 12, lineHeight: 18, textAlign: 'center', marginBottom: 8 },
   error: {
     color: lightColors.textPrimary,
     textAlign: 'center',

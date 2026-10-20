@@ -11,7 +11,8 @@ import PetDeleteConfirmDialog from '../src/components/pets/PetDeleteConfirmDialo
 import PetManagementCard from '../src/components/pets/PetManagementCard';
 import PetManagementScreen from '../src/screens/Pets/PetManagementScreen';
 import { formatPetAgeLabelFromBirthDate } from '../src/services/pets/age';
-import { deletePetSafely } from '../src/services/supabase/pets';
+import { deletePetSafely, fetchMyPets } from '../src/services/supabase/pets';
+import { useAuthStore } from '../src/store/authStore';
 import { usePetStore, type Pet } from '../src/store/petStore';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 import { diffDaysFromKst } from '../src/utils/date';
@@ -609,5 +610,13 @@ describe('pet management photo cards', () => {
     ).toHaveLength(0);
     expect(texts()).toContain('최소 1개의 아이 프로필은 필요해요.');
     expect(deletePetSafely).not.toHaveBeenCalled();
+  });
+  it('removes a confirmed deleted pet even while local Walk cleanup is pending', async () => {
+    useAuthStore.setState({ session: { access_token: 'fixture', refresh_token: 'fixture', expires_in: 3600, token_type: 'bearer', user: { id: 'fixture-owner', aud: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00.000Z' } } });
+    jest.mocked(deletePetSafely).mockResolvedValueOnce({ deletedPetId: pet.id, userId: 'fixture-owner', walkCleanupPending: true, storageCleanup: { failedBuckets: [] } });
+    jest.mocked(fetchMyPets).mockResolvedValueOnce([otherPet]); renderScreen();
+    TestRenderer.act(() => action(`pet-delete-entry-${pet.id}`)?.props.onPress());
+    await TestRenderer.act(async () => { renderer.root.findByType(PetDeleteConfirmDialog.type).props.onConfirm(); await new Promise<void>(r => setImmediate(r)); });
+    expect(usePetStore.getState().pets.map(p => p.id)).toEqual([otherPet.id]);
   });
 });

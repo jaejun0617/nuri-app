@@ -1,5 +1,13 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-10-20 Walk Real Product F - Source Candidate, Device Pending
+
+- [F contract](../domains/산책-위치기반-기능/nuri-walk-phase6-real-product.md) and external PHASE6-REAL-PRODUCT-REPORT own the integrated source/test identity. A/B/C/D/E accepted ancestry remains intact. Existing Home first Walk widget now opens production Walk without the QA gate. Temporary QA entry remains pending separate PO removal approval.
+- F build/install/ADB/Metro0. Final approved-signature QA Release, exact installed-source match and SM-S937N Android17 Native/Room/FGS/product smoke remain pending serial NURI-12 dispatch. Do not count injected-cipher host tests or the ignored real-keystore case as actual device proof. Do not repeat accepted Timer10min/outdoor4km/reboot protocols.
+- Final RC privacy obligation: remote account/pet delete may succeed before process loss and before ANY local durable final receipt. Existing server authority cannot always recover that window; UNKNOWN encrypted captured tickets are preserved, never inferred final from empty lookups. See Master's external PHASE6-EXISTING-DELETION-RECOVERY-REVIEW. A separate smallest server corrective/recovery proof is required before claiming this privacy gate closed.
+- Owned short product smoke must preserve PO data and avoid Memory/XP creation. Any owned server session/tombstone is a disclosed mutation, not user-data delta0. A's historical unproven capture incident remains disclosed; F actual-map capture0. Independent outdoor numeric distance/GPS-quality/deviation proof remains a Final RC obligation, while PO field-usability acceptance and Timer PASS stand.
+- STORE HOLD, push NO. Tutorial/global responsive/global rendering/Subscription/Billing/Family Beta/POI remain outside this execution.
+
 ## 2026-10-17 Walk Timer / Physical Preflight Boundary
 
 - [Walk preflight report](nuri-walk-phase3-timer-preflight-2026-10-17.md): presentation-only1Hz text corrective `23993fa`, native distance/FGS/Room/receipt/backend unchanged. Final261 suites/3190 tests, TypeScript, scoped lint0/0 and QA Main Release1/install-r1 identity/flags preservation PASS.14 public fixture PNG originals verified; actual location captures0.

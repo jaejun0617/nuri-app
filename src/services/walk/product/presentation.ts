@@ -9,12 +9,17 @@ export type WalkResultServerState =
   | 'SYNC_PENDING'
   | 'ACCEPTED_SERVER'
   | 'REJECTED_SERVER';
+export const WALK_MILESTONE_LABEL = {
+  FIRST_GPS_WALK: '첫 GPS 산책',
+  '10_KM': '10 km',
+  '100_KM': '100 km',
+} as const;
 export const walkResultStatusCopy = (state: WalkResultServerState) =>
   state === 'ACCEPTED_SERVER'
     ? '산책 결과를 확인했어요.'
     : state === 'REJECTED_SERVER'
     ? '이번 산책 결과는 거리로 적립되지 않았어요.'
-    : '기기에 안전하게 저장했어요. 연결되면 산책 결과를 확인할게요.';
+    : '기기에 안전하게 저장했어요. 연결 후 다시 확인을 눌러 주세요.';
 export const walkStartedAt = (value: string) =>
   new Date(Date.parse(value) + 9 * 3600_000)
     .toISOString()

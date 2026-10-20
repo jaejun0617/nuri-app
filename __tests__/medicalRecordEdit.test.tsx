@@ -1,6 +1,8 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { appQueryClient } from '../src/services/query/appQueryClient';
 import { createTheme } from '../src/app/theme/theme';
 import RecordEditScreen from '../src/screens/Records/RecordEditScreen';
 import MedicalRecordFields from '../src/components/records/MedicalRecordFields';
@@ -26,9 +28,7 @@ jest.mock('@react-navigation/native', () => ({
   }),
 }));
 jest.mock('../src/store/authStore', () => ({
-  useAuthStore: (
-    selector: (state: { session: { user: { id: string } } }) => unknown,
-  ) => selector({ session: { user: { id: 'u' } } }),
+  useAuthStore: jest.requireActual('zustand').create(() => ({ session: { user: { id: 'u' } } })),
 }));
 jest.mock('../src/services/supabase/memories', () => ({
   ...jest.requireActual('../src/services/supabase/memories'),
@@ -92,14 +92,15 @@ describe('medical edit through both submit actions', () => {
   });
   afterEach(() => {
     act(() => tree?.unmount());
+    appQueryClient.clear();
     useRecordStore.setState(original, true);
   });
   it('hydrates optional details, saves edits with existing weight/condition, and blocks same-tick double submit', async () => {
     await act(async () => {
       tree = TestRenderer.create(
-        <ThemeProvider theme={createTheme('light')}>
+        <QueryClientProvider client={appQueryClient}><ThemeProvider theme={createTheme('light')}>
           <RecordEditScreen />
-        </ThemeProvider>,
+        </ThemeProvider></QueryClientProvider>,
       );
     });
     const fields = tree.root.findByType(MedicalRecordFields);

@@ -651,7 +651,8 @@ describe('Walk presentation privacy and mode boundaries', () => {
     });
     await open();
     await press(r, 'walk-mode-actual');
-    expect(host(r, 'Marker')).toHaveLength(0);
+    expect(host(r, 'Marker')).toHaveLength(1);
+    expect(host(r, 'Marker')[0].props.anchor).toEqual({ x: 0.5, y: 0.5 });
     expect(
       r.root.findAllByProps({ testID: 'walk-actual-marker' }).length,
     ).toBeGreaterThan(0);
@@ -665,9 +666,9 @@ describe('Walk presentation privacy and mode boundaries', () => {
     expect(r.root.findByType(Modal).props.visible).toBe(false);
     expect(mutateNativeWalk).not.toHaveBeenCalled();
   });
-  test('public preview uses a regular RN pet overlay and only a native start point', async () => {
+  test('public preview uses the approved geographic Native pet marker and a separate native start point', async () => {
     await open();
-    expect(host(r, 'Marker')).toHaveLength(1);
+    expect(host(r, 'Marker')).toHaveLength(2);
     const marker = host(r, 'Marker')[0];
     expect(marker.props.children).toBeTruthy();
     expect(marker.props.title).not.toBe('PUBLIC_SYNTHETIC');
@@ -1012,7 +1013,7 @@ describe('Walk presentation privacy and mode boundaries', () => {
       );
     });
     const image = r.root.findByType(Image);
-    expect(image.props.style.borderRadius).toBe(16);
+    expect(image.props.style.borderRadius).toBe(14);
     await act(async () => image.props.onError());
     expect(r.root.findAllByType(Image)).toHaveLength(0);
     expect(host(r, 'SemanticIcon')[0].props.name).toBe('paw');

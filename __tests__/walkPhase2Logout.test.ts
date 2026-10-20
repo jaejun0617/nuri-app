@@ -36,7 +36,9 @@ jest.mock('../src/services/query/appQueryClient', () => ({
 }));
 jest.mock('../src/store/authStore', () => ({
   useAuthStore: {
+    subscribe: jest.fn(() => jest.fn()),
     getState: () => ({
+      session: { user: { id: '11111111-1111-4111-8111-111111111111' } },
       signOutLocal: jest.fn(),
       clearPasswordRecovery: jest.fn(),
     }),

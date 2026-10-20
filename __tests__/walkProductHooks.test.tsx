@@ -348,6 +348,51 @@ it('history consumes server cursor, opens original detail, and leaves deleted re
       .props.disabled,
   ).toBe(true);
 });
+it.each(['SYNC_PENDING', 'REJECTED_SERVER', 'ACCEPTED_SERVER'] as const)(
+  'level-up and named canonical milestones require accepted state: %s',
+  async state => {
+    jest.mocked(walkProgressionRepository.get).mockResolvedValue({
+      ...progression('pet-a', 10000n),
+      milestones: [
+        {
+          key: 'FIRST_GPS_WALK',
+          policyVersion: 1,
+          thresholdM: '0',
+          earnedAt: '2026-10-20T00:00:00.000Z',
+          sourceSessionId: 'session',
+        },
+        {
+          key: '10_KM',
+          policyVersion: 1,
+          thresholdM: '10000',
+          earnedAt: '2026-10-20T00:00:00.000Z',
+          sourceSessionId: 'session',
+        },
+      ],
+    });
+    jest
+      .mocked(walkRecordRepository.get)
+      .mockResolvedValue({ recordState: 'RECORD_PENDING' } as WalkRecordView);
+    await mount(
+      <WalkResultIntegration
+        petId="pet-a"
+        clientSessionId="session"
+        state={state}
+        previousLevel="1"
+      />,
+    );
+    await flush();
+    if (state === 'ACCEPTED_SERVER') {
+      expect(texts()).toContain('레벨이 올랐어요');
+      expect(texts()).toContain('첫 GPS 산책 · 10 km');
+    } else {
+      expect(texts()).not.toContain('레벨이 올랐어요');
+      expect(texts()).not.toContain('첫 GPS 산책');
+      expect(walkProgressionRepository.get).not.toHaveBeenCalled();
+    }
+    expect(walkRecordRepository.create).not.toHaveBeenCalled();
+  },
+);
 it('result pending/rejected makes no accepted-data request and no reward action; accepted exposes canonical record entry', async () => {
   await mount(
     <WalkResultIntegration
@@ -356,7 +401,7 @@ it('result pending/rejected makes no accepted-data request and no reward action;
       state="SYNC_PENDING"
     />,
   );
-  expect(texts()).toContain('연결되면');
+  expect(texts()).toContain('연결 후 다시 확인');
   expect(walkRecordRepository.get).not.toHaveBeenCalled();
   expect(walkProgressionRepository.get).not.toHaveBeenCalled();
   await act(async () =>
@@ -519,18 +564,16 @@ it('dismiss(A) followed by selection B leaves B controls usable and no stale A e
     acceptedDistanceM: '1200',
     eligibility: 'PROGRESSION_ELIGIBLE' as const,
   };
-  jest
-    .mocked(walkRecordRepository.prompt)
-    .mockImplementation(async petId => ({
-      version: 1,
-      source: 'GPS_TRACKED',
-      petId,
-      clientSessionId: `session-${petId}`,
-      sessionDeleted: false,
-      summary,
-      recordState: 'RECORD_PENDING',
-      originalMemoryId: null,
-    }));
+  jest.mocked(walkRecordRepository.prompt).mockImplementation(async petId => ({
+    version: 1,
+    source: 'GPS_TRACKED',
+    petId,
+    clientSessionId: `session-${petId}`,
+    sessionDeleted: false,
+    summary,
+    recordState: 'RECORD_PENDING',
+    originalMemoryId: null,
+  }));
   jest.mocked(walkRecordRepository.dismiss).mockReturnValue(pending.promise);
   await mount(<WalkHomeFooter petId="pet-a" enabled />);
   act(() =>

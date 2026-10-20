@@ -326,6 +326,7 @@ export function IconControl({
   );
 }
 type Props = {
+  productLocationNote?: string;
   productStatus?: React.ComponentProps<typeof WalkLocalResult>['productStatus'];
   productContent?: React.ReactNode;
   preWalkIntroSeen?: { current: boolean };
@@ -351,7 +352,7 @@ type Props = {
   routeAvailable?: boolean;
   routePartial?: boolean;
   onClose: () => void;
-  onQa: () => void;
+  onQa?: () => void;
   onRecenter: () => void;
   onPrimary: () => void;
   onFinish: () => void;
@@ -432,13 +433,13 @@ export default function WalkView(props: Props) {
           {formatPetCopy('우리 아이와 함께', petName)}
         </AppText>
       </View>
-      <IconControl
+      {props.onQa && <IconControl
         label="QA 정보 열기"
         icon="sliders"
         onPress={props.onQa}
         testID="walk-qa-open"
         paper={paper}
-      />
+      />}
     </Header>
   );
   if (pre) {
@@ -451,6 +452,7 @@ export default function WalkView(props: Props) {
         busy={busy}
         error={props.error}
         introSeen={props.preWalkIntroSeen}
+        productLocationNote={props.productLocationNote}
         onPrimary={props.onPrimary}
       />
     );

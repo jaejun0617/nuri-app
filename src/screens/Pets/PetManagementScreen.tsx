@@ -33,6 +33,7 @@ import {
   getPetDeleteErrorMessage,
 } from '../../services/supabase/pets';
 import { usePetStore, type Pet } from '../../store/petStore';
+import { useAuthStore } from '../../store/authStore';
 import { useRecordStore } from '../../store/recordStore';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { openMoreDrawer, showToast } from '../../store/uiStore';
@@ -168,6 +169,7 @@ export default function PetManagementScreen() {
     setDeleting(true);
     try {
       const result = await deletePetSafely(deleteTarget.id);
+      if (useAuthStore.getState().session?.user.id !== result.userId) return;
       const localRemainingPets = pets.filter(
         candidate => candidate.id !== deleteTarget.id,
       );
@@ -178,14 +180,16 @@ export default function PetManagementScreen() {
 
       try {
         const refreshedPets = await fetchMyPets(result.userId);
-        setPets(refreshedPets, { userId: result.userId });
+        if (useAuthStore.getState().session?.user.id === result.userId) setPets(refreshedPets, { userId: result.userId });
       } catch (refreshError) {
         captureMonitoringException(refreshError);
       }
 
       setDeleteTarget(null);
 
-      if (result.storageCleanup.failedBuckets.length > 0) {
+      if (result.walkCleanupPending) {
+        showToast({ tone: 'warning', title: '프로필은 삭제됐어요', message: '기기에 남은 산책 정보 정리를 다시 시도할게요.', durationMs: 3200 });
+      } else if (result.storageCleanup.failedBuckets.length > 0) {
         captureMonitoringMessage('pet_delete_storage_cleanup_pending', {
           level: 'warning',
           tags: { petId: deleteTarget.id },

@@ -6,10 +6,10 @@ import Feather from '../../../components/icons/NuriFeatherIcon';
 import type { SeasonKey } from '../../../theme/seasonal/season';
 import WalkActionSheet from './WalkActionSheet';
 import { walkCopyAccent } from './walkAccent';
-import { WALK_NOTICE_COPY, type WalkNoticeKind } from './noticeModel';
+import { WALK_NOTICE_CONTENT, type WalkProductNoticeKind } from './noticeModel';
 
 type Props = {
-  kind: WalkNoticeKind;
+  kind: WalkProductNoticeKind;
   visible: boolean;
   season: SeasonKey;
   insetTop: number;
@@ -21,7 +21,7 @@ type Props = {
 
 export default function WalkNoticeSheet(props: Props) {
   const theme = useTheme();
-  const copy = WALK_NOTICE_COPY[props.kind];
+  const copy = WALK_NOTICE_CONTENT[props.kind];
   const accent = walkCopyAccent(props.season, theme.mode === 'dark');
   return (
     <WalkActionSheet

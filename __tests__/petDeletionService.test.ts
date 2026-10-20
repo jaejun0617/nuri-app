@@ -9,6 +9,8 @@ jest.mock('../src/services/supabase/client', () => ({
 jest.mock('../src/services/supabase/storagePets', () => ({
   cleanupDeletedPetStorage: jest.fn(),
 }));
+jest.mock('../src/services/walk/product/finalDeletion', () => ({ captureWalkFinalDeletion: jest.fn(async () => ({ ticket: 'captured', ownerId: 'user-1', petId: 'pet-2' })), queueConfirmedWalkFinalDeletion: jest.fn(async () => true) }));
+import { captureWalkFinalDeletion, queueConfirmedWalkFinalDeletion } from '../src/services/walk/product/finalDeletion';
 
 import {
   deletePetSafely,
@@ -81,6 +83,7 @@ describe('safe pet deletion service', () => {
       deletedPetId: 'pet-2',
       userId: 'user-1',
       storageCleanup: { failedBuckets: [] },
+      walkCleanupPending: false,
     });
 
     expect(eqDeletePet).toHaveBeenCalledWith('id', 'pet-2');
@@ -98,6 +101,17 @@ describe('safe pet deletion service', () => {
       code: 'PET_NOT_FOUND',
     });
     expect(remove).not.toHaveBeenCalled();
+    expect(captureWalkFinalDeletion).not.toHaveBeenCalled();
+  });
+  it('confirmed DB deletion survives local Walk cleanup pending and still cleans Storage/returns known deleted pet', async () => {
+    mockPetQueries(['pet-1', 'pet-2'], ['pet-2']); jest.mocked(queueConfirmedWalkFinalDeletion).mockResolvedValueOnce(false);
+    await expect(deletePetSafely('pet-2')).resolves.toMatchObject({ deletedPetId: 'pet-2', userId: 'user-1', walkCleanupPending: true });
+    expect(cleanupDeletedPetStorage).toHaveBeenCalledTimes(1);
+  });
+  it('empty delete confirmation does not erase local Walk scope or infer final deletion', async () => {
+    mockPetQueries(['pet-1', 'pet-2'], []);
+    await expect(deletePetSafely('pet-2')).rejects.toMatchObject({ code: 'PET_NOT_FOUND' });
+    expect(queueConfirmedWalkFinalDeletion).not.toHaveBeenCalled();
   });
 
   it('keeps backend details out of unknown user-facing failures', () => {

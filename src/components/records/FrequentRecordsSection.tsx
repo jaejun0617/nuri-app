@@ -37,6 +37,7 @@ type RecordStatus =
   | 'error';
 
 type FrequentRecordsSectionProps = {
+  walkStartsGps?: boolean;
   footer?: React.ReactNode;
   petTheme: PetTheme;
   records: ReadonlyArray<MemoryRecord>;
@@ -62,10 +63,12 @@ function RecordSummaryCard({
   item,
   accentColor,
   onPress,
+  gpsWalk = false,
 }: {
   item: FrequentRecordSummary;
   accentColor: string;
   onPress: () => void;
+  gpsWalk?: boolean;
 }) {
   const { fontScale } = useWindowDimensions();
   const contentTextStyle = useHomeContentTextStyle();
@@ -80,7 +83,8 @@ function RecordSummaryCard({
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel}
+      accessibilityLabel={gpsWalk ? '산책 시작 화면 열기' : accessibilityLabel}
+      testID={gpsWalk ? 'home-first-walk' : undefined}
       onPress={onPress}
       style={({ pressed }) => [
         styles.recordCard,
@@ -149,6 +153,7 @@ function FrequentRecordsSectionBase({
   onPressCategory,
   onPressAll,
   footer,
+  walkStartsGps = false,
 }: FrequentRecordsSectionProps) {
   const petName = usePetDisplayName();
   const isScreenFocused = useIsFocused();
@@ -226,6 +231,7 @@ function FrequentRecordsSectionBase({
               item={item}
               accentColor={petTheme.primary}
               onPress={() => onPressCategory(item.category)}
+              gpsWalk={walkStartsGps && item.category === 'walk'}
             />
           ))}
         </View>

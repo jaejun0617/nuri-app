@@ -2,6 +2,8 @@ import React from 'react';
 import { FlatList, ScrollView, StyleSheet } from 'react-native';
 import TestRenderer from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { appQueryClient } from '../src/services/query/appQueryClient';
 
 import { createTheme } from '../src/app/theme/theme';
 import PetActivityAchievementsScreen from '../src/screens/Pets/PetActivityAchievementsScreen';
@@ -32,6 +34,11 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('../src/services/activity/activityDashboard', () => ({
   ...jest.requireActual('../src/services/activity/activityDashboard'),
   loadActivityDashboard: jest.fn(),
+}));
+jest.mock('../src/store/authStore', () => ({
+  useAuthStore: jest.requireActual('zustand').create(() => ({
+    session: { user: { id: 'synthetic-owner' } },
+  })),
 }));
 
 const dashboard: ActivityDashboardData = {
@@ -113,15 +120,16 @@ describe('pet stack content-end spacing', () => {
       TestRenderer.act(() => renderer?.unmount());
     }
     renderer = undefined;
+    appQueryClient.clear();
     usePetStore.setState(originalPets);
   });
 
   it('keeps the final achievement and uses only safe-area breathing room', async () => {
     await TestRenderer.act(async () => {
       renderer = TestRenderer.create(
-        <ThemeProvider theme={createTheme('light')}>
+        <QueryClientProvider client={appQueryClient}><ThemeProvider theme={createTheme('light')}>
           <PetActivityAchievementsScreen />
-        </ThemeProvider>,
+        </ThemeProvider></QueryClientProvider>,
       );
     });
     if (!renderer) throw new Error('PetActivityAchievementsScreen did not mount');

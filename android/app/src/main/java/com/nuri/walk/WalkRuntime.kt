@@ -33,6 +33,7 @@ class WalkRuntime internal constructor(private val context: Context,
   injectedSource: WalkLocationSource? = null,
   private val testGate: ((Boolean, Boolean) -> String?)? = null,
   private val qaEnabled: Boolean = com.nuri.BuildConfig.NURI_SECURITY_QA,
+  private val injectedFinalCleanup: WalkFinalCleanup? = null,
   private val testLauncher: ((WalkRuntime, String, String) -> Unit)? = null,
 ) {
   private val worker = Executors.newSingleThreadExecutor()
@@ -41,6 +42,7 @@ class WalkRuntime internal constructor(private val context: Context,
   private val source: WalkLocationSource = injectedSource ?: FusedWalkLocationSource(context)
   private val distanceEngine = WalkDistanceEngineV1(androidWalkGeodesic)
   private val qa by lazy { WalkQaWorkflow(context,storage,::requireOwner) }
+  private val finalCleanup by lazy { injectedFinalCleanup ?: WalkFinalCleanup(storage, java.io.File(context.noBackupFilesDir, "walk-final-cleanup-v1")) }
   private val generation = AtomicLong(0)
   private val ownerEpoch = AtomicLong(0)
   @Volatile private var owner: String? = null
@@ -166,6 +168,7 @@ class WalkRuntime internal constructor(private val context: Context,
         fun id() = productUuid(productString(body, "sessionId"))
         val result = when (operation) {
           "PREPARE" -> { exact("petId", "commandId"); startGate(visible)
+            finalCleanup.assertAllowed(actor, productUuid(productString(body, "petId")))
             products.prepare(actor, productUuid(productString(body, "petId")), productUuid(productString(body, "commandId")),
               System.currentTimeMillis(), SystemClock.elapsedRealtime()) }
           "GET" -> { exact("sessionId"); val (row, meta) = products.owned(actor, id()); products.checkpoint(row, meta) }
@@ -198,6 +201,7 @@ class WalkRuntime internal constructor(private val context: Context,
           "PURGE_RESOLVED" -> { exact("sessionId"); products.purgeResolved(actor, id()) }
           "PURGE_FINAL_SCOPE" -> { exact("petId", "confirmation", "after"); products.purgeFinalScope(actor,
             productNullable(body, "petId"), productString(body, "confirmation"), productString(body, "after")) }
+          "CAPTURE_FINAL_CLEANUP" -> { exact("petId"); finalCleanup.capture(actor, productNullable(body, "petId")) }
           "SNAPSHOT" -> { exact("sessionId"); val (row, meta) = products.owned(actor, id()); snapshot(row, meta) }
           "ROUTE_PAGE" -> { exact("sessionId", "direction", "cursor", "routeRevision")
             val (row, _) = products.owned(actor, id())
@@ -211,11 +215,45 @@ class WalkRuntime internal constructor(private val context: Context,
       } catch (error: Exception) { failClosed(failure(error)); done(null, failure(error)) }
     }
   }
+  // Confirmed scope uses an opaque captured capability, not current owner
+  // rebinding. Thus an old owner's final receipt cannot stop a new owner's FGS.
+  fun finalCleanupCommand(operation: String, ticket: String, done: (String?, String?) -> Unit) = run(done) {
+    when (operation) {
+      "PENDING" -> finalCleanup.pending().toString()
+      "CONFIRM" -> {
+        val scope = finalCleanup.block(productUuid(ticket))
+        if (owner == scope.getString("owner")) ownerEpoch.incrementAndGet()
+        quiesceFinalScope(scope)
+        // Collection is fenced/stopped first, even if disk promotion fails.
+        // Erasure still requires a verified durable confirmation in STEP.
+        finalCleanup.confirm(ticket)
+        "OK"
+      }
+      "STEP" -> {
+        val id = productUuid(ticket); val scope = finalCleanup.scope(id)
+        if (!scope.getBoolean("confirmed")) throw WalkFailure("WALK_INVALID_STATE_TRANSITION")
+        quiesceFinalScope(scope)
+        if (finalCleanup.step(id)) "DONE" else "MORE"
+      }
+      "ACK" -> { finalCleanup.acknowledge(productUuid(ticket)); "OK" }
+      else -> throw WalkFailure("WALK_INVALID_PRODUCT_CHECKPOINT")
+    }
+  }
+  private fun quiesceFinalScope(scope: JSONObject) {
+    storage.dao.active()?.let { row ->
+      val meta = storage.metadata(row)
+      if (finalCleanup.matches(scope, meta.owner, meta.pet)) {
+        generation.incrementAndGet(); source.stop(); availability = false; stopServiceAndAwait()
+        pendingActivation?.takeIf { it.first == row.sessionId }?.second?.let { complete(it, null, "WALK_SESSION_DELETED"); pendingActivation = null }
+      }
+    }
+  }
   private fun startProduct(actor: String, binding: String, session: String, command: String,
     visible: Boolean, done: (String?, String?) -> Unit) {
     productFence(actor, binding)
     val products = WalkProductStore(storage) { productFence(actor, binding) }
     val (row, old) = products.owned(actor, session)
+    finalCleanup.assertAllowed(actor, old.pet)
     val journal = old.product!!
     if (journal.phase == WalkProductPhase.RUNNING && state(row) in setOf(WalkState.WALKING, WalkState.PAUSED)) {
       done(products.checkpoint(row, old), null); return
@@ -273,6 +311,7 @@ class WalkRuntime internal constructor(private val context: Context,
     worker.execute {
       try {
         initialize(); val actor = requireOwner(); val petId = uuid(pet); val id = uuid(command); val rev = revision(expected)
+        finalCleanup.assertAllowed(actor, petId)
         if (!qaEnabled) throw WalkFailure("WALK_QA_DISABLED")
         storage.dao.receipt(id)?.let { existing ->
           storage.dao.session(existing.sessionId)?.let { if (owned(it).product != null) throw WalkFailure("WALK_PRODUCT_SESSION_PROTECTED") }
@@ -319,7 +358,8 @@ class WalkRuntime internal constructor(private val context: Context,
           return@execute
         }
         val row = storage.dao.session(sessionId) ?: throw WalkFailure("WALK_SERVICE_UNAVAILABLE")
-        owned(row); startGate(true, service === serviceInstance && serviceSession == sessionId)
+        val attaching = owned(row); finalCleanup.assertAllowed(attaching.owner, attaching.pet)
+        startGate(true, service === serviceInstance && serviceSession == sessionId)
         service = serviceInstance; serviceSession = sessionId
         val epoch = generation.incrementAndGet()
         source.start({ fix -> onFix(epoch, sessionId, fix) }, { availability = it }) { error ->
@@ -404,6 +444,7 @@ class WalkRuntime internal constructor(private val context: Context,
         else if (!qaEnabled) throw WalkFailure("WALK_QA_DISABLED")
         val protected = storage.dao.session(sessionId) ?: throw WalkFailure("WALK_SESSION_DELETED")
         val protectedMeta = owned(protected)
+        finalCleanup.assertAllowed(protectedMeta.owner, protectedMeta.pet)
         if ((protectedMeta.product != null) != (productOwner != null)) throw WalkFailure("WALK_PRODUCT_SESSION_PROTECTED")
         if (protectedMeta.product != null && (protectedMeta.product.phase in setOf(WalkProductPhase.RESOLVED, WalkProductPhase.CANCEL_PENDING)
           || (protectedMeta.finishedWall > 0 && type != "FINISH"))) throw WalkFailure("WALK_PRODUCT_FINISH_REQUIRED")

@@ -1,5 +1,28 @@
 import type { WalkNativeSnapshot } from '../../../services/walk/runtime/nativeWalk';
 
+const PRODUCT_START_COPY = {
+  CANCEL_START: {
+    title: '아직 시작하지 않은 산책이에요',
+    body: '이 요청을 취소하고 화면을 닫을까요?\n연결이 끊겨도 취소 요청은 기기에 보관해요.',
+    primary: '요청 취소하고 닫기',
+    secondary: '산책 화면으로 돌아가기',
+    icon: 'x-circle',
+  },
+  START_AGAIN: {
+    title: '산책 시작을 다시 확인해 주세요',
+    body: '권한 안내 중 화면 상태가 바뀌었어요.\n아직 산책을 시작하지 않았어요.',
+    primary: '산책 시작하기',
+    secondary: '나중에 시작하기',
+    icon: 'play',
+  },
+  LOCATION_EXPLANATION: {
+    title: '함께 걸은 길을 기록할게요',
+    body: '산책을 시작할 때만 정확한 위치를 사용해요.\n화면을 꺼도 기록하며, 종료하면 멈춰요.',
+    primary: '위치 확인하고 시작하기',
+    secondary: '아직 시작하지 않기',
+    icon: 'map-pin',
+  },
+} as const;
 export const WALK_NOTICE_COPY = {
   MINIMIZE_ACTIVE: {
     title: '잠깐 다른 일을 보고 와도 괜찮아요',
@@ -45,6 +68,8 @@ export const WALK_NOTICE_COPY = {
   },
 } as const;
 export type WalkNoticeKind = keyof typeof WALK_NOTICE_COPY;
+export const WALK_NOTICE_CONTENT = { ...WALK_NOTICE_COPY, ...PRODUCT_START_COPY };
+export type WalkProductNoticeKind = keyof typeof WALK_NOTICE_CONTENT;
 
 export function noticeForError(code: string): WalkNoticeKind | null {
   if (

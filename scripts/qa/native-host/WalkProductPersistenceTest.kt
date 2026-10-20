@@ -35,6 +35,7 @@ class WalkProductPersistenceTest {
     override fun refresh(state: String, activeMs: Long, sessionId: String, revision: Long, fixCount: Long, chunkCount: Long) = Unit
   }
   private class Fixture : AutoCloseable {
+    var failCleanupPromotion = false
     val root = Files.createTempDirectory(java.io.File(System.getProperty("walk.host.data")).toPath(), "nuri-host-native-").toFile()
     val context = Context(root)
     val key = KeyGenerator.getInstance("AES").apply { init(256) }.generateKey()
@@ -42,7 +43,8 @@ class WalkProductPersistenceTest {
     val products = WalkProductStore(storage)
     val source = Source()
     var denied: String? = null
-    val runtime = WalkRuntime(context, storage, source, testGate = { _, _ -> denied }, qaEnabled = false) { r, s, c -> r.attach(Service(), s, c) }
+    val cleanup = WalkFinalCleanup(storage, java.io.File(context.noBackupFilesDir, "walk-final-cleanup-v1"), promote = { target, stream -> if (failCleanupPromotion) stream.close() else target.finishWrite(stream) })
+    val runtime = WalkRuntime(context, storage, source, testGate = { _, _ -> denied }, qaEnabled = false, injectedFinalCleanup = cleanup) { r, s, c -> r.attach(Service(), s, c) }
     override fun close() { runtime.closeForTest(); storage.db.close(); root.deleteRecursively() }
   }
   private fun prepare(f: Fixture, owner: String = a): JSONObject = JSONObject(f.products.prepare(owner, pet, id(), 1791849600000, 1000))
@@ -363,5 +365,100 @@ class WalkProductPersistenceTest {
     val resumed = await { f.runtime.notificationCommand("RESUME", session, id(), JSONObject(paused.first!!).getString("revision"), it) }
     assertNull(resumed.second); assertTrue(f.source.subscribed); assertEquals(2, f.source.starts)
     assertEquals("WALK_SERVICE_UNAVAILABLE", await { f.runtime.notificationCommand("PAUSE", id(), id(), "0", it) }.second)
+  }
+  @Test fun finalConfirmedScopeFencesFreshBindingResumeAndStartBeforePurgeAndAcrossReload() = Fixture().use { f ->
+    val epoch = binding(f); val session = prepare(f).getString("clientSessionId"); apply(f, session, receipt(session))
+    val start = JSONObject(op(f, epoch, "START", JSONObject().put("sessionId", session).put("commandId", id())).first!!)
+    val paused = JSONObject(op(f, epoch, "MUTATE", JSONObject().put("sessionId", session).put("commandId", id()).put("revision", start.getString("revision")).put("action", "PAUSE")).first!!)
+    val ticket = op(f, epoch, "CAPTURE_FINAL_CLEANUP", JSONObject().put("petId", pet)).first!!
+    assertNull(await { f.runtime.finalCleanupCommand("CONFIRM", ticket, it) }.second)
+    val fresh = await { f.runtime.productBinding(a, it) }.first!!
+    assertEquals("WALK_SESSION_DELETED", op(f, fresh, "MUTATE", JSONObject().put("sessionId", session).put("commandId", id()).put("revision", paused.getString("revision")).put("action", "RESUME")).second)
+    assertEquals("WALK_SESSION_DELETED", op(f, fresh, "START", JSONObject().put("sessionId", session).put("commandId", id())).second)
+    assertEquals("WALK_SESSION_DELETED", op(f, fresh, "PREPARE", JSONObject().put("petId", pet).put("commandId", id())).second)
+    assertEquals("WALK_SESSION_DELETED", await { f.runtime.start(pet, id(), "0", true, it) }.second)
+    val reloaded = WalkRuntime(f.context, f.storage, f.source, testGate = { _, _ -> null }, qaEnabled = false)
+    try {
+      await { reloaded.bindOwner(a, it) }; val next = await { reloaded.productBinding(a, it) }.first!!
+      assertEquals("WALK_SESSION_DELETED", await { reloaded.productCommand(a, next, "MUTATE", JSONObject().put("sessionId", session).put("commandId", id()).put("revision", paused.getString("revision")).put("action", "RESUME_RECOVERED").toString(), true, it) }.second)
+      assertEquals("WALK_SESSION_DELETED", await { reloaded.productCommand(a, next, "PREPARE", JSONObject().put("petId", pet).put("commandId", id()).toString(), true, it) }.second)
+      assertFalse(f.source.subscribed)
+    } finally { reloaded.closeForTest() }
+  }
+  @Test fun finalCleanupIsPagedIncludesV1ExcludesForeignAndWaitsForAcknowledgement() = Fixture().use { f ->
+    repeat(225) { index ->
+      val row = WalkLocalSession().apply { sessionId = id() }
+      f.storage.writeMetadata(row, WalkMetadata(if (index % 3 == 0) b else a, pet, 0, 0, WalkTiming(0, 0, 0, 0), product = if (index % 2 == 0) null else WalkProductJournal(createdWallMs = 1)))
+      f.storage.transaction { f.storage.dao.insertSession(row) }
+    }
+    val cleanup = WalkFinalCleanup(f.storage, java.io.File(f.root, "cleanup-test")); val ticket = cleanup.capture(a, pet)
+    expect("WALK_INVALID_STATE_TRANSITION") { cleanup.step(ticket) }; assertEquals(225, f.storage.dao.sessionCount())
+    cleanup.confirm(ticket); var pages = 0
+    val reopened = WalkFinalCleanup(f.storage, java.io.File(f.root, "cleanup-test"))
+    expect("WALK_SESSION_DELETED") { reopened.assertAllowed(a, pet) }; reopened.assertAllowed(b, pet)
+    do { pages++ } while (!reopened.step(ticket))
+    assertEquals(3, pages); assertEquals(75, f.storage.dao.sessionCount()); assertEquals(100, f.storage.db.maxScan)
+    assertEquals(1, reopened.pending().length()); reopened.acknowledge(ticket); assertEquals(0, reopened.pending().length())
+    expect("WALK_FINAL_CLEANUP_NOT_FOUND") { reopened.acknowledge(ticket) }
+  }
+  @Test fun oldOwnerFinalCleanupAndUnknownOrReplayedCapabilitiesNeverStopNewOwnerCollection() = Fixture().use { f ->
+    val aEpoch = binding(f); val aSession = prepare(f).getString("clientSessionId")
+    val ticket = op(f, aEpoch, "CAPTURE_FINAL_CLEANUP", JSONObject().put("petId", JSONObject.NULL)).first!!
+    val bEpoch = binding(f, b)
+    val bSession = JSONObject(op(f, bEpoch, "PREPARE", JSONObject().put("petId", pet).put("commandId", id()), b).first!!).getString("clientSessionId")
+    f.products.apply(b, bSession, f.products.validateReceipt(b, bSession, receipt(bSession).toString()))
+    assertNull(op(f, bEpoch, "START", JSONObject().put("sessionId", bSession).put("commandId", id()), b).second)
+    val revision = f.storage.dao.session(bSession).revision
+    assertTrue(f.source.subscribed)
+    assertEquals("WALK_FINAL_CLEANUP_NOT_FOUND", await { f.runtime.finalCleanupCommand("CONFIRM", id(), it) }.second)
+    assertTrue(f.source.subscribed)
+    f.failCleanupPromotion = true
+    assertEquals("WALK_FINAL_CLEANUP_PENDING", await { f.runtime.finalCleanupCommand("CONFIRM", ticket, it) }.second)
+    assertTrue(f.source.subscribed); assertEquals(revision, f.storage.dao.session(bSession).revision)
+    f.failCleanupPromotion = false
+    assertNull(await { f.runtime.finalCleanupCommand("CONFIRM", ticket, it) }.second)
+    assertEquals("DONE", await { f.runtime.finalCleanupCommand("STEP", ticket, it) }.first)
+    assertNull(f.storage.dao.session(aSession)); assertEquals(revision, f.storage.dao.session(bSession).revision); assertTrue(f.source.subscribed)
+    assertNull(await { f.runtime.finalCleanupCommand("ACK", ticket, it) }.second)
+    for (action in listOf("CONFIRM", "STEP", "ACK")) {
+      assertEquals("WALK_FINAL_CLEANUP_NOT_FOUND", await { f.runtime.finalCleanupCommand(action, ticket, it) }.second)
+      assertTrue(f.source.subscribed); assertEquals(revision, f.storage.dao.session(bSession).revision)
+    }
+  }
+  @Test fun orphanInitialNewFileCannotBlockAnotherCommittedConfirmedScope() = Fixture().use { f ->
+    val dir = java.io.File(f.root, "cleanup-orphan"); dir.mkdirs()
+    java.io.File(dir, id() + ".new").writeBytes(byteArrayOf(1, 2))
+    val cleanup = WalkFinalCleanup(f.storage, dir); val ticket = cleanup.capture(a, pet); cleanup.confirm(ticket)
+    java.io.File(dir, ticket + ".new").writeBytes(byteArrayOf(3, 4))
+    // Existing committed base is authoritative even with an unfinished update.
+    assertEquals(1, cleanup.pending().length()); cleanup.assertAllowed(b, pet)
+    assertTrue(cleanup.step(ticket)); cleanup.acknowledge(ticket); assertEquals(0, cleanup.pending().length())
+  }
+  @Test fun promotionOrPhysicalDeleteFailureNeverAcknowledgesDurabilityOrRemoval() = Fixture().use { f ->
+    val dir = java.io.File(f.root, "cleanup-promotion")
+    val neverPromote = WalkFinalCleanup(f.storage, dir, promote = { _, stream -> stream.close() })
+    expect("WALK_FINAL_CLEANUP_PENDING") { neverPromote.capture(a, pet) }
+    val good = WalkFinalCleanup(f.storage, dir); val ticket = good.capture(a, pet)
+    expect("WALK_FINAL_CLEANUP_PENDING") { neverPromote.confirm(ticket) }
+    assertEquals(0, good.pending().length()); good.assertAllowed(b, pet)
+    good.confirm(ticket); assertTrue(good.step(ticket))
+    val neverDelete = WalkFinalCleanup(f.storage, dir, erase = { _ -> Unit })
+    expect("WALK_FINAL_CLEANUP_PENDING") { neverDelete.acknowledge(ticket) }
+    assertEquals(1, good.pending().length()); good.acknowledge(ticket); assertEquals(0, good.pending().length())
+  }
+  @Test fun failedDurableConfirmationStopsOnlyDeletedOwnerAndCannotResumeBeforeSuccessfulRetry() = Fixture().use { f ->
+    val epoch = binding(f); val session = prepare(f).getString("clientSessionId"); apply(f, session, receipt(session))
+    assertNull(op(f, epoch, "START", JSONObject().put("sessionId", session).put("commandId", id())).second)
+    val ticket = op(f, epoch, "CAPTURE_FINAL_CLEANUP", JSONObject().put("petId", pet)).first!!
+    f.failCleanupPromotion = true
+    assertEquals("WALK_FINAL_CLEANUP_PENDING", await { f.runtime.finalCleanupCommand("CONFIRM", ticket, it) }.second)
+    assertFalse(f.source.subscribed); assertNotNull(f.storage.dao.session(session)); assertEquals(0, f.cleanup.pending().length())
+    val fresh = await { f.runtime.productBinding(a, it) }.first!!
+    assertEquals("WALK_SESSION_DELETED", op(f, fresh, "START", JSONObject().put("sessionId", session).put("commandId", id())).second)
+    assertEquals("WALK_SESSION_DELETED", op(f, fresh, "PREPARE", JSONObject().put("petId", pet).put("commandId", id())).second)
+    f.failCleanupPromotion = false
+    assertNull(await { f.runtime.finalCleanupCommand("CONFIRM", ticket, it) }.second)
+    assertEquals("DONE", await { f.runtime.finalCleanupCommand("STEP", ticket, it) }.first)
+    assertNull(f.storage.dao.session(session))
   }
 }
