@@ -3,6 +3,7 @@ import React, {
   memo,
   useCallback,
   useEffect,
+  useId,
   useLayoutEffect,
   useMemo,
   useRef,
@@ -222,6 +223,12 @@ export default function WalkMapStage({
   onDrag,
   onImageStatus,
 }: Props) {
+  const mapLifetime = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const source = preview
+    ? personalPreview
+      ? 'local-pet-preview'
+      : 'public-synthetic'
+    : 'actual';
   useLayoutEffect(() => {
     if (!preview)
       timerTrace('MAP_COMMIT', { renderCommitMonoMs: performance.now() });
@@ -283,7 +290,12 @@ export default function WalkMapStage({
   }, [latitude, longitude, mode, ready, recenterRevision, paused]);
   if (!target || !coordinate) return null;
   return (
-    <View style={[StyleSheet.absoluteFill, styles.mapStage]}>
+    <View
+      style={[StyleSheet.absoluteFill, styles.mapStage]}
+      collapsable={false}
+      // Nonvisual QA provenance includes mount lifetime, so re-entry invalidates capture proof.
+      testID={`walk-map-source-${source}-${mapLifetime}`}
+    >
       <MapView
         ref={map}
         style={StyleSheet.absoluteFill}

@@ -95,6 +95,14 @@ describe('PO active Walk design candidate', () => {
     });
   };
   const host = (id: string) => tree.root.findAllByProps({ testID: id }).at(-1)!;
+  const mapSource = (origin: string) =>
+    tree.root
+      .findAll(
+        n =>
+          typeof n.type === 'string' &&
+          String(n.props.testID ?? '').startsWith(`walk-map-source-${origin}-`),
+      )
+      .at(-1);
   const button = (id: string) =>
     tree.root.find(
       n =>
@@ -604,6 +612,88 @@ describe('PO active Walk design candidate', () => {
       tree.root.findAllByProps({ testID: 'walk-pet-overlay' }),
     ).toHaveLength(0);
     expect(projectPoint).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    {
+      preview: true,
+      personalPreview: false,
+      origin: 'public-synthetic',
+      photos: 0,
+    },
+    {
+      preview: true,
+      personalPreview: true,
+      origin: 'local-pet-preview',
+      photos: 1,
+    },
+    { preview: false, personalPreview: false, origin: 'actual', photos: 1 },
+  ])(
+    'binds live map provenance to $origin, including private-photo exclusion',
+    async value => {
+      await render(
+        <WalkMapStage
+          {...mapProps}
+          {...value}
+          displayLocation={PUBLIC_ROUTE[0]}
+        />,
+      );
+      const stage = mapSource(value.origin)!;
+      expect(stage).toBeDefined();
+      expect(stage.props.collapsable).toBe(false);
+      expect(
+        stage.findAll(n => (n.type as unknown) === 'MapView'),
+      ).toHaveLength(1);
+      expect(tree.root.findAllByType(Image)).toHaveLength(value.photos);
+      expect(
+        tree.root.findAll(
+          n =>
+            typeof n.type === 'string' &&
+            /^walk-map-source-/.test(n.props.testID ?? ''),
+        ),
+      ).toHaveLength(1);
+    },
+  );
+
+  it('changes live provenance with rendered coordinates and never reuses a prior public proof', async () => {
+    await render(<WalkMapStage {...mapProps} personalPreview={false} />);
+    expect(mapSource('public-synthetic')).toBeDefined();
+    await act(async () =>
+      tree.update(
+        <ThemeProvider theme={createTheme('light')}>
+          <WalkMapStage
+            {...mapProps}
+            preview={false}
+            displayLocation={PUBLIC_ROUTE[0]}
+          />
+        </ThemeProvider>,
+      ),
+    );
+    expect(mapSource('public-synthetic')).toBeUndefined();
+    expect(mapSource('actual')).toBeDefined();
+    expect(host('walk-actual-marker').props.coordinate).toEqual(
+      PUBLIC_ROUTE[0],
+    );
+  });
+
+  it('invalidates map proof on remount while keeping its lifetime stable across ordinary renders', async () => {
+    await render(<WalkMapStage {...mapProps} personalPreview={false} />);
+    const first = mapSource('public-synthetic')!.props.testID;
+    await act(async () =>
+      tree.update(
+        <ThemeProvider theme={createTheme('light')}>
+          <WalkMapStage
+            {...mapProps}
+            personalPreview={false}
+            recenterRevision={1}
+          />
+        </ThemeProvider>,
+      ),
+    );
+    expect(mapSource('public-synthetic')!.props.testID).toBe(first);
+    await act(async () => tree.unmount());
+    await render(<WalkMapStage {...mapProps} personalPreview={false} />);
+    expect(mapSource('public-synthetic')!.props.testID).not.toBe(first);
   });
 
   it('keeps the Google map neutral and prevents marker taps from moving its camera', async () => {
