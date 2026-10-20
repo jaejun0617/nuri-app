@@ -22,6 +22,10 @@ import { lightColors, PRODUCT_CANVAS_COLOR } from '../src/app/theme/tokens/color
 import { HOME_FLOATING_WIDGET_MATERIAL } from '../src/components/home/HomeWidgetMaterial';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 import { ToolbarHeightContext } from '../src/components/navigation/ToolbarHeightContext';
+import { deleteMemoryWithFile } from '../src/services/supabase/memories';
+import { walkRecordRepository } from '../src/services/walk/server/supabaseWalkRecordRepository';
+import type { WalkMemorySourceSummary, WalkRecordView } from '../src/services/walk/server/recordRepository';
+import { appQueryClient } from '../src/services/query/appQueryClient';
 
 const mockRecord: MemoryRecord = {
   id: 'detail',
@@ -35,6 +39,10 @@ const mockRecord: MemoryRecord = {
   occurredAt: '2026-10-04',
   createdAt: '2026-10-04T03:16:00Z',
 };
+let mockWalkScope = { ownerId: 'owner', petId: 'pet', generation: 'first', current: () => true };
+let mockWalkSource: WalkMemorySourceSummary | undefined;
+jest.mock('../src/hooks/useWalkProduct', () => ({ useWalkScope: () => mockWalkScope, useWalkSources: () => ({ data: mockWalkSource ? [mockWalkSource] : [] }) }));
+jest.mock('../src/services/walk/server/supabaseWalkRecordRepository', () => ({ walkRecordRepository: { get: jest.fn() } }));
 const mockNavigation = {
   navigate: jest.fn(),
   goBack: jest.fn(),
@@ -125,10 +133,14 @@ function text(tree: TestRenderer.ReactTestRenderer) {
     .join(' ');
 }
 describe('memory detail rendered contract', () => {
+  afterEach(() => appQueryClient.clear());
   beforeEach(() => {
     jest.clearAllMocks();
     mockSeason = 'autumn';
     mockRecord.imagePaths = [];
+    mockRecord.category = 'other';
+    mockWalkSource = undefined;
+    mockWalkScope = { ownerId: 'owner', petId: 'pet', generation: 'first', current: () => true };
     const rows = [
       mockRecord,
       ...Array.from({ length: 7 }, (_, index) => ({
@@ -436,6 +448,29 @@ describe('memory detail rendered contract', () => {
         .findAllByType(CtaButton)
         .some(node => node.props.role === 'destructiveConfirm'),
     ).toBe(true);
+    TestRenderer.act(() => tree.unmount());
+  });
+  it('foreground after interrupted Walk delete unlocks UI and reconciles canonical deletion without applying old completion', async () => {
+    mockRecord.category = 'walk';
+    mockWalkSource = { version: 1, source: 'GPS_TRACKED', petId: 'pet', memoryId: 'detail', clientSessionId: 'session', recordState: 'RECORDED', sessionDeleted: true, summary: null };
+    let oldCurrent = true;
+    mockWalkScope = { ownerId: 'owner', petId: 'pet', generation: 'old', current: () => oldCurrent };
+    let finish!: () => void;
+    jest.mocked(deleteMemoryWithFile).mockReturnValueOnce(new Promise<void>(resolve => { finish = resolve; }));
+    jest.mocked(walkRecordRepository.get).mockResolvedValue({ recordState: 'RECORD_DELETED', memory: null } as WalkRecordView);
+    const tree = await render();
+    TestRenderer.act(() => tree.root.findAllByProps({ title: '정말 삭제할까요?' })[0].props.onConfirm());
+    expect(tree.root.findAllByProps({ title: '정말 삭제할까요?' })[0].props.confirmLoading).toBe(true);
+    await TestRenderer.act(async () => {
+      oldCurrent = false;
+      mockWalkScope = { ownerId: 'owner', petId: 'pet', generation: 'foreground', current: () => true };
+      tree.update(<ThemeProvider theme={createTheme('light')}><ToolbarHeightContext.Provider value={72}><RecordDetailScreen /></ToolbarHeightContext.Provider></ThemeProvider>);
+    });
+    expect(tree.root.findAllByProps({ title: '정말 삭제할까요?' })[0].props.confirmLoading).toBe(false);
+    expect(walkRecordRepository.get).toHaveBeenCalledWith('session', 'pet');
+    expect(mockStore.removeOneLocal).toHaveBeenCalledTimes(1);
+    await TestRenderer.act(async () => finish());
+    expect(mockStore.removeOneLocal).toHaveBeenCalledTimes(1);
     TestRenderer.act(() => tree.unmount());
   });
   it('shows a retry instead of inventing a zero related count after a read failure', async () => {

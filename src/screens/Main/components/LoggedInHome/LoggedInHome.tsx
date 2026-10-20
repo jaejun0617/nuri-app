@@ -77,6 +77,8 @@ import {
   type HomeAmbientSectionLayouts,
 } from '../../../../theme/home/ambientMesh';
 import { FrequentRecordsSection } from '../../../../components/records/FrequentRecordsSection';
+import { WalkHomeFooter, WalkProgressionRow } from '../../../../components/records/WalkProductSummary';
+import { useQuery } from '@tanstack/react-query';
 import GuideRecommendationCard from '../../../../components/guides/GuideRecommendationCard';
 import { useWeatherGuide } from '../../../../hooks/useWeatherGuide';
 import { useHomePetCareGuides } from '../../../../hooks/useHomePetCareGuides';
@@ -1746,6 +1748,7 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
 });
 
 const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
+  petId,
   visible,
   profilePetName,
   basicInfo,
@@ -1758,6 +1761,7 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
   profileSheetBackground,
   onCloseComplete,
 }: {
+  petId: string | null;
   visible: boolean;
   profilePetName: string;
   basicInfo: HomePetBasicInfoValues;
@@ -2032,6 +2036,7 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
             showsVerticalScrollIndicator={false}
           >
             <HomePetBasicInfoSection info={basicInfo} season={season} />
+            {visible && <WalkProgressionRow petId={petId} enabled={visible} expanded />}
             <HeroProfileAccordion
               petTheme={NEUTRAL_UI_PALETTE}
               hobbies={hobbies}
@@ -2834,6 +2839,7 @@ export default function LoggedInHome() {
   const hasPets = pets.length > 0;
 
   const activePetId = selectedPet?.id ?? null;
+  const walkMemoryRevision = useQuery<number>({ queryKey: ['walk', sessionUserId, activePetId, 'memory-revision'], queryFn: () => 0, enabled: false }).data ?? 0;
   const [homeTitleBadge, setHomeTitleBadge] = useState<string | null>(null);
   const homeScrollStorageKey = useMemo(
     () => activePetId ?? 'logged-in-home-default',
@@ -2944,7 +2950,7 @@ export default function LoggedInHome() {
     return () => {
       cancelled = true;
     };
-  }, [activePetId, isScreenFocused]);
+  }, [activePetId, isScreenFocused, sessionUserId, walkMemoryRevision]);
   const healthActivityItems = useMemo(
     () => buildHealthActivityItems(recordItems, scheduleItems),
     [recordItems, scheduleItems],
@@ -3086,7 +3092,7 @@ export default function LoggedInHome() {
       cancelled = true;
       task.cancel();
     };
-  }, [activePetId, isScreenFocused, sessionUserId]);
+  }, [activePetId, isScreenFocused, sessionUserId, walkMemoryRevision]);
 
   // ---------------------------------------------------------
   // 5) HERO derived
@@ -3700,6 +3706,7 @@ export default function LoggedInHome() {
       recordStatus={recordStatus}
       onPressCategory={onPressFrequentRecord}
       onPressAll={onPressTimeline}
+      footer={<WalkHomeFooter petId={activePetId} enabled={deferredHomeDataReady && isScreenFocused && !!sessionUserId} />}
     />
   );
   const lowerHomeSections = (
@@ -3990,6 +3997,7 @@ export default function LoggedInHome() {
         />
 
         <ProfileInfoBottomSheet
+          petId={activePetId}
           visible={profileSheetVisible}
           profilePetName={profilePetName}
           basicInfo={profileBasicInfo}

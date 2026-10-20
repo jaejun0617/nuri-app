@@ -44,6 +44,7 @@ export type TimelineStackParamList = {
     scheduleReturn?: ScheduleDetailReturnContext;
   };
   RecordEdit: {
+    walkDraftSessionId?: string;
     petId: string;
     memoryId: string;
     entrySource?: ScreenEntrySource;

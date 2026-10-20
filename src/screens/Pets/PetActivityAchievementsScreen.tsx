@@ -1,4 +1,7 @@
-import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useAuthStore } from '../../store/authStore';
+import { appQueryClient } from '../../services/query/appQueryClient';
 import {
   RefreshControl,
   ScrollView,
@@ -429,6 +432,9 @@ export default function PetActivityAchievementsScreen() {
   const theme = useTheme();
 
   const pets = usePetStore(state => state.pets);
+  const ownerId = useAuthStore(state => state.session?.user.id ?? null);
+  const walkActivityRevision = useQuery<number>({ queryKey: ['walk', ownerId, 'activity-revision'], queryFn: () => 0, enabled: false }).data ?? 0;
+  const dashboardRequest = useRef(0);
   const selectedPetId = usePetStore(state => state.selectedPetId);
   const [selectedDashboardPetId, setSelectedDashboardPetId] =
     useState<string | null>(selectedPetId);
@@ -472,6 +478,8 @@ export default function PetActivityAchievementsScreen() {
 
   const load = useCallback(
     async (mode: 'initial' | 'refresh') => {
+      const request = ++dashboardRequest.current;
+      const isCurrent = () => dashboardRequest.current === request && useAuthStore.getState().session?.user.id === ownerId && (appQueryClient.getQueryData<number>(['walk', ownerId, 'activity-revision']) ?? 0) === walkActivityRevision;
       if (mode === 'initial') setLoading(true);
       if (mode === 'refresh') setRefreshing(true);
       try {
@@ -482,11 +490,13 @@ export default function PetActivityAchievementsScreen() {
             themeColor: pet.themeColor ?? null,
           })),
         );
+        if (!isCurrent()) return;
         setDashboard(nextDashboard);
         setSelectedDashboardPetId(current =>
           current ?? selectedPetId ?? nextDashboard.petSummaries[0]?.petId ?? null,
         );
       } catch {
+        if (!isCurrent()) return;
         showToast({
           tone: 'error',
           title: '활동 기록을 불러오지 못했어요',
@@ -494,11 +504,10 @@ export default function PetActivityAchievementsScreen() {
           durationMs: 3000,
         });
       } finally {
-        setLoading(false);
-        setRefreshing(false);
+        if (isCurrent()) { setLoading(false); setRefreshing(false); }
       }
     },
-    [pets, selectedPetId],
+    [pets, selectedPetId, ownerId, walkActivityRevision],
   );
 
   useEffect(() => {

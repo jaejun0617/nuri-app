@@ -37,6 +37,7 @@ type RecordStatus =
   | 'error';
 
 type FrequentRecordsSectionProps = {
+  footer?: React.ReactNode;
   petTheme: PetTheme;
   records: ReadonlyArray<MemoryRecord>;
   recordStatus: RecordStatus;
@@ -147,6 +148,7 @@ function FrequentRecordsSectionBase({
   now,
   onPressCategory,
   onPressAll,
+  footer,
 }: FrequentRecordsSectionProps) {
   const petName = usePetDisplayName();
   const isScreenFocused = useIsFocused();
@@ -228,6 +230,7 @@ function FrequentRecordsSectionBase({
           ))}
         </View>
       )}
+      {footer}
     </HomeSectionGlass>
   );
 }

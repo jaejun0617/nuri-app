@@ -326,6 +326,8 @@ export function IconControl({
   );
 }
 type Props = {
+  productStatus?: React.ComponentProps<typeof WalkLocalResult>['productStatus'];
+  productContent?: React.ReactNode;
   preWalkIntroSeen?: { current: boolean };
   state: PresentationState;
   petName: string;
@@ -456,6 +458,8 @@ export default function WalkView(props: Props) {
   if (result) {
     return (
       <WalkLocalResult
+        productStatus={props.productStatus}
+        productContent={props.productContent}
         header={header}
         map={props.map}
         petName={petName}

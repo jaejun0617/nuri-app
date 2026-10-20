@@ -85,6 +85,12 @@ import {
 } from '../../services/supabase/memories';
 import { getMemoryImageSignedUrlsCached } from '../../services/supabase/storageMemories';
 import { removeTimelineWalkActivity } from '../../services/activity/timelineActivity';
+import { useWalkScope, useWalkSources } from '../../hooks/useWalkProduct';
+import { walkSourceCopy } from '../../services/walk/product/presentation';
+import { invalidateWalkProduct } from '../../services/walk/product/invalidation';
+import { walkRequest } from '../../services/walk/product/requests';
+import { walkRecordRepository } from '../../services/walk/server/supabaseWalkRecordRepository';
+import { canonicalWalkMemory } from '../../services/walk/product/presentation';
 import { usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
 import { openMoreDrawer } from '../../store/uiStore';
@@ -767,6 +773,10 @@ export default function RecordDetailScreen() {
   const recordsById = useRecordStore(s => s.recordsById);
 
   const resolvedPetId = record?.petId?.trim() || petId;
+  const walkScope = useWalkScope(resolvedPetId);
+  const isWalkRecord = record?.category === 'walk';
+  const walkSources = useWalkSources(resolvedPetId, isWalkRecord && memoryId ? [memoryId] : [], isWalkRecord);
+  const walkSource = isWalkRecord ? walkSources.data?.find(s => s.memoryId === memoryId) : undefined;
   const selectedPet = useMemo(
     () => pets.find(item => item.id === resolvedPetId) ?? null,
     [pets, resolvedPetId],
@@ -835,6 +845,29 @@ export default function RecordDetailScreen() {
   }, [hydrateAttempt, isRecordMissingError, memoryId, record, upsertOneLocal]);
 
   const [deleting, setDeleting] = useState(false);
+  const interruptedWalkDelete = useRef<{ memoryId: string; petId: string; clientSessionId: string } | null>(null);
+  useEffect(() => {
+    if (!isWalkRecord) return;
+    setDeleting(false);
+    const pending = interruptedWalkDelete.current;
+    if (!walkScope || !pending || pending.memoryId !== memoryId || pending.petId !== resolvedPetId) return;
+    const controller = new AbortController();
+    walkRequest(walkScope, () => walkRecordRepository.get(pending.clientSessionId, pending.petId), controller.signal)
+      .then(async canonical => {
+        if (!walkScope.current() || controller.signal.aborted) return;
+        if (canonical.memory) upsertOneLocal(pending.petId, canonicalWalkMemory(canonical.memory));
+        else if (canonical.recordState === 'RECORD_DELETED') {
+          await walkRequest(walkScope, () => removeTimelineWalkActivity({ petId: pending.petId, memoryId: pending.memoryId, category: 'walk' }), controller.signal);
+          if (!walkScope.current() || controller.signal.aborted) return;
+          removeOneLocal(pending.petId, pending.memoryId);
+          invalidateWalkProduct(walkScope, 'MEMORY_DELETE');
+          setDeleteModalVisible(false);
+          navigation.navigate('TimelineMain', { petId: pending.petId, mainCategory: 'all' });
+        }
+        if (walkScope.current()) interruptedWalkDelete.current = null;
+      }).catch(() => undefined);
+    return () => controller.abort();
+  }, [walkScope, isWalkRecord, memoryId, resolvedPetId, upsertOneLocal, removeOneLocal, navigation]);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
   const openActionMenu = useCallback(() => {
@@ -989,21 +1022,26 @@ export default function RecordDetailScreen() {
 
   const onConfirmDelete = useCallback(async () => {
     if (!resolvedPetId || !record || deleting) return;
+    if (isWalkRecord && !walkScope?.current()) return;
+    const scoped = <T,>(operation: () => Promise<T>) => isWalkRecord && walkScope ? walkRequest(walkScope, operation) : operation();
 
     try {
       setDeleting(true);
-      await deleteMemoryWithFile({
+      if (walkSource) interruptedWalkDelete.current = { memoryId: record.id, petId: resolvedPetId, clientSessionId: walkSource.clientSessionId };
+      await scoped(() => deleteMemoryWithFile({
         memoryId: record.id,
         imagePath: record.imagePath,
         imagePaths: record.imagePaths,
-      });
-      await removeTimelineWalkActivity({
+      }));
+      await scoped(() => removeTimelineWalkActivity({
         petId: resolvedPetId,
         memoryId: record.id,
         category: record.category,
-      });
+      }));
 
       removeOneLocal(resolvedPetId, record.id);
+      interruptedWalkDelete.current = null;
+      if (isWalkRecord && walkScope?.current()) invalidateWalkProduct(walkScope, 'MEMORY_DELETE');
       setDeleteModalVisible(false);
 
       if (route.params?.scheduleReturn) {
@@ -1018,10 +1056,11 @@ export default function RecordDetailScreen() {
       }
       refresh(resolvedPetId).catch(() => {});
     } catch (error: unknown) {
+      if (isWalkRecord && !walkScope?.current()) return;
       const { title, message } = getBrandedErrorMeta(error, 'record-delete');
       Alert.alert(title, message);
     } finally {
-      setDeleting(false);
+      if (!isWalkRecord || walkScope?.current()) setDeleting(false);
     }
   }, [
     deleting,
@@ -1033,19 +1072,24 @@ export default function RecordDetailScreen() {
     route.params?.entrySource,
     route.params?.scheduleReturn,
     navigateToHealthReport,
+    walkScope,
+    isWalkRecord,
+    walkSource,
   ]);
 
   const renderFeedCard = useCallback(
     (item: MemoryRecord) => (
+      <View key={item.id}>
+      {walkSource && item.id === memoryId && <AppText preset="unifiedMeta" style={{ paddingHorizontal: 18, paddingVertical: 8 }}>{walkSourceCopy(walkSource)}</AppText>}
       <FeedPostCard
-        key={item.id}
         item={item}
         petName={petName}
         petAvatarUrl={petAvatarUrl}
         imagePriority="primary"
       />
+      </View>
     ),
-    [petAvatarUrl, petName],
+    [petAvatarUrl, petName, walkSource, memoryId],
   );
 
   const handlePressRelatedRecord = useCallback(

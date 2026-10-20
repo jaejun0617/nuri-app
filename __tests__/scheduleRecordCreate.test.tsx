@@ -32,6 +32,7 @@ const mockNavigation = {
 };
 const mockQuery = { invalidateQueries: jest.fn().mockResolvedValue(undefined) };
 let mockUserId = 'u';
+jest.mock('../src/hooks/useGpsWalkComposer', () => ({ useGpsWalkComposer: () => ({ ready: false }) }));
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
   useNavigation: () => mockNavigation,

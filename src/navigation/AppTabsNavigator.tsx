@@ -43,6 +43,7 @@ import { isRootTabBarVisible, tabTransitionOptions } from './navigationTransitio
 import { useNavigationMotion } from './useNavigationMotion';
 
 export type RecordCreateReturnTo =
+  | { tab: 'WalkHistory'; petId: string }
   | { tab: 'ScheduleDetail'; params: ScheduleDetailReturnContext }
   | { tab: 'HomeTab'; afterCreate?: 'detail' | 'home' }
   | {

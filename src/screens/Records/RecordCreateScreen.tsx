@@ -141,6 +141,9 @@ import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import { recordTimelineCreateActivity } from '../../services/activity/timelineActivity';
 import RecordTagModal from './components/RecordTagModal';
 import { styles } from './RecordCreateScreen.styles';
+import { useGpsWalkComposer } from '../../hooks/useGpsWalkComposer';
+import type { WalkDraftFields } from '../../services/walk/product/drafts';
+import { walkSummaryCopy, walkStartedAt } from '../../services/walk/product/presentation';
 
 type RecordCreateRoute = RouteProp<RootStackParamList, 'RecordCreate'>;
 type Nav = NativeStackNavigationProp<RootStackParamList, 'RecordCreate'>;
@@ -170,23 +173,26 @@ export default function RecordCreateScreen() {
   const upsertOneLocal = useRecordStore(s => s.upsertOneLocal);
 
   const petIdFromParams = route.params?.petId ?? null;
+  const gpsSessionId = route.params?.gpsSession?.clientSessionId;
+  const isGps = !!gpsSessionId;
   const returnTo = route.params?.returnTo;
   const scheduleContext =
     returnTo?.tab === 'ScheduleDetail' ? returnTo.params : null;
-  const initialMainCategoryKey = route.params?.initialMainCategory ?? 'walk';
+  const initialMainCategoryKey = gpsSessionId ? 'walk' : route.params?.initialMainCategory ?? 'walk';
   const initialOtherSubCategoryKey =
-    route.params?.initialOtherSubCategory ?? null;
+    gpsSessionId ? null : route.params?.initialOtherSubCategory ?? null;
   const allowsHealthWrite =
     returnTo?.tab === 'HealthReport' || initialMainCategoryKey === 'health';
 
   const petId = useMemo(() => {
+    if (gpsSessionId) return petIdFromParams && pets.some(pet => pet.id === petIdFromParams) ? petIdFromParams : null;
     if (scheduleContext) {
       return pets.some(pet => pet.id === scheduleContext.petId)
         ? scheduleContext.petId
         : null;
     }
     return resolveSelectedPetId(pets, selectedPetId, petIdFromParams);
-  }, [petIdFromParams, selectedPetId, pets, scheduleContext]);
+  }, [petIdFromParams, selectedPetId, pets, scheduleContext, gpsSessionId]);
   const draftScope = useMemo(
     () =>
       scheduleContext && userId && petId
@@ -240,6 +246,21 @@ export default function RecordCreateScreen() {
   const persistedScheduleMemoryRef = useRef<string | null>(null);
   const hydratedScheduleScopeRef = useRef<typeof draftScope>(undefined);
   const submitLockRef = useRef(false);
+  const gpsFields = useMemo<WalkDraftFields>(() => ({ title, content, emotion: selectedEmotion, tags: selectedTags, photos: selectedImages }), [title, content, selectedEmotion, selectedTags, selectedImages]);
+  const hydrateGps = useCallback((fields: WalkDraftFields, date: string) => {
+    setTitle(fields.title); setContent(fields.content); setSelectedEmotion(fields.emotion);
+    setSelectedTags([...fields.tags]); setSelectedImages([...fields.photos]);
+    setOccurredAt(date); setMainCategoryKey('walk'); setOtherSubCategoryKey(null);
+  }, []);
+  const gps = useGpsWalkComposer(gpsSessionId, petId, gpsFields, hydrateGps);
+  useEffect(() => {
+    if (isGps) {
+      submitLockRef.current = false;
+      setSaving(false);
+      setRewardNotice(null);
+      pendingSuccessNavigationRef.current = null;
+    }
+  }, [gps.contextKey, isGps]);
   const [scheduleSourceReady, setScheduleSourceReady] = useState(
     !scheduleContext,
   );
@@ -269,6 +290,7 @@ export default function RecordCreateScreen() {
     (!isGroomingCategory || groomingCareTypes.length > 0);
   const disabled =
     saving ||
+    (isGps && !gps.ready) ||
     !scheduleSourceReady ||
     !scheduleScopeMatches ||
     trimmedTitle.length === 0 ||
@@ -422,6 +444,7 @@ export default function RecordCreateScreen() {
   }, [draftHydrated, isMealCategory, selectedPet?.defaultMealAmountGrams]);
 
   useEffect(() => {
+    if (isGps) return;
     let mounted = true;
 
     async function hydrateDraft() {
@@ -527,10 +550,12 @@ export default function RecordCreateScreen() {
     scheduleContext,
     navigation,
     route.params?.initialHealthRecordKind,
+    isGps,
   ]);
 
   useEffect(() => {
     if (
+      isGps ||
       !draftHydrated ||
       saving ||
       !scheduleSourceReady ||
@@ -582,6 +607,7 @@ export default function RecordCreateScreen() {
   }, [
     content,
     draftHydrated,
+    isGps,
     mainCategoryKey,
     occurredAt,
     otherSubCategoryKey,
@@ -648,6 +674,10 @@ export default function RecordCreateScreen() {
   }, [activeImageIndex]);
 
   const navigateBackToOrigin = useCallback(() => {
+    if (returnTo?.tab === 'WalkHistory') {
+      navigation.popTo('WalkHistory', { petId: returnTo.petId });
+      return;
+    }
     if (scheduleContext) {
       navigation.popTo('ScheduleDetail', scheduleContext);
       return;
@@ -777,6 +807,7 @@ export default function RecordCreateScreen() {
 
   const onPressCancel = useCallback(() => {
     if (saving) return;
+    if (isGps) { navigateBackToOrigin(); return; }
     if (hasDraftContent) {
       setExitConfirmVisible(true);
       return;
@@ -784,7 +815,7 @@ export default function RecordCreateScreen() {
     clearRecordCreateDraft(draftScope).catch(() => {});
     resetForm();
     navigateBackToOrigin();
-  }, [hasDraftContent, navigateBackToOrigin, resetForm, saving, draftScope]);
+  }, [hasDraftContent, navigateBackToOrigin, resetForm, saving, draftScope, isGps]);
 
   useFocusEffect(
     useCallback(() => {
@@ -890,9 +921,9 @@ export default function RecordCreateScreen() {
       for (const tag of parsed) {
         if (!next.includes(tag)) next.push(tag);
       }
-      return next.slice(0, 10);
+      return next.slice(0, isGps ? 20 : 10);
     });
-  }, []);
+  }, [isGps]);
 
   const onSubmitDraftTag = useCallback(() => {
     appendTag(tagDraft);
@@ -910,6 +941,28 @@ export default function RecordCreateScreen() {
 
     try {
       setSaving(true);
+
+      if (isGps) {
+        const result = await gps.submit();
+        if (!result || !gps.draftScope) return;
+        const canonical = result.commit.record.memory!;
+        const openDetail = () => navigation.navigate('AppTabs', { screen: 'TimelineTab', params: { screen: 'RecordDetail', params: { petId: canonical.petId, memoryId: canonical.id } } });
+        if (result.retained) {
+          Alert.alert('저장된 기록을 확인했어요', '기존 기록을 표시하고 이 기기의 내용과 사진은 초안으로 보관했어요. 적용하려면 기존 기록 수정에서 직접 확인해 주세요.', [
+            { text: '계속 작성', style: 'cancel' },
+            { text: '기존 기록 수정', onPress: () => navigation.navigate('AppTabs', { screen: 'TimelineTab', params: { screen: 'RecordEdit', params: { petId: canonical.petId, memoryId: canonical.id, walkDraftSessionId: gpsSessionId } } }) },
+            { text: '기록 보기', onPress: openDetail },
+          ]);
+          return;
+        }
+        completed = true;
+        const reward = result.commit.reward;
+        if (reward?.awarded) {
+          pendingSuccessNavigationRef.current = async () => openDetail();
+          setRewardNotice({ ...reward, streakDays: result.commit.activity?.showCelebration ? result.commit.activity.currentStreak : null, title: '산책 기록을 남겼어요', message: '기록과 활동을 함께 반영했어요.' });
+        } else openDetail();
+        return;
+      }
 
       if (scheduleContext) {
         if (!draftScope) throw new Error('로그인 상태를 확인해 주세요.');
@@ -1169,6 +1222,7 @@ export default function RecordCreateScreen() {
       await navigateAfterCreateSuccess({ petId, memoryId, occurred });
     } catch (error) {
       completed = false;
+      if (isGps && !gps.current()) return;
       if (scheduleContext && persistedScheduleMemoryRef.current) {
         showToast({
           tone: 'warning',
@@ -1194,7 +1248,7 @@ export default function RecordCreateScreen() {
     } finally {
       // Android native removal can retain this tree during its transition.
       // Keep the saved form and busy state stable until unmount; only failures retry.
-      if (!completed) {
+      if (!completed && (!isGps || gps.current())) {
         setSaving(false);
         submitLockRef.current = false;
       }
@@ -1230,6 +1284,10 @@ export default function RecordCreateScreen() {
     navigateAfterCreateSuccess,
     scheduleContext,
     draftScope,
+    isGps,
+    gps,
+    gpsSessionId,
+    navigation,
   ]);
 
   return (
@@ -1284,9 +1342,16 @@ export default function RecordCreateScreen() {
         keyboardDismissMode="none"
         showsVerticalScrollIndicator={false}
       >
-        <SeasonalFormPanel style={styles.formPanel}
+        <SeasonalFormPanel pointerEvents={isGps && saving ? 'none' : 'auto'} style={styles.formPanel}
           onLayout={event => { formPanelOffsetRef.current = event.nativeEvent.layout.y; }}>
+        {isGps && <View testID="gps-composer-summary">
+          <AppText preset="unifiedBody">{selectedPet?.name} · GPS 산책</AppText>
+          <AppText preset="unifiedMeta">{gps.view?.summary ? walkSummaryCopy(gps.view.summary) : gps.error ?? '산책 결과를 확인하는 중이에요.'}</AppText>
+          <AppText preset="unifiedMeta">{gps.view?.summary ? `${walkStartedAt(gps.view.summary.startedAt)} 시작 · ${occurredAt}` : ''}</AppText>
+          {gps.error && <TouchableOpacity onPress={gps.retry} style={{ minHeight: 44, justifyContent: 'center' }}><AppText preset="unifiedMeta">다시 확인</AppText></TouchableOpacity>}
+        </View>}
         <TouchableOpacity
+          disabled={isGps}
           activeOpacity={0.9}
           style={[
             styles.dateCard,
@@ -1307,7 +1372,7 @@ export default function RecordCreateScreen() {
               />
             </View>
             <AppText preset="unifiedBody" style={styles.dateText}>
-              {formattedDate}
+              {isGps && !gps.ready ? '산책 날짜 확인 중' : formattedDate}
             </AppText>
           </View>
           <Feather name="chevron-right" size={18} color="#C4CAD6" />
@@ -1382,7 +1447,7 @@ export default function RecordCreateScreen() {
           thumbImageStyle={styles.photoThumb}
         />
 
-        <View style={styles.quickTagRow}>
+        {!isGps && <View style={styles.quickTagRow}>
           {RECORD_WRITE_MAIN_CATEGORIES.map(category => {
             const active = category.key === mainCategoryKey;
             return (
@@ -1428,7 +1493,7 @@ export default function RecordCreateScreen() {
               </TouchableOpacity>
             );
           })}
-        </View>
+        </View>}
 
         {selectedMainCategory ? (
           <View
@@ -1682,6 +1747,8 @@ export default function RecordCreateScreen() {
           <AppTextInput
             style={styles.input}
             value={title}
+            maxLength={isGps ? 100 : undefined}
+            editable={!isGps || !saving}
             onChangeText={setTitle}
             onFocus={() => handleComposerFocus('title')}
             placeholder="제목을 입력하세요"
@@ -1702,6 +1769,8 @@ export default function RecordCreateScreen() {
           <AppTextInput
             style={[styles.input, styles.textArea]}
             value={content}
+            maxLength={isGps ? 5000 : undefined}
+            editable={!isGps || !saving}
             onChangeText={setContent}
             onFocus={() => handleComposerFocus('body')}
             multiline

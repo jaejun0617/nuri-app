@@ -59,7 +59,7 @@ import { TIMELINE_SEASON_COLORS } from '../../theme/seasonal/timeline';
 import { scheduleIdleTask } from '../../utils/scheduleIdleTask';
 import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
 
-import { MemoryCard } from '../../components/MemoryCard/MemoryCard';
+import TimelineWalkMemoryCard from '../../components/records/TimelineWalkMemoryCard';
 import { preloadOptimizedImages } from '../../components/images/OptimizedImage';
 import AppText from '../../app/ui/AppText';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
@@ -107,6 +107,7 @@ import {
 } from '../../services/supabase/storageMemories';
 import { usePetStore, resolveSelectedPetId } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
+import { useWalkSources } from '../../hooks/useWalkProduct';
 import { useAuthStore } from '../../store/authStore';
 import { openMoreDrawer } from '../../store/uiStore';
 import { getKstYmd } from '../../utils/date';
@@ -1154,6 +1155,9 @@ export default function TimelineScreen() {
     () => (toolbarHeight ?? insets.bottom) + 12,
     [toolbarHeight, insets.bottom],
   );
+  const walkMemoryIds = useMemo(() => filteredIds.filter(id => recordsById[id]?.category === 'walk'), [filteredIds, recordsById]);
+  const walkSources = useWalkSources(petId, walkMemoryIds, isFocused);
+  const walkSourceMap = useMemo(() => new Map((walkSources.data ?? []).map(s => [s.memoryId, s])), [walkSources.data]);
   const renderItem = useCallback<ListRenderItem<string>>(
     ({ item, index }) => {
       const record = recordsById[item];
@@ -1177,7 +1181,8 @@ export default function TimelineScreen() {
         enableImageLoad && index > imageWindow.eagerUntil;
 
       return (
-        <MemoryCard
+        <TimelineWalkMemoryCard
+          source={walkSourceMap.get(item)}
           item={record}
           onPress={onPressItem}
           enableImageLoad={enableImageLoad}
@@ -1217,6 +1222,7 @@ export default function TimelineScreen() {
       onPressItem,
       recordsById,
       seasonColors,
+      walkSourceMap,
     ],
   );
 

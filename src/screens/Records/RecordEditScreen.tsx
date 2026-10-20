@@ -112,6 +112,12 @@ import { useRecordStore } from '../../store/recordStore';
 import { showToast } from '../../store/uiStore';
 import AppText from '../../app/ui/AppText';
 import { styles } from './RecordEditScreen.styles';
+import { useWalkScope, useWalkSources } from '../../hooks/useWalkProduct';
+import { saveLinkedWalkBody } from '../../services/walk/product/edit';
+import { loadWalkDraft, clearCommittedWalkDraft, type WalkDraft } from '../../services/walk/product/drafts';
+import { walkRequest, walkErrorCopy } from '../../services/walk/product/requests';
+import { walkSourceCopy } from '../../services/walk/product/presentation';
+import { invalidateWalkProduct } from '../../services/walk/product/invalidation';
 
 type TimelineNav = NativeStackNavigationProp<
   TimelineStackParamList,
@@ -144,6 +150,7 @@ export default function RecordEditScreen() {
   const petName = usePetDisplayName(petId);
   const memoryId = route.params.memoryId;
   const isHealthEntry = route.params.entrySource === 'health_report';
+  const walkScope = useWalkScope(petId);
 
   // ---------------------------------------------------------
   // 2) auth/store
@@ -165,6 +172,10 @@ export default function RecordEditScreen() {
     const items = petState?.items ?? [];
     return items.find(r => r.id === memoryId) ?? null;
   }, [petState?.items, memoryId]);
+  const candidateWalk = record?.category === 'walk';
+  const walkSources = useWalkSources(petId, candidateWalk ? [memoryId] : [], candidateWalk);
+  const walkSource = candidateWalk ? walkSources.data?.find(source => source.memoryId === memoryId) : undefined;
+  const sourceReady = !candidateWalk || (walkSources.isSuccess && !!walkScope?.current());
 
   useEffect(() => {
     let mounted = true;
@@ -204,6 +215,7 @@ export default function RecordEditScreen() {
 
   const [saving, setSaving] = useState(false);
   const submitInFlightRef = useRef(false);
+  useEffect(() => { if (candidateWalk) { submitInFlightRef.current = false; setSaving(false); } }, [walkScope?.generation, petId, memoryId, candidateWalk]);
   const [dirty, setDirty] = useState(false);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
   const [rewardNotice, setRewardNotice] = useState<RewardNoticeState | null>(
@@ -294,6 +306,14 @@ export default function RecordEditScreen() {
   const [baseImagePaths, setBaseImagePaths] = useState<string[]>([]);
   const [removedPaths, setRemovedPaths] = useState<Set<string>>(new Set());
   const [addedImages, setAddedImages] = useState<AddedImage[]>([]);
+  const [recoveryDraft, setRecoveryDraft] = useState<WalkDraft | null>(null);
+  const [recoveryApplied, setRecoveryApplied] = useState(false);
+  useEffect(() => {
+    if (!walkScope || !walkSource || !route.params.walkDraftSessionId || walkSource.clientSessionId !== route.params.walkDraftSessionId) return;
+    const controller = new AbortController();
+    walkRequest(walkScope, () => loadWalkDraft({ ownerId: walkScope.ownerId, petId, clientSessionId: walkSource.clientSessionId }), controller.signal).then(draft => { if (walkScope.current() && !controller.signal.aborted) setRecoveryDraft(draft); }).catch(() => undefined);
+    return () => controller.abort();
+  }, [walkScope, walkSource, route.params.walkDraftSessionId, petId]);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [signedByPath, setSignedByPath] = useState<
     Record<string, string | null>
@@ -526,6 +546,7 @@ export default function RecordEditScreen() {
   // 8) submit (text + image replace) ✅ 즉시 반영
   // ---------------------------------------------------------
   const onSubmit = useCallback(async () => {
+    if (!sourceReady) return;
     if (submitInFlightRef.current) return;
     if (!petId || !memoryId) return;
     if (!record) return;
@@ -544,6 +565,21 @@ export default function RecordEditScreen() {
     try {
       submitInFlightRef.current = true;
       setSaving(true);
+
+      if (walkSource && walkScope) {
+        const imagePlan = removedPaths.size || addedImages.length ? [
+          ...baseImagePaths.filter(path => !removedPaths.has(path)).map(path => ({ kind: 'existing' as const, path })),
+          ...addedImages.map(image => ({ kind: 'pending' as const, key: image.key, uri: image.uri, mimeType: image.mimeType })),
+        ] : null;
+        const canonical = await saveLinkedWalkBody(walkScope, walkSource, { title, content, emotion, tags: parseRecordTags(tagsText), photos: addedImages }, imagePlan);
+        if (!walkScope.current()) return;
+        upsertOneLocal(petId, canonical);
+        setFocusedMemoryId(petId, memoryId);
+        invalidateWalkProduct(walkScope, 'MEMORY_COMMIT');
+        if (recoveryApplied && recoveryDraft) await walkRequest(walkScope, () => clearCommittedWalkDraft({ ownerId: walkScope.ownerId, petId, clientSessionId: walkSource.clientSessionId }, recoveryDraft));
+        if (walkScope.current()) setSuccessModalVisible(true);
+        return;
+      }
 
       // 1) 텍스트 저장
       const occurred = validateRecordOccurredAt(occurredAt);
@@ -689,14 +725,17 @@ export default function RecordEditScreen() {
       await presentCompletionModal();
       refresh(petId).catch(() => {});
     } catch (err) {
+      if (walkSource && !walkScope?.current()) return;
       const { title: alertTitle, message } = getBrandedErrorMeta(
         err,
         'record-update',
       );
-      Alert.alert(alertTitle, message);
+      Alert.alert(alertTitle, walkSource ? walkErrorCopy(err) : message);
     } finally {
-      submitInFlightRef.current = false;
-      setSaving(false);
+      if (!walkSource || walkScope?.current()) {
+        submitInFlightRef.current = false;
+        setSaving(false);
+      }
     }
   }, [
     petId,
@@ -721,6 +760,7 @@ export default function RecordEditScreen() {
     setFocusedMemoryId,
     updateOneLocal,
     upsertOneLocal,
+    sourceReady, walkSource, walkScope, recoveryApplied, recoveryDraft,
   ]);
 
   const onConfirmSuccess = useCallback(() => {
@@ -803,10 +843,16 @@ export default function RecordEditScreen() {
 
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
           <HeaderTextActionButton appearance="seasonalText" label="수정" role="primarySubtle" compact
-            loading={saving} disabled={saving || !title.trim()} onPress={onSubmit}
+            loading={saving} disabled={saving || !title.trim() || !sourceReady} onPress={onSubmit}
             accessibilityLabel="기록 수정 저장" />
         </View>
       </View>
+
+      {walkSource && <AppText preset="unifiedMeta" style={{ paddingHorizontal: 18, paddingVertical: 8 }}>{walkSourceCopy(walkSource)} · 아이·분류·날짜는 변경할 수 없어요.</AppText>}
+      {walkSources.isError && <TouchableOpacity onPress={() => { walkSources.refetch().catch(() => undefined); }}><AppText preset="unifiedMeta">산책 연결 정보를 다시 확인</AppText></TouchableOpacity>}
+      {recoveryDraft && !recoveryApplied && <TouchableOpacity style={{ minHeight: 48, paddingHorizontal: 18, justifyContent: 'center' }} onPress={() => Alert.alert('이 기기의 초안을 불러올까요?', '저장된 본문을 초안으로 바꿔 수정합니다. 기존 사진은 유지하고 초안의 사진을 추가합니다. 저장 전 내용을 확인해 주세요.', [{ text: '취소', style: 'cancel' }, { text: '불러오기', onPress: () => {
+        setTitle(recoveryDraft.fields.title); setContent(recoveryDraft.fields.content); setEmotion(recoveryDraft.fields.emotion); setTagsText(recoveryDraft.fields.tags.join(' ')); setAddedImages([...recoveryDraft.fields.photos]); setDirty(true); setRecoveryApplied(true);
+      } }])}><AppText preset="unifiedMeta">이 기기의 내용·사진 초안 불러오기</AppText></TouchableOpacity>}
 
       <KeyboardAwareScrollView
         ref={scrollRef}
@@ -915,6 +961,7 @@ export default function RecordEditScreen() {
             <AppTextInput
               style={styles.input}
               value={title}
+              maxLength={walkSource ? 100 : undefined}
               onChangeText={v => {
                 setDirty(true);
                 setTitle(v);
@@ -939,6 +986,7 @@ export default function RecordEditScreen() {
             <AppTextInput
               style={[styles.input, styles.multiline]}
               value={content ?? ''}
+              maxLength={walkSource ? 5000 : undefined}
               onChangeText={v => {
                 setDirty(true);
                 setContent(v);
@@ -958,7 +1006,8 @@ export default function RecordEditScreen() {
             activeOpacity={0.9}
             style={styles.input}
             onPress={openDateModal}
-            disabled={saving}
+            testID="record-edit-date"
+            disabled={saving || !sourceReady || !!walkSource}
           >
             <AppText
               preset="unifiedBody"
@@ -975,7 +1024,7 @@ export default function RecordEditScreen() {
             options={visibleMainCategories}
             selected={[mainCategoryKey]}
             onSelect={onSelectMainCategory}
-            disabled={saving}
+            disabled={saving || !sourceReady || !!walkSource}
           />
 
           {mainCategoryKey === 'other' ? (
@@ -1073,7 +1122,7 @@ export default function RecordEditScreen() {
             loading={saving}
             style={[styles.primary, saving ? styles.primaryDisabled : null]}
             onPress={onSubmit}
-            disabled={saving}
+            disabled={saving || !sourceReady}
             accessibilityLabel={saving ? '기록 수정 중' : '기록 수정 완료'}
             accessibilityHint={
               saving

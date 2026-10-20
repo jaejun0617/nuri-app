@@ -16,8 +16,11 @@ import type { SeasonKey } from '../../../theme/seasonal/season';
 import WalkSummaryMetrics from './WalkSummaryMetrics';
 import { finishArtwork } from './finishArtwork';
 import { walkCopyAccent } from './walkAccent';
+import { walkResultStatusCopy, type WalkResultServerState } from '../../../services/walk/product/presentation';
 
 type Props = {
+  productStatus?: WalkResultServerState;
+  productContent?: React.ReactNode;
   header: React.ReactNode;
   map: React.ReactNode;
   petName: string;
@@ -122,9 +125,9 @@ export default function WalkLocalResult(props: Props) {
             activeMs={props.activeMs}
             accent={accent}
           />
-          {!props.fixtureOnly && (
+          {!props.fixtureOnly && !props.productContent && (
             <AppText preset="caption" style={styles.note}>
-              산책 결과를 기기에 저장했어요.
+              {props.productStatus ? walkResultStatusCopy(props.productStatus) : '산책 결과를 기기에 저장했어요.'}
             </AppText>
           )}
           {props.qualityNeedsReview && (
@@ -137,6 +140,7 @@ export default function WalkLocalResult(props: Props) {
               일부 구간의 위치 기록을 확인해야 해요.
             </AppText>
           )}
+          {props.productContent}
           {props.fixtureOnly ? (
             <View style={styles.fixtureActions}>{props.fixtureContext}</View>
           ) : (
