@@ -1,0 +1,181 @@
+'use strict';
+
+const fs = require('node:fs');
+const path = require('node:path');
+const cp = require('node:child_process');
+const crypto = require('node:crypto');
+const { requireCleanSource, verifyExternalSigner } = require('../release-signing-identity');
+
+const PRODUCT_SOURCE_HEAD = '01336613d6417605660679ba16a8961d6d075d94';
+const PRODUCT_APK_SHA256 = '0c1d1b3834c919c47b2763061a04b2353a99b4ccb119cc8a96a1f017ddee4b46';
+const PRODUCT_APK = 'android/app/build/outputs/apk/release/nuri-0133661-qa-release.apk';
+const PRODUCT_DIRECTORIES = ['android/app/build/outputs/apk/release', 'android/app/build/outputs/bundle/release'];
+const TASK = ':app:assembleReleaseAndroidTest';
+const GRADLE_ARGUMENTS = Object.freeze([TASK, '-PnuriSecurityQa=true', '--no-daemon', '--console=plain']);
+const ALLOWED_SOURCE_PATHS = new Set([
+  ...['WalkSupplementalGuard.kt', 'WalkSupplementalGuardTest.kt', 'WalkReadOnlyJournalAudit.kt', 'WalkPetDeleteResponseFilter.kt', 'WalkProductResponseLossTest.kt']
+    .map(name => `android/app/src/androidTest/java/com/nuri/walk/${name}`),
+  'scripts/secure-release-signing.js', 'scripts/qa/build-android-auxiliary.js', '__tests__/secureReleaseAuxiliary.test.ts',
+]);
+const fail = code => { throw new Error(code); };
+const digest = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');
+
+function requireAuxiliarySource(root, expectedHead) {
+  requireCleanSource(root, expectedHead);
+  const git = args => cp.execFileSync('git', args, {
+    cwd: root, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
+    env: { PATH: process.env.PATH, HOME: process.env.HOME, LANG: 'C', GIT_OPTIONAL_LOCKS: '0' },
+  }).trim();
+  const changes = git(['diff', '--name-status', '--no-renames', PRODUCT_SOURCE_HEAD, expectedHead, '--']);
+  if (!changes || changes.split('\n').some(line => {
+    const fields = line.split('\t');
+    return fields.length !== 2 || !['A', 'M'].includes(fields[0]) || !ALLOWED_SOURCE_PATHS.has(fields[1]);
+  })) fail('NURI_AUXILIARY_SOURCE_DELTA_FORBIDDEN');
+  const tree = git(['rev-parse', 'HEAD^{tree}']);
+  if (!/^[a-f0-9]{40}$/.test(tree)) fail('NURI_AUXILIARY_SOURCE_TREE_INVALID');
+  return { harnessHead: expectedHead, harnessTree: tree, productSourceHead: PRODUCT_SOURCE_HEAD };
+}
+
+// Preserve the named canonical APK, default APK, bundle and all product sidecars.
+// AndroidTest outputs live elsewhere and are deliberately excluded from this invariant.
+function productInventory(root) {
+  const records = [];
+  const visit = relative => {
+    const absolute = path.join(root, relative);
+    const stat = fs.lstatSync(absolute);
+    if (stat.isSymbolicLink()) fail('NURI_AUXILIARY_PRODUCT_SYMLINK_FORBIDDEN');
+    if (stat.isDirectory()) {
+      records.push({ path: relative, directory: true });
+      for (const name of fs.readdirSync(absolute).sort()) visit(`${relative}/${name}`);
+    } else if (stat.isFile() && /\.(?:apk|aab|json|txt|prof|profm)$/.test(relative)) {
+      records.push({ path: relative, size: stat.size, sha256: digest(absolute) });
+    }
+    else fail('NURI_AUXILIARY_PRODUCT_FILE_INVALID');
+  };
+  for (const directory of PRODUCT_DIRECTORIES) {
+    if (fs.existsSync(path.join(root, directory))) visit(directory);
+  }
+  const canonical = records.find(record => record.path === PRODUCT_APK);
+  if (!canonical) fail('NURI_AUXILIARY_PRODUCT_BASELINE_MISSING');
+  if (canonical.sha256 !== PRODUCT_APK_SHA256) fail('NURI_AUXILIARY_PRODUCT_BASELINE_MISMATCH');
+  const defaultApk = records.find(record => record.path === 'android/app/build/outputs/apk/release/app-release.apk');
+  if (defaultApk && defaultApk.sha256 !== PRODUCT_APK_SHA256) fail('NURI_AUXILIARY_PRODUCT_BASELINE_MISMATCH');
+  return records;
+}
+
+function validateDryRun(output) {
+  const tasks = [];
+  if (!/^BUILD SUCCESSFUL in .+$/m.test(output) || /BUILD FAILED/.test(output)) fail('NURI_AUXILIARY_DRY_RUN_INCOMPLETE');
+  for (const line of output.split(/\r?\n/)) {
+    if (!line.startsWith(':')) continue;
+    const match = /^(:[A-Za-z0-9_.:-]+) SKIPPED$/.exec(line);
+    if (!match) fail('NURI_AUXILIARY_DRY_RUN_MALFORMED');
+    const task = match[1];
+    if (task.startsWith(':app:')) {
+      const name = task.slice(':app:'.length);
+      const allowedProducer = ['assembleReleaseAndroidTest', 'packageReleaseAndroidTest',
+        'bundleReleaseClassesToCompileJar', 'bundleReleaseClassesToRuntimeJar'].includes(name);
+      // Exact allowlist avoids confusing packageReleaseAndroidTest with packageRelease.
+      if (!allowedProducer && (/^(?:assemble|package|bundle|sign|install|publish|upload)/i.test(name) || /(?:apk|aab|bundle)/i.test(name))) {
+        fail('NURI_AUXILIARY_PRODUCT_TASK_FORBIDDEN');
+      }
+    }
+    tasks.push(task);
+  }
+  if (!tasks.includes(TASK) || !tasks.includes(':app:packageReleaseAndroidTest') || new Set(tasks).size !== tasks.length) {
+    fail('NURI_AUXILIARY_DRY_RUN_INCOMPLETE');
+  }
+  return tasks;
+}
+
+function runGradle(root, env, dryRun, children) {
+  const { filteredEnvironment } = require('../secure-release-signing');
+  const args = dryRun ? [...GRADLE_ARGUMENTS, '--dry-run'] : [...GRADLE_ARGUMENTS];
+  return new Promise((resolve, reject) => {
+    const record = { phase: dryRun ? 'dry-run' : 'build', exitCode: null, signal: null };
+    children.push(record);
+    const child = cp.spawn(path.join(root, 'android/gradlew'), args, {
+      cwd: path.join(root, 'android'), env: filteredEnvironment(env), stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: dryRun ? 600000 : 3600000,
+    });
+    // Gradle/plugin diagnostics are untrusted and may echo more than signing inputs.
+    // Keep only the dry-run graph in process memory; never print or persist raw streams.
+    process.stderr.write(dryRun ? 'NURI_AUXILIARY_DRY_RUN_STARTED\n' : 'NURI_AUXILIARY_BUILD_STARTED\n');
+    let output = '';
+    let overflow = false;
+    for (const [index, stream] of [child.stdout, child.stderr].entries()) {
+      stream.setEncoding('utf8');
+      stream.on('data', chunk => {
+        if (dryRun && index === 0) {
+          if (output.length + chunk.length > 4 * 1024 * 1024) overflow = true;
+          else output += chunk;
+        }
+      });
+    }
+    child.on('error', () => reject(new Error('NURI_AUXILIARY_CHILD_FAILED')));
+    child.on('close', (code, signal) => {
+      record.exitCode = code;
+      record.signal = signal || null;
+      if (code !== 0 || signal || overflow) reject(new Error('NURI_AUXILIARY_CHILD_FAILED'));
+      else resolve(output);
+    });
+  });
+}
+
+async function runAndroidAuxiliary(root, expectedHead, env) {
+  if (env.NURI_INTERNAL_SIGNING_OPERATION !== 'walk-androidtest-only-v1') fail('NURI_AUXILIARY_OPERATION_INVALID');
+  const source = requireAuxiliarySource(root, expectedHead);
+  const before = productInventory(root);
+  verifyExternalSigner(env);
+  const parent = path.join(env.HOME, '.codex/nuri-walk-real-product-20261020/auxiliary-builds');
+  fs.mkdirSync(parent, { recursive: true, mode: 0o700 });
+  const stat = fs.lstatSync(parent);
+  // eslint-disable-next-line no-bitwise -- Evidence must stay owner-only, with no symlink redirect.
+  if (!stat.isDirectory() || stat.isSymbolicLink() || stat.uid !== process.getuid() || (stat.mode & 0o077) || fs.realpathSync(parent) !== parent) fail('NURI_AUXILIARY_EVIDENCE_UNSAFE');
+  const directory = fs.mkdtempSync(path.join(parent, `${expectedHead.slice(0, 7)}-`));
+  const receipt = { ...source, productApkSha256: PRODUCT_APK_SHA256, productBefore: before,
+    children: [], tasks: [], sourceUnchanged: false, productUnchanged: false, status: 'NOT_STARTED' };
+  let failure;
+  try {
+    let graph = await runGradle(root, env, true, receipt.children);
+    // Even task-like text must not persist a protected value echoed by a plugin.
+    for (const [name, value] of Object.entries(env)) {
+      if (name.startsWith('NURI_') && typeof value === 'string' && value) graph = graph.split(value).join('[REDACTED_INPUT]');
+    }
+    receipt.tasks = validateDryRun(graph);
+    // Check again BEFORE the sole build: dry-run/configuration is not trusted to be inert.
+    if (JSON.stringify(productInventory(root)) !== JSON.stringify(before)) fail('NURI_AUXILIARY_PRODUCT_ARTIFACT_CHANGED');
+    requireAuxiliarySource(root, expectedHead);
+    await runGradle(root, env, false, receipt.children);
+    requireAuxiliarySource(root, expectedHead);
+    receipt.status = 'BUILD_EXIT_ZERO';
+  } catch (error) {
+    failure = error instanceof Error && /^NURI_AUXILIARY_[A-Z_]+$/.test(error.message)
+      ? error : new Error('NURI_AUXILIARY_FAILED');
+    receipt.status = failure.message;
+  } finally {
+    try {
+      receipt.sourceUnchanged = JSON.stringify(requireAuxiliarySource(root, expectedHead)) === JSON.stringify(source);
+    } catch { receipt.sourceUnchanged = false; }
+    if (!receipt.sourceUnchanged) {
+      failure = new Error('NURI_AUXILIARY_SOURCE_CHANGED');
+      receipt.status = failure.message;
+    }
+    try {
+      receipt.productUnchanged = JSON.stringify(productInventory(root)) === JSON.stringify(before);
+    } catch { receipt.productUnchanged = false; }
+    if (!receipt.productUnchanged) {
+      failure = new Error('NURI_AUXILIARY_PRODUCT_ARTIFACT_CHANGED');
+      receipt.status = failure.message;
+    }
+    fs.writeFileSync(path.join(directory, 'result.json'), JSON.stringify(receipt, null, 2) + '\n', { mode: 0o600, flag: 'wx' });
+  }
+  if (failure) throw failure;
+}
+
+// No standalone CLI or command/task parameter: only the protected same-client callback invokes this.
+module.exports = { PRODUCT_APK_SHA256, requireAuxiliarySource, productInventory, validateDryRun, runAndroidAuxiliary };
+if (require.main === module) {
+  process.stderr.write('NURI_AUXILIARY_PROTECTED_CALLBACK_REQUIRED\n');
+  process.exitCode = 2;
+}

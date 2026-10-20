@@ -12,6 +12,9 @@ const APPROVED_APK = '/private/tmp/nuri-ui-approved-release-IIRKj1/nuri-f6d284d-
 const APPROVED_APK_HASH = 'ccf759ca28c51aa7b034b49b2511037840203c22da37c6fd42937c28b674f98b';
 const HISTORICAL_SOURCE = '45d028a2ee11c1d27cede056ecd2d76072ce68aa';
 const APPROVED_OLD_KEYSTORE_HASH = 'dc7f9d5612246320a7ec1c5c84af70aedd377269fe55a1ac75f7d6ebffa297f0';
+// A non-secret, fixed operation tag, never an arbitrary task/script supplied by the caller.
+const AUXILIARY_OPERATION_NAME = 'NURI_INTERNAL_SIGNING_OPERATION';
+const AUXILIARY_OPERATION = 'walk-androidtest-only-v1';
 const fail = code => { throw new Error(code); };
 const hash = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
 
@@ -41,6 +44,30 @@ function redactLine(line, env) {
     if (env[name]) result = result.split(env[name]).join('[REDACTED_SIGNING_INPUT]');
   }
   return result;
+}
+
+function signingInvocation(args, env) {
+  const mode = args[0];
+  if (!['inspect', 'bootstrap', 'verify', 'rotate', 'verify-injected', 'release', 'run-injected', 'auxiliary-release'].includes(mode)) fail('NURI_SIGNING_MODE_REQUIRED');
+  if (['release', 'run-injected', 'auxiliary-release'].includes(mode)) {
+    if (args.length !== 3 || args[2] !== 'qa' || !/^[a-f0-9]{40}$/.test(args[1] || '')) fail('NURI_SIGNING_RELEASE_ARGUMENT_INVALID');
+  } else if (args.length !== 1) fail('NURI_SIGNING_ARGUMENT_INVALID');
+  let operation;
+  // Public release/verify never inherit a tag that could silently change their meaning.
+  if (mode === 'auxiliary-release') operation = AUXILIARY_OPERATION;
+  else if (mode === 'run-injected' || mode === 'verify-injected') {
+    const inherited = env[AUXILIARY_OPERATION_NAME];
+    if (inherited !== undefined && inherited !== AUXILIARY_OPERATION) fail('NURI_AUXILIARY_OPERATION_INVALID');
+    operation = inherited;
+  }
+  return { mode, helperMode: mode === 'auxiliary-release' ? 'release' : mode, operation };
+}
+
+async function runInjected(root, expectedHead, env) {
+  const operation = signingInvocation(['run-injected', expectedHead, 'qa'], env).operation;
+  if (operation === AUXILIARY_OPERATION) {
+    await require('./qa/build-android-auxiliary').runAndroidAuxiliary(root, expectedHead, env);
+  } else await runCanonicalRelease(root, expectedHead, env);
 }
 
 // Only the explicitly invoked one-time rotation reads this fixed historical source.
@@ -127,17 +154,18 @@ function ensureHelper() {
 
 async function main(args) {
   const root = path.resolve(__dirname, '..');
-  const mode = args[0];
-  if (!['inspect', 'bootstrap', 'verify', 'rotate', 'verify-injected', 'release', 'run-injected'].includes(mode)) fail('NURI_SIGNING_MODE_REQUIRED');
-  if (mode === 'release' || mode === 'run-injected') {
-    if (args.length !== 3 || args[2] !== 'qa') fail('NURI_SIGNING_RELEASE_ARGUMENT_INVALID');
+  const { mode, helperMode, operation } = signingInvocation(args, process.env);
+  if (['release', 'run-injected', 'auxiliary-release'].includes(mode)) {
     requireCleanSource(root, args[1]);
-  } else if (args.length !== 1) fail('NURI_SIGNING_ARGUMENT_INVALID');
+  }
+  if (mode === 'auxiliary-release') require('./qa/build-android-auxiliary').requireAuxiliarySource(root, args[1]);
   const context = toolContext();
   const env = filteredEnvironment(process.env);
   env.PATH = `${path.dirname(process.execPath)}:${env.PATH || '/usr/bin:/bin'}`;
   env.JAVA_HOME = context.javaHome;
   env.NURI_APPROVED_SIGNER_SHA256 = context.signer;
+  // Whitelist this one constant only across the existing helper's direct child callbacks.
+  if (operation) env[AUXILIARY_OPERATION_NAME] = operation;
   const inputRoot = env.NURI_RELEASE_INPUT_ROOT || root;
   if (mode === 'bootstrap' || mode === 'inspect' || mode === 'rotate') {
     env.NURI_RELEASE_INPUT_ROOT = inputRoot;
@@ -158,20 +186,20 @@ async function main(args) {
     return;
   }
   if (mode === 'run-injected') {
-    await runCanonicalRelease(root, args[1], env);
-    console.log('NURI_SECURE_RELEASE_COMPLETED');
+    await runInjected(root, args[1], env);
+    console.log(operation ? 'NURI_SECURE_AUXILIARY_COMPLETED' : 'NURI_SECURE_RELEASE_COMPLETED');
     return;
   }
-  if (!['release', 'verify'].includes(mode)) {
+  if (!['release', 'auxiliary-release', 'verify'].includes(mode)) {
     const store = fs.lstatSync(env.NURI_UPLOAD_STORE_FILE);
     if (!store.isFile() || store.isSymbolicLink()) fail('NURI_SIGNING_STORE_MISSING');
   }
   const helper = ensureHelper();
   // Keychain values remain in the helper. Only its direct child receives them.
-  const result = cp.spawnSync(helper, [mode, process.execPath, path.join(__dirname, 'secure-release-signing.js'), root, args[1] || ''], {
+  const result = cp.spawnSync(helper, [helperMode, process.execPath, path.join(__dirname, 'secure-release-signing.js'), root, args[1] || ''], {
     env, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'],
     // Never terminate the coordinator during an in-place credential change.
-    timeout: mode === 'rotate' ? 0 : (mode === 'release' ? 3600000 : (mode === 'bootstrap' ? 600000 : 60000)),
+    timeout: mode === 'rotate' ? 0 : (mode === 'auxiliary-release' ? 4800000 : (helperMode === 'release' ? 3600000 : (mode === 'bootstrap' ? 600000 : 60000))),
   });
   if (result.status !== 0) fail('NURI_SECURE_INPUT_UNAVAILABLE');
   const response = JSON.parse(result.stdout);
@@ -181,7 +209,7 @@ async function main(args) {
   console.log(JSON.stringify(Object.fromEntries(allowed.filter(key => Object.hasOwn(response, key)).map(key => [key, response[key]])), null, 2));
 }
 
-module.exports = { deriveApprovedSigner, filteredEnvironment, redactLine, externalKeystoreMetadata, runCanonicalRelease, parseHistoricalSigning };
+module.exports = { deriveApprovedSigner, filteredEnvironment, redactLine, externalKeystoreMetadata, runCanonicalRelease, parseHistoricalSigning, signingInvocation, runInjected };
 if (require.main === module) main(process.argv.slice(2)).catch(() => {
   console.error('NURI_SIGNING_BOOTSTRAP_BLOCKED');
   process.exitCode = 2;
