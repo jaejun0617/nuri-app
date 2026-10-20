@@ -91,4 +91,17 @@ class WalkSupplementalGuardTest {
     assertTrue(SupplementalGuard.validJournal(2, false, false, true, "PENDING"))
     assertTrue(SupplementalGuard.validJournal(2, true, true, true, "ACKNOWLEDGED"))
   }
+  @Test fun closedProbeIsOnlyPassThroughForRetainedClients() {
+    val gate = SupplementalProbeGate(); var observed = 0; var passed = 0
+    gate.dispatch({ passed++ }, { observed++ })
+    gate.close(); gate.close()
+    repeat(100) { gate.dispatch({ passed++ }, { observed++ }) }
+    assertTrue(observed == 1 && passed == 100)
+  }
+  @Test fun closedProbeCannotInspectOrReplaceResponse() {
+    val gate = SupplementalProbeGate(); gate.close()
+    val originalResponse = Object()
+    val actual = gate.dispatch({ originalResponse }, { throw AssertionError("Closed probe must not observe") })
+    assertTrue(actual === originalResponse)
+  }
 }

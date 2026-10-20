@@ -50,8 +50,12 @@ class WalkProductResponseLossTest {
       && Process.myUid() == context.applicationInfo.uid && instrumentation.context.applicationInfo.uid != Process.myUid(), "PACKAGE_UID_MISMATCH")
     supplementalCheck(Build.VERSION.SDK_INT >= 28 && Application.getProcessName() == "com.nuri.app", "PROCESS_IDENTITY_MISMATCH")
     val manager = context.packageManager
-    for (name in listOf("com.nuri.app", "com.nuri.app.test")) {
-      val info = manager.getPackageInfo(name, PackageManager.GET_SIGNING_CERTIFICATES)
+    for (trusted in listOf(context, instrumentation.context)) {
+      // Parse public APKs via trusted contexts; do not depend on cross-package
+      // visibility, QUERY_ALL_PACKAGES, shell permissions or host-supplied paths.
+      val info = manager.getPackageArchiveInfo(trusted.applicationInfo.sourceDir, PackageManager.GET_SIGNING_CERTIFICATES)
+        ?: throw SupplementalBlocked("APK_IDENTITY_UNREADABLE")
+      supplementalCheck(info.packageName == trusted.packageName, "PACKAGE_ARCHIVE_MISMATCH")
       val signers = info.signingInfo?.apkContentsSigners ?: throw SupplementalBlocked("SIGNER_MISSING")
       supplementalCheck(signers.size == 1, "SIGNER_MISMATCH")
       val hash = MessageDigest.getInstance("SHA-256").digest(signers.single().toByteArray()).joinToString("") { "%02x".format(it.toInt() and 255) }

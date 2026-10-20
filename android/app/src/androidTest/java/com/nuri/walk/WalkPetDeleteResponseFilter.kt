@@ -27,7 +27,7 @@ internal class WalkPetDeleteResponseFilter(
     private set
   @Volatile var acknowledged = false
     private set
-  @Volatile private var closed = false
+  private val gate = SupplementalProbeGate()
   private val release = CountDownLatch(1)
   init {
     if (recovery) manifest.load().let {
@@ -35,12 +35,15 @@ internal class WalkPetDeleteResponseFilter(
       acknowledged = it.optBoolean("nativeDoneObserved") && it.optBoolean("serverAckObserved")
     }
   }
-  fun close() { closed = true; release.countDown() }
+  fun close() { gate.close(); release.countDown() }
   private fun fail(error: Exception) { fault = if (error is SupplementalBlocked) error.code else "PROBE_BOUNDARY_ERROR" }
 
-  override fun intercept(chain: Interceptor.Chain): Response {
+  override fun intercept(chain: Interceptor.Chain): Response = gate.dispatch(
+    passThrough = { chain.proceed(chain.request()) }, observe = { interceptOpen(chain) })
+
+  private fun interceptOpen(chain: Interceptor.Chain): Response {
     val request = chain.request()
-    if (closed) return chain.proceed(request)
+    if (gate.closed) return chain.proceed(request)
     val url = request.url.toString(); val method = request.method
     val path = SupplementalGuard.path(url)
     var creation = false
@@ -77,7 +80,7 @@ internal class WalkPetDeleteResponseFilter(
     }
 
     val response = chain.proceed(request)
-    if (closed) return response
+    if (gate.closed) return response
     try {
       if (creation) {
         supplementalCheck(response.isSuccessful && response.request.url == request.url, "CREATION_NOT_CONFIRMED")

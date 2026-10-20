@@ -14,6 +14,12 @@ internal fun supplementalUuid(value: String): String {
   supplementalCheck(runCatching { UUID.fromString(value).toString() == value }.getOrDefault(false), "INVALID_BINDING")
   return value
 }
+internal class SupplementalProbeGate {
+  @Volatile var closed = false
+    private set
+  fun close() { closed = true }
+  fun <T> dispatch(passThrough: () -> T, observe: () -> T): T = if (closed) passThrough() else observe()
+}
 internal class SupplementalBinding(val marker: String, val origin: String, val owner: String, val pet: String) {
   init {
     supplementalCheck(Regex("NQ[0-9a-f]{12}").matches(marker), "INVALID_MARKER")
