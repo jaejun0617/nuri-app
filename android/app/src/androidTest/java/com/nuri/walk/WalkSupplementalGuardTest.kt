@@ -105,3 +105,39 @@ class WalkSupplementalGuardTest {
     assertTrue(actual === originalResponse)
   }
 }
+
+class WalkSupplementalMemoryGuardTest {
+  private val owner = "11111111-1111-4111-8111-111111111111"
+  private val pet = "22222222-2222-4222-8222-222222222222"
+  private val session = "44444444-4444-4444-8444-444444444444"
+  private val foreign = "33333333-3333-4333-8333-333333333333"
+  private val origin = "https://fixture.invalid"
+  private val endpoint = "$origin/rest/v1/rpc/create_walk_memory_from_session_v1"
+  private fun bound(allowSession: Boolean = true) = SupplementalGuard("NQ0123456789ab", origin).apply {
+    install(false); claimCreation("POST", "$origin/rest/v1/pets", marker)
+    created("$origin/rest/v1/pets", owner, owner, pet, marker)
+    if (allowSession) session(this@WalkSupplementalMemoryGuardTest.session, pet)
+  }
+  private fun forwarded(method: String = "POST", url: String = endpoint, id: String? = session, petId: String? = pet, allowSession: Boolean = true) {
+    var sends = 0; var fault = false
+    bound(allowSession).denyOwnedMemoryBeforeSend(method, url, id, petId) { fault = true }
+    sends++
+    assertTrue("Foreign request must pass through unchanged", sends == 1 && !fault)
+  }
+  @Test fun exactOwnedMemoryDeniedBeforeForwardWithStableError() {
+    var sends = 0; var fault = false; var rejected = false
+    try {
+      bound().denyOwnedMemoryBeforeSend("POST", endpoint, session, pet) { fault = true }
+      sends++
+    } catch (e: java.io.IOException) { rejected = e.message == "WALK_SUPPLEMENTAL_SCOPED_ABORT" && e.cause == null }
+    assertTrue("Owned mutation must never reach transport", rejected && fault && sends == 0)
+  }
+  @Test fun foreignSessionPassesThrough() = forwarded(id = foreign)
+  @Test fun foreignPetPassesThrough() = forwarded(petId = foreign)
+  @Test fun wrongOriginPassesThrough() = forwarded(url = endpoint.replace(origin, "https://other.invalid"))
+  @Test fun wrongMethodPassesThrough() = forwarded(method = "GET")
+  @Test fun wrongRpcPassesThrough() = forwarded(url = "$origin/rest/v1/rpc/get_walk_record_v1")
+  @Test fun missingOrNonStringJsonKeysDoNotBind() { forwarded(id = null); forwarded(petId = null) }
+  @Test fun noOwnedSessionDoesNotBind() = forwarded(allowSession = false)
+  @Test fun substringAndOtherRecordFieldsCannotSelectForeignSession() = forwarded(id = "prefix-$session-suffix")
+}

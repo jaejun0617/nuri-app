@@ -46,6 +46,17 @@ internal class WalkPetDeleteResponseFilter(
     if (gate.closed) return chain.proceed(request)
     val url = request.url.toString(); val method = request.method
     val path = SupplementalGuard.path(url)
+    if (method == "POST" && SupplementalGuard.origin(url) == guard.binding?.origin
+      && path == "/rest/v1/rpc/create_walk_memory_from_session_v1") {
+      val parameters = runCatching { body(request) }.getOrNull()
+      // Only exact typed RPC keys bind the forbidden test-owned mutation.
+      // This throw is deliberately BEFORE proceed and outside the later
+      // observation catch, so no Memory/XP request can already have been sent.
+      guard.denyOwnedMemoryBeforeSend(method, url,
+        parameters?.opt("p_client_session_id") as? String, parameters?.opt("p_pet_id") as? String) {
+        fault = "OWNED_MEMORY_CALL_NOT_AUTHORIZED"
+      }
+    }
     var creation = false
     var creationAttempt = false
     var creationOwner: String? = null
@@ -118,13 +129,8 @@ internal class WalkPetDeleteResponseFilter(
   }
 
   private fun observeRpc(name: String, request: Request, response: Response, b: SupplementalBinding) {
-    if (name !in setOf("start_walk_v1", "finish_walk_v1", "get_walk_sessions_v1", "prepare_walk_final_deletion_v1", "recover_walk_final_deletion_v1", "ack_walk_final_deletion_v1", "create_walk_memory_from_session_v1")) return
+    if (name !in setOf("start_walk_v1", "finish_walk_v1", "get_walk_sessions_v1", "prepare_walk_final_deletion_v1", "recover_walk_final_deletion_v1", "ack_walk_final_deletion_v1")) return
     val input = body(request)
-    if (name == "create_walk_memory_from_session_v1") {
-      if (guard.ownedSession != null && input.toString().contains(guard.ownedSession!!))
-        throw SupplementalBlocked("OWNED_MEMORY_CALL_NOT_AUTHORIZED")
-      return
-    }
     if (name == "start_walk_v1" && input.optString("p_pet_id") == b.pet) {
       supplementalCheck(!recovery, "RECOVERY_MUST_NOT_START_WALK")
       val id = supplementalUuid(input.getString("p_client_session_id"))

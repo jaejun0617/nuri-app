@@ -2,6 +2,7 @@ package com.nuri.walk
 
 import java.net.URI
 import java.net.URLDecoder
+import java.io.IOException
 import java.util.Locale
 import java.util.UUID
 
@@ -85,6 +86,14 @@ internal class SupplementalGuard(val marker: String, private val approvedOrigin:
     if (method != "DELETE" || !bodyEmpty || origin(url) != b.origin || path(url) != "/rest/v1/pets") return false
     val query = query(url) ?: return false
     return query == mapOf("id" to "eq.${b.pet}", "user_id" to "eq.${b.owner}", "select" to "id")
+  }
+  @Synchronized fun denyOwnedMemoryBeforeSend(method: String, url: String, session: String?, pet: String?, denied: () -> Unit) {
+    val b = binding ?: return
+    val owned = ownedSession ?: return
+    if (method != "POST" || origin(url) != approvedOrigin || origin(url) != b.origin
+      || path(url) != "/rest/v1/rpc/create_walk_memory_from_session_v1" || session != owned || pet != b.pet) return
+    denied()
+    throw IOException("WALK_SUPPLEMENTAL_SCOPED_ABORT")
   }
   @Synchronized fun claimHold(nativePending: Boolean, quiescent: Boolean) {
     supplementalCheck(installed && binding != null && !holdClaimed && nativePending && quiescent && acceptedZero, "HOLD_DENIED")
