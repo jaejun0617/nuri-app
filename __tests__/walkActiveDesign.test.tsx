@@ -586,6 +586,29 @@ describe('PO active Walk design candidate', () => {
     );
   });
 
+  it('attaches the Fresco photo directly to the native marker, not inside its ring', async () => {
+    const onStatus = jest.fn();
+    await render(<WalkMapStage {...mapProps} onImageStatus={onStatus} />);
+    const photo = tree.root.findByType(Image);
+    let parent = photo.parent;
+    while (parent && typeof parent.type !== 'string' && parent.type !== View)
+      parent = parent.parent;
+    // Android MapMarker only attaches a direct DraweeView's image controller.
+    expect(parent?.type).toBe('Marker');
+    expect(StyleSheet.flatten(photo.props.style)).toMatchObject({
+      position: 'absolute',
+      left: 4,
+      top: 4,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
+    });
+    await act(async () => photo.props.onLoad());
+    expect(onStatus).toHaveBeenLastCalledWith('LOADED');
+    expect(tree.root.findAll(n => n.props.name === 'paw')).toHaveLength(0);
+    expect(host('walk-pet-ring').props.collapsable).toBe(false);
+  });
+
   it('anchors the photo and ring inside the SDK marker rather than a JS screen overlay', async () => {
     await render(<WalkMapStage {...mapProps} />);
     const map = tree.root.findAll(n => (n.type as unknown) === 'MapView')[0];

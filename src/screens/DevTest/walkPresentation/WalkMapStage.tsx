@@ -83,13 +83,27 @@ function PetMarkerPhoto({ accent, image, onImageStatus }: PetPositionProps) {
     onImageStatus?.(status);
   }, [status, onImageStatus]);
   return (
-    <Ring
-      $accent={accent}
-      collapsable={false}
-      testID="walk-pet-ring"
-      accessibilityElementsHidden
-      importantForAccessibility="no-hide-descendants"
-    >
+    <>
+      <Ring
+        $accent={accent}
+        collapsable={false}
+        testID="walk-pet-ring"
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      >
+        {status !== 'LOADED' ? (
+          <View style={styles.fallback}>
+            <NuriSemanticIcon
+              family="material"
+              name="paw"
+              preserveOriginal
+              size={20}
+              color={accent}
+            />
+          </View>
+        ) : null}
+      </Ring>
+      {/* Android MapMarker attaches Fresco only for a direct Image child. */}
       {image && status !== 'FAILED' ? (
         <Image
           source={{ uri: image }}
@@ -100,18 +114,7 @@ function PetMarkerPhoto({ accent, image, onImageStatus }: PetPositionProps) {
           onError={() => setStatus('FAILED')}
         />
       ) : null}
-      {status !== 'LOADED' ? (
-        <View style={styles.fallback}>
-          <NuriSemanticIcon
-            family="material"
-            name="paw"
-            preserveOriginal
-            size={20}
-            color={accent}
-          />
-        </View>
-      ) : null}
-    </Ring>
+    </>
   );
 }
 
@@ -370,6 +373,9 @@ const styles = StyleSheet.create({
     height: PET_MARKER_SIZE,
   },
   photo: {
+    position: 'absolute',
+    left: (PET_MARKER_SIZE - PET_PHOTO_SIZE) / 2,
+    top: (PET_MARKER_SIZE - PET_PHOTO_SIZE) / 2,
     width: PET_PHOTO_SIZE,
     height: PET_PHOTO_SIZE,
     borderRadius: PET_PHOTO_SIZE / 2,
