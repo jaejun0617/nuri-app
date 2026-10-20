@@ -229,6 +229,13 @@ export default function WalkMapStage({
       ? 'local-pet-preview'
       : 'public-synthetic'
     : 'actual';
+  const committedSource = useRef(source);
+  const [sourceEpoch, setSourceEpoch] = useState(0);
+  useLayoutEffect(() => {
+    if (committedSource.current === source) return;
+    committedSource.current = source;
+    setSourceEpoch(epoch => epoch + 1);
+  }, [source]);
   useLayoutEffect(() => {
     if (!preview)
       timerTrace('MAP_COMMIT', { renderCommitMonoMs: performance.now() });
@@ -293,8 +300,8 @@ export default function WalkMapStage({
     <View
       style={[StyleSheet.absoluteFill, styles.mapStage]}
       collapsable={false}
-      // Nonvisual QA provenance includes mount lifetime, so re-entry invalidates capture proof.
-      testID={`walk-map-source-${source}-${mapLifetime}`}
+      // Both re-entry and a private/public round trip invalidate prior capture proof.
+      testID={`walk-map-source-${source}-${mapLifetime}e${sourceEpoch}`}
     >
       <MapView
         ref={map}

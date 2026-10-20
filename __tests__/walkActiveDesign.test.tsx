@@ -696,6 +696,60 @@ describe('PO active Walk design candidate', () => {
     expect(mapSource('public-synthetic')!.props.testID).not.toBe(first);
   });
 
+  it.each(['actual', 'local-pet-preview'])(
+    'invalidates the old public proof after a committed public -> %s -> public round trip',
+    async origin => {
+      await render(<WalkMapStage {...mapProps} personalPreview={false} />);
+      const first = mapSource('public-synthetic')!.props.testID;
+      await act(async () =>
+        tree.update(
+          <ThemeProvider theme={createTheme('light')}>
+            <WalkMapStage
+              {...mapProps}
+              preview={origin !== 'actual'}
+              personalPreview
+              displayLocation={PUBLIC_ROUTE[0]}
+            />
+          </ThemeProvider>,
+        ),
+      );
+      expect(mapSource(origin)).toBeDefined();
+      await act(async () =>
+        tree.update(
+          <ThemeProvider theme={createTheme('light')}>
+            <WalkMapStage {...mapProps} personalPreview={false} />
+          </ThemeProvider>,
+        ),
+      );
+      expect(mapSource('public-synthetic')!.props.testID).not.toBe(first);
+    },
+  );
+
+  it('keeps an actual source token stable when only the accepted coordinate changes', async () => {
+    await render(
+      <WalkMapStage
+        {...mapProps}
+        preview={false}
+        displayLocation={PUBLIC_ROUTE[0]}
+      />,
+    );
+    const first = mapSource('actual')!.props.testID;
+    await act(async () =>
+      tree.update(
+        <ThemeProvider theme={createTheme('light')}>
+          <WalkMapStage
+            {...mapProps}
+            preview={false}
+            displayLocation={PUBLIC_ROUTE[1]}
+            recenterRevision={1}
+            paused
+          />
+        </ThemeProvider>,
+      ),
+    );
+    expect(mapSource('actual')!.props.testID).toBe(first);
+  });
+
   it('keeps the Google map neutral and prevents marker taps from moving its camera', async () => {
     await render(<WalkMapStage {...mapProps} image={null} />);
     const map = tree.root.findAll(n => (n.type as unknown) === 'MapView')[0];
