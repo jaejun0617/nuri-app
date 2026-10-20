@@ -267,6 +267,80 @@ describe('auxiliary-only protected signing, synthetic inputs and mocked children
     expect(read.mock.calls.some(([file]) => file === secret)).toBe(false);
   });
 
+  test('Dex Metadata: exact generated 0/1 sidecars are hashed and preserved in the full inventory', () => {
+    const output = mockArtifacts();
+    for (const index of [0, 1]) {
+      const directory = path.join(output, 'baselineProfiles', String(index));
+      fs.mkdirSync(directory, { recursive: true });
+      fs.writeFileSync(path.join(directory, 'app-release.dm'), `SYNTHETIC_DM_${index}`);
+    }
+    const before = auxiliary.productInventory(root);
+    const metadata = before.filter((record: { path: string }) => record.path.endsWith('.dm'));
+    expect(metadata).toHaveLength(2);
+    for (const [index, record] of metadata.entries()) {
+      expect(record.sha256).toBe(crypto.createHash('sha256').update(`SYNTHETIC_DM_${index}`).digest('hex'));
+      expect(record.size).toBe(Buffer.byteLength(`SYNTHETIC_DM_${index}`));
+    }
+    expect(auxiliary.productInventory(root)).toEqual(before);
+  });
+
+  test.each(['modified', 'missing'])('Dex Metadata: %s sidecar stops after dry-run before any real build', async (change: string) => {
+    mockSource();
+    const output = mockArtifacts();
+    const directory = path.join(output, 'baselineProfiles', '0');
+    fs.mkdirSync(directory, { recursive: true });
+    const metadata = path.join(directory, 'app-release.dm');
+    fs.writeFileSync(metadata, 'SYNTHETIC_DM');
+    const spawn = jest.spyOn(cp, 'spawn').mockImplementation(() => {
+      const child = new cp.ChildProcess();
+      Object.assign(child, { stdout: new PassThrough(), stderr: new PassThrough() });
+      process.nextTick(() => {
+        if (change === 'modified') fs.writeFileSync(metadata, 'MODIFIED_DM');
+        else fs.unlinkSync(metadata);
+        child.stdout?.push(graph); child.stdout?.push(null); child.stderr?.push(null); child.emit('close', 0);
+      });
+      return child;
+    });
+    await expect(auxiliary.runAndroidAuxiliary(root, head, env)).rejects.toThrow('NURI_AUXILIARY_PRODUCT_ARTIFACT_CHANGED');
+    expect(spawn).toHaveBeenCalledTimes(1);
+  });
+
+  test.each(['baselineProfiles/2/app-release.dm', 'baselineProfiles/0/custom.dm', 'app-release.dm', 'private.keystore'])('Dex Metadata: unexpected path or private extension remains unread and denied: %s', (relative: string) => {
+    const output = mockArtifacts();
+    const file = path.join(output, relative);
+    fs.mkdirSync(path.dirname(file), { recursive: true });
+    fs.writeFileSync(file, 'SYNTHETIC_UNEXPECTED_FILE');
+    const read = jest.spyOn(fs, 'readFileSync');
+    expect(() => auxiliary.productInventory(root)).toThrow('NURI_AUXILIARY_PRODUCT_FILE_INVALID');
+    expect(read.mock.calls.some(([entry]) => entry === file)).toBe(false);
+  });
+
+  test('Dex Metadata: even an expected sidecar path cannot be a symlink', () => {
+    const output = mockArtifacts();
+    const directory = path.join(output, 'baselineProfiles', '0');
+    fs.mkdirSync(directory, { recursive: true });
+    const target = path.join(root, 'synthetic-private.fixture');
+    fs.writeFileSync(target, 'SYNTHETIC_PRIVATE_BYTES');
+    fs.symlinkSync(target, path.join(directory, 'app-release.dm'));
+    const read = jest.spyOn(fs, 'readFileSync');
+    expect(() => auxiliary.productInventory(root)).toThrow('NURI_AUXILIARY_PRODUCT_SYMLINK_FORBIDDEN');
+    expect(read.mock.calls.some(([entry]) => entry === target)).toBe(false);
+  });
+
+  test.each([false, true])('safe rejected task metadata: no raw graph or protected value is retained (sensitive=%s)', async (sensitive: boolean) => {
+    mockSource(); mockArtifacts();
+    const task = sensitive ? `:app:package${env.NURI_UPLOAD_KEY_ALIAS}Release` : ':app:createBundleReleaseJsAndAssets';
+    const spawn = mockGradle([{ code: 0, text: `${task} SKIPPED\n${env.NURI_UPLOAD_STORE_PASSWORD}\n${graph}` }]);
+    await expect(auxiliary.runAndroidAuxiliary(root, head, env)).rejects.toThrow(sensitive ? 'NURI_AUXILIARY_DRY_RUN_MALFORMED' : 'NURI_AUXILIARY_PRODUCT_TASK_FORBIDDEN');
+    expect(spawn).toHaveBeenCalledTimes(1);
+    const parent = path.join(root, '.codex/nuri-walk-real-product-20261020/auxiliary-builds');
+    const raw = fs.readFileSync(path.join(parent, fs.readdirSync(parent)[0], 'result.json'), 'utf8');
+    const receipt = JSON.parse(raw);
+    expect(receipt.rejectedTask).toBe(sensitive ? null : task);
+    expect(receipt.tasks).toEqual([]);
+    for (const name of identity.SIGNING_NAMES) expect(raw).not.toContain(env[name]);
+  });
+
   test.each([0, 1])('nonzero child at phase %s stops, keeps real exit metadata and never retries', async (phase: number) => {
     mockSource(); mockArtifacts();
     const outputs = phase === 0 ? [{ code: 23, text: 'failure' }] : [{ code: 0, text: graph }, { code: 19, text: 'failure' }];

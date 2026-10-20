@@ -47,7 +47,9 @@ function productInventory(root) {
     if (stat.isDirectory()) {
       records.push({ path: relative, directory: true });
       for (const name of fs.readdirSync(absolute).sort()) visit(`${relative}/${name}`);
-    } else if (stat.isFile() && /\.(?:apk|aab|json|txt|prof|profm)$/.test(relative)) {
+    } else if (stat.isFile() && (/\.(?:apk|aab|json|txt|prof|profm)$/.test(relative)
+      // Only the two observed AGP baseline-profile Dex Metadata paths, not arbitrary .dm files.
+      || /^android\/app\/build\/outputs\/apk\/release\/baselineProfiles\/[01]\/app-release\.dm$/.test(relative))) {
       records.push({ path: relative, size: stat.size, sha256: digest(absolute) });
     }
     else fail('NURI_AUXILIARY_PRODUCT_FILE_INVALID');
@@ -63,7 +65,7 @@ function productInventory(root) {
   return records;
 }
 
-function validateDryRun(output) {
+function validateDryRun(output, onRejectedTask) {
   const tasks = [];
   if (!/^BUILD SUCCESSFUL in .+$/m.test(output) || /BUILD FAILED/.test(output)) fail('NURI_AUXILIARY_DRY_RUN_INCOMPLETE');
   for (const line of output.split(/\r?\n/)) {
@@ -77,6 +79,7 @@ function validateDryRun(output) {
         'bundleReleaseClassesToCompileJar', 'bundleReleaseClassesToRuntimeJar'].includes(name);
       // Exact allowlist avoids confusing packageReleaseAndroidTest with packageRelease.
       if (!allowedProducer && (/^(?:assemble|package|bundle|sign|install|publish|upload)/i.test(name) || /(?:apk|aab|bundle)/i.test(name))) {
+        if (typeof onRejectedTask === 'function' && task.length <= 200) onRejectedTask(task);
         fail('NURI_AUXILIARY_PRODUCT_TASK_FORBIDDEN');
       }
     }
@@ -134,7 +137,7 @@ async function runAndroidAuxiliary(root, expectedHead, env) {
   if (!stat.isDirectory() || stat.isSymbolicLink() || stat.uid !== process.getuid() || (stat.mode & 0o077) || fs.realpathSync(parent) !== parent) fail('NURI_AUXILIARY_EVIDENCE_UNSAFE');
   const directory = fs.mkdtempSync(path.join(parent, `${expectedHead.slice(0, 7)}-`));
   const receipt = { ...source, productApkSha256: PRODUCT_APK_SHA256, productBefore: before,
-    children: [], tasks: [], sourceUnchanged: false, productUnchanged: false, status: 'NOT_STARTED' };
+    children: [], tasks: [], rejectedTask: null, sourceUnchanged: false, productUnchanged: false, status: 'NOT_STARTED' };
   let failure;
   try {
     let graph = await runGradle(root, env, true, receipt.children);
@@ -142,7 +145,7 @@ async function runAndroidAuxiliary(root, expectedHead, env) {
     for (const [name, value] of Object.entries(env)) {
       if (name.startsWith('NURI_') && typeof value === 'string' && value) graph = graph.split(value).join('[REDACTED_INPUT]');
     }
-    receipt.tasks = validateDryRun(graph);
+    receipt.tasks = validateDryRun(graph, task => { receipt.rejectedTask = task; });
     // Check again BEFORE the sole build: dry-run/configuration is not trusted to be inert.
     if (JSON.stringify(productInventory(root)) !== JSON.stringify(before)) fail('NURI_AUXILIARY_PRODUCT_ARTIFACT_CHANGED');
     requireAuxiliarySource(root, expectedHead);
