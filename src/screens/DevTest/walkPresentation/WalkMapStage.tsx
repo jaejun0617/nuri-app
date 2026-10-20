@@ -23,8 +23,8 @@ import { timerTrace } from './timerTrace';
 
 export type PetMarkerImageStatus = 'NONE' | 'LOADING' | 'LOADED' | 'FAILED';
 
-const PET_MARKER_SIZE = 40;
-const PET_PHOTO_SIZE = 32;
+const PET_MARKER_SIZE = 36;
+const PET_PHOTO_SIZE = 28;
 
 const Ring = styled.View<{ $accent: string }>`
   width: ${PET_MARKER_SIZE}px;
@@ -68,9 +68,9 @@ type PetPositionProps = {
   image: string | null;
   onImageStatus?: (status: PetMarkerImageStatus) => void;
 };
-export function PetPosition(props: PetPositionProps) {
+export const PetPosition = memo(function PetPositionLeaf(props: PetPositionProps) {
   return <PetMarkerPhoto key={props.image ?? 'no-image'} {...props} />;
-}
+});
 function PetMarkerPhoto({ accent, image, onImageStatus }: PetPositionProps) {
   const [status, setStatus] = useState<PetMarkerImageStatus>(
     image ? 'LOADING' : 'NONE',
@@ -128,10 +128,13 @@ function usePetMapProjection(
     let disposed = false;
     let inFlight = false;
     let pending = false;
+    let cameraGeneration = 0;
     let lastRun = -Infinity;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const schedule = () => {
       if (disposed) return;
+      // An in-flight SDK reply belongs to the camera before this event.
+      cameraGeneration += 1;
       pending = true;
       if (inFlight || timer !== undefined) return;
       const delay = Math.max(0, 50 - (Date.now() - lastRun));
@@ -144,12 +147,13 @@ function usePetMapProjection(
       pending = false;
       inFlight = true;
       lastRun = Date.now();
+      const generation = cameraGeneration;
       try {
         const point = await map.current?.pointForCoordinate({
           latitude,
           longitude,
         });
-        if (disposed) return;
+        if (disposed || generation !== cameraGeneration) return;
         if (point && Number.isFinite(point.x) && Number.isFinite(point.y)) {
           position.setValue({
             x: point.x - PET_MARKER_SIZE / 2,
@@ -158,7 +162,7 @@ function usePetMapProjection(
           opacity.setValue(1);
         } else opacity.setValue(0);
       } catch {
-        if (!disposed) opacity.setValue(0);
+        if (!disposed && generation === cameraGeneration) opacity.setValue(0);
       } finally {
         if (!disposed) {
           inFlight = false;
@@ -211,7 +215,8 @@ export default function WalkMapStage({
   onImageStatus,
 }: Props) {
   useLayoutEffect(() => {
-    if (!preview) timerTrace('MAP_COMMIT', { renderCommitMonoMs: performance.now() });
+    if (!preview)
+      timerTrace('MAP_COMMIT', { renderCommitMonoMs: performance.now() });
   });
   const map = useRef<MapView>(null);
   const [ready, setReady] = useState(false);
@@ -221,11 +226,32 @@ export default function WalkMapStage({
   const latitude = target?.latitude,
     longitude = target?.longitude;
   const projection = usePetMapProjection(map, ready, latitude, longitude);
+  const updateProjection = projection.update;
+  const userCamera = useRef(false);
+  useLayoutEffect(() => {
+    userCamera.current = false;
+  }, [recenterRevision]);
+  const claimUserCamera = useCallback(() => {
+    if (userCamera.current) return;
+    // Claim synchronously so a GPS update cannot recenter before the parent commits FREE_LOOK.
+    userCamera.current = true;
+    onDrag();
+  }, [onDrag]);
+  const onCameraChange = useCallback<
+    NonNullable<React.ComponentProps<typeof MapView>['onRegionChange']>
+  >(
+    (_region, details) => {
+      if (details?.isGesture) claimUserCamera();
+      updateProjection();
+    },
+    [claimUserCamera, updateProjection],
+  );
   // Actual mode uses only a filtered fix or an explicit, ephemeral current-location review.
   useEffect(() => {
     if (
       ready &&
       mode === 'FOLLOW' &&
+      !userCamera.current &&
       latitude !== undefined &&
       longitude !== undefined
     ) {
@@ -264,9 +290,10 @@ export default function WalkMapStage({
           projection.update();
           onLoaded();
         }}
-        onRegionChange={projection.update}
-        onRegionChangeComplete={projection.update}
-        onPanDrag={onDrag}
+        onRegionChangeStart={onCameraChange}
+        onRegionChange={onCameraChange}
+        onRegionChangeComplete={onCameraChange}
+        onPanDrag={claimUserCamera}
       >
         {showRoute &&
           (preview ? (

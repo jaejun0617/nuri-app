@@ -169,6 +169,30 @@ describe('Phase 3 QA map and native wizard UI', () => {
     await press(r, 'walk-qa-open');
     expect(receipt(r, 'walk-diagnostic-카메라')).toBe('FOLLOW');
   });
+  test.each([
+    'onRegionChangeStart',
+    'onRegionChange',
+    'onRegionChangeComplete',
+  ])(
+    '%s preserves free-look across zoom events until explicit recenter',
+    async event => {
+      await open();
+      await act(async () =>
+        nativeType(r, 'MapView')[0].props[event](undefined, {
+          isGesture: true,
+        }),
+      );
+      await press(r, 'walk-qa-open');
+      expect(receipt(r, 'walk-diagnostic-카메라')).toBe('FREE_LOOK');
+      await press(r, 'walk-qa-close');
+      await press(r, 'walk-recenter');
+      await press(r, 'walk-qa-open');
+      expect(receipt(r, 'walk-diagnostic-카메라')).toBe('FOLLOW');
+      expect(command.mock.calls.some(([op]) => op === 'START_STEP')).toBe(
+        false,
+      );
+    },
+  );
   test('readiness configuration preserves pet but cannot invent a physical reference', async () => {
     await open();
     await press(r, 'walk-qa-open');

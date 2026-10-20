@@ -1,6 +1,6 @@
 import React from 'react';
 import Renderer, { act } from 'react-test-renderer';
-import { Image, ScrollView, StyleSheet, View } from 'react-native';
+import { AppState, Image, ScrollView, StyleSheet, View } from 'react-native';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
 import { resolveCtaPalette, SEASON_CTA } from '../src/app/theme/ctaPalette';
@@ -21,6 +21,13 @@ jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
 jest.mock('../src/app/ui/AppText', () => 'AppText');
 jest.mock('../src/components/icons/NuriFeatherIcon', () => 'Feather');
 jest.mock('../src/components/icons/NuriSemanticIcon', () => 'SemanticIcon');
+jest.mock('react-native/Libraries/AppState/AppState', () => ({
+  __esModule: true,
+  default: {
+    currentState: 'active',
+    addEventListener: jest.fn(() => ({ remove: jest.fn() })),
+  },
+}));
 jest.mock('react-native-maps', () => ({
   __esModule: true,
   default: 'MapView',
@@ -528,15 +535,15 @@ describe('PO active Walk design candidate', () => {
       />,
     );
     const ring = StyleSheet.flatten(host('walk-pet-ring').props.style);
-    expect(ring.width).toBe(40);
+    expect(ring.width).toBe(36);
     expect(ring.width).toBe(ring.height);
     expect(ring.borderRadius ?? ring.borderTopLeftRadius).toBe(ring.width / 2);
     expect(ring.overflow).toBe('hidden');
     const image = tree.root.findByType(Image);
     expect(image.props.style).toMatchObject({
-      width: 32,
-      height: 32,
-      borderRadius: 16,
+      width: 28,
+      height: 28,
+      borderRadius: 14,
     });
     expect(image.props.resizeMode).toBe('cover');
     await act(async () => image.props.onError());
@@ -598,8 +605,8 @@ describe('PO active Walk design candidate', () => {
       host('walk-fixture-marker').props.style,
     );
     expect(markerStyle.transform).toEqual([
-      { translateX: 100 },
-      { translateY: 180 },
+      { translateX: 102 },
+      { translateY: 182 },
     ]);
     expect(host('walk-pet-overlay').props.pointerEvents).toBe('none');
   });
@@ -630,8 +637,8 @@ describe('PO active Walk design candidate', () => {
     expect(
       StyleSheet.flatten(host('walk-fixture-marker').props.style),
     ).toMatchObject({
-      width: 40,
-      height: 40,
+      width: 36,
+      height: 36,
     });
   });
 
@@ -653,7 +660,7 @@ describe('PO active Walk design candidate', () => {
     expect(projectPoint).toHaveBeenCalledTimes(2);
     expect(
       StyleSheet.flatten(host('walk-fixture-marker').props.style).transform,
-    ).toEqual([{ translateX: 55 }, { translateY: 70 }]);
+    ).toEqual([{ translateX: 57 }, { translateY: 72 }]);
     await act(async () => jest.advanceTimersByTime(5000));
     expect(projectPoint).toHaveBeenCalledTimes(2);
   });
@@ -682,7 +689,7 @@ describe('PO active Walk design candidate', () => {
       ),
     );
     expect(projectPoint).toHaveBeenLastCalledWith(PUBLIC_ROUTE[0]);
-    const expected = [{ translateX: 40 }, { translateY: 60 }];
+    const expected = [{ translateX: 42 }, { translateY: 62 }];
     expect(
       StyleSheet.flatten(host('walk-actual-marker').props.style).transform,
     ).toEqual(expected);
@@ -753,6 +760,215 @@ describe('PO active Walk design candidate', () => {
       { duration: 250 },
     );
   });
+
+  it('does not apply a reply for a camera that moved while projection was in flight', async () => {
+    jest.useFakeTimers();
+    await render(<WalkMapStage {...mapProps} />);
+    const map = tree.root.findAll(n => (n.type as unknown) === 'MapView')[0];
+    await act(async () => map.props.onMapReady());
+    const before = StyleSheet.flatten(host('walk-fixture-marker').props.style);
+    let resolveOld: (point: { x: number; y: number }) => void = () => {};
+    projectPoint.mockImplementationOnce(
+      () =>
+        new Promise(resolve => {
+          resolveOld = resolve;
+        }),
+    );
+    await act(async () => {
+      map.props.onRegionChange(undefined, { isGesture: true });
+      jest.advanceTimersByTime(50);
+    });
+    await act(async () => {
+      map.props.onRegionChange(undefined, { isGesture: true });
+      resolveOld({ x: 999, y: 999 });
+    });
+    expect(
+      StyleSheet.flatten(host('walk-fixture-marker').props.style).transform,
+    ).toEqual(before.transform);
+    projectPoint.mockResolvedValue({ x: 75, y: 90 });
+    await act(async () => jest.advanceTimersByTime(50));
+    expect(
+      StyleSheet.flatten(host('walk-fixture-marker').props.style).transform,
+    ).toEqual([{ translateX: 57 }, { translateY: 72 }]);
+    expect(projectPoint).toHaveBeenCalledTimes(3);
+    expect(
+      projectPoint.mock.calls.every(
+        ([point]) =>
+          point.latitude === PUBLIC_ROUTE.at(-1)!.latitude &&
+          point.longitude === PUBLIC_ROUTE.at(-1)!.longitude,
+      ),
+    ).toBe(true);
+  });
+
+  it('does not hide the photo for a stale camera projection failure', async () => {
+    jest.useFakeTimers();
+    await render(<WalkMapStage {...mapProps} />);
+    const map = tree.root.findAll(n => (n.type as unknown) === 'MapView')[0];
+    await act(async () => map.props.onMapReady());
+    let rejectOld: (reason: Error) => void = () => {};
+    projectPoint.mockImplementationOnce(
+      () =>
+        new Promise((_resolve, reject) => {
+          rejectOld = reject;
+        }),
+    );
+    await act(async () => {
+      map.props.onRegionChange();
+      jest.advanceTimersByTime(50);
+    });
+    await act(async () => {
+      map.props.onRegionChange();
+      rejectOld(new Error('obsolete camera'));
+    });
+    expect(
+      StyleSheet.flatten(host('walk-fixture-marker').props.style).opacity,
+    ).toBe(1);
+    await act(async () => jest.advanceTimersByTime(50));
+    expect(projectPoint).toHaveBeenCalledTimes(3);
+  });
+
+  it.each(['onRegionChangeStart', 'onRegionChange', 'onRegionChangeComplete'])(
+    '%s transfers zoom gestures to free-look and blocks follow before parent commit',
+    async event => {
+      await render(
+        <WalkMapStage
+          {...mapProps}
+          preview={false}
+          displayLocation={PUBLIC_ROUTE[0]}
+        />,
+      );
+      const map = tree.root.findAll(n => (n.type as unknown) === 'MapView')[0];
+      await act(async () => map.props.onMapReady());
+      animateCamera.mockClear();
+      // Google Maps marks pinch and double-tap camera changes as gestures too.
+      await act(async () => map.props[event](undefined, { isGesture: true }));
+      expect(mapProps.onDrag).toHaveBeenCalledTimes(1);
+      await act(async () =>
+        tree.update(
+          <ThemeProvider theme={createTheme('light')}>
+            <WalkMapStage
+              {...mapProps}
+              preview={false}
+              displayLocation={PUBLIC_ROUTE[1]}
+            />
+          </ThemeProvider>,
+        ),
+      );
+      expect(animateCamera).not.toHaveBeenCalled();
+      await act(async () =>
+        tree.update(
+          <ThemeProvider theme={createTheme('light')}>
+            <WalkMapStage
+              {...mapProps}
+              preview={false}
+              displayLocation={PUBLIC_ROUTE[1]}
+              recenterRevision={1}
+            />
+          </ThemeProvider>,
+        ),
+      );
+      expect(animateCamera).toHaveBeenCalledTimes(1);
+      expect(animateCamera).toHaveBeenLastCalledWith(
+        { center: PUBLIC_ROUTE[1], zoom: 17 },
+        { duration: 250 },
+      );
+    },
+  );
+
+  it('keeps programmatic camera updates in follow and coalesces user gesture ownership', async () => {
+    await render(<WalkMapStage {...mapProps} />);
+    const map = tree.root.findAll(n => (n.type as unknown) === 'MapView')[0];
+    await act(async () => {
+      map.props.onMapReady();
+      map.props.onRegionChangeStart(undefined, { isGesture: false });
+      map.props.onRegionChange(undefined, { isGesture: false });
+      map.props.onRegionChangeComplete(undefined, { isGesture: false });
+    });
+    expect(mapProps.onDrag).not.toHaveBeenCalled();
+    await act(async () => {
+      map.props.onPanDrag();
+      map.props.onRegionChangeStart(undefined, { isGesture: true });
+      map.props.onRegionChange(undefined, { isGesture: true });
+      map.props.onRegionChangeComplete(undefined, { isGesture: true });
+    });
+    expect(mapProps.onDrag).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the loaded photo leaf and image props stable through parent and camera updates', async () => {
+    const onStatus = jest.fn();
+    await render(<WalkMapStage {...mapProps} onImageStatus={onStatus} />);
+    const map = tree.root.findAll(n => (n.type as unknown) === 'MapView')[0];
+    await act(async () => {
+      map.props.onMapReady();
+      tree.root.findByType(Image).props.onLoad();
+    });
+    const image = tree.root.findByType(Image);
+    const source = image.props.source;
+    onStatus.mockClear();
+    await act(async () =>
+      tree.update(
+        <ThemeProvider theme={createTheme('light')}>
+          <WalkMapStage
+            {...mapProps}
+            onImageStatus={onStatus}
+            onReady={jest.fn()}
+          />
+        </ThemeProvider>,
+      ),
+    );
+    await act(async () =>
+      map.props.onRegionChange(undefined, { isGesture: false }),
+    );
+    expect(tree.root.findByType(Image)).toBe(image);
+    expect(image.props.source).toBe(source);
+    expect(onStatus).not.toHaveBeenCalled();
+  });
+
+  it('does not reproject or recreate the marker when the elapsed leaf ticks', async () => {
+    jest.useFakeTimers();
+    jest.replaceProperty(AppState, 'currentState', 'active');
+    await render(
+      <WalkView
+        {...props}
+        preview={false}
+        clockSessionKey="public-marker-timer-test"
+        clockRunning
+        map={<WalkMapStage {...mapProps} />}
+      />,
+    );
+    const map = tree.root.findAll(n => (n.type as unknown) === 'MapView')[0];
+    await act(async () => {
+      map.props.onMapReady();
+      tree.root.findByType(Image).props.onLoad();
+    });
+    const image = tree.root.findByType(Image);
+    const source = image.props.source;
+    const calls = projectPoint.mock.calls.length;
+    expect(host('walk-time-value').props.children).toBe('32:00');
+    await act(async () => jest.advanceTimersByTime(3000));
+    expect(host('walk-time-value').props.children).toBe('32:03');
+    expect(projectPoint).toHaveBeenCalledTimes(calls);
+    expect(tree.root.findByType(Image)).toBe(image);
+    expect(image.props.source).toBe(source);
+  });
+
+  it.each(['spring', 'summer', 'autumn', 'winter'] as const)(
+    'keeps the %s ring centered around the reduced photo and paw fallback',
+    async season => {
+      await render(
+        <PetPosition accent={SEASON_CTA[season].primary} image={null} />,
+      );
+      const ring = StyleSheet.flatten(host('walk-pet-ring').props.style);
+      expect(ring).toMatchObject({
+        width: 36,
+        height: 36,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderColor: SEASON_CTA[season].primary,
+      });
+      expect(tree.root.findAll(n => n.props.name === 'paw')).toHaveLength(1);
+    },
+  );
 
   it('resets photo readiness on profile change and blocks private photos in public preview', async () => {
     const onStatus = jest.fn();
