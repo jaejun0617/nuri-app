@@ -622,6 +622,16 @@ class WalkProductPersistenceTest {
     val fresh = f.cleanup.captureV2(a, pet)
     assertTrue(ticket != fresh); assertEquals(2, f.cleanup.pending().length()); f.cleanup.assertAllowed(a, pet)
   }
+  @Test fun explicitAccountCreationSqlRollbackIsNotPetRollbackOrTransportProof() = Fixture().use { f ->
+    val epoch = binding(f); val account = registeredTicket(f, epoch, null); val petTicket = registeredTicket(f, epoch)
+    for (ticket in listOf(account, petTicket)) assertNull(await { f.runtime.finalCleanupCommand("ARM", ticket, it) }.second)
+    val sql = JSONObject().put("outcome", "ROLLED_BACK").put("code", "P0001").put("attempt", "1").toString()
+    assertEquals("WALK_FINAL_CLEANUP_INVALID", await { f.runtime.finalCleanupProof("RELEASE", petTicket, sql, it) }.second)
+    assertNull(await { f.runtime.finalCleanupProof("RELEASE", account, sql, it) }.second)
+    assertFalse(f.cleanup.scope(account).getBoolean("armed")); assertTrue(f.cleanup.scope(petTicket).getBoolean("armed"))
+    assertFalse(f.cleanup.scope(account).getBoolean("confirmed")); assertFalse(f.source.subscribed)
+    expect("WALK_FINAL_CLEANUP_PENDING") { f.cleanup.assertAllowed(a, pet) }; f.cleanup.assertAllowed(b, pet)
+  }
   @Test fun receivedFinalRegistrationStopsOwnedCollectionBeforeDiskWriteButDoesNotEraseUntilConfirmed() = Fixture().use { f ->
     val epoch = binding(f); val session = prepare(f).getString("clientSessionId"); apply(f, session, receipt(session))
     assertNull(op(f, epoch, "START", JSONObject().put("sessionId", session).put("commandId", id())).second)

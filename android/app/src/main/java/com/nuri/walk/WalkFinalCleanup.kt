@@ -194,7 +194,8 @@ internal class WalkFinalCleanup(private val storage: WalkStorage, private val di
       "ROLLED_BACK", "NOT_STARTED" -> {
         productExact(evidence, setOf("outcome", "code", "attempt"))
         if ((outcome == "NOT_STARTED" && evidence.getString("code") != "NOT_INVOKED")
-          || (outcome == "ROLLED_BACK" && evidence.getString("code") !in setOf("42501", "23503", "23514", "22023"))) throw WalkFailure("WALK_FINAL_CLEANUP_INVALID")
+          || (outcome == "ROLLED_BACK" && evidence.getString("code") !in setOf("42501", "23503", "23514", "22023")
+            && !(pet(v) == null && evidence.getString("code") == "P0001"))) throw WalkFailure("WALK_FINAL_CLEANUP_INVALID")
       }
       else -> throw WalkFailure("WALK_FINAL_CLEANUP_INVALID")
     }

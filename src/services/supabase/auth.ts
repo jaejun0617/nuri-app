@@ -646,12 +646,18 @@ export async function deleteMyAccount(options?: {
   onResult?: (result: AccountDeletionResult) => Promise<boolean>;
   onNonFinalResult?: (result: AccountDeletionResult) => Promise<void>;
   onRequest?: (result: AccountDeletionResult) => Promise<void>;
+  onRequestRejected?: (code: string) => Promise<void>;
 }): Promise<AccountDeletionResult> {
   const timeoutMs = options?.timeoutMs ?? 8000;
   let request: AccountDeletionResult;
   try {
     request = await createAccountDeletionRequest(options?.requestOrigin);
   } catch (error) {
+    // Creation itself schedules deletion. Only an explicit PostgreSQL failure
+    // proves THIS RPC rolled back; transport/parse failures may have committed.
+    const code = error && typeof error === 'object' && 'code' in error ? error.code : null;
+    if (typeof code === 'string' && ['42501', '23503', '23514', '22023', 'P0001'].includes(code))
+      await options?.onRequestRejected?.(code).catch(() => undefined);
     if (isMissingDeleteRpcError(error)) {
       throw new Error(
         '계정 삭제 SQL 함수가 아직 적용되지 않았습니다. docs/sql/공용-릴리즈-묶음/기능-추가/계정-동의-이력-및-계정-삭제.sql을 먼저 적용해 주세요.',
@@ -660,8 +666,8 @@ export async function deleteMyAccount(options?: {
     throw error;
   }
 
-  // Bind the exact created request to Walk's armed attempt before the existing
-  // destructive RPC. A stale restore request cannot release a newer attempt.
+  // Creation above ALREADY authorizes scheduled deletion. Binding failure must
+  // retain UNKNOWN, even though the compatibility delete RPC is not dispatched.
   await options?.onRequest?.(request);
   const rpcPromise = supabase
     .rpc('delete_my_account', {

@@ -44,6 +44,7 @@ import { purgeWalkProductAfterFinalDeletion as purge } from '../src/services/wal
 import { supabase } from '../src/services/supabase/client';
 import {
   cancelAccountDeletion,
+  deleteMyAccount,
   type AccountDeletionResult,
 } from '../src/services/supabase/auth';
 
@@ -522,7 +523,7 @@ test('late restore cannot release a newer deletion attempt or touch owner B afte
   restore.dispose();
 });
 
-async function accountWatch() {
+async function accountWatch(bindCreated = true) {
   row = {
     ...row,
     petId: null,
@@ -534,9 +535,10 @@ async function accountWatch() {
   });
   const c = await capture(null);
   await armWalkFinalDeletion(c);
-  await bindWalkAccountDeletionRequest(c, {
-    requestId: accountRequest,
-  } as AccountDeletionResult);
+  if (bindCreated)
+    await bindWalkAccountDeletionRequest(c, {
+      requestId: accountRequest,
+    } as AccountDeletionResult);
   return c;
 }
 test('remote cancel success lost BEFORE durable RELEASE recovers exact durable restoration intent after UI gate clears, without replaying cancel', async () => {
@@ -687,4 +689,77 @@ test('owner B/late A restoration read is fenced while foreground remains active'
   expect(useAuthStore.getState().session).toBe(b);
   expect(purge).not.toHaveBeenCalled();
   stop();
+});
+test('explicit create-request SQL rejection releases only this rolled-back attempt, never transport uncertainty', async () => {
+  const c = await accountWatch(false);
+  const rpc = supabase.rpc as unknown as jest.Mock;
+  for (const code of ['42501', 'P0001']) {
+    rpc.mockResolvedValueOnce({
+      data: null,
+      error: { code, message: 'synthetic SQL rejection' },
+    });
+    await expect(
+      deleteMyAccount({
+        onRequest: receipt => bindWalkAccountDeletionRequest(c, receipt),
+        onRequestRejected: rejected =>
+          releaseWalkFinalDeletion(c, {
+            outcome: 'ROLLED_BACK',
+            code: rejected,
+          }),
+      }),
+    ).rejects.toMatchObject({ code });
+    expect(row.armed).toBe(false);
+    expect(row.confirmed).toBe(false);
+    expect(purge).not.toHaveBeenCalled();
+    await armWalkFinalDeletion(c);
+  }
+  rpc.mockResolvedValueOnce({
+    data: null,
+    error: { code: '', message: 'synthetic transport failure' },
+  });
+  const rejected = jest.fn(async (code: string) =>
+    releaseWalkFinalDeletion(c, { outcome: 'ROLLED_BACK', code }),
+  );
+  await expect(
+    deleteMyAccount({ onRequestRejected: rejected }),
+  ).rejects.toMatchObject({ code: '' });
+  expect(rejected).not.toHaveBeenCalled();
+  expect(row.armed).toBe(true);
+  expect(row.outcome).toBe('UNKNOWN');
+  expect(rpc.mock.calls.map(call => call[0])).toEqual(
+    Array(3).fill('create_account_deletion_request'),
+  );
+});
+test('committed scheduled creation then ACCOUNT_REQUEST IO failure stays UNKNOWN even without compatibility delete dispatch', async () => {
+  const c = await accountWatch(false);
+  const rpc = supabase.rpc as unknown as jest.Mock;
+  rpc.mockResolvedValueOnce({
+    data: {
+      request_id: accountRequest,
+      status: 'completed',
+      actual_status: 'pending_grace_period',
+      can_restore: true,
+    },
+    error: null,
+  });
+  proofCommand.mockRejectedValueOnce({ code: 'WALK_FINAL_CLEANUP_PENDING' });
+  const rejected = jest.fn(async (code: string) =>
+    releaseWalkFinalDeletion(c, { outcome: 'ROLLED_BACK', code }),
+  );
+  await expect(
+    deleteMyAccount({
+      onRequest: receipt => bindWalkAccountDeletionRequest(c, receipt),
+      onRequestRejected: rejected,
+    }),
+  ).rejects.toMatchObject({ code: 'WALK_FINAL_CLEANUP_PENDING' });
+  expect(rejected).not.toHaveBeenCalled();
+  expect(row.armed).toBe(true);
+  expect(row.outcome).toBe('UNKNOWN');
+  expect(proofCommand.mock.calls.some(call => call[0] === 'RELEASE')).toBe(
+    false,
+  );
+  expect(rpc.mock.calls.map(call => call[0])).toEqual([
+    'create_account_deletion_request',
+  ]);
+  expect(purge).not.toHaveBeenCalled();
 });

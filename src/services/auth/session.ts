@@ -178,7 +178,7 @@ export async function performAccountDeletion(): Promise<AccountDeletionResult> {
   const current = () =>
     !changed && useAuthStore.getState().session?.user.id === owner;
   let cleanup: WalkFinalDeletionScope | null = null;
-  let invoked = false;
+  let requestPipelineStarted = false;
   try {
     cleanup = await captureWalkFinalDeletion(owner, null);
     if (!current()) throw new Error('WALK_PRODUCT_CONTEXT_CHANGED');
@@ -188,9 +188,12 @@ export async function performAccountDeletion(): Promise<AccountDeletionResult> {
     if (walkStop) await walkStop;
     if (!current()) throw new Error('WALK_PRODUCT_CONTEXT_CHANGED');
     assertWalkFinalDeletionCurrent(cleanup);
-    invoked = true;
+    // The FIRST create-request RPC already schedules deletion. This marker is
+    // intentionally earlier than the compatibility delete_my_account dispatch.
+    requestPipelineStarted = true;
     const result = await deleteMyAccount({
       onRequest: receipt => bindWalkAccountDeletionRequest(cleanup, receipt),
+      onRequestRejected: code => releaseWalkFinalDeletion(cleanup, { outcome: 'ROLLED_BACK', code }),
       onResult: async receipt =>
         isConfirmedFinalAccountDeletion(receipt)
           ? queueConfirmedWalkFinalDeletion(cleanup)
@@ -223,7 +226,7 @@ export async function performAccountDeletion(): Promise<AccountDeletionResult> {
       ? { ...result, localContextChanged: true }
       : result;
   } finally {
-    if (!invoked && cleanup) {
+    if (!requestPipelineStarted && cleanup) {
       await releaseWalkFinalDeletion(cleanup, {
         outcome: 'NOT_STARTED',
         code: 'NOT_INVOKED',
