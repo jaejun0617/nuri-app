@@ -399,6 +399,20 @@ describe('auxiliary-only protected signing, synthetic inputs and mocked children
     expect(raw).not.toContain('[REDACTED_INPUT]');
   });
 
+  test.each(['', '/android'])('RN source location format: installed helper root/subdirectory diagnostics stay path-free: %s', (suffix: string) => {
+    const diagnostics: unknown[] = [];
+    expect(auxiliary.validateDryRun(`:react-native-firebase_app:reactNativeAndroidDir /synthetic/private/node_modules/react-native${suffix}\n${graph}`, undefined, (event: unknown) => diagnostics.push(event))).toContain(':app:assembleReleaseAndroidTest');
+    expect(diagnostics).toEqual([{ project: 'RNFB_APP', category: 'RN_SOURCE_LOCATION', locationShape: suffix ? 'RN_ANDROID' : 'RN_ROOT' }]);
+    expect(JSON.stringify(diagnostics)).not.toContain('/synthetic');
+  });
+
+  test.each(['/synthetic/private-value', '/synthetic/node_modules/react-native :app:packageRelease SKIPPED'])('RN source location format: unproven or task-shaped paths stay blocked: %s', (value: string) => {
+    const diagnostics: unknown[] = [];
+    expect(() => auxiliary.validateDryRun(`:react-native-firebase_app:reactNativeAndroidDir ${value}\n${graph}`, undefined, (event: unknown) => diagnostics.push(event))).toThrow('NURI_AUXILIARY_DRY_RUN_MALFORMED');
+    expect(diagnostics).toEqual([{ project: 'RNFB_APP', category: 'UNRECOGNIZED_COLON_LINE', structuralPrefix: 'RN_SOURCE_LOCATION' }]);
+    expect(JSON.stringify(diagnostics)).not.toContain(value);
+  });
+
   test.each([0, 1])('nonzero child at phase %s stops, keeps real exit metadata and never retries', async (phase: number) => {
     mockSource(); mockArtifacts();
     const outputs = phase === 0 ? [{ code: 23, text: 'failure' }] : [{ code: 0, text: graph }, { code: 19, text: 'failure' }];

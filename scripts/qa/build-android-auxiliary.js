@@ -78,10 +78,14 @@ function colonDiagnostic(line) {
     else if (/^:(?:firebase\.bom|play\.play-services-auth) using (?:default|custom) value: \d+\.\d+\.\d+$/.test(body)) category = 'SDK_VERSION';
     else if (/^:android\.(?:compileSdk|targetSdk|minSdk) using (?:default|custom) value: \d{1,3}$/.test(body)) category = 'ANDROID_SDK';
     else if (/^:version set from package\.json: \d+\.\d+\.\d+ \(\d+,\d+,\d+ - \d+\)$/.test(body)) category = 'PACKAGE_VERSION';
-    else if (/^:reactNativeAndroidDir (?:\/|\[REDACTED_INPUT\]\/)[^\r\n]*\/node_modules\/react-native\/android$/.test(body)) category = 'RN_SOURCE_LOCATION';
+    else if (/^:reactNativeAndroidDir (?:\/|\[REDACTED_INPUT\]\/)[^\r\n]*\/node_modules\/react-native(?:\/android)?$/.test(body)) {
+      // Invertase 1.5 searches both the RN package root and its Android subdirectory.
+      return { project, category: 'RN_SOURCE_LOCATION', locationShape: body.endsWith('/android') ? 'RN_ANDROID' : 'RN_ROOT' };
+    }
     else if (project === 'RNFB_APP' && (/^ (?:no firebase\.json found, skipping|firebase\.json found with no react-native config, skipping|found react-native json root in firebase\.json, creating firebase build config)$/.test(body)
       || /^ firebase\.json found at (?:\/|\[REDACTED_INPUT\]\/)[^\r\n]*\/firebase\.json$/.test(body))) category = 'FIREBASE_JSON_CONFIGURATION';
     if (category) return { project, category };
+    if (body.startsWith(':reactNativeAndroidDir ')) return { project, category: 'UNRECOGNIZED_COLON_LINE', structuralPrefix: 'RN_SOURCE_LOCATION' };
   }
   return { project, category: 'UNRECOGNIZED_COLON_LINE' };
 }
