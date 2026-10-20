@@ -183,5 +183,14 @@ internal class SupplementalManifest(context: Context) {
     val v = load(); val expected = v.getJSONArray("baseline"); val actual = audit.fingerprints()
     supplementalCheck((0 until expected.length()).all { expected.getString(it) in actual }, "PRIOR_WALK_DATA_CHANGED")
   }
+  @Synchronized fun removeReviewed(marker: String) {
+    val v = load()
+    supplementalCheck(Regex("NQ[0-9a-f]{12}").matches(marker) && v.getString("marker") == marker
+      && v.getString("stage") == "PRODUCT_RECOVERY_OBSERVED" && v.getBoolean("nativeDoneObserved")
+      && v.getBoolean("serverAckObserved"), "TEST_CLEANUP_NOT_REVIEWABLE")
+    // Exact test-owned file only. No folder recursion, AtomicFile recovery,
+    // key/alias removal, product DB/journal or Runtime cleanup call.
+    supplementalCheck(base.delete() && !exists(), "TEST_MANIFEST_REMOVAL_NOT_VERIFIED")
+  }
   private fun aad() = "NURI_WALK_SUPPLEMENTAL:1:run".toByteArray(Charsets.UTF_8)
 }

@@ -179,4 +179,17 @@ class WalkProductResponseLossTest {
       throw SupplementalBlocked("RECOVERY_PENDING_NO_PASS")
     } finally { filter.close(); OkHttpClientProvider.setOkHttpClientFactory(null) }
   }
+
+  @Test fun removeReviewedTestManifestOnly() = safe {
+    hostGate()
+    supplementalCheck(!activityPresent(), "TEST_CLEANUP_MUST_NOT_START_UI")
+    val args = InstrumentationRegistry.getArguments()
+    supplementalCheck(args.getString("hostCleanupReviewed") == "TRUE", "EXPLICIT_HOST_REVIEW_REQUIRED")
+    val marker = args.getString("reviewedRunMarker") ?: throw SupplementalBlocked("REVIEWED_MARKER_REQUIRED")
+    val audit = WalkReadOnlyJournalAudit(context)
+    audit.scan().requireEmpty(); audit.requireQuiescent()
+    val manifest = SupplementalManifest(context)
+    manifest.requireBaseline(audit); manifest.removeReviewed(marker)
+    status("ONLY_REVIEWED_TEST_MANIFEST_REMOVED_NO_PRODUCT_CLEANUP")
+  }
 }
