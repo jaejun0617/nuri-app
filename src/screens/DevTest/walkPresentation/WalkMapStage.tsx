@@ -8,7 +8,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import { Animated, Image, StyleSheet, View } from 'react-native';
+import { Image, StyleSheet, View } from 'react-native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
 import styled from 'styled-components/native';
 import NuriSemanticIcon from '../../../components/icons/NuriSemanticIcon';
@@ -25,6 +25,7 @@ export type PetMarkerImageStatus = 'NONE' | 'LOADING' | 'LOADED' | 'FAILED';
 
 const PET_MARKER_SIZE = 36;
 const PET_PHOTO_SIZE = 28;
+const PET_MARKER_ANCHOR = { x: 0.5, y: 0.5 };
 
 const Ring = styled.View<{ $accent: string }>`
   width: ${PET_MARKER_SIZE}px;
@@ -68,7 +69,9 @@ type PetPositionProps = {
   image: string | null;
   onImageStatus?: (status: PetMarkerImageStatus) => void;
 };
-export const PetPosition = memo(function PetPositionLeaf(props: PetPositionProps) {
+export const PetPosition = memo(function PetPositionLeaf(
+  props: PetPositionProps,
+) {
   return <PetMarkerPhoto key={props.image ?? 'no-image'} {...props} />;
 });
 function PetMarkerPhoto({ accent, image, onImageStatus }: PetPositionProps) {
@@ -81,6 +84,7 @@ function PetMarkerPhoto({ accent, image, onImageStatus }: PetPositionProps) {
   return (
     <Ring
       $accent={accent}
+      collapsable={false}
       testID="walk-pet-ring"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
@@ -110,77 +114,81 @@ function PetMarkerPhoto({ accent, image, onImageStatus }: PetPositionProps) {
   );
 }
 
-// Android custom markers snapshot their children; keep photos in the regular RN hierarchy.
-// SDK projection handles camera tilt/rotation/padding. Coalesce camera events without polling.
-function usePetMapProjection(
-  map: React.RefObject<MapView | null>,
-  ready: boolean,
-  latitude: number | undefined,
-  longitude: number | undefined,
-) {
-  const position = useRef(new Animated.ValueXY()).current;
-  const opacity = useRef(new Animated.Value(0)).current;
-  const request = useRef<() => void>(() => {});
-  const update = useCallback(() => request.current(), []);
-  useLayoutEffect(() => {
-    opacity.setValue(0);
-    if (!ready || latitude === undefined || longitude === undefined) return;
-    let disposed = false;
-    let inFlight = false;
-    let pending = false;
-    let cameraGeneration = 0;
-    let lastRun = -Infinity;
+// Google Maps owns geographic attachment during camera gestures. The bitmap is
+// refreshed only while the photo/ring settles, never by a JS screen projection.
+const PetMapMarker = memo(function NativePetMarker({
+  coordinate,
+  accent,
+  image,
+  ready,
+  preview,
+  onImageStatus,
+}: PetPositionProps & {
+  coordinate: WalkMapPoint;
+  ready: boolean;
+  preview: boolean;
+}) {
+  const marker = useRef<React.ComponentRef<typeof Marker>>(null);
+  const [tracking, setTracking] = useState(true);
+  const [photoStatus, setPhotoStatus] = useState<PetMarkerImageStatus>(
+    image ? 'LOADING' : 'NONE',
+  );
+  const onStatus = useCallback(
+    (status: PetMarkerImageStatus) => {
+      setPhotoStatus(status);
+      onImageStatus?.(status);
+    },
+    [onImageStatus],
+  );
+
+  useEffect(() => {
+    setTracking(true);
+    if (!ready) return;
+    let alive = true;
+    let frame: number | undefined;
     let timer: ReturnType<typeof setTimeout> | undefined;
-    const schedule = () => {
-      if (disposed) return;
-      // An in-flight SDK reply belongs to the camera before this event.
-      cameraGeneration += 1;
-      pending = true;
-      if (inFlight || timer !== undefined) return;
-      const delay = Math.max(0, 50 - (Date.now() - lastRun));
-      if (delay === 0) project();
-      else timer = setTimeout(project, delay);
+    const finish = () => {
+      if (!alive) return;
+      marker.current?.redraw();
+      setTracking(false);
     };
-    const project = async () => {
-      timer = undefined;
-      if (disposed) return;
-      pending = false;
-      inFlight = true;
-      lastRun = Date.now();
-      const generation = cameraGeneration;
-      try {
-        const point = await map.current?.pointForCoordinate({
-          latitude,
-          longitude,
+    if (photoStatus === 'LOADING') {
+      // A slow image cannot keep native bitmap tracking alive forever. A late
+      // onLoad/onError reopens this bounded settling window.
+      timer = setTimeout(finish, 2000);
+    } else {
+      frame = requestAnimationFrame(() => {
+        marker.current?.redraw();
+        frame = requestAnimationFrame(() => {
+          marker.current?.redraw();
+          timer = setTimeout(finish, 180);
         });
-        if (disposed || generation !== cameraGeneration) return;
-        if (point && Number.isFinite(point.x) && Number.isFinite(point.y)) {
-          position.setValue({
-            x: point.x - PET_MARKER_SIZE / 2,
-            y: point.y - PET_MARKER_SIZE / 2,
-          });
-          opacity.setValue(1);
-        } else opacity.setValue(0);
-      } catch {
-        if (!disposed && generation === cameraGeneration) opacity.setValue(0);
-      } finally {
-        if (!disposed) {
-          inFlight = false;
-          if (pending) schedule();
-        }
-      }
-    };
-    request.current = schedule;
-    schedule();
+      });
+    }
     return () => {
-      disposed = true;
-      request.current = () => {};
+      alive = false;
+      if (frame !== undefined) cancelAnimationFrame(frame);
       if (timer !== undefined) clearTimeout(timer);
-      opacity.setValue(0);
     };
-  }, [map, ready, latitude, longitude, position, opacity]);
-  return { position, opacity, update };
-}
+  }, [accent, image, photoStatus, ready]);
+
+  return (
+    <Marker
+      ref={marker}
+      identifier="walk-pet-position"
+      testID={preview ? 'walk-fixture-marker' : 'walk-actual-marker'}
+      coordinate={coordinate}
+      anchor={PET_MARKER_ANCHOR}
+      flat={false}
+      tappable={false}
+      zIndex={3}
+      tracksViewChanges={tracking}
+      style={styles.petMarker}
+    >
+      <PetPosition accent={accent} image={image} onImageStatus={onStatus} />
+    </Marker>
+  );
+});
 
 type Props = {
   preview: boolean;
@@ -220,13 +228,26 @@ export default function WalkMapStage({
   });
   const map = useRef<MapView>(null);
   const [ready, setReady] = useState(false);
-  const target = preview
+  const candidate = preview
     ? PUBLIC_ROUTE.at(-1)!
     : displayLocation ?? page?.current ?? null;
+  const target =
+    candidate &&
+    Number.isFinite(candidate.latitude) &&
+    Number.isFinite(candidate.longitude) &&
+    Math.abs(candidate.latitude) <= 90 &&
+    Math.abs(candidate.longitude) <= 180
+      ? candidate
+      : null;
   const latitude = target?.latitude,
     longitude = target?.longitude;
-  const projection = usePetMapProjection(map, ready, latitude, longitude);
-  const updateProjection = projection.update;
+  const coordinate = useMemo(
+    () =>
+      latitude === undefined || longitude === undefined
+        ? null
+        : { latitude, longitude },
+    [latitude, longitude],
+  );
   const userCamera = useRef(false);
   useLayoutEffect(() => {
     userCamera.current = false;
@@ -242,9 +263,8 @@ export default function WalkMapStage({
   >(
     (_region, details) => {
       if (details?.isGesture) claimUserCamera();
-      updateProjection();
     },
-    [claimUserCamera, updateProjection],
+    [claimUserCamera],
   );
   // Actual mode uses only a filtered fix or an explicit, ephemeral current-location review.
   useEffect(() => {
@@ -261,12 +281,9 @@ export default function WalkMapStage({
       );
     }
   }, [latitude, longitude, mode, ready, recenterRevision, paused]);
-  if (!target) return null;
+  if (!target || !coordinate) return null;
   return (
-    <View
-      style={[StyleSheet.absoluteFill, styles.mapStage]}
-      onLayout={projection.update}
-    >
+    <View style={[StyleSheet.absoluteFill, styles.mapStage]}>
       <MapView
         ref={map}
         style={StyleSheet.absoluteFill}
@@ -275,6 +292,7 @@ export default function WalkMapStage({
         mapPadding={{ top: 0, left: 0, right: 0, bottom: WALK_SHEET_OVERLAP }}
         showsUserLocation={false}
         showsMyLocationButton={false}
+        moveOnMarkerPress={false}
         toolbarEnabled={false}
         showsCompass={false}
         initialRegion={{
@@ -287,7 +305,6 @@ export default function WalkMapStage({
           onReady();
         }}
         onMapLoaded={() => {
-          projection.update();
           onLoaded();
         }}
         onRegionChangeStart={onCameraChange}
@@ -314,40 +331,22 @@ export default function WalkMapStage({
             <View style={[styles.start, { borderColor: accent }]} />
           </Marker>
         )}
+        <PetMapMarker
+          key="walk-pet-position"
+          coordinate={coordinate}
+          accent={accent}
+          image={preview && !personalPreview ? null : image}
+          ready={ready}
+          preview={preview}
+          onImageStatus={onImageStatus}
+        />
       </MapView>
-      <View
-        testID="walk-pet-overlay"
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-        accessibilityElementsHidden
-        importantForAccessibility="no-hide-descendants"
-      >
-        <Animated.View
-          testID={preview ? 'walk-fixture-marker' : 'walk-actual-marker'}
-          style={[
-            styles.petPosition,
-            {
-              opacity: projection.opacity,
-              transform: projection.position.getTranslateTransform(),
-            },
-          ]}
-        >
-          <PetPosition
-            accent={accent}
-            image={preview && !personalPreview ? null : image}
-            onImageStatus={onImageStatus}
-          />
-        </Animated.View>
-      </View>
     </View>
   );
 }
 const styles = StyleSheet.create({
   mapStage: { overflow: 'hidden' },
-  petPosition: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
+  petMarker: {
     width: PET_MARKER_SIZE,
     height: PET_MARKER_SIZE,
   },
