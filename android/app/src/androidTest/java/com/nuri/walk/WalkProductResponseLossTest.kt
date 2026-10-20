@@ -98,6 +98,29 @@ class WalkProductResponseLossTest {
     status("AUDIT_EMPTY_NO_UI_STARTED")
   }
 
+  @Test fun liveAuditStoredStateNoRestart() = safe {
+    // Live attach intentionally permits an existing Activity. The newly attached
+    // lifecycle monitor cannot establish whether that Activity already existed.
+    fun gate() {
+      val args = InstrumentationRegistry.getArguments()
+      SupplementalLiveAuditPolicy.requireAttach(args.keySet().associateWith { args.getString(it) }, Process.myPid(), Build.VERSION.SDK_INT)
+    }
+    gate()
+    val started = SystemClock.elapsedRealtime()
+    val observation = try { WalkReadOnlyJournalAudit(context).liveObservation() }
+    catch (_: Exception) {
+      status("LIVE_AUDIT_READ_FAILED", JSONObject().put("complete", false).put("readError", 1).toString())
+      throw SupplementalBlocked("LIVE_AUDIT_READ_FAILED")
+    }
+    gate()
+    status("LIVE_AUDIT_STORED_COUNTS", observation.publicCounts())
+    supplementalCheck(SystemClock.elapsedRealtime() - started <= 5000, "LIVE_AUDIT_OBSERVATION_TOO_SLOW")
+    observation.requireSafe()
+    status("LIVE_AUDIT_QUIESCENT_OBSERVED_HOST_DETACH_CHECK_REQUIRED")
+    // No Activity/factory/runtime/manifest access or cleanup here. Host still
+    // verifies the same PID and existing Activity after runner/framework detach.
+  }
+
   @Test fun phaseAHoldExactProductDeleteForHostKill() = safe {
     hostGate()
     supplementalCheck(!activityPresent(), "FACTORY_LATE_OR_DUPLICATE")

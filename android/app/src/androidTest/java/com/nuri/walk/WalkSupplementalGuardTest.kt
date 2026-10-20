@@ -4,6 +4,84 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+class WalkSupplementalLiveAuditGuardTest {
+  private fun args() = mapOf("class" to SupplementalLiveAuditPolicy.SELECTOR, "hostExpectedPid" to "12345",
+    "hostNoRestartValidated" to "TRUE", "waitForActivitiesToComplete" to "false")
+  private fun denied(code: String, work: () -> Unit) {
+    var actual: String? = null
+    try { work() } catch (e: SupplementalBlocked) { actual = e.code }
+    assertTrue("Expected stable live-audit denial", actual == code)
+  }
+  private fun safe(counts: SupplementalRuntimeCounts? = SupplementalRuntimeCounts(), healthy: Boolean = true, journals: Int = 0, unchanged: Boolean = true) =
+    SupplementalLiveAuditPolicy.requireSafe(counts, healthy, journals, unchanged)
+  @Test fun exactLiveAttachAllowed() { SupplementalLiveAuditPolicy.requireAttach(args(), 12345, 37) }
+  @Test fun changedPidBlocked() { denied("LIVE_AUDIT_PID_MISMATCH") { SupplementalLiveAuditPolicy.requireAttach(args(), 54321, 37) } }
+  @Test fun invalidExpectedPidsBlocked() {
+    for (pid in listOf(null, "", "0", "-1", "12345 ", "9999999999")) denied("LIVE_AUDIT_PID_MISMATCH") {
+      SupplementalLiveAuditPolicy.requireAttach(args() + ("hostExpectedPid" to pid), 12345, 37)
+    }
+  }
+  @Test fun unsupportedSdkBlocked() { denied("LIVE_AUDIT_SDK_UNSUPPORTED") { SupplementalLiveAuditPolicy.requireAttach(args(), 12345, 30) } }
+  @Test fun noRestartAttestationRequired() { denied("LIVE_AUDIT_ARGUMENTS_UNSAFE") {
+    SupplementalLiveAuditPolicy.requireAttach(args() + ("hostNoRestartValidated" to "FALSE"), 12345, 37)
+  } }
+  @Test fun bothActivityFinishersMustBeDisabledExactly() {
+    for (flag in listOf(null, "true", "FALSE", " false")) denied("LIVE_AUDIT_ARGUMENTS_UNSAFE") {
+      SupplementalLiveAuditPolicy.requireAttach(args() + ("waitForActivitiesToComplete" to flag), 12345, 37)
+    }
+  }
+  @Test fun extraRunnerArgumentsBlocked() {
+    for (key in listOf("listener", "remoteMethod", "targetProcess", "debug", "orchestratorService", "package")) denied("LIVE_AUDIT_ARGUMENTS_UNSAFE") {
+      SupplementalLiveAuditPolicy.requireAttach(args() + (key to "synthetic"), 12345, 37)
+    }
+  }
+  @Test fun wholeClassOrOtherSelectorBlocked() { denied("LIVE_AUDIT_ARGUMENTS_UNSAFE") {
+    SupplementalLiveAuditPolicy.requireAttach(args() + ("class" to "com.nuri.walk.WalkProductResponseLossTest"), 12345, 37)
+  } }
+  @Test fun idleAndFinishedWithoutActiveSlotAllowed() {
+    val c = SupplementalRuntimeCounts().apply { row("IDLE", false); row("FINISHED_LOCAL", false) }
+    safe(c); assertTrue(c.publicCounts().getValue("rows") == 2)
+    assertTrue(SupplementalRuntimeCounts.STATES.all { it in c.publicCounts() })
+  }
+  @Test fun cancelledWithoutSlotIsTerminalNotAnActiveWalk() {
+    val c = SupplementalRuntimeCounts().apply { row("CANCELLED_LOCAL", false) }
+    safe(c); assertTrue(c.publicCounts().getValue("CANCELLED_LOCAL") == 1)
+  }
+  @Test fun everyActiveSlotBlocksIncludingIdleAndFinished() {
+    for (state in SupplementalRuntimeCounts.STATES) denied("EXISTING_RUNTIME_NOT_QUIESCENT") {
+      safe(SupplementalRuntimeCounts().apply { row(state, true) })
+    }
+  }
+  @Test fun everyNonQuiescentStateBlocksEvenWithoutSlot() {
+    for (state in SupplementalRuntimeCounts.STATES - SupplementalRuntimeCounts.QUIESCENT_STATES) denied("EXISTING_RUNTIME_NOT_QUIESCENT") {
+      safe(SupplementalRuntimeCounts().apply { row(state, false) })
+    }
+  }
+  @Test fun nullUnknownOrNewStateBlocked() {
+    for (state in listOf(null, "", "RUNNING", "FUTURE_STATE")) denied("EXISTING_RUNTIME_NOT_QUIESCENT") {
+      safe(SupplementalRuntimeCounts().apply { row(state, false) })
+    }
+  }
+  @Test fun malformedSlotBlocked() { denied("EXISTING_RUNTIME_NOT_QUIESCENT") {
+    safe(SupplementalRuntimeCounts().apply { row("IDLE", true, false) })
+  } }
+  @Test fun unreadableDatabaseNeverMeansEmpty() { denied("LIVE_AUDIT_DATABASE_UNREADABLE") { safe(null) } }
+  @Test fun unhealthyOrNonemptyJournalBlocks() {
+    denied("EXISTING_JOURNAL_BLOCKS_UI") { safe(healthy = false) }
+    denied("EXISTING_JOURNAL_BLOCKS_UI") { safe(journals = 1) }
+  }
+  @Test fun concurrentObservationChangeBlocks() { denied("LIVE_AUDIT_OBSERVATION_CHANGED") { safe(unchanged = false) } }
+  @Test fun allRowsBeyondFirstHundredAreInspected() {
+    val c = SupplementalRuntimeCounts().apply { repeat(150) { row("FINISHED_LOCAL", false) }; row("RECOVERY_REQUIRED", true) }
+    assertTrue(c.publicCounts().getValue("RECOVERY_REQUIRED") == 1 && c.publicCounts().getValue("rows") == 151)
+    denied("EXISTING_RUNTIME_NOT_QUIESCENT") { safe(c) }
+  }
+  @Test fun boundedRowOverflowBlocksRatherThanTruncating() {
+    val c = SupplementalRuntimeCounts().apply { repeat(SupplementalRuntimeCounts.MAX_ROWS) { row("IDLE", false) } }
+    denied("LIVE_AUDIT_ROW_LIMIT") { c.row("IDLE", false) }
+  }
+}
+
 // Public synthetic literals. These are not credentials or device identities.
 class WalkSupplementalGuardTest {
   private val owner = "11111111-1111-4111-8111-111111111111"

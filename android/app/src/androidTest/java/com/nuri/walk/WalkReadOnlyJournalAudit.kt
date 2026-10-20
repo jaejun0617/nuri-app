@@ -6,6 +6,10 @@ import android.database.sqlite.SQLiteDatabase
 import android.util.AtomicFile
 import java.io.File
 import java.nio.ByteBuffer
+import java.nio.file.Files
+import java.nio.file.LinkOption
+import java.nio.file.NoSuchFileException
+import java.nio.file.attribute.BasicFileAttributes
 import java.security.MessageDigest
 import org.json.JSONArray
 import org.json.JSONObject
@@ -22,8 +26,19 @@ internal class SupplementalAudit(val facts: List<SupplementalJournalFact>, val p
   fun publicCounts(): String = JSONObject().put("committed", facts.size).put("v1", facts.count { it.version == 1 })
     .put("v2", facts.count { it.version == 2 }).put("confirmed", facts.count { it.confirmed })
     .put("nativeDone", facts.count { it.nativeDone }).put("armed", facts.count { it.armed })
+    .put("pending", facts.count { it.state == "PENDING" }).put("final", facts.count { it.state == "FINAL" })
+    .put("acknowledged", facts.count { it.state == "ACKNOWLEDGED" }).put("withoutProof", facts.count { it.state == null })
     .put("partial", partial).put("corrupt", corrupt).put("keyError", keyError).put("unknown", unknown).toString()
   fun requireEmpty() = supplementalCheck(healthy() && facts.isEmpty(), "EXISTING_JOURNAL_BLOCKS_UI")
+}
+
+internal class SupplementalLiveObservation(val journal: SupplementalAudit, val runtime: SupplementalRuntimeCounts?,
+  val databasePresent: Boolean?, val unchanged: Boolean) {
+  fun publicCounts(): String = JSONObject().put("complete", runtime != null && journal.healthy())
+    .put("journal", JSONObject(journal.publicCounts())).put("runtime", runtime?.let { JSONObject(it.publicCounts()) } ?: JSONObject.NULL)
+    .put("databasePresent", databasePresent ?: JSONObject.NULL).put("databaseReadError", if (runtime == null) 1 else 0)
+    .put("observationChanged", !unchanged).toString()
+  fun requireSafe() = SupplementalLiveAuditPolicy.requireSafe(runtime, journal.healthy(), journal.facts.size, unchanged)
 }
 
 // No WalkRuntime/WalkStorage/Room/AtomicFile reader is used for product data.
@@ -33,6 +48,41 @@ internal class WalkReadOnlyJournalAudit(context: Context) {
   private fun checked(file: File): File {
     supplementalCheck(file.absoluteFile == file.canonicalFile && file.canonicalFile.toPath().startsWith(root.toPath()), "UNSAFE_PRODUCT_READ_PATH")
     return file
+  }
+  private fun attributes(file: File): BasicFileAttributes? = try {
+    Files.readAttributes(checked(file).toPath(), BasicFileAttributes::class.java, LinkOption.NOFOLLOW_LINKS)
+  } catch (_: NoSuchFileException) { null }
+  private fun boundedBytes(file: File): ByteArray = file.inputStream().use { input ->
+    val buffer = ByteArray(4097)
+    try {
+      var count = 0
+      while (count < buffer.size) {
+        val read = input.read(buffer, count, buffer.size - count)
+        if (read < 0) break
+        supplementalCheck(read > 0, "JOURNAL_READ_INCOMPLETE")
+        count += read
+      }
+      supplementalCheck(count <= 4096, "JOURNAL_READ_LIMIT")
+      buffer.copyOf(count)
+    } finally { buffer.fill(0) }
+  }
+  // Private comparison token only: names and ciphertext never enter status output.
+  private fun journalStamp(): ByteArray {
+    val digest = MessageDigest.getInstance("SHA-256")
+    val dir = checked(File(root, "walk-final-cleanup-v1"))
+    val attr = attributes(dir) ?: return digest.digest(byteArrayOf(0))
+    supplementalCheck(attr.isDirectory, "JOURNAL_DIRECTORY_UNREADABLE")
+    val files = dir.listFiles() ?: throw SupplementalBlocked("JOURNAL_DIRECTORY_UNREADABLE")
+    supplementalCheck(files.size <= 768, "JOURNAL_READ_LIMIT")
+    digest.update(attr.lastModifiedTime().toString().toByteArray())
+    for (file in files.sortedBy { it.name }) {
+      val a = attributes(file) ?: throw SupplementalBlocked("LIVE_AUDIT_OBSERVATION_CHANGED")
+      supplementalCheck(a.isRegularFile && a.size() <= 4096, "JOURNAL_METADATA_UNREADABLE")
+      digest.update(file.name.toByteArray()); digest.update(a.lastModifiedTime().toString().toByteArray())
+      val bytes = boundedBytes(file)
+      try { digest.update(bytes) } finally { bytes.fill(0) }
+    }
+    return digest.digest()
   }
   fun scan(): SupplementalAudit {
     val dir = checked(File(root, "walk-final-cleanup-v1"))
@@ -49,7 +99,8 @@ internal class WalkReadOnlyJournalAudit(context: Context) {
         val ticket = supplementalUuid(file.name)
         supplementalCheck(file.length() in 32..4096, "CORRUPT_JOURNAL")
         val before = file.length() to file.lastModified()
-        val raw = file.readBytes()
+        val raw = boundedBytes(file)
+        supplementalCheck(raw.size in 32..4096, "CORRUPT_JOURNAL")
         val plain = try {
           WalkCipher { WalkKeyStore.key(allowCreate = false) }.decrypt(
             WalkSealedBytes(raw.copyOfRange(0, 12), raw.copyOfRange(12, raw.size)), WalkCipher.aad(ticket, "final-cleanup-v1", 1))
@@ -85,6 +136,65 @@ internal class WalkReadOnlyJournalAudit(context: Context) {
     }
     return SupplementalAudit(facts, partial, corrupt, keys, unknown)
   }
+
+  fun liveObservation(): SupplementalLiveObservation {
+    val before = journalStamp()
+    val journal = scan()
+    var counts: SupplementalRuntimeCounts? = null
+    var present: Boolean? = null
+    var unchanged = false
+    try {
+      val path = checked(File(root, "nuri-walk-v1.db"))
+      val initial = attributes(path)
+      for (suffix in listOf("-wal", "-shm", "-journal")) {
+        val sidecar = attributes(File(path.path + suffix))
+        supplementalCheck(sidecar == null || initial != null && sidecar.isRegularFile, "ORPHAN_DATABASE_SIDECAR")
+      }
+      present = initial != null
+      if (initial == null) {
+        counts = SupplementalRuntimeCounts()
+        unchanged = attributes(path) == null
+          && listOf("-wal", "-shm", "-journal").all { attributes(File(path.path + it)) == null }
+      } else {
+        supplementalCheck(initial.isRegularFile, "DATABASE_METADATA_UNREADABLE")
+        SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
+          supplementalCheck(db.isReadOnly, "DATABASE_NOT_READONLY")
+          fun version(): Long = db.rawQuery("PRAGMA data_version", null).use {
+            supplementalCheck(it.moveToFirst() && it.getType(0) == Cursor.FIELD_TYPE_INTEGER, "DATABASE_VERSION_UNREADABLE")
+            it.getLong(0)
+          }
+          fun rows(): Pair<SupplementalRuntimeCounts, ByteArray> {
+            val result = SupplementalRuntimeCounts()
+            val digest = MessageDigest.getInstance("SHA-256")
+            db.rawQuery("SELECT activeSlot,runtimeState,revision FROM walk_local_sessions LIMIT 20001", null).use { cursor ->
+              while (cursor.moveToNext()) {
+                val active = !cursor.isNull(0)
+                result.row(if (cursor.getType(1) == Cursor.FIELD_TYPE_STRING) cursor.getString(1) else null,
+                  active, !active || cursor.getType(0) == Cursor.FIELD_TYPE_INTEGER && cursor.getLong(0) == 1L)
+                supplementalCheck(cursor.getType(2) == Cursor.FIELD_TYPE_INTEGER && cursor.getLong(2) >= 0, "RUNTIME_REVISION_UNREADABLE")
+                for (i in 0..2) {
+                  digest.update(cursor.getType(i).toByte())
+                  val value = if (cursor.isNull(i)) byteArrayOf() else cursor.getString(i).toByteArray()
+                  try { digest.update(ByteBuffer.allocate(4).putInt(value.size).array()); digest.update(value) } finally { value.fill(0) }
+                }
+              }
+            }
+            return result to digest.digest()
+          }
+          val startVersion = version()
+          val first = rows(); val second = rows()
+          val final = attributes(path)
+          unchanged = startVersion == version() && first.second.contentEquals(second.second)
+            && final != null && initial.fileKey() != null && initial.fileKey() == final.fileKey()
+          counts = second.first
+        }
+      }
+    } catch (_: Exception) {
+      // A failed read is explicitly unavailable, never an empty/zero database.
+      counts = null; unchanged = false
+    }
+    return SupplementalLiveObservation(journal, counts, present, unchanged && before.contentEquals(journalStamp()))
+  }
   fun pendingFor(b: SupplementalBinding): SupplementalJournalFact {
     val a = scan()
     supplementalCheck(a.healthy() && a.facts.size == 1, "JOURNAL_SCOPE_AMBIGUOUS")
@@ -115,9 +225,12 @@ internal class WalkReadOnlyJournalAudit(context: Context) {
     return SQLiteDatabase.openDatabase(path.path, null, SQLiteDatabase.OPEN_READONLY).use { work(it) }
   }
   fun requireQuiescent() = database { db ->
+    val counts = SupplementalRuntimeCounts()
     db?.rawQuery("SELECT activeSlot,runtimeState FROM walk_local_sessions", null)?.use { cursor ->
-      while (cursor.moveToNext()) supplementalCheck(cursor.isNull(0) && cursor.getString(1) in setOf("IDLE", "FINISHED_LOCAL"), "EXISTING_RUNTIME_NOT_QUIESCENT")
+      while (cursor.moveToNext()) counts.row(if (cursor.getType(1) == Cursor.FIELD_TYPE_STRING) cursor.getString(1) else null,
+        !cursor.isNull(0), cursor.isNull(0) || cursor.getType(0) == Cursor.FIELD_TYPE_INTEGER && cursor.getLong(0) == 1L)
     }
+    supplementalCheck(counts.quiescent(), "EXISTING_RUNTIME_NOT_QUIESCENT")
   }
   fun fingerprints(): Set<String> = database { db ->
     val result = mutableSetOf<String>()

@@ -15,6 +15,53 @@ internal fun supplementalUuid(value: String): String {
   supplementalCheck(runCatching { UUID.fromString(value).toString() == value }.getOrDefault(false), "INVALID_BINDING")
   return value
 }
+
+// Pure policy shared by the live selector and host-side behavioral checks.
+internal object SupplementalLiveAuditPolicy {
+  const val SELECTOR = "com.nuri.walk.WalkProductResponseLossTest#liveAuditStoredStateNoRestart"
+  fun requireAttach(args: Map<String, String?>, pid: Int, sdk: Int) {
+    supplementalCheck(sdk >= 31, "LIVE_AUDIT_SDK_UNSUPPORTED")
+    supplementalCheck(args.keys == setOf("class", "hostExpectedPid", "hostNoRestartValidated", "waitForActivitiesToComplete")
+      && args["class"] == SELECTOR && args["hostNoRestartValidated"] == "TRUE"
+      && args["waitForActivitiesToComplete"] == "false", "LIVE_AUDIT_ARGUMENTS_UNSAFE")
+    val expected = args["hostExpectedPid"]
+    supplementalCheck(expected != null && Regex("[1-9][0-9]{0,9}").matches(expected)
+      && expected.toIntOrNull() == pid && pid > 0, "LIVE_AUDIT_PID_MISMATCH")
+  }
+  fun requireSafe(runtime: SupplementalRuntimeCounts?, journalHealthy: Boolean, journalCount: Int, unchanged: Boolean) {
+    val observed = runtime ?: throw SupplementalBlocked("LIVE_AUDIT_DATABASE_UNREADABLE")
+    supplementalCheck(unchanged, "LIVE_AUDIT_OBSERVATION_CHANGED")
+    supplementalCheck(journalHealthy && journalCount == 0, "EXISTING_JOURNAL_BLOCKS_UI")
+    supplementalCheck(observed.quiescent(), "EXISTING_RUNTIME_NOT_QUIESCENT")
+  }
+}
+
+internal class SupplementalRuntimeCounts {
+  companion object {
+    const val MAX_ROWS = 20000
+    val STATES = listOf("IDLE", "STARTING", "WALKING", "PAUSED", "FINISHING", "FINISHED_LOCAL", "RECOVERY_REQUIRED", "CANCELLED_LOCAL")
+    // Native CANCELLED_LOCAL has no outgoing edge and releases activeSlot.
+    val QUIESCENT_STATES = setOf("IDLE", "FINISHED_LOCAL", "CANCELLED_LOCAL")
+  }
+  private val states = STATES.associateWith { 0 }.toMutableMap()
+  var rows = 0; private set
+  var activeSlots = 0; private set
+  var invalidSlots = 0; private set
+  var nullStates = 0; private set
+  var unknownStates = 0; private set
+  fun row(state: String?, activeSlot: Boolean, validSlot: Boolean = true) {
+    supplementalCheck(rows < MAX_ROWS, "LIVE_AUDIT_ROW_LIMIT")
+    rows++
+    if (activeSlot) activeSlots++
+    if (!validSlot) invalidSlots++
+    if (state == null) nullStates++ else if (state !in states) unknownStates++ else states[state] = states.getValue(state) + 1
+  }
+  fun publicCounts(): Map<String, Int> = states.toMap() + mapOf("rows" to rows, "activeSlots" to activeSlots,
+    "invalidSlots" to invalidSlots, "nullStates" to nullStates, "unknownStates" to unknownStates)
+  fun quiescent() = activeSlots == 0 && invalidSlots == 0 && nullStates == 0 && unknownStates == 0
+    && QUIESCENT_STATES.sumOf { states.getValue(it) } == rows
+}
+
 internal class SupplementalProbeGate {
   @Volatile var closed = false
     private set
