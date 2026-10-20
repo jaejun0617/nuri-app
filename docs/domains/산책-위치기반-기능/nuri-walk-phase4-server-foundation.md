@@ -1,6 +1,6 @@
-# Walk Phase 4 — Server Foundation (B1)
+# Walk Phase 4 — Server Foundation and Native Product Outbox
 
-This is the implemented server contract, subordinate to the [architecture freeze](./nuri-walk-experience-final-architecture-freeze.md). B1 does not complete the Native durable product outbox (B2), progression (C), Memory/XP settlement (D), integration (E), or product UI (F).
+This is the implemented B1 server and B2 Native/service contract, subordinate to the [architecture freeze](./nuri-walk-experience-final-architecture-freeze.md). Progression (C), Memory/XP settlement (D), integration (E), and product UI (F) remain separate. Host verification is not device or authenticated HTTP evidence.
 
 ## Persistence and authority
 
@@ -91,3 +91,35 @@ The external PHASE4-SERVER-REPORT.md/JSON in the Master evidence root owns exact
 6. No Memory or Account XP call runs on finish. C/D remain separate phases. Optional private route backup remains unimplemented until its separately scoped adapter/security gate.
 
 References: [Supabase functions](https://supabase.com/docs/guides/database/functions), [RLS](https://supabase.com/docs/guides/database/postgres/row-level-security), [PostgreSQL advisory locks](https://www.postgresql.org/docs/current/explicit-locking.html#ADVISORY-LOCKS).
+
+## B2 Native intent and encrypted journal
+
+The existing `NuriWalk` module exposes `productApiVersion: 1`, `productGetBinding(ownerId)` and `productCommand(ownerId, bindingEpoch, operation, inputJson)`. These work independently of the QA compile flag. The existing authenticated-owner binding is reused; no new Native module, permission or automatic GPS startup is introduced.
+
+`PREPARE` is only called from explicit Start. It rechecks Native foreground/precise-location/location-service gates, allocates a durable random session ID, immutable owner/pet and command receipt, and occupies the existing single slot in runtime IDLE. It performs constant-count indexed lookups, not a history scan. The encrypted PRODUCT phase is separate from frozen runtime state edges. `START` requires a matching ACTIVE receipt, the same owner epoch and another current Native start gate. It then starts the existing Native service/provider. Lost responses retry the durable identity; discovery and outbox scans do not reserve, start or resume GPS.
+
+The PRODUCT phases are PREPARED, RESERVED, START_REQUESTED, START_FAILED, RUNNING, FINISH_PENDING, FINISH_INVALID, CANCEL_PENDING and RESOLVED. These are intent/synchronization states, not replacement runtime states. An unstarted reservation remains recoverable after failure. Process loss of a running session uses existing RECOVERY_REQUIRED behavior. Logout/auth switch seals active time and stops collection. Quiescent product slots are released without erasing their encrypted checkpoints. Cold binding to another owner also releases a foreign dormant slot; explicit owned Start/recovery reacquires the slot and refuses an occupied competing slot. It never transfers the pet/session or auto-resumes a prior owner's data.
+
+Room schema remains version 2. Codec V1 encoding/decoding, strict trailing-byte behavior, key and existing metadata/finish AAD are preserved. Only explicitly created product intents use Codec V2, appending a bounded encrypted journal. V1/QA sessions decode with no product purpose and cannot enter the production settlement API. Legacy QA mutation/start/cleanup paths refuse PRODUCT sessions, including in QA Release. Notification pause/resume dispatches by the actual Native session purpose rather than the QA bridge.
+
+Journal-only receipt/error writes preserve runtime revision and timing anchors. They seal fresh random AEAD nonces under the existing current revision AAD. Actual runtime edges alone advance the command revision. The existing `finishNonce/finishCiphertext` remains the finish metadata envelope; it is not reused as plaintext or an unrelated queue slot.
+
+## B2 finish, replay and deletion
+
+Native stops collection/service, persists the true finished wall checkpoint and constructs an allowlisted scalar V1 request from filtered accepted distance, quality counts and active/paused durations. No route buffers or coordinate fields enter this request. Native floors the accumulated accepted-distance decimal once. JS checks canonical bytes/digest and compares the filtered decimal with B1's exact string-floor utility; it does not convert distance to Number or manufacture a retry time. Invalid duration/clock order yields FINISH_INVALID and a preserved checkpoint, never smoothing/clamping. Existing FINISHED_LOCAL storage seals the payload and digest before any network operation.
+
+`SCAN(after)` keyset-pages ALL rows, decrypting at most 100 per Native call and excluding foreign/V1/resolved entries. An empty filtered page still advances its cursor. There is no recent-100 truncation or arbitrary drop/cap of unsent requests. Server resolution uses complete batches of at most 100 identities. NOT_FOUND, timeout, malformed and unknown responses keep the same request; only authoritative terminal receipts resolve it. Native independently validates the receipt core, digest binding, timestamps, duration/distance bounds and eligibility invariants.
+
+`REQUEST` persists CANCEL/DELETE_ROUTE/DELETE_SESSION intent before RPC. Cancellation is allowed only when quiescent/locally finished. A finish-winning cancellation retains the accepted result; session deletion is a separate explicit request. Route deletion atomically erases chunks/distance and updates encrypted metadata/journal, with rollback on any failed write. It does not delete canonical session distance or the immutable finish identity. An already server-deleted route does not create a stuck pending flag. Session DELETED clears local measurements/payload/route, retaining the encrypted minimal identity/receipt tombstone. `PURGE_RESOLVED` accepts only authoritative DELETED/NOT_ACCEPTED_FINAL; it never interprets a failed read as permission to erase.
+
+`PURGE_FINAL_SCOPE(petId, ACCOUNT_FINAL|PET_FINAL, after)` is a bounded owner/purpose-isolated cleanup handoff. E/F must call it only after confirmed final server deletion with the still-bound owner and no active session, before releasing that auth binding. It does not erase unrelated, other-owner or V1/QA rows. Route-only deletion, Memory deletion and final account/pet deletion remain independent contracts.
+
+## B2 typed orchestration and remaining integration
+
+`createProductionWalkService(contextReader)` binds the actual Native port to B1's Supabase repository without subscriptions, auth lookups, network or GPS work at import/construction. E/F supplies existing cached owner, foreground state and a revision that changes on logout/relogin and foreground boundaries. Native binding epochs fence old callbacks even when the same owner logs back in. Every awaited response is checked before further work; Native validates the epoch again at receipt writes/control commits.
+
+Only `start()` or explicit `startPrepared(id)` can reserve/start. `control(FINISH)` returns the durable local checkpoint without waiting for network. Explicit foreground `flush()` reconciles pending pages, then retries the identical finish/cancellation/deletion request. RPCs have a scoped 15-second deadline, clear their timers and release single-flight entries. A late response may settle on the server but has no Native continuation; the next same-ID reconciliation resolves uncertainty. Discovery never synthesizes a local session from another device's reservation.
+
+Future C receipts may add progression fields. B1's JS decoder reconstructs the exact V1 core before passing it to Native; Native deliberately rejects unparsed extra fields. C/D must introduce explicit typed consumption of additions, not weaken the Native core contract or spread server JSON. B2 supplies no provisional lifetime, Level, milestone, Memory or Account XP writes. Private route upload/opt-in remains absent and product payloads default LOCAL_ONLY.
+
+E/F still owns product entry/UI, explicit permission explanation/prompt, lifecycle invocation, result/cleanup handling and final APK/device/authenticated end-to-end smoke. The scoped Native host runner uses the committed Room v2 schema/DAO SQL on isolated SQLite with injected AES keys and host platform ports. It excludes real Android Keystore/FGS/provider/device assertions. The affected existing lifecycle test bodies run through those ports; an ignored real-keystore test is disclosed. Full Suite, APK build/install, real-device and timer ten-minute gates are not rerun in B2. Exact source/test/limitation receipts are in the external `PHASE4-NATIVE-OUTBOX-REPORT.md` and JSON.

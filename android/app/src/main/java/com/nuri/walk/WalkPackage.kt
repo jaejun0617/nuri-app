@@ -21,7 +21,7 @@ class WalkModule(private val context: ReactApplicationContext) : ReactContextBas
   private val runtime get() = WalkRuntime.get(context)
   private var listeners = 0
   override fun getName() = "NuriWalk"
-  override fun getConstants(): Map<String, Any> = mapOf("qaEnabled" to BuildConfig.NURI_SECURITY_QA, "runtimeVersion" to 1, "distanceApiVersion" to 1)
+  override fun getConstants(): Map<String, Any> = mapOf("qaEnabled" to BuildConfig.NURI_SECURITY_QA, "runtimeVersion" to 1, "distanceApiVersion" to 1, "productApiVersion" to 1)
   private fun reply(promise: Promise): (String?, String?) -> Unit = { result, error ->
     if (error != null) promise.reject(error, error) else promise.resolve(result)
   }
@@ -40,6 +40,10 @@ class WalkModule(private val context: ReactApplicationContext) : ReactContextBas
   }
   @ReactMethod fun getSnapshot(promise: Promise) { runtime.getSnapshot(reply(promise)) }
   @ReactMethod fun getRecoverableSession(promise: Promise) { runtime.getSnapshot(reply(promise)) }
+  @ReactMethod fun productGetBinding(ownerId: String, promise: Promise) { runtime.productBinding(ownerId, reply(promise)) }
+  @ReactMethod fun productCommand(ownerId: String, binding: String, operation: String, input: String, promise: Promise) {
+    runtime.productCommand(ownerId, binding, operation, input, context.currentActivity != null && WalkVisibility.resumed, reply(promise))
+  }
   @ReactMethod fun createCommandId(promise: Promise) { promise.resolve(UUID.randomUUID().toString()) }
   @ReactMethod fun getRoutePage(direction:String,cursor:String,revision:String,promise:Promise){runtime.getRoutePage(direction,cursor,revision,reply(promise))}
   @ReactMethod fun qaCommand(operation:String,input:String,promise:Promise){runtime.qaCommand(operation,input,reply(promise))}

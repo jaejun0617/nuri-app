@@ -54,8 +54,8 @@ class WalkForegroundService : Service(), WalkServiceHandle {
     if (intent.action == START) WalkRuntime.get(this).attach(this, session, command)
     else if (intent.action == PAUSE || intent.action == RESUME) {
       val revision = intent.getStringExtra("revision") ?: return START_NOT_STICKY
-      WalkRuntime.get(this).mutate(if (intent.action == PAUSE) "PAUSE" else "RESUME", session, command, revision,
-        WalkVisibility.resumed) { _, _ -> /* Stable stale action denial; never log payloads. */ }
+      WalkRuntime.get(this).notificationCommand(if (intent.action == PAUSE) "PAUSE" else "RESUME", session, command, revision
+      ) { _, _ -> /* Stable stale action denial; never log payloads. */ }
     }
     return START_NOT_STICKY
   }

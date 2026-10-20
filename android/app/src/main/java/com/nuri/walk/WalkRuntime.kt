@@ -32,6 +32,7 @@ class WalkRuntime internal constructor(private val context: Context,
   private val injectedStorage: WalkStorage? = null,
   injectedSource: WalkLocationSource? = null,
   private val testGate: ((Boolean, Boolean) -> String?)? = null,
+  private val qaEnabled: Boolean = com.nuri.BuildConfig.NURI_SECURITY_QA,
   private val testLauncher: ((WalkRuntime, String, String) -> Unit)? = null,
 ) {
   private val worker = Executors.newSingleThreadExecutor()
@@ -58,6 +59,10 @@ class WalkRuntime internal constructor(private val context: Context,
   } } catch (_: Exception) { throw WalkFailure("WALK_INVALID_IDENTIFIER") }
   private fun state(row: WalkLocalSession) = WalkState.valueOf(row.runtimeState)
   private fun requireOwner(): String = owner ?: throw WalkFailure("WALK_ACTIVE_SESSION_OWNER_MISMATCH")
+  private fun productFence(actor: String, binding: String) {
+    if (productUuid(actor) != requireOwner() || binding != ownerEpoch.get().toString())
+      throw WalkFailure("WALK_ACTIVE_SESSION_OWNER_MISMATCH")
+  }
   private fun owned(row: WalkLocalSession): WalkMetadata = storage.metadata(row).also {
     if (it.owner != requireOwner()) throw WalkFailure("WALK_ACTIVE_SESSION_OWNER_MISMATCH")
   }
@@ -90,6 +95,12 @@ class WalkRuntime internal constructor(private val context: Context,
       try {
         initialize()
         if (previous != null && previous != next) sealActive()
+        // A dormant product intent/recovery belongs to its encrypted owner,
+        // not to the next login. Release only its slot, never its checkpoint.
+        storage.dao.active()?.let { row ->
+          val meta = storage.metadata(row)
+          if (meta.product != null && meta.owner != next) sealActive(releaseProductSlot = true)
+        }
         if (epoch != ownerEpoch.get()) throw WalkFailure("WALK_ACTIVE_SESSION_OWNER_MISMATCH")
         owner = next?.let(::uuid)
         done("OK", null)
@@ -139,6 +150,101 @@ class WalkRuntime internal constructor(private val context: Context,
     requireOwner()
     newestOwned()?.let { snapshot(it, owned(it)) } ?: "null"
   }
+  fun productBinding(actor: String, done: (String?, String?) -> Unit) = run(done) {
+    if (productUuid(actor) != requireOwner()) throw WalkFailure("WALK_ACTIVE_SESSION_OWNER_MISMATCH")
+    ownerEpoch.get().toString()
+  }
+  fun productCommand(actor: String, binding: String, operation: String, input: String,
+    visible: Boolean, done: (String?, String?) -> Unit) {
+    worker.execute {
+      try {
+        initialize(); productFence(actor, binding)
+        if (input.length > 32768) throw WalkFailure("WALK_INVALID_PRODUCT_CHECKPOINT")
+        val body = try { JSONObject(input) } catch (_: Exception) { throw WalkFailure("WALK_INVALID_PRODUCT_CHECKPOINT") }
+        val products = WalkProductStore(storage) { productFence(actor, binding) }
+        fun exact(vararg keys: String) = productExact(body, keys.toSet())
+        fun id() = productUuid(productString(body, "sessionId"))
+        val result = when (operation) {
+          "PREPARE" -> { exact("petId", "commandId"); startGate(visible)
+            products.prepare(actor, productUuid(productString(body, "petId")), productUuid(productString(body, "commandId")),
+              System.currentTimeMillis(), SystemClock.elapsedRealtime()) }
+          "GET" -> { exact("sessionId"); val (row, meta) = products.owned(actor, id()); products.checkpoint(row, meta) }
+          "SCAN" -> { exact("after"); products.page(actor, productString(body, "after")) }
+          "START" -> { exact("sessionId", "commandId")
+            startProduct(actor, binding, id(), productUuid(productString(body, "commandId")), visible, done)
+            return@execute }
+          "MUTATE" -> { exact("sessionId", "commandId", "revision", "action")
+            val session = id()
+            val action = productString(body, "action")
+            if (action !in setOf("PAUSE", "RESUME", "FINISH", "RECOVER_PAUSE", "RESUME_RECOVERED"))
+              throw WalkFailure("WALK_INVALID_STATE_TRANSITION")
+            mutateInternal(action, session, productUuid(productString(body, "commandId")), productString(body, "revision"), visible,
+              { _, error ->
+                if (error != null) done(null, error)
+                else try { productFence(actor, binding); val (row, meta) = products.owned(actor, session); done(products.checkpoint(row, meta), null) }
+                catch (e: Exception) { done(null, failure(e)) }
+              }, actor to binding)
+            return@execute }
+          "APPLY_RECEIPT" -> { exact("sessionId", "receipt"); val session = id()
+            val r = products.validateReceipt(actor, session, productString(body, "receipt"))
+            productFence(actor, binding)
+            if (r.state in setOf("NOT_ACCEPTED_FINAL", "DELETED") && serviceSession == session) {
+              haltCollection()
+              pendingActivation?.takeIf { it.first == session }?.second?.let { complete(it, null, "WALK_SESSION_DELETED"); pendingActivation = null }
+            }
+            products.apply(actor, session, r) }
+          "REQUEST" -> { exact("sessionId", "operation"); products.request(actor, id(), productString(body, "operation")) }
+          "NOTE_ERROR" -> { exact("sessionId", "code"); products.noteError(actor, id(), productString(body, "code")) }
+          "PURGE_RESOLVED" -> { exact("sessionId"); products.purgeResolved(actor, id()) }
+          "PURGE_FINAL_SCOPE" -> { exact("petId", "confirmation", "after"); products.purgeFinalScope(actor,
+            productNullable(body, "petId"), productString(body, "confirmation"), productString(body, "after")) }
+          "SNAPSHOT" -> { exact("sessionId"); val (row, meta) = products.owned(actor, id()); snapshot(row, meta) }
+          "ROUTE_PAGE" -> { exact("sessionId", "direction", "cursor", "routeRevision")
+            val (row, _) = products.owned(actor, id())
+            val s = storage.distance(row) ?: throw WalkFailure("WALK_DISTANCE_NOT_AVAILABLE")
+            if (productString(body, "routeRevision") != s.routeRevision.toString()) throw WalkFailure("WALK_ROUTE_REVISION_CONFLICT")
+            val cursor = productString(body, "cursor").toLongOrNull()?.takeIf { it >= -1 } ?: throw WalkFailure("WALK_ROUTE_PAGE_INVALID")
+            WalkRouteProjection(storage).page(row, s, productString(body, "direction"), cursor).toString() }
+          else -> throw WalkFailure("WALK_INVALID_PRODUCT_CHECKPOINT")
+        }
+        productFence(actor, binding); done(result, null)
+      } catch (error: Exception) { failClosed(failure(error)); done(null, failure(error)) }
+    }
+  }
+  private fun startProduct(actor: String, binding: String, session: String, command: String,
+    visible: Boolean, done: (String?, String?) -> Unit) {
+    productFence(actor, binding)
+    val products = WalkProductStore(storage) { productFence(actor, binding) }
+    val (row, old) = products.owned(actor, session)
+    val journal = old.product!!
+    if (journal.phase == WalkProductPhase.RUNNING && state(row) in setOf(WalkState.WALKING, WalkState.PAUSED)) {
+      done(products.checkpoint(row, old), null); return
+    }
+    if (!journal.reservationConfirmed || journal.phase !in setOf(WalkProductPhase.RESERVED, WalkProductPhase.START_FAILED)
+      || state(row) != WalkState.IDLE || old.finishedWall != 0L)
+      throw WalkFailure("WALK_PRODUCT_RESERVATION_REQUIRED")
+    startGate(visible)
+    claimProductSlot(row)
+    val hash = digest("PRODUCT_START", actor, old.pet, session, 0)
+    replay(command, hash)?.let { done(products.checkpoint(row, old), null); return }
+    val wall = System.currentTimeMillis(); val mono = SystemClock.elapsedRealtime()
+    val meta = old.copy(startedWall = wall, segmentStartedNs = SystemClock.elapsedRealtimeNanos(), segmentCount = 1,
+      timing = WalkTiming(mono, wall, 0, 0), product = journal.copy(phase = WalkProductPhase.START_REQUESTED, lastErrorCode = null))
+    val receipt = newReceipt(command, hash, row)
+    storage.transaction {
+      productFence(actor, binding)
+      storage.writeDistance(row, WalkDistanceState())
+      saveTransition(row, meta, WalkState.STARTING); storage.dao.insertReceipt(receipt)
+      productFence(actor, binding)
+    }
+    waiters[command] = mutableListOf({ _, error ->
+      if (error != null) done(null, error)
+      else try { productFence(actor, binding); val (current, data) = products.owned(actor, session); done(products.checkpoint(current, data), null) }
+      catch (e: Exception) { done(null, failure(e)) }
+    })
+    pendingActivation = session to command
+    launchService(session, command)
+  }
   private fun digest(type: String, actor: String, pet: String, session: String, expected: Long): String =
     MessageDigest.getInstance("SHA-256").digest("1|$type|$actor|$pet|$session|$expected".toByteArray())
       .joinToString("") { "%02x".format(it) }
@@ -156,7 +262,9 @@ class WalkRuntime internal constructor(private val context: Context,
   private fun saveTransition(row: WalkLocalSession, meta: WalkMetadata, target: WalkState) {
     row.runtimeState = WalkRuntimePolicy.transition(state(row), target).name
     row.revision = WalkRuntimePolicy.nextRevision(row.revision, row.revision)
-    row.activeSlot = if (target in setOf(WalkState.IDLE, WalkState.FINISHED_LOCAL, WalkState.CANCELLED_LOCAL)) null else 1
+    row.activeSlot = if (target == WalkState.IDLE && meta.product?.reservationConfirmed == true
+      && meta.product.phase != WalkProductPhase.RESOLVED) 1
+      else if (target in setOf(WalkState.IDLE, WalkState.FINISHED_LOCAL, WalkState.CANCELLED_LOCAL)) null else 1
     row.lastErrorCode = null
     storage.writeMetadata(row, meta)
     storage.dao.updateSession(row)
@@ -165,6 +273,11 @@ class WalkRuntime internal constructor(private val context: Context,
     worker.execute {
       try {
         initialize(); val actor = requireOwner(); val petId = uuid(pet); val id = uuid(command); val rev = revision(expected)
+        if (!qaEnabled) throw WalkFailure("WALK_QA_DISABLED")
+        storage.dao.receipt(id)?.let { existing ->
+          storage.dao.session(existing.sessionId)?.let { if (owned(it).product != null) throw WalkFailure("WALK_PRODUCT_SESSION_PROTECTED") }
+        }
+        storage.dao.active()?.let { if (owned(it).product != null) throw WalkFailure("WALK_PRODUCT_SESSION_PROTECTED") }
         val hash = digest("START", actor, petId, "", rev)
         if (storage.dao.receipt(id)?.outcome == "PENDING" && waiters.containsKey(id)) {
           if (storage.dao.receipt(id)?.inputDigest != hash) throw WalkFailure("WALK_PAYLOAD_CONFLICT")
@@ -221,6 +334,7 @@ class WalkRuntime internal constructor(private val context: Context,
               val timing = if (resuming) old.timing.advance(WalkState.PAUSED, mono, wall)
                 else old.timing.copy(lastMonoMs = mono, lastWallMs = wall)
               val meta = closePause(old, mono, wall).beginSegment(SystemClock.elapsedRealtimeNanos(), timing, resuming)
+                .let { it.copy(product = it.product?.copy(phase = WalkProductPhase.RUNNING, lastErrorCode = null)) }
               val engine = storage.distance(current) ?: WalkDistanceState(epoch=old.segmentCount,legacySession=true)
               storage.writeDistance(current,distanceEngine.beginSegment(engine,walkBootIdentity(context),meta.segmentStartedNs))
               val receipt = storage.dao.receipt(command) ?: throw WalkFailure("WALK_LOCAL_DATABASE_ERROR")
@@ -251,7 +365,8 @@ class WalkRuntime internal constructor(private val context: Context,
             val row = storage.dao.session(item.sessionId)
             if (row != null) {
               val meta = storage.metadata(row)
-              if (state(row) == WalkState.STARTING) saveTransition(row, meta, WalkState.IDLE)
+              if (state(row) == WalkState.STARTING) saveTransition(row,
+                meta.copy(product = meta.product?.copy(phase = WalkProductPhase.START_FAILED, lastErrorCode = code)), WalkState.IDLE)
               else { row.runtimeState = "RECOVERY_REQUIRED"; row.revision = Math.addExact(row.revision, 1); row.lastErrorCode = code; storage.dao.updateSession(row) }
             }
             item.outcome = code; storage.dao.updateReceipt(item)
@@ -262,9 +377,36 @@ class WalkRuntime internal constructor(private val context: Context,
     }
   }
   fun mutate(type: String, session: String, command: String, expected: String, visible: Boolean, done: (String?, String?) -> Unit) {
+    mutateInternal(type, session, command, expected, visible, done, null)
+  }
+  internal fun notificationCommand(type: String, session: String, command: String, expected: String, done: (String?, String?) -> Unit) {
+    worker.execute {
+      try {
+        if (serviceSession != session || type !in setOf("PAUSE", "RESUME")) throw WalkFailure("WALK_SERVICE_UNAVAILABLE")
+        val row = storage.dao.session(session) ?: throw WalkFailure("WALK_SESSION_DELETED")
+        val meta = owned(row)
+        val binding = if (meta.product != null) meta.owner to ownerEpoch.get().toString() else null
+        mutateInternal(type, session, command, expected, false, done, binding)
+      } catch (error: Exception) { done(null, failure(error)) }
+    }
+  }
+  private fun claimProductSlot(row: WalkLocalSession) {
+    val active = storage.dao.active()
+    if (active != null && active.sessionId != row.sessionId) throw WalkFailure("WALK_ALREADY_ACTIVE")
+    row.activeSlot = 1
+  }
+  private fun mutateInternal(type: String, session: String, command: String, expected: String, visible: Boolean,
+    done: (String?, String?) -> Unit, productOwner: Pair<String, String>?) {
     worker.execute {
       try {
         initialize(); val id = uuid(command); val sessionId = uuid(session); val actor = requireOwner(); val rev = revision(expected)
+        if (productOwner != null) productFence(productOwner.first, productOwner.second)
+        else if (!qaEnabled) throw WalkFailure("WALK_QA_DISABLED")
+        val protected = storage.dao.session(sessionId) ?: throw WalkFailure("WALK_SESSION_DELETED")
+        val protectedMeta = owned(protected)
+        if ((protectedMeta.product != null) != (productOwner != null)) throw WalkFailure("WALK_PRODUCT_SESSION_PROTECTED")
+        if (protectedMeta.product != null && (protectedMeta.product.phase in setOf(WalkProductPhase.RESOLVED, WalkProductPhase.CANCEL_PENDING)
+          || (protectedMeta.finishedWall > 0 && type != "FINISH"))) throw WalkFailure("WALK_PRODUCT_FINISH_REQUIRED")
         val hash = digest(type, actor, "", sessionId, rev)
         if (storage.dao.receipt(id)?.outcome == "PENDING" && waiters.containsKey(id)) {
           if (storage.dao.receipt(id)?.inputDigest != hash) throw WalkFailure("WALK_PAYLOAD_CONFLICT")
@@ -273,7 +415,14 @@ class WalkRuntime internal constructor(private val context: Context,
         replay(id, hash)?.let { done(it, null); return@execute }
         val row = storage.dao.session(sessionId) ?: throw WalkFailure("WALK_SESSION_DELETED")
         var meta = owned(row)
+        fun <T> write(block: () -> T): T = storage.transaction {
+          productOwner?.let { productFence(it.first, it.second) }
+          val value = block()
+          productOwner?.let { productFence(it.first, it.second) }
+          value
+        }
         WalkRuntimePolicy.nextRevision(row.revision, rev)
+        if (productOwner != null && state(row) != WalkState.FINISHED_LOCAL) claimProductSlot(row)
         val receipt = newReceipt(id, hash, row)
         if (type == "RESUME" || type == "RESUME_RECOVERED") {
           startGate(visible, type == "RESUME" && service != null && serviceSession == sessionId)
@@ -281,10 +430,10 @@ class WalkRuntime internal constructor(private val context: Context,
             val mono = SystemClock.elapsedRealtime(); val wall = System.currentTimeMillis()
             meta = meta.copy(timing = meta.timing.copy(lastMonoMs = mono, lastWallMs = wall),
               pauseStartedMonoMs = mono, pauseStartedWallMs = wall)
-            storage.transaction { saveTransition(row, meta, WalkState.PAUSED) }
+            write { saveTransition(row, meta, WalkState.PAUSED) }
           }
           if (state(row) != WalkState.PAUSED) throw WalkFailure("WALK_INVALID_STATE_TRANSITION")
-          storage.transaction { storage.dao.insertReceipt(receipt) }
+          write { storage.dao.insertReceipt(receipt) }
           waiters[id] = mutableListOf(done); pendingActivation = sessionId to id
           // Reuse the existing FGS without launching from background; otherwise
           // only a resumed visible Activity can create a new location service.
@@ -299,7 +448,7 @@ class WalkRuntime internal constructor(private val context: Context,
           val mono = SystemClock.elapsedRealtime(); val wall = System.currentTimeMillis()
           meta = meta.copy(timing = meta.timing.advance(state(row), mono, wall),
             pauseStartedMonoMs = mono, pauseStartedWallMs = wall)
-          storage.transaction {
+          write {
             saveTransition(row, meta, WalkState.PAUSED); storage.dao.insertReceipt(receipt)
             storage.saveResult(receipt, snapshot(row, meta), row.revision)
           }
@@ -307,7 +456,7 @@ class WalkRuntime internal constructor(private val context: Context,
           val mono = SystemClock.elapsedRealtime(); val wall = System.currentTimeMillis()
           meta = meta.copy(timing = meta.timing.copy(lastMonoMs = mono, lastWallMs = wall),
             pauseStartedMonoMs = mono, pauseStartedWallMs = wall)
-          storage.transaction { saveTransition(row, meta, WalkState.PAUSED); storage.dao.insertReceipt(receipt)
+          write { saveTransition(row, meta, WalkState.PAUSED); storage.dao.insertReceipt(receipt)
             storage.saveResult(receipt, snapshot(row, meta), row.revision) }
         } else if (type == "FINISH") {
           storage.distance(row)?.validate()?.let{
@@ -319,13 +468,25 @@ class WalkRuntime internal constructor(private val context: Context,
           } else if (state(row) == WalkState.RECOVERY_REQUIRED) {
             meta = meta.copy(pauseStartedMonoMs = 0, pauseStartedWallMs = 0)
           }
-          storage.transaction {
+          write {
             saveTransition(row, meta, WalkState.FINISHING)
             storage.dao.insertReceipt(receipt)
           }
           generation.incrementAndGet(); source.stop(); stopServiceAndAwait()
-          meta = meta.copy(finishedWall = System.currentTimeMillis())
-          storage.transaction {
+          meta = meta.copy(finishedWall = if (meta.product != null && meta.finishedWall > 0) meta.finishedWall else System.currentTimeMillis())
+          if (meta.product != null) {
+            // Preserve the true stop checkpoint even if canonical validation fails.
+            write { storage.writeMetadata(row, meta); storage.dao.updateSession(row) }
+            try {
+              meta = meta.copy(product = WalkProductFinish.seal(row.sessionId, meta,
+                storage.distance(row) ?: throw WalkFailure("WALK_DISTANCE_CHECKPOINT_INVALID")))
+            } catch (error: Exception) {
+              meta = meta.copy(product = meta.product!!.copy(phase = WalkProductPhase.FINISH_INVALID, lastErrorCode = failure(error)))
+              write { storage.writeMetadata(row, meta); storage.dao.updateSession(row) }
+              throw error
+            }
+          }
+          write {
             saveTransition(row, meta, WalkState.FINISHED_LOCAL)
             storage.saveResult(receipt, snapshot(row, meta), row.revision)
           }
@@ -377,7 +538,7 @@ class WalkRuntime internal constructor(private val context: Context,
         }
         storage.writeMetadata(row, meta); storage.transaction { storage.dao.updateSession(row) }
         publish(row, meta)
-        if(com.nuri.BuildConfig.NURI_SECURITY_QA)qa.observe(row)
+        if(qaEnabled && meta.product == null)qa.observe(row)
       } catch (error: Exception) { failClosed(failure(error)) }
     }
   }
@@ -387,13 +548,18 @@ class WalkRuntime internal constructor(private val context: Context,
     lastEventMs = now; sink?.invoke(snapshot(row, meta))
     main.post { service?.refresh(row.runtimeState, meta.timing.activeMs, row.sessionId, row.revision, meta.fixCount, row.chunkCount) }
   }
-  private fun sealActive() {
+  private fun sealActive(releaseProductSlot: Boolean = false) {
     val row = storage.dao.active() ?: return
-    if (state(row) == WalkState.RECOVERY_REQUIRED) return
     val meta = storage.metadata(row)
+    if (meta.product != null && (state(row) == WalkState.IDLE || state(row) == WalkState.RECOVERY_REQUIRED)) {
+      if (releaseProductSlot) storage.transaction { row.activeSlot = null; storage.dao.updateSession(row) }
+      return
+    }
+    if (state(row) == WalkState.RECOVERY_REQUIRED) return
     val sealedMeta = meta.copy(timing = meta.timing.advance(state(row), SystemClock.elapsedRealtime(), System.currentTimeMillis()))
     row.runtimeState = "RECOVERY_REQUIRED"; row.revision = Math.addExact(row.revision, 1)
     row.lastErrorCode = "WALK_RECOVERY_REQUIRED"
+    if (releaseProductSlot && meta.product != null) row.activeSlot = null
     storage.writeMetadata(row, sealedMeta); storage.transaction { storage.dao.updateSession(row) }
   }
   private fun closePause(meta: WalkMetadata, mono: Long, wall: Long): WalkMetadata {
@@ -435,7 +601,7 @@ class WalkRuntime internal constructor(private val context: Context,
         val hash = digest("LOGOUT", "", "", "", rev)
         replay(id, hash)?.let { done(it, null); return@execute }
         val row = storage.dao.active()
-        sealActive(); owner = null
+        sealActive(releaseProductSlot = true); owner = null
         if (row != null) {
           val receipt = newReceipt(id, hash, row)
           storage.transaction { storage.dao.insertReceipt(receipt); storage.saveResult(receipt, "OK", storage.dao.session(row.sessionId)?.revision ?: row.revision) }
@@ -462,7 +628,8 @@ class WalkRuntime internal constructor(private val context: Context,
     worker.execute{
       try{
         initialize();requireOwner()
-        if(!com.nuri.BuildConfig.NURI_SECURITY_QA)throw WalkFailure("WALK_QA_DISABLED")
+        if(!qaEnabled)throw WalkFailure("WALK_QA_DISABLED")
+        storage.dao.active()?.let { if (owned(it).product != null) throw WalkFailure("WALK_PRODUCT_SESSION_PROTECTED") }
         val body=JSONObject(input)
         if(operation=="CLEANUP")WalkQaContract.exact(body,setOf("postReturnReviewComplete"))
         else if(operation!="CONFIGURE"&&operation!="SKIP")WalkQaContract.exact(body,emptySet())

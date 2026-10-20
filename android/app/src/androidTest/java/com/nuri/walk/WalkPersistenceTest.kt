@@ -104,7 +104,7 @@ class WalkPersistenceTest {
   private fun runtime(store: WalkStorage, source: FakeSource, service: FakeService) =
     WalkRuntime(context, store, source, testGate = { visible, foreground ->
       if (visible || foreground) null else "WALK_ACTIVITY_NOT_VISIBLE"
-    }) { instance, session, id -> instance.attach(service, session, id) }
+    }, qaEnabled = true) { instance, session, id -> instance.attach(service, session, id) }
   private fun fix() = Location("public-synthetic-fixture").apply {
     latitude = 1.25; longitude = 2.5; accuracy = 3f
     elapsedRealtimeNanos = SystemClock.elapsedRealtimeNanos(); time = System.currentTimeMillis()
@@ -223,7 +223,7 @@ class WalkPersistenceTest {
   @Test fun logoutDuringStartingCannotActivateALateLocationSubscription() {
     val (store, name) = storage(); val source = FakeSource()
     var activation: Pair<String, String>? = null
-    val runtime = WalkRuntime(context, store, source, testGate = { _, _ -> null }) { _, session, id -> activation = session to id }
+    val runtime = WalkRuntime(context, store, source, testGate = { _, _ -> null }, qaEnabled = true) { _, session, id -> activation = session to id }
     val startReply = CountDownLatch(1)
     try {
       waitResult { runtime.bindOwner(actor, it) }
@@ -255,7 +255,7 @@ class WalkPersistenceTest {
   }
   @Test fun realPlatformGateRejectsBackgroundColdStartBeforeWritingSession() {
     val (store, name) = storage(); val source = FakeSource()
-    val runtime = WalkRuntime(context, store, source)
+    val runtime = WalkRuntime(context, store, source, qaEnabled = true)
     try {
       waitResult { runtime.bindOwner(actor, it) }
       assertEquals("WALK_ACTIVITY_NOT_VISIBLE", waitResult { runtime.start(pet, command(), "0", false, it) }.second)

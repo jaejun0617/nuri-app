@@ -39,6 +39,7 @@ internal class WalkQaWorkflow(private val context:Context,private val storage:Wa
   private fun ownedSession(id:String):Pair<WalkLocalSession,WalkMetadata>{
     val row=storage.dao.session(id)?:throw WalkFailure("WALK_SESSION_DELETED");val meta=storage.metadata(row)
     if(meta.owner!=actor())throw WalkFailure("WALK_ACTIVE_SESSION_OWNER_MISMATCH")
+    if(meta.product!=null)throw WalkFailure("WALK_PRODUCT_SESSION_PROTECTED")
     return row to meta
   }
   private fun relink(value:JSONObject){

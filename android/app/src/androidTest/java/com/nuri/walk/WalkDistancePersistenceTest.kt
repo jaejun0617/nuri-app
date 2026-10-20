@@ -227,7 +227,7 @@ class WalkDistancePersistenceTest {
   }
   @Test fun recoveredDistanceAndPauseBoundariesKeepCreditAndDoNotBridgeOldBoot(){
     val store=storage();val source=FakeSource();var runtime:WalkRuntime?=null
-    fun create():WalkRuntime=WalkRuntime(context,store,source,testGate={_,_->null}){r,s,c->r.attach(FakeService(),s,c)}
+    fun create():WalkRuntime=WalkRuntime(context,store,source,testGate={_,_->null},qaEnabled=true){r,s,c->r.attach(FakeService(),s,c)}
     try{
       val first=create();runtime=first;waitFor{first.bindOwner(actor,it)}
       val started=JSONObject(waitFor{first.start(pet,id(),"0",true,it)});val session=started.getString("sessionId")

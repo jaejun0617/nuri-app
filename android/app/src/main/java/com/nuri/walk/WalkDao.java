@@ -12,6 +12,7 @@ import java.util.List;
   @Query("SELECT * FROM walk_local_sessions WHERE activeSlot = 1 LIMIT 1") WalkLocalSession active();
   @Query("SELECT * FROM walk_local_sessions WHERE sessionId = :id") WalkLocalSession session(String id);
   @Query("SELECT * FROM walk_local_sessions ORDER BY updatedAt DESC LIMIT 100") List<WalkLocalSession> recent();
+  @Query("SELECT * FROM walk_local_sessions WHERE sessionId > :after ORDER BY sessionId LIMIT :limit") List<WalkLocalSession> scan(String after, int limit);
   @Insert(onConflict = OnConflictStrategy.ABORT) void insertSession(WalkLocalSession row);
   @Update void updateSession(WalkLocalSession row);
   @Insert(onConflict = OnConflictStrategy.ABORT) void insertChunk(WalkPointChunk row);
