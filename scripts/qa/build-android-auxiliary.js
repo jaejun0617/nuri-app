@@ -97,13 +97,37 @@ function colonDiagnostic(line) {
   return { project, category: 'UNRECOGNIZED_COLON_LINE' };
 }
 
+// AGP 9.2.1 CxxConfigurationFolding generates ABI/target brackets. These
+// configure/compile native libraries, not APKs. Keep target names in memory only.
+function nativeTaskRow(line) {
+  const match = /^(:[A-Za-z0-9_.-]+:)((configure|build)CMakeRelWithDebInfo\[(arm64-v8a|armeabi-v7a|x86|x86_64)\])(?:\[([A-Za-z_][A-Za-z0-9_.-]{0,79}(?:,[A-Za-z_][A-Za-z0-9_.-]{0,79})?(?:,etc)?)\])? SKIPPED$/.exec(line);
+  if (!match || line.length > 220 || (match[3] === 'configure' && match[5])) return null;
+  const task = line.slice(0, -' SKIPPED'.length);
+  const targetCount = match[5] ? match[5].split(',').length : 0;
+  const targetDigest = match[5] ? crypto.createHash('sha256').update(match[5]).digest('hex').slice(0, 16) : null;
+  return { task, publicTask: match[1] + match[2] + (targetDigest ? `[TARGETS_${targetCount}_${targetDigest}]` : ''),
+    diagnostic: { project: match[1] === ':app:' ? 'APP' : 'OTHER', category: 'CMAKE_NATIVE_COMPILE',
+      structuralPrefix: match[3] === 'configure' ? 'CMAKE_CONFIGURE' : 'CMAKE_BUILD',
+      variant: 'RelWithDebInfo', abi: match[4], targetCount } };
+}
+
+// includeBuild(@react-native/gradle-plugin) executes its JVM plugin compilation
+// during configuration, even under --dry-run. Admit only those plugin modules
+// and JVM compile/JAR tasks; an arbitrary '> Task' row is never an exemption.
+function isIncludedPluginCompile(task) {
+  const match = /^:(?:gradle-plugin|gradle-plugin-root):(shared|settings-plugin|react-native-gradle-plugin):(checkKotlinGradlePluginConfigurationErrors|compileKotlin|compileJava|pluginDescriptors|processResources|classes|jar)$/.exec(task);
+  return !!match && !(match[1] === 'shared' && match[2] === 'pluginDescriptors');
+}
+
 function validateDryRun(output, onRejectedTask, onDiagnostic, onTask) {
   const tasks = [];
+  const identities = [];
   const forbidden = [];
   let malformed = false;
   if (!/^BUILD SUCCESSFUL in .+$/m.test(output) || /BUILD FAILED/.test(output)) fail('NURI_AUXILIARY_DRY_RUN_INCOMPLETE');
   for (const line of output.split(/\r?\n/)) {
-    if (!line.startsWith(':')) {
+    const rendered = /^> Task ((?::[A-Za-z0-9_.-]+)+)(?: (?:UP-TO-DATE|NO-SOURCE|SKIPPED|FROM-CACHE))?$/.exec(line);
+    if (!line.startsWith(':') && !rendered) {
       // Do not silently discard task-shaped output from a different/partial renderer.
       if (/^\s+:|^\s*> Task\b|^(?:[A-Za-z0-9_.-]+:)+[A-Za-z0-9_.-]+\s+(?:SKIPPED|UP-TO-DATE)$/.test(line)) {
         malformed = true;
@@ -112,23 +136,35 @@ function validateDryRun(output, onRejectedTask, onDiagnostic, onTask) {
       continue;
     }
     const match = /^((?::[A-Za-z0-9_.-]+)+) SKIPPED$/.exec(line);
-    if (!match || match[1].length > 200) {
+    const native = nativeTaskRow(line);
+    const task = match?.[1] || rendered?.[1] || native?.task;
+    if (!task || task.length > 200) {
       const diagnostic = colonDiagnostic(line);
       if (typeof onDiagnostic === 'function') onDiagnostic(diagnostic);
       if (diagnostic.category !== 'UNRECOGNIZED_COLON_LINE') continue;
       malformed = true;
       continue;
     }
-    const task = match[1];
-    tasks.push(task);
-    if (typeof onTask === 'function') onTask(task);
+    const publicTask = native?.publicTask || task;
+    identities.push(task);
+    tasks.push(publicTask);
+    if (typeof onTask === 'function') onTask(publicTask);
+    if (native && typeof onDiagnostic === 'function') onDiagnostic(native.diagnostic);
+    if (rendered && !isIncludedPluginCompile(task)) {
+      malformed = true;
+      if (typeof onDiagnostic === 'function') onDiagnostic({ project: 'OTHER', category: 'UNRECOGNIZED_TASK_ROW' });
+    }
     if (task.startsWith(':app:')) {
       const name = task.slice(':app:'.length);
       const leaf = name.split(':').at(-1);
       const allowedProducer = ['assembleReleaseAndroidTest', 'packageReleaseAndroidTest',
         'bundleReleaseClassesToCompileJar', 'bundleReleaseClassesToRuntimeJar',
         // Installed RN 0.87.1 BundleHermesCTask: generated JS/assets/maps only, no APK/AAB.
-        'createBundleReleaseJsAndAssets'].includes(name);
+        'createBundleReleaseJsAndAssets',
+        // AGP MergeResources -> PACKAGED_RES (Directory), not PackageApplication.
+        'packageReleaseResources', 'packageReleaseAndroidTestResources',
+        // AGP ListingFileRedirectTask writes only the AndroidTest IDE redirect.
+        'createReleaseAndroidTestApkListingFileRedirect'].includes(name) || !!native;
       // Exact allowlist avoids confusing packageReleaseAndroidTest with packageRelease.
       if (!allowedProducer && (/^(?:assemble|package|bundle|sign|install|publish|upload)/i.test(leaf) || /(?:apk|aab|bundle)/i.test(name))) {
         if (typeof onRejectedTask === 'function' && task.length <= 200) onRejectedTask(task);
@@ -140,7 +176,7 @@ function validateDryRun(output, onRejectedTask, onDiagnostic, onTask) {
   // a later product packaging task. No partial plan is allowed to reach a build.
   if (forbidden.length) fail('NURI_AUXILIARY_PRODUCT_TASK_FORBIDDEN');
   if (malformed) fail('NURI_AUXILIARY_DRY_RUN_MALFORMED');
-  if (!tasks.includes(TASK) || !tasks.includes(':app:packageReleaseAndroidTest') || new Set(tasks).size !== tasks.length) {
+  if (!identities.includes(TASK) || !identities.includes(':app:packageReleaseAndroidTest') || new Set(identities).size !== identities.length) {
     fail('NURI_AUXILIARY_DRY_RUN_INCOMPLETE');
   }
   return tasks;

@@ -481,18 +481,28 @@ describe('auxiliary-only protected signing, synthetic inputs and mocked children
     expect(receipt.productUnchanged).toBe(true);
   });
 
-  test('consolidated dry-run: bracketed native-task diagnostics reveal only a bounded public shape and still fail closed', () => {
+  test('AGP graph formats: ABI/target compile rows retain bounded identity without exposing target names', () => {
     const diagnostics: unknown[] = [];
-    expect(() => auxiliary.validateDryRun(':react-native-worklets:buildCMakeRelWithDebInfo[arm64-v8a][synthetic_private_target] SKIPPED\n' + graph, undefined, (event: unknown) => diagnostics.push(event))).toThrow('NURI_AUXILIARY_DRY_RUN_MALFORMED');
-    expect(diagnostics).toEqual([{ project: 'OTHER', category: 'UNRECOGNIZED_COLON_LINE', structuralPrefix: 'CMAKE_BUILD', variant: 'RelWithDebInfo', abi: 'arm64-v8a', additionalBracket: true }]);
-    expect(JSON.stringify(diagnostics)).not.toContain('synthetic_private_target');
+    const rows = ['arm64-v8a', 'armeabi-v7a', 'x86', 'x86_64'].flatMap(abi => [
+      `:app:configureCMakeRelWithDebInfo[${abi}] SKIPPED`,
+      `:app:buildCMakeRelWithDebInfo[${abi}] SKIPPED`,
+      `:react-native-worklets:configureCMakeRelWithDebInfo[${abi}] SKIPPED`,
+      `:react-native-worklets:buildCMakeRelWithDebInfo[${abi}][synthetic_private_target] SKIPPED`,
+      `:react-native-reanimated:buildCMakeRelWithDebInfo[${abi}][target_a,target_b,etc] SKIPPED`,
+    ]);
+    const tasks = auxiliary.validateDryRun(rows.join('\n') + '\n' + graph, undefined, (event: unknown) => diagnostics.push(event));
+    expect(tasks).toHaveLength(rows.length + 4);
+    expect(tasks).toContain(':app:buildCMakeRelWithDebInfo[arm64-v8a]');
+    expect(diagnostics).toContainEqual({ project: 'OTHER', category: 'CMAKE_NATIVE_COMPILE', structuralPrefix: 'CMAKE_BUILD', variant: 'RelWithDebInfo', abi: 'arm64-v8a', targetCount: 1 });
+    expect(JSON.stringify({ tasks, diagnostics })).not.toContain('synthetic_private_target');
+    expect(tasks.some((task: string) => /\[TARGETS_1_[a-f0-9]{16}\]$/.test(task))).toBe(true);
   });
 
   test('consolidated dry-run: nested app producers cannot bypass the package prohibition', () => {
     expect(() => auxiliary.validateDryRun(':app:subproject:packageRelease SKIPPED\n' + graph)).toThrow('NURI_AUXILIARY_PRODUCT_TASK_FORBIDDEN');
   });
 
-  test('consolidated dry-run: distinct unreadable native shapes are retained while later product tasks are still found', async () => {
+  test('AGP graph formats: native compilation never hides later forbidden product tasks or saves target literals', async () => {
     mockSource(); mockArtifacts();
     const output = ':app:configureCMakeRelWithDebInfo[arm64-v8a] SKIPPED\n:app:buildCMakeRelWithDebInfo[arm64-v8a][private_target] SKIPPED\n' + graph + '\n:app:packageRelease SKIPPED';
     mockGradle([{ code: 0, text: output }]);
@@ -504,6 +514,82 @@ describe('auxiliary-only protected signing, synthetic inputs and mocked children
     expect(receipt.diagnostics.map((entry: { structuralPrefix: string }) => entry.structuralPrefix)).toEqual(['CMAKE_CONFIGURE', 'CMAKE_BUILD']);
     expect(receipt.rejectedTasks).toEqual([':app:packageRelease']);
     expect(raw).not.toContain('private_target');
+    expect(receipt.tasks).toContain(':app:configureCMakeRelWithDebInfo[arm64-v8a]');
+    expect(receipt.sourceUnchanged).toBe(true);
+    expect(receipt.productUnchanged).toBe(true);
+  });
+
+  test('AGP graph formats: exact resource directories and test listing redirect are not APK producers', () => {
+    const names = ['packageReleaseResources', 'packageReleaseAndroidTestResources', 'createReleaseAndroidTestApkListingFileRedirect'];
+    const tasks = auxiliary.validateDryRun(names.map(name => `:app:${name} SKIPPED`).join('\n') + '\n' + graph);
+    for (const name of names) expect(tasks).toContain(':app:' + name);
+  });
+
+  test.each(['packageRelease', 'packageReleaseResourcesApk', 'packageDebugResources', 'packageReleaseAndroidTestResourcesAab',
+    'createReleaseApkListingFileRedirect', 'createReleaseAndroidTestApk', 'subproject:packageReleaseResources'])('AGP graph formats: exact non-APK exceptions do not admit sibling producer %s', (name: string) => {
+    expect(() => auxiliary.validateDryRun(`:app:${name} SKIPPED\n${graph}`)).toThrow('NURI_AUXILIARY_PRODUCT_TASK_FORBIDDEN');
+  });
+
+  test('AGP graph formats: included RN plugin JVM compilation is parsed as tasks, not ignored diagnostics', () => {
+    const plugin = path.join(__dirname, '../node_modules/@react-native/gradle-plugin');
+    const settings = fs.readFileSync(path.join(__dirname, '../android/settings.gradle'), 'utf8');
+    expect(settings).toContain('includeBuild("../node_modules/@react-native/gradle-plugin")');
+    const modules = ['shared', 'settings-plugin', 'react-native-gradle-plugin'];
+    const moduleSettings = fs.readFileSync(path.join(plugin, 'settings.gradle.kts'), 'utf8');
+    for (const moduleName of modules) {
+      expect(moduleSettings).toContain(`":${moduleName}"`);
+      const source = fs.readFileSync(path.join(plugin, moduleName, 'build.gradle.kts'), 'utf8');
+      expect(source).toContain('alias(libs.plugins.kotlin.jvm)');
+      if (moduleName !== 'shared') expect(source).toContain('id("java-gradle-plugin")');
+    }
+    const rows = modules.flatMap(moduleName => ['checkKotlinGradlePluginConfigurationErrors', 'compileKotlin', 'compileJava', 'processResources', 'classes', 'jar',
+      ...(moduleName === 'shared' ? [] : ['pluginDescriptors'])].map((name, index) => `> Task :gradle-plugin:${moduleName}:${name}${[' SKIPPED', ' UP-TO-DATE', ' NO-SOURCE', ' FROM-CACHE', ''][index % 5]}`));
+    const tasks = auxiliary.validateDryRun(rows.join('\n') + '\n' + graph);
+    expect(tasks).toHaveLength(24);
+    expect(tasks).toContain(':gradle-plugin:settings-plugin:jar');
+    expect(tasks).toContain(':gradle-plugin:shared:compileKotlin');
+  });
+
+  test.each([
+    ':app:configureCMakeRelWithDebInfo[mips] SKIPPED',
+    ':app:configureCMakeRelWithDebInfo[arm64-v8a][target] SKIPPED',
+    ':app:buildCMakeDebug[arm64-v8a] SKIPPED',
+    ':app:buildCMakeRelWithDebInfo[arm64-v8a][first,second,third] SKIPPED',
+    ':app:buildCMakeRelWithDebInfo[arm64-v8a][../private] SKIPPED',
+    ':app:buildCMakeRelWithDebInfo[arm64-v8a][target] UP-TO-DATE',
+    ':app:buildCMakeRelWithDebInfo[arm64-v8a][target]Apk SKIPPED',
+    '> Task :unknown:settings-plugin:jar UP-TO-DATE',
+    '> Task :gradle-plugin:shared:pluginDescriptors UP-TO-DATE',
+    '> Task :gradle-plugin:settings-plugin:unknown UP-TO-DATE',
+    '> Task :gradle-plugin:settings-plugin:jar FAILED',
+    '> Task :app:compileReleaseJavaWithJavac UP-TO-DATE',
+  ])('AGP graph formats: unproven native/bootstrap rows remain blocked: %s', (row: string) => {
+    expect(() => auxiliary.validateDryRun(row + '\n' + graph)).toThrow();
+  });
+
+  test('AGP graph formats: alternate renderer product tasks are still recorded and forbidden across the whole plan', () => {
+    const rejected: string[] = [];
+    expect(() => auxiliary.validateDryRun('> Task :app:packageRelease UP-TO-DATE\n' + graph + '\n> Task :app:bundleRelease', (task: string) => rejected.push(task))).toThrow('NURI_AUXILIARY_PRODUCT_TASK_FORBIDDEN');
+    expect(rejected).toEqual([':app:packageRelease', ':app:bundleRelease']);
+  });
+
+  test('AGP graph formats: integrated legitimate output reaches only the one fixed auxiliary build', async () => {
+    mockSource(); mockArtifacts();
+    const output = ['> Task :gradle-plugin:shared:compileKotlin UP-TO-DATE',
+      ':react-native-firebase_app:reactNativeAndroidDir /fixture/node_modules/react-native',
+      ':app:createBundleReleaseJsAndAssets SKIPPED', ':app:packageReleaseResources SKIPPED',
+      ':app:packageReleaseAndroidTestResources SKIPPED', ':app:createReleaseAndroidTestApkListingFileRedirect SKIPPED',
+      ':app:configureCMakeRelWithDebInfo[arm64-v8a] SKIPPED',
+      ':react-native-worklets:buildCMakeRelWithDebInfo[arm64-v8a][worklets] SKIPPED', graph].join('\n');
+    const spawn = mockGradle([{ code: 0, text: output }, { code: 0, text: 'BUILD SUCCESSFUL in 1s' }]);
+    await auxiliary.runAndroidAuxiliary(root, head, env);
+    expect(spawn).toHaveBeenCalledTimes(2);
+    expect(spawn.mock.calls[1][1]).toEqual([':app:assembleReleaseAndroidTest', '-PnuriSecurityQa=true', '--no-daemon', '--console=plain']);
+    const parent = path.join(root, '.codex/nuri-walk-real-product-20261020/auxiliary-builds');
+    const receipt = JSON.parse(fs.readFileSync(path.join(parent, fs.readdirSync(parent)[0], 'result.json'), 'utf8'));
+    expect(receipt.status).toBe('BUILD_EXIT_ZERO');
+    expect(receipt.sourceUnchanged).toBe(true);
+    expect(receipt.productUnchanged).toBe(true);
   });
 
   test.each([0, 1])('nonzero child at phase %s stops, keeps real exit metadata and never retries', async (phase: number) => {
