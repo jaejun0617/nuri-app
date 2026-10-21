@@ -103,7 +103,6 @@ import {
 import { useScheduleStore } from '../../../../store/scheduleStore';
 import { useActiveScheduleAlarms } from '../../../../hooks/useActiveScheduleAlarms';
 import HomeActiveAlarmNotice from './HomeActiveAlarmNotice';
-import HomeWalkQaEntry from './HomeWalkQaEntry';
 import { MonthlyDiaryEmptyState } from './MonthlyDiaryEmptyState';
 import {
   HomeEmptySectionState,
@@ -3963,13 +3962,6 @@ export default function LoggedInHome() {
                 onPressPetSelect={openPetSelectionSheet}
                 onPressProfileInfo={openProfileInfoSheet}
                 onPressPetProfileEdit={onPressPetProfileEdit}
-                walkQaEntry={
-                  <HomeWalkQaEntry
-                    key={sessionUserId ?? 'guest'}
-                    available={!!sessionUserId && !!selectedPetId && selectedPetId === selectedPet?.id}
-                    season={ambientSeason}
-                  />
-                }
               />
               <HomeHeroFooterOrnaments season={ambientSeason} />
               <FixedTypographyBoundary>

@@ -22,6 +22,14 @@ const STRINGS = new Set(['READY', 'PET_CREATED', 'REMOTE_SUCCESS_HELD', 'BACKOUT
   'PRODUCT_RECOVERY_OBSERVED', 'IDLE', 'STARTING', 'WALKING', 'PAUSED', 'FINISHING', 'FINISHED_LOCAL',
   'RECOVERY_REQUIRED', 'CANCELLED_LOCAL', 'PREPARED', 'RESERVED', 'START_REQUESTED', 'START_FAILED', 'RUNNING',
   'FINISH_PENDING', 'FINISH_INVALID', 'CANCEL_PENDING', 'RESOLVED']);
+function priorResultPath(value) {
+  const root = '/Users/shinjaejun/.codex/nuri-walk-real-product-20261020/';
+  const candidate = value ?? root + 'SUPPLEMENTAL-CORRECTIVE-PHASE-A/result.json';
+  assert([root + 'SUPPLEMENTAL-CORRECTIVE-PHASE-A/result.json', root + 'RESUME-20261021-PHASE-A/result.json',
+    root + 'RESUME-20261021-RETRY-PHASE-A/result.json'].includes(candidate),
+    'EXACT_APPROVED_PHASE_A_RESULT_REQUIRED');
+  return candidate;
+}
 function publicCounts(value) {
   if (value === null || typeof value === 'boolean') return value;
   if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) return value;
@@ -99,8 +107,15 @@ async function run(config) {
   const record = value => fs.appendFileSync(journal, JSON.stringify({ at: new Date().toISOString(), ...value }) + '\n', { mode: 0o600 });
   const started = Date.now();
   record({ type: 'HOST_START', mode: config.mode, run: path.basename(output) });
-  let pidBefore = Number(driver.adb('shell', 'pidof', 'com.nuri.app').trim());
-  assert(pidBefore > 0, 'PRODUCT_PID_REQUIRED');
+  let pidBefore = null;
+  try { pidBefore = Number(driver.adb('shell', 'pidof', 'com.nuri.app').trim()) || null; }
+  catch (error) { if (error.status !== 1) throw Error('PRODUCT_PID_READ_FAILED'); }
+  if (config.mode === 'phaseB') {
+    assert.equal(pidBefore, null, 'COLD_RECOVERY_REQUIRES_CONFIRMED_ABSENT_PROCESS');
+    const prior = JSON.parse(fs.readFileSync(priorResultPath(config.phaseAResult), 'utf8'));
+    assert(prior.mode === 'phaseA' && prior.intendedDeath === true && prior.observationFailed === false
+      && prior.terminal === 'EXPECTED_PROCESS_DEATH_JUNIT_NOT_COMPLETED', 'DURABLE_PRIOR_KILL_RESULT_REQUIRED');
+  } else assert(pidBefore > 0, 'PRODUCT_PID_REQUIRED');
   const args = { class: 'com.nuri.walk.WalkProductResponseLossTest#' + METHODS[config.mode] };
   if (['inspect', 'remove', 'attach'].includes(config.mode)) Object.assign(args, {
     hostExpectedPid: String(pidBefore), hostNoRestartValidated: 'TRUE', waitForActivitiesToComplete: 'false',
@@ -186,7 +201,7 @@ async function run(config) {
   process.stdout.write(JSON.stringify(result) + '\n');
   return result;
 }
-module.exports = { parseStatus, terminal, mayKill, assessAnalytics, reconcileDetachedAnalytics, run };
+module.exports = { parseStatus, terminal, mayKill, assessAnalytics, reconcileDetachedAnalytics, priorResultPath, run };
 if (require.main === module) {
   run(JSON.parse(fs.readFileSync(process.argv[2], 'utf8'))).then(result => {
     process.exitCode = ['PASS', 'EXPECTED_PROCESS_DEATH_JUNIT_NOT_COMPLETED'].includes(result.terminal) ? 0 : 1;

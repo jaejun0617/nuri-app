@@ -1,5 +1,14 @@
 # 임시 Home 도보 QA 진입
 
+## 2026-10-21 PO 승인 폐기
+
+- PO가 추가 보조 APK를 거절하고 시험 정리와 임시 진입 제거만 승인했다. 아래 최초 추가/동결 기록은 이력이며 현재 유지 명령이 아니다.
+- Home 버튼, 전용 컴포넌트/테스트, Hero slot, QA host의 임시 initialMode/onClose 연결을 제거했다. 내부 DevTest Wizard와 native QA gate는 유지한다. 기존 Home 첫 산책 위젯의 `WalkProduct` 정식 경로와 명시 시작 계약은 변경하지 않는다.
+- 마지막 합성 펫/시험 세션의 서버 부재와 실제 ACK를 확인했고 원래 선택/펫 두 마리를 확인했다. 소유권·기존 Native baseline·정지 상태를 검증한 기존 시험 코드로 정확한 암호화 manifest만 제거했다. 이전 실패 증적은 보존한다.
+- 변경 범위 3 suites/117 tests, TypeScript PASS, ESLint 오류 0/기존 경고 15/신규 0이다. 추가 Full Suite는 실행하지 않는다. 승인된 제품 QA Release/build/install 1회와 설치본 진입 확인의 최종 결과는 외부 `RESUME-20261021-CLOSEOUT-REPORT.md`가 소유하며 source 검증만으로 설치 완료를 주장하지 않는다.
+- 오프라인 pending UI와 동일 session의 서버 accepted 0/성장 부적격 결과는 관측했다. 그러나 시험 observer가 ACTIVE 예약 receipt와 최종 receipt를 구분하지 못해 Native 내구성 증적은 미검증이다. 응답 유실·의도적 종료·복구·멱등성 장애 시험은 미실행이며 정상 삭제 ACK를 대신 사용하지 않는다. 추가 보조 APK/제품 GPS·타이머·서버 수정은 없다.
+- 외부 증적 root: `/Users/shinjaejun/.codex/nuri-walk-real-product-20261020`. 원본 181/hash, 기존 핵심 데이터, 과거 strict NOT_PASS, 제한된 Home 자동 이벤트 예외를 구분 보존한다. STORE HOLD, push NO, 후속 기능 자동 시작 NO다.
+
 ## 목적과 현재 상태
 
 PO가 도보 QA를 쉽게 열 수 있도록 로그인 Home의 펫 더 알아보기 바로 아래, 프로필 수정하기 위에 임시 CTA를 요청했다. 검증 완료 후 폐기하는 버튼이며 영구 제품 기능이 아니다.

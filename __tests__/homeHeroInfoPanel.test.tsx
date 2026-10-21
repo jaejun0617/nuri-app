@@ -163,9 +163,13 @@ describe('Home Hero lower panel presentation and actions', () => {
     return renderer!;
   }
 
-  it('places the temporary Walk QA entry directly below more information', async () => {
-    const renderer = await renderPanel({
+  it('ignores the retired QA slot and preserves only the profile actions', async () => {
+    const retiredSlot = {
       walkQaEntry: <View testID="walk-home-entry-probe" />,
+    };
+    const renderer = await renderPanel({
+      ...retiredSlot,
+      onPressProfileInfo,
     });
     const actions = renderer.root.findAllByProps({
       testID: 'home-hero-profile-actions',
@@ -175,7 +179,6 @@ describe('Home Hero lower panel presentation and actions', () => {
       .map(child => child.props.testID);
     expect(ids).toEqual([
       'home-hero-profile-info',
-      'walk-home-entry-probe',
       'home-hero-profile-edit',
     ]);
   });

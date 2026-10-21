@@ -230,53 +230,30 @@ describe('Walk presentation privacy and mode boundaries', () => {
       r.root.findAllByType(Button)[0].props.onPress();
     });
   };
-  test('temporary Home entry opens actual mode without starting or requesting GPS', async () => {
-    const onClose = jest.fn();
+  test('internal QA host stays closed until its explicit DevTest action', async () => {
     const request = jest.spyOn(PermissionsAndroid, 'requestMultiple');
     await act(async () => {
       r = Renderer.create(
         <ThemeProvider theme={createTheme('light')}>
-          <Panel initialMode="ACTUAL" onClose={onClose} />
+          <Panel />
         </ThemeProvider>,
       );
     });
-    expect(r.root.findByType(Modal).props.visible).toBe(true);
-    expect(r.root.findAllByProps({ testID: 'walk-pet-marker' })).toHaveLength(0);
-    expect(r.root.findAllByProps({ testID: 'walk-fixture-marker' })).toHaveLength(0);
-    expect(getWalkSnapshot).toHaveBeenCalled();
-    expect(runWalkQaCommand).toHaveBeenCalledWith('GET');
-    expect(jest.mocked(runWalkQaCommand).mock.calls.every(([command]) => command === 'GET')).toBe(true);
+    expect(r.root.findByType(Modal).props.visible).toBe(false);
+    expect(r.root.findAllByType(Button)[0].props.title).toBe('Walk Phase 3 Map / Wizard');
+    expect(getWalkSnapshot).not.toHaveBeenCalled();
+    expect(runWalkQaCommand).not.toHaveBeenCalled();
+    expect(observeNativeWalk).not.toHaveBeenCalled();
     expect(mutateNativeWalk).not.toHaveBeenCalled();
     expect(request).not.toHaveBeenCalled();
-    expect(Geolocation.getCurrentPosition).not.toHaveBeenCalled();
-    await act(async () => r.root.findByType(Modal).props.onRequestClose());
-    expect(onClose).toHaveBeenCalledTimes(1);
   });
-  test('temporary Home entry preserves an active walk when minimized', async () => {
-    jest.mocked(getWalkSnapshot).mockResolvedValue(nativeSnapshot('WALKING'));
-    const onClose = jest.fn();
-    await act(async () => {
-      r = Renderer.create(
-        <ThemeProvider theme={createTheme('light')}>
-          <Panel initialMode="ACTUAL" onClose={onClose} />
-        </ThemeProvider>,
-      );
-    });
-    await act(async () => r.root.findByType(Modal).props.onRequestClose());
-    expect(onClose).not.toHaveBeenCalled();
-    expect(r.root.findByType(WalkNoticeSheet).props.visible).toBe(true);
-    await act(async () => r.root.findByType(WalkNoticeSheet).props.onPrimary());
-    expect(onClose).toHaveBeenCalledTimes(1);
-    expect(mutateNativeWalk).not.toHaveBeenCalled();
-    expect(jest.mocked(runWalkQaCommand).mock.calls.every(([command]) => command === 'GET')).toBe(true);
-  });
-  test('temporary actual entry cannot bypass the Store QA gate', async () => {
+  test('internal QA entry cannot bypass the Store QA gate', async () => {
     jest.mocked(isWalkDistanceQaEnabled).mockReturnValue(false);
     try {
       await act(async () => {
         r = Renderer.create(
           <ThemeProvider theme={createTheme('light')}>
-            <Panel initialMode="ACTUAL" />
+            <Panel />
           </ThemeProvider>,
         );
       });

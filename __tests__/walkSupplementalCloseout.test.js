@@ -126,4 +126,29 @@ describe('bounded host lifetime and durable sanitized result recovery', () => {
     assert(writes.findIndex(x => x.type === 'VERIFIED_BEFORE_LOCAL_COMPLETION_KILL') < writes.findIndex(x => x.type === 'OWNED_PRODUCT_PROCESS_ABSENT'));
     assert(writes.some(x => x.type === 'OWNED_PRODUCT_PROCESS_ABSENT'));
   });
+  test.each(['RESUME-20261021-PHASE-A', 'RESUME-20261021-RETRY-PHASE-A'])('cold recovery accepts an absent product only after its durable intended-death receipt from %s', async phase => {
+    device.adb.mockImplementation(() => { const e = new Error('synthetic missing process'); e.status = 1; throw e; });
+    jest.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify({ mode: 'phaseA', intendedDeath: true,
+      observationFailed: false, terminal: 'EXPECTED_PROCESS_DEATH_JUNIT_NOT_COMPLETED' }));
+    const phaseAResult = '/Users/shinjaejun/.codex/nuri-walk-real-product-20261020/' + phase + '/result.json';
+    const resultPromise = host.run({ ...config(), mode: 'phaseB', phaseAResult });
+    child.stdout.write('OK (1 test)\nINSTRUMENTATION_CODE: -1\n'); child.emit('close', 0, null);
+    assert.equal((await resultPromise).terminal, 'PASS');
+    assert.equal(fs.readFileSync.mock.calls[0][0], phaseAResult);
+    assert.equal(device.adb.mock.calls.some(x => x.includes('force-stop')), false);
+  });
+  test('cold recovery rejects an unrelated receipt path and an unproven prior death', async () => {
+    assert.throws(() => host.priorResultPath('/private/tmp/unrelated/result.json'), /EXACT_APPROVED_PHASE_A_RESULT_REQUIRED/);
+    assert.throws(() => host.priorResultPath('/Users/shinjaejun/.codex/nuri-walk-real-product-20261020/RESUME-20261021-PHASE-A/../other/result.json'));
+    device.adb.mockImplementation(() => { const e = new Error('synthetic missing process'); e.status = 1; throw e; });
+    jest.spyOn(fs, 'readFileSync').mockReturnValue(JSON.stringify({ mode: 'phaseA', intendedDeath: false,
+      observationFailed: false, terminal: 'NOT_VERIFIED_TERMINAL_RESULT' }));
+    await assert.rejects(host.run({ ...config(), mode: 'phaseB' }), /DURABLE_PRIOR_KILL_RESULT_REQUIRED/);
+    assert.equal(cp.spawn.mock.calls.length, 0);
+  });
+  test('unexpected process absence cannot silently start a new phaseA trial', async () => {
+    device.adb.mockImplementation(() => { const e = new Error('synthetic missing process'); e.status = 1; throw e; });
+    await assert.rejects(host.run(config()), /PRODUCT_PID_REQUIRED/);
+    assert.equal(cp.spawn.mock.calls.length, 0);
+  });
 });

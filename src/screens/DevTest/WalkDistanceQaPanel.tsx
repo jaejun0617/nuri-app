@@ -86,24 +86,22 @@ const STATE_LABELS = [
 ];
 type PageDirection = 'FIRST' | 'TAIL' | 'BEFORE' | 'AFTER';
 
-type Props = { initialMode?: 'ACTUAL'; onClose?: () => void };
-
-export default function WalkDistanceQaPanel({ initialMode, onClose }: Props) {
+export default function WalkDistanceQaPanel() {
   const owner = useAuthStore(s => s.session?.user.id ?? null);
   const pets = usePetStore(s => s.pets),
     selectedPetId = usePetStore(s => s.selectedPetId);
   const theme = useTheme(),
     effectiveSeason = useEffectiveSeason(),
     insets = useSafeAreaInsets();
-  const [visible, setVisible] = useState(initialMode === 'ACTUAL'),
+  const [visible, setVisible] = useState(false),
     [qaOpen, setQaOpen] = useState(false);
-  const openedOwner = useRef<string | null>(initialMode === 'ACTUAL' ? owner : null);
+  const openedOwner = useRef<string | null>(null);
   const preWalkIntroSeen = useRef(false);
   const [snapshot, setSnapshot] = useState<WalkNativeSnapshot | null>(null);
   const [page, setPage] = useState<WalkRoutePage | null>(null);
   const [protocol, setProtocol] = useState<WalkQaProtocol | null>(null);
   const [mode, setMode] = useState<WalkCameraMode>('FOLLOW');
-  const [preview, setPreview] = useState(initialMode !== 'ACTUAL'),
+  const [preview, setPreview] = useState(true),
     [galleryState, setGalleryState] = useState<PresentationState>('WALKING');
   const [publicGallery, setPublicGallery] = useState(false);
   const [designReview, setDesignReview] = useState(false);
@@ -146,9 +144,6 @@ export default function WalkDistanceQaPanel({ initialMode, onClose }: Props) {
   const open =
     visible && owner !== null && owner === openedOwner.current && enabled;
   const designLocation = useWalkDesignLocation(open, owner);
-  useEffect(() => {
-    if (initialMode === 'ACTUAL' && !visible) onClose?.();
-  }, [initialMode, visible, onClose]);
   useEffect(() => {
     setErrorNoticeOpen(!!noticeForError(error));
   }, [error]);
@@ -597,7 +592,7 @@ export default function WalkDistanceQaPanel({ initialMode, onClose }: Props) {
   ];
   return (
     <>
-      {initialMode !== 'ACTUAL' ? <Button
+      <Button
         title="Walk Phase 3 Map / Wizard"
         onPress={() => {
           if (operationRunning.current) return;
@@ -613,7 +608,7 @@ export default function WalkDistanceQaPanel({ initialMode, onClose }: Props) {
           setFinishConfirm(false);
           setVisible(true);
         }}
-      /> : null}
+      />
       <Modal
         visible={open}
         onRequestClose={
