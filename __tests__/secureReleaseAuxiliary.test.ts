@@ -139,7 +139,7 @@ describe('auxiliary-only protected signing, synthetic inputs and mocked children
 
   test('accepts test packaging and compile jars, not product packaging or malformed/incomplete graphs', () => {
     expect(auxiliary.validateDryRun(graph)).toContain(':app:packageReleaseAndroidTest');
-    for (const task of ['assembleRelease', 'packageRelease', 'bundleRelease', 'signReleaseBundle', 'packageDebug', 'createBundleReleaseJsAndAssets', 'installRelease', 'packageFutureArtifact']) {
+    for (const task of ['assembleRelease', 'packageRelease', 'bundleRelease', 'signReleaseBundle', 'packageDebug', 'createBundleReleaseApk', 'installRelease', 'packageFutureArtifact']) {
       expect(() => auxiliary.validateDryRun(`:app:${task} SKIPPED\n${graph}`)).toThrow('NURI_AUXILIARY_PRODUCT_TASK_FORBIDDEN');
     }
     for (const text of ['', graph.replace('BUILD SUCCESSFUL in 1s', ''), graph.replace(':app:assembleReleaseAndroidTest SKIPPED', ''), graph.replace('SKIPPED', 'UP-TO-DATE'), `${graph}\nBUILD FAILED`]) {
@@ -329,7 +329,7 @@ describe('auxiliary-only protected signing, synthetic inputs and mocked children
 
   test.each([false, true])('safe rejected task metadata: no raw graph or protected value is retained (sensitive=%s)', async (sensitive: boolean) => {
     mockSource(); mockArtifacts();
-    const task = sensitive ? `:app:package${env.NURI_UPLOAD_KEY_ALIAS}Release` : ':app:createBundleReleaseJsAndAssets';
+    const task = sensitive ? `:app:package${env.NURI_UPLOAD_KEY_ALIAS}Release` : ':app:createBundleReleaseApk';
     const spawn = mockGradle([{ code: 0, text: `${task} SKIPPED\n${env.NURI_UPLOAD_STORE_PASSWORD}\n${graph}` }]);
     await expect(auxiliary.runAndroidAuxiliary(root, head, env)).rejects.toThrow(sensitive ? 'NURI_AUXILIARY_DRY_RUN_MALFORMED' : 'NURI_AUXILIARY_PRODUCT_TASK_FORBIDDEN');
     expect(spawn).toHaveBeenCalledTimes(1);
@@ -337,7 +337,7 @@ describe('auxiliary-only protected signing, synthetic inputs and mocked children
     const raw = fs.readFileSync(path.join(parent, fs.readdirSync(parent)[0], 'result.json'), 'utf8');
     const receipt = JSON.parse(raw);
     expect(receipt.rejectedTask).toBe(sensitive ? null : task);
-    expect(receipt.tasks).toEqual([]);
+    expect(receipt.tasks).toContain(':app:assembleReleaseAndroidTest');
     for (const name of identity.SIGNING_NAMES) expect(raw).not.toContain(env[name]);
   });
 
@@ -365,7 +365,7 @@ describe('auxiliary-only protected signing, synthetic inputs and mocked children
 
   test.each([
     ':app:packageRelease SKIPPED', ':app:assembleRelease SKIPPED', ':app:bundleRelease SKIPPED',
-    ':app:packageFutureApk SKIPPED', ':app:createBundleReleaseJsAndAssets SKIPPED',
+    ':app:packageFutureApk SKIPPED', ':app:createBundleReleaseApk SKIPPED',
   ])('dry-run format: configuration diagnostics never excuse a product or unknown producer: %s', (task: string) => {
     const prefix = ':react-native-firebase_app:android.compileSdk using custom value: 37\n';
     expect(() => auxiliary.validateDryRun(prefix + task + '\n' + graph)).toThrow('NURI_AUXILIARY_PRODUCT_TASK_FORBIDDEN');
@@ -411,6 +411,99 @@ describe('auxiliary-only protected signing, synthetic inputs and mocked children
     expect(() => auxiliary.validateDryRun(`:react-native-firebase_app:reactNativeAndroidDir ${value}\n${graph}`, undefined, (event: unknown) => diagnostics.push(event))).toThrow('NURI_AUXILIARY_DRY_RUN_MALFORMED');
     expect(diagnostics).toEqual([{ project: 'RNFB_APP', category: 'UNRECOGNIZED_COLON_LINE', structuralPrefix: 'RN_SOURCE_LOCATION' }]);
     expect(JSON.stringify(diagnostics)).not.toContain(value);
+  });
+
+  test('RN compile producer: exact observed release JS/assets task has only installed plugin generated outputs', () => {
+    const task = ':app:createBundleReleaseJsAndAssets';
+    expect(auxiliary.validateDryRun(task + ' SKIPPED\n' + graph)).toContain(task);
+    const plugin = path.join(__dirname, '../node_modules/@react-native/gradle-plugin/react-native-gradle-plugin/src/main/kotlin/com/facebook/react');
+    const configuration = fs.readFileSync(path.join(plugin, 'TaskConfiguration.kt'), 'utf8');
+    const implementation = fs.readFileSync(path.join(plugin, 'tasks/BundleHermesCTask.kt'), 'utf8');
+    expect(configuration).toContain('tasks.register("createBundle${targetName}JsAndAssets", BundleHermesCTask::class.java)');
+    expect(configuration).toContain('addGeneratedSourceDirectory(bundleTask, BundleHermesCTask::resourcesDir)');
+    expect(configuration).toContain('addGeneratedSourceDirectory(bundleTask, BundleHermesCTask::jsBundleDir)');
+    expect(implementation).toContain('abstract class BundleHermesCTask : DefaultTask()');
+    expect(implementation).toContain('@get:OutputDirectory abstract val jsBundleDir');
+    expect(implementation).toContain('@get:OutputDirectory abstract val resourcesDir');
+    expect(implementation).not.toMatch(/\.apk|\.aab/);
+  });
+
+  test.each(['createBundleDebugJsAndAssets', 'createBundleReleaseJsAndAssetsApk', 'createBundleReleaseAab', 'packageRelease', 'assembleRelease', 'bundleRelease', 'signReleaseBundle'])('RN compile producer: exact compile admission does not allow sibling/product producer %s', (name: string) => {
+    expect(() => auxiliary.validateDryRun(`:app:${name} SKIPPED\n${graph}`)).toThrow('NURI_AUXILIARY_PRODUCT_TASK_FORBIDDEN');
+  });
+
+  test('consolidated dry-run: all forbidden tasks are retained even after an unrecognized diagnostic', () => {
+    const rejected: string[] = [], tasks: string[] = [], diagnostics: unknown[] = [];
+    const output = ':unreviewed_plugin unknown\n:app:packageRelease SKIPPED\n' + graph + '\n:app:assembleRelease SKIPPED\n:app:bundleRelease SKIPPED';
+    expect(() => auxiliary.validateDryRun(output, (task: string) => rejected.push(task), (event: unknown) => diagnostics.push(event), (task: string) => tasks.push(task))).toThrow('NURI_AUXILIARY_PRODUCT_TASK_FORBIDDEN');
+    expect(rejected).toEqual([':app:packageRelease', ':app:assembleRelease', ':app:bundleRelease']);
+    expect(tasks).toContain(':app:assembleReleaseAndroidTest');
+    expect(tasks.at(-1)).toBe(':app:bundleRelease');
+    expect(diagnostics).toEqual([{ project: 'OTHER', category: 'UNRECOGNIZED_COLON_LINE' }]);
+  });
+
+  test('consolidated dry-run: observed RNFB format plus source-proven compilation has a complete bounded plan', () => {
+    const output = [
+      ':react-native-firebase_app package.json found at /fixture/node_modules/@react-native-firebase/app/package.json',
+      ':react-native-firebase_app:android.compileSdk using custom value: 37',
+      ':react-native-firebase_app:reactNativeAndroidDir /fixture/node_modules/react-native',
+      ':react-native-firebase_crashlytics:version set from package.json: 23.8.6 (23,8,6 - 23008006)',
+      ':app:createBundleReleaseJsAndAssets SKIPPED', graph,
+    ].join('\n');
+    const diagnostics: unknown[] = [];
+    const tasks = auxiliary.validateDryRun(output, undefined, (event: unknown) => diagnostics.push(event));
+    expect(tasks).toContain(':app:createBundleReleaseJsAndAssets');
+    expect(tasks).toContain(':app:packageReleaseAndroidTest');
+    expect(diagnostics).toHaveLength(4);
+    expect(JSON.stringify(diagnostics)).not.toContain('/fixture');
+  });
+
+  test.each([
+    graph.replace('BUILD SUCCESSFUL in 1s', ''), graph.replace(':app:assembleReleaseAndroidTest SKIPPED', ''),
+    graph + '\n:app:compileReleaseJavaWithJavac SKIPPED', graph + '\n:app:unknown INVALID_STATE',
+    graph + '\n  :app:packageRelease SKIPPED', graph + '\n> Task :app:packageRelease SKIPPED',
+    graph + '\n:app::packageRelease SKIPPED', graph + '\napp:packageRelease SKIPPED',
+    graph + '\nBUILD FAILED',
+  ])('consolidated dry-run: incomplete, duplicate, unreadable and alternate-renderer plans never pass: %s', (output: string) => {
+    expect(() => auxiliary.validateDryRun(output)).toThrow();
+  });
+
+  test('consolidated dry-run: a rejected full plan keeps safe tasks and never starts the actual build', async () => {
+    mockSource(); mockArtifacts();
+    const spawn = mockGradle([{ code: 0, text: ':app:createBundleReleaseJsAndAssets SKIPPED\n' + graph + '\n:app:packageRelease SKIPPED\n:app:bundleRelease SKIPPED' }]);
+    await expect(auxiliary.runAndroidAuxiliary(root, head, env)).rejects.toThrow('NURI_AUXILIARY_PRODUCT_TASK_FORBIDDEN');
+    expect(spawn).toHaveBeenCalledTimes(1);
+    const parent = path.join(root, '.codex/nuri-walk-real-product-20261020/auxiliary-builds');
+    const receipt = JSON.parse(fs.readFileSync(path.join(parent, fs.readdirSync(parent)[0], 'result.json'), 'utf8'));
+    expect(receipt.rejectedTasks).toEqual([':app:packageRelease', ':app:bundleRelease']);
+    expect(receipt.tasks).toContain(':app:assembleReleaseAndroidTest');
+    expect(receipt.tasks.at(-1)).toBe(':app:bundleRelease');
+    expect(receipt.productUnchanged).toBe(true);
+  });
+
+  test('consolidated dry-run: bracketed native-task diagnostics reveal only a bounded public shape and still fail closed', () => {
+    const diagnostics: unknown[] = [];
+    expect(() => auxiliary.validateDryRun(':react-native-worklets:buildCMakeRelWithDebInfo[arm64-v8a][synthetic_private_target] SKIPPED\n' + graph, undefined, (event: unknown) => diagnostics.push(event))).toThrow('NURI_AUXILIARY_DRY_RUN_MALFORMED');
+    expect(diagnostics).toEqual([{ project: 'OTHER', category: 'UNRECOGNIZED_COLON_LINE', structuralPrefix: 'CMAKE_BUILD', variant: 'RelWithDebInfo', abi: 'arm64-v8a', additionalBracket: true }]);
+    expect(JSON.stringify(diagnostics)).not.toContain('synthetic_private_target');
+  });
+
+  test('consolidated dry-run: nested app producers cannot bypass the package prohibition', () => {
+    expect(() => auxiliary.validateDryRun(':app:subproject:packageRelease SKIPPED\n' + graph)).toThrow('NURI_AUXILIARY_PRODUCT_TASK_FORBIDDEN');
+  });
+
+  test('consolidated dry-run: distinct unreadable native shapes are retained while later product tasks are still found', async () => {
+    mockSource(); mockArtifacts();
+    const output = ':app:configureCMakeRelWithDebInfo[arm64-v8a] SKIPPED\n:app:buildCMakeRelWithDebInfo[arm64-v8a][private_target] SKIPPED\n' + graph + '\n:app:packageRelease SKIPPED';
+    mockGradle([{ code: 0, text: output }]);
+    await expect(auxiliary.runAndroidAuxiliary(root, head, env)).rejects.toThrow('NURI_AUXILIARY_PRODUCT_TASK_FORBIDDEN');
+    const parent = path.join(root, '.codex/nuri-walk-real-product-20261020/auxiliary-builds');
+    const raw = fs.readFileSync(path.join(parent, fs.readdirSync(parent)[0], 'result.json'), 'utf8');
+    const receipt = JSON.parse(raw);
+    expect(receipt.diagnostics).toHaveLength(2);
+    expect(receipt.diagnostics.map((entry: { structuralPrefix: string }) => entry.structuralPrefix)).toEqual(['CMAKE_CONFIGURE', 'CMAKE_BUILD']);
+    expect(receipt.rejectedTasks).toEqual([':app:packageRelease']);
+    expect(raw).not.toContain('private_target');
   });
 
   test.each([0, 1])('nonzero child at phase %s stops, keeps real exit metadata and never retries', async (phase: number) => {
