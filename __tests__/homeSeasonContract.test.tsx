@@ -16,6 +16,7 @@ import {
 import { HomeAmbientBubbleCanvas } from '../src/screens/Main/components/LoggedInHome/HomeAmbientBubbleCanvas';
 import * as calendarSeason from '../src/theme/seasonal/season';
 import type { SeasonKey } from '../src/theme/seasonal/season';
+import { styles as homeStyles } from '../src/screens/Main/components/LoggedInHome/LoggedInHome.styles';
 
 jest.mock('../src/app/ui/AppText', () => 'AppText');
 
@@ -23,6 +24,12 @@ const SEASONS: readonly SeasonKey[] = ['autumn', 'winter', 'spring', 'summer'];
 
 describe('approved Home season contract', () => {
   afterEach(() => jest.restoreAllMocks());
+
+  it('uses the PO-reduced white logo and caption without reducing notification touch', () => {
+    expect(homeStyles.brandWordmark).toMatchObject({ fontSize: 26, lineHeight: 32, color: '#FFFFFF' });
+    expect(homeStyles.heroSeasonCopy).toMatchObject({ fontSize: 14, lineHeight: 20, color: '#FFFFFF' });
+    expect(homeStyles.headerIconBtn).toMatchObject({ width: 48, height: 48 });
+  });
 
   it('changes atmosphere without changing approved glass, remounting content or changing the calendar', async () => {
     jest
@@ -142,7 +149,7 @@ describe('approved Home season contract', () => {
     expect(menu).toContain('onChange={setReviewSeason}');
     expect(menu).toContain('setSeasonOverride(nextSeason).catch(captureMonitoringException)');
     expect(source).not.toContain('SEASONAL_HOME_COPY');
-    const header = source.slice(source.indexOf('const HomeHeaderSection'), source.indexOf('const HeroProfileIdentity'));
+    const header = source.slice(source.indexOf('const HomeHeaderSection'), source.indexOf('const HeroProfileAccordion'));
     expect(header).not.toContain('seasonalCopy');
     expect(header).not.toContain('greetingCopy');
     expect(header).toContain('NURI');
@@ -158,7 +165,7 @@ describe('approved Home season contract', () => {
       'getSeasonalHomeVisual(HOME_FOREGROUND_UI_SEASON)',
     );
     expect(source).toContain('season={ambientSeason}');
-    expect(source).toContain('ambientSeason={ambientSeason}');
+    expect(source).toContain('getHomeHeroSeasonCopy(petName, season');
     expect(source).toContain(
       'season={HOME_FOREGROUND_UI_SEASON}',
     );

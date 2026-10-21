@@ -56,6 +56,7 @@ import ConfirmDialog from '../../components/common/ConfirmDialog';
 import PremiumRewardModal from '../../components/common/PremiumRewardModal';
 import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
 import RecordChoiceGrid from '../../components/records/RecordChoiceGrid';
+import RecordCareFields from '../../components/records/RecordCareFields';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import RecordImageGallery from '../../components/records/RecordImageGallery';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -72,6 +73,8 @@ import {
   parsePositiveRecordNumber,
   parseRecordTags,
   parseRecordPrice,
+  parseOptionalWonPrice,
+  optionalWonPriceError,
   RECORD_EMOTION_OPTIONS,
   RECORD_MAIN_CATEGORIES,
   RECORD_OTHER_SUBCATEGORIES,
@@ -90,7 +93,8 @@ import {
   emptyHealthCareDetails,
   normalizeHealthCareDetails,
   buildMealRecordMetadata,
-  GROOMING_CARE_OPTIONS,
+  filterRecordCareTypes,
+  isRecordCareCategory,
   HEALTH_CONDITION_OPTIONS,
   type GroomingCareType,
   type HealthCondition,
@@ -282,12 +286,14 @@ export default function RecordCreateScreen() {
   const trimmedTitle = useMemo(() => title.trim(), [title]);
   const isMealCategory = mainCategoryKey === 'meal';
   const isHealthCategory = mainCategoryKey === 'health';
-  const isGroomingCategory =
-    mainCategoryKey === 'other' && otherSubCategoryKey === 'grooming';
+  const careCategory = isRecordCareCategory(mainCategoryKey, otherSubCategoryKey) ? otherSubCategoryKey : null;
+  const careExpenseLabel = careCategory === 'bathing' ? '목욕·위생 비용 (원)' : '미용 비용 (원)';
+  const careTypes = careCategory ? filterRecordCareTypes(careCategory, groomingCareTypes) : [];
+  const priceError = careCategory ? optionalWonPriceError(priceText) : null;
   const hasValidCategoryFields =
     (!isMealCategory || hasPositiveRecordNumber(mealAmountText)) &&
     (!isHealthCategory || healthCare.kind !== 'condition' || healthCondition !== null) &&
-    (!isGroomingCategory || groomingCareTypes.length > 0);
+    (!careCategory || careTypes.length > 0);
   const disabled =
     saving ||
     (isGps && !gps.ready) ||
@@ -295,6 +301,7 @@ export default function RecordCreateScreen() {
     !scheduleScopeMatches ||
     trimmedTitle.length === 0 ||
     !petId ||
+    Boolean(priceError) ||
     !hasValidCategoryFields;
   const selectedMainCategory = useMemo(
     () =>
@@ -315,8 +322,8 @@ export default function RecordCreateScreen() {
   );
   const isExpenseCategory = isExpenseRecordCategory(mainCategoryKey, otherSubCategoryKey);
   const priceLabel = useMemo(
-    () => formatRecordPriceLabel(parseRecordPrice(priceText)),
-    [priceText],
+    () => priceError ? '' : formatRecordPriceLabel(careCategory ? parseOptionalWonPrice(priceText) : parseRecordPrice(priceText)),
+    [priceText, priceError, careCategory],
   );
   const formattedDate = useMemo(
     () => formatRecordKoreanDate(occurredAt || todayYmd),
@@ -505,7 +512,11 @@ export default function RecordCreateScreen() {
               ? draft.otherSubCategoryKey ?? initialOtherSubCategoryKey
               : null,
           );
-          setPriceText(normalizeRecordPriceInput(draft.priceText ?? ''));
+          // A restored invalid care-cost draft must stay invalid, never become a different amount.
+          const draftSubCategoryKey = draftMainCategoryKey === 'other'
+            ? draft.otherSubCategoryKey ?? initialOtherSubCategoryKey : null;
+          setPriceText(isRecordCareCategory(draftMainCategoryKey, draftSubCategoryKey)
+            ? draft.priceText ?? '' : normalizeRecordPriceInput(draft.priceText ?? ''));
           setMealAmountText(draft.mealAmountText ?? '');
           setUseDefaultMealAmount(draft.useDefaultMealAmount ?? false);
           setSaveMealAmountAsDefault(draft.saveMealAmountAsDefault ?? false);
@@ -834,6 +845,7 @@ export default function RecordCreateScreen() {
   );
 
   const onSelectMainCategory = useCallback((nextKey: RecordMainCategoryKey) => {
+    if (nextKey !== mainCategoryKey) setPriceText('');
     setMainCategoryKey(nextKey);
     if (nextKey !== 'other') {
       setOtherSubCategoryKey(null);
@@ -849,28 +861,32 @@ export default function RecordCreateScreen() {
       setHealthWeightText('');
     }
     if (nextKey !== 'other') setGroomingCareTypes([]);
-  }, []);
+  }, [mainCategoryKey]);
 
   const onSelectOtherSubCategory = useCallback(
     (nextKey: RecordOtherSubCategoryKey) => {
+      if (nextKey !== otherSubCategoryKey) {
+        setPriceText('');
+        setGroomingCareTypes([]);
+      }
       setMainCategoryKey('other');
       setOtherSubCategoryKey(nextKey);
-      if (nextKey !== 'shopping' && nextKey !== 'hospital') {
+      if (!isExpenseRecordCategory('other', nextKey)) {
         setPriceText('');
       }
-      if (nextKey !== 'grooming') setGroomingCareTypes([]);
     },
-    [],
+    [otherSubCategoryKey],
   );
 
   const clearOtherSubCategory = useCallback(() => {
     setOtherSubCategoryKey(null);
     setPriceText('');
+    setGroomingCareTypes([]);
   }, []);
 
   const onChangePriceText = useCallback((value: string) => {
-    setPriceText(normalizeRecordPriceInput(value));
-  }, []);
+    setPriceText(careCategory ? value : normalizeRecordPriceInput(value));
+  }, [careCategory]);
 
   const onChangeMealAmountText = useCallback((value: string) => {
     setMealAmountText(normalizePositiveIntegerInput(value));
@@ -878,16 +894,6 @@ export default function RecordCreateScreen() {
 
   const onChangeHealthWeightText = useCallback((value: string) => {
     setHealthWeightText(normalizePositiveDecimalInput(value));
-  }, []);
-
-  const onToggleGroomingCareType = useCallback((value: GroomingCareType) => {
-    setGroomingCareTypes(previous => {
-      if (value === 'full_grooming') return ['full_grooming'];
-      const withoutFull = previous.filter(item => item !== 'full_grooming');
-      return withoutFull.includes(value)
-        ? withoutFull.filter(item => item !== value)
-        : [...withoutFull, value];
-    });
   }, []);
 
   const onOpenDateModal = useCallback(() => {
@@ -1005,7 +1011,7 @@ export default function RecordCreateScreen() {
         mainCategoryKey,
         otherSubCategoryKey,
       );
-      const price = isExpenseCategory ? parseRecordPrice(priceText) : null;
+      const price = isExpenseCategory ? (careCategory ? parseOptionalWonPrice(priceText) : parseRecordPrice(priceText)) : null;
       const mealAmount = isMealCategory
         ? parsePositiveRecordNumber(mealAmountText, '급여량')
         : null;
@@ -1021,8 +1027,8 @@ export default function RecordCreateScreen() {
               weightKg: healthWeight,
               care: healthCare,
             })
-          : isGroomingCategory
-          ? buildGroomingRecordMetadata(groomingCareTypes)
+          : careCategory
+          ? buildGroomingRecordMetadata(filterRecordCareTypes(careCategory, groomingCareTypes))
           : null;
 
       const memoryId = await createMemory({
@@ -1263,7 +1269,7 @@ export default function RecordCreateScreen() {
     isExpenseCategory,
     isMealCategory,
     isHealthCategory,
-    isGroomingCategory,
+    careCategory,
     mealAmountText,
     mainCategoryKey,
     otherSubCategoryKey,
@@ -1527,7 +1533,7 @@ export default function RecordCreateScreen() {
         {isExpenseCategory ? (
           <View style={styles.field}>
             <AppText preset="unifiedBody" style={styles.fieldLabel}>
-              {isShoppingCategory ? '구매 가격 (선택)' : '병원·건강 비용 (선택)'}
+              {careCategory ? careExpenseLabel : isShoppingCategory ? '구매 가격 (선택)' : '병원·건강 비용 (선택)'}
             </AppText>
             <AppTextInput
               style={styles.input}
@@ -1537,9 +1543,13 @@ export default function RecordCreateScreen() {
               placeholder="예: 25000"
               placeholderTextColor="#8A94A6"
               keyboardType="number-pad"
+              accessibilityLabel={careCategory ? careExpenseLabel : undefined}
+              testID="record-create-price"
               editable={!saving}
             />
-            {priceLabel ? (
+            {priceError ? (
+              <AppText accessibilityRole="alert" preset="unifiedMeta" style={styles.helperText}>{priceError}</AppText>
+            ) : priceLabel ? (
               <AppText preset="unifiedMeta" style={styles.helperText}>
                 저장 예정 금액: {priceLabel}
               </AppText>
@@ -1673,19 +1683,8 @@ export default function RecordCreateScreen() {
           </View>
         ) : null}
 
-        {isGroomingCategory ? (
-          <View style={styles.field}>
-            <AppText preset="unifiedBody" style={styles.fieldLabel}>
-              관리 항목 (1개 이상)
-            </AppText>
-            <RecordChoiceGrid
-              options={GROOMING_CARE_OPTIONS.map(option => ({ key: option.value, label: option.label }))}
-              selected={groomingCareTypes}
-              onSelect={onToggleGroomingCareType}
-              multiple
-              disabled={saving}
-            />
-          </View>
+        {careCategory ? (
+          <RecordCareFields category={careCategory} selected={careTypes} onChange={setGroomingCareTypes} disabled={saving} />
         ) : null}
 
         {!isHealthCategory ? (

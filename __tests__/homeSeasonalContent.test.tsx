@@ -22,6 +22,7 @@ import {
   buildPetThemePalette,
 } from '../src/services/pets/themePalette';
 import { HOME_SEASONAL_BACKGROUND_GRADIENTS } from '../src/theme/home/seasonalAmbient';
+import { HOME_HERO_COLORS, HOME_HERO_ACCENT } from '../src/theme/home/heroLayout';
 import type { PetCareGuide } from '../src/services/guides/types';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 
@@ -70,6 +71,7 @@ function content(season?: SeasonKey, petTheme = NEUTRAL_UI_PALETTE) {
     <ThemeProvider theme={createTheme('light')}>
       <HomeSeasonProvider season="autumn" headingSeason={season}>
         <HomeHeroInfoPanel
+          containerWidth={384}
           petTheme={petTheme}
           profilePetName="누리"
           titleBadge="산책 새싹"
@@ -132,7 +134,10 @@ function content(season?: SeasonKey, petTheme = NEUTRAL_UI_PALETTE) {
 
 function text(renderer: TestRenderer.ReactTestRenderer, copy: string) {
   return renderer.root.findAll(
-    node => String(node.type) === 'AppText' && node.props.children === copy,
+    node => String(node.type) === 'AppText' &&
+      React.Children.toArray(node.props.children)
+        .filter(child => typeof child === 'string' || typeof child === 'number')
+        .join('') === copy,
   )[0];
 }
 function color(renderer: TestRenderer.ReactTestRenderer, copy: string) {
@@ -192,7 +197,7 @@ describe('Home muted seasonal content, not a global body or CTA tint', () => {
           color: undefined,
         },
       }));
-      const cta = color(renderer, '프로필 수정하기');
+      const cta = color(renderer, '누리 더 알아보기');
       const caption = color(renderer, guide.summary);
       await act(async () => renderer.update(content(season)));
       for (const { copy, style } of typography) {
@@ -202,9 +207,9 @@ describe('Home muted seasonal content, not a global body or CTA tint', () => {
           color: undefined,
         }).toEqual(style);
       }
-      expect(color(renderer, '프로필 수정하기')).toBe(cta);
-      expect(color(renderer, '누리')).toBe(NEUTRAL_UI_PALETTE.primary);
-      expect(color(renderer, '산책 새싹')).toBe(NEUTRAL_UI_PALETTE.primary);
+      expect(color(renderer, '누리 더 알아보기')).toBe(cta);
+      expect(color(renderer, '누리')).toBe(HOME_HERO_COLORS.ink);
+      expect(color(renderer, '산책 새싹')).toBe(HOME_HERO_ACCENT.primary);
       expect(color(renderer, guide.summary)).toBe(caption);
       expect(color(renderer, '건강 기록 설명')).toBe(
         createTheme('light').colors.textMuted,
@@ -213,13 +218,13 @@ describe('Home muted seasonal content, not a global body or CTA tint', () => {
         createTheme('light').colors.textMuted,
       );
       await act(async () => renderer.update(content()));
-      expect(color(renderer, '누리')).toBe(NEUTRAL_UI_PALETTE.primary);
+      expect(color(renderer, '누리')).toBe(HOME_HERO_COLORS.ink);
       await act(async () => renderer.unmount());
     },
   );
 
   it.each(['#6D6AF8', '#14B8A6'])(
-    'uses Hero user theme %s for the title, pet name and together-time, independently of seasons',
+    'keeps the fixed Hero purple despite pet theme %s and season changes',
     async themeColor => {
       const petTheme = buildPetThemePalette(themeColor);
       let renderer!: TestRenderer.ReactTestRenderer;
@@ -228,24 +233,22 @@ describe('Home muted seasonal content, not a global body or CTA tint', () => {
       });
       for (const season of Object.keys(COLORS) as SeasonKey[]) {
         await act(async () => renderer.update(content(season, petTheme)));
-        expect(color(renderer, '누리')).toBe(themeColor);
-        expect(color(renderer, '산책 새싹')).toBe(themeColor);
+        expect(color(renderer, '누리')).toBe(HOME_HERO_COLORS.ink);
+        expect(color(renderer, '산책 새싹')).toBe(HOME_HERO_ACCENT.primary);
         const together = renderer.root.findByProps({
           testID: 'home-hero-together',
         });
         const texts = together.findAll(node => String(node.type) === 'AppText');
-        expect(texts).toHaveLength(3);
-        for (const item of texts)
-          expect(StyleSheet.flatten(item.props.style).color).toBe(themeColor);
+        expect(texts).toHaveLength(2);
+        expect(StyleSheet.flatten(texts[0].props.style).color).toBe(HOME_HERO_COLORS.muted);
+        expect(StyleSheet.flatten(texts[1].props.style).color).toBe(HOME_HERO_ACCENT.primary);
         expect(color(renderer, TODAY_HOME_TIP.title)).toBe(COLORS[season]);
-        expect(color(renderer, '프로필 수정하기')).toBe(
-          NEUTRAL_UI_PALETTE.primary,
-        );
+        expect(color(renderer, '누리 더 알아보기')).toBe(HOME_HERO_COLORS.ink);
       }
       const nextTheme = buildPetThemePalette('#EC4899');
       await act(async () => renderer.update(content('winter', nextTheme)));
-      expect(color(renderer, '누리')).toBe(nextTheme.primary);
-      expect(color(renderer, '산책 새싹')).toBe(nextTheme.primary);
+      expect(color(renderer, '누리')).toBe(HOME_HERO_COLORS.ink);
+      expect(color(renderer, '산책 새싹')).toBe(HOME_HERO_ACCENT.primary);
       await act(async () => renderer.unmount());
     },
   );

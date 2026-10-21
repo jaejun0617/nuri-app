@@ -94,9 +94,9 @@ describe('CTA source safety guards', () => {
     expect(
       elements(
         'src/components/pets/PetDeleteConfirmDialog.tsx',
-        'CtaButton',
+        'TouchableOpacity',
       ).find(n => n.includes('pet-delete-confirm')),
-    ).toContain('role="destructiveConfirm"');
+    ).toContain('styles.delete');
   });
   it('preserves first-pet shared creation and protected screens', () => {
     const files = (directory: string): string[] =>
@@ -134,10 +134,11 @@ describe('CTA source safety guards', () => {
       'CtaButton',
     );
     const managementCard = read('src/components/pets/PetManagementCard.tsx');
-    expect(managementCard).toContain('{pet.name}');
-    expect(managementCard).toContain('theme.colors.textPrimary');
-    expect(managementCard).toContain("role: 'primarySubtle'");
-    expect(managementCard).toContain('useEffectiveSeason()');
+    // PO 2026-10-21 explicitly exempts this reference-matched screen from season CTA colors.
+    expect(managementCard).toContain('getPetDisplayName(pet.name)');
+    expect(managementCard).toContain('colors.ink');
+    expect(managementCard).toContain('colors.subtle');
+    expect(managementCard).not.toContain('useEffectiveSeason()');
     expect(managementCard).not.toContain('buildPetThemePalette');
     expect(read('src/screens/Pets/PetProfileEditScreen.tsx')).toContain(
       'buildPetThemePalette(selectedThemeColor)',

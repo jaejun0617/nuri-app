@@ -49,8 +49,11 @@ describe('glass form and expense integration contracts', () => {
     for (const screen of ['RecordCreateScreen', 'RecordEditScreen']) {
       const text = source(`src/screens/Records/${screen}.tsx`);
       expect(text).toContain(
-        'isExpenseCategory ? parseRecordPrice(priceText) : null',
+        'parseOptionalWonPrice(priceText) : parseRecordPrice(priceText)',
       );
+      // Payload behavior (invalid/zero/blank/multi-care/legacy) is exercised by groomingRecordFlow.
+      expect(text).toContain('미용 비용 (원)');
+      expect(text).toContain('목욕·위생 비용 (원)');
       expect(text).toContain('병원·건강 비용 (선택)');
     }
   });
@@ -66,7 +69,7 @@ describe('glass form and expense integration contracts', () => {
       'name="MonthlyExpenses"',
     );
     const screen = source('src/screens/Records/MonthlyExpensesScreen.tsx');
-    expect(screen).toMatch(/navigation\.navigate\('RecordDetail',\s*\{\s*petId: item\.petId,\s*memoryId: item\.id,?\s*\}\)/);
+    expect(screen).toMatch(/navigation\.navigate\('RecordDetail',\s*\{\s*petId: row\.item\.petId,\s*memoryId: row\.item\.id,?\s*\}\)/);
     expect(screen).not.toContain("entrySource: 'home'");
   });
   it('uses a glass reminder notice without adding a server write for a past alarm', () => {

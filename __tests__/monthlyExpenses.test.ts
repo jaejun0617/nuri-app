@@ -88,7 +88,10 @@ describe('account-wide monthly recorded expenses', () => {
     expect(isExpenseRecordCategory('other', 'hospital')).toBe(true);
     expect(isExpenseRecordCategory('other', 'shopping')).toBe(true);
     expect(isExpenseRecordCategory('diary', null)).toBe(false);
-    expect(expenseKind('other', 'grooming')).toBeNull();
+    expect(expenseKind('other', 'grooming')).toBe('grooming');
+    expect(expenseKind('other', 'bathing')).toBe('grooming');
+    expect(isExpenseRecordCategory('other', 'grooming')).toBe(true);
+    expect(isExpenseRecordCategory('other', 'bathing')).toBe(true);
   });
   it('reads every keyset page under owner RLS, using date boundaries and KST legacy dates', async () => {
     mockPages.push(
@@ -130,6 +133,14 @@ describe('account-wide monthly recorded expenses', () => {
     await expect(fetchMonthlyExpenses('qa-user', '2026-10')).rejects.toThrow(
       '지출 기록',
     );
+  });
+  it('counts paid bathing in grooming exactly once while keeping its stored category', async () => {
+    mockPages.push([row('bath', { sub_category: 'bathing', price: 23000 })], []);
+    const result = await fetchMonthlyExpenses('qa-user', '2026-10');
+    expect(result.grooming).toBe(23000);
+    expect(result.total).toBe(23000);
+    expect(result.items).toEqual([expect.objectContaining({ id: 'bath', kind: 'grooming', price: 23000 })]);
+    expect(summarizeExpenses([...result.items, ...result.items]).total).toBe(23000);
   });
   it('rejects non-advancing pages and invalid month/auth boundaries', async () => {
     mockPages.push([row('01')], [row('01')]);

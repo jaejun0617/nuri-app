@@ -1,23 +1,32 @@
-import CtaButton, { CtaText } from '../../app/ui/CtaButton';
-import React, { memo, useCallback, useMemo, useState } from 'react';
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
+  AccessibilityInfo,
   Alert,
+  findNodeHandle,
   FlatList,
   StyleSheet,
   TouchableOpacity,
+  useWindowDimensions,
   View,
   type ListRenderItem,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Feather from '../../components/icons/NuriFeatherIcon';
-import { useTheme } from 'styled-components/native';
-
 import AppText from '../../app/ui/AppText';
-import { spacing } from '../../app/theme/tokens/spacing';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
-import PetDeleteConfirmDialog from '../../components/pets/PetDeleteConfirmDialog';
+import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
+import PetDeleteConfirmDialog, {
+  isPetDeleteConfirmationReady,
+  type PetDeleteConfirmation,
+} from '../../components/pets/PetDeleteConfirmDialog';
 import PetManagementCard from '../../components/pets/PetManagementCard';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -26,7 +35,6 @@ import {
   captureMonitoringException,
   captureMonitoringMessage,
 } from '../../services/monitoring/sentry';
-import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
 import {
   deletePetSafely,
   fetchMyPets,
@@ -37,317 +45,309 @@ import { useAuthStore } from '../../store/authStore';
 import { useRecordStore } from '../../store/recordStore';
 import { useScheduleStore } from '../../store/scheduleStore';
 import { openMoreDrawer, showToast } from '../../store/uiStore';
+import {
+  PET_MANAGEMENT_COLORS as colors,
+  PET_MANAGEMENT_TYPE as type,
+  getPetManagementLayout,
+} from '../../theme/pets/management';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'PetManagement'>;
 type Route = RootScreenRoute<'PetManagement'>;
-
-const keyExtractor = (item: Pet) => item.id;
-
-const ItemSeparator = memo(function ItemSeparator() {
-  return <View style={styles.itemSeparator} />;
-});
-
-const EmptyPetState = memo(function EmptyPetState({
-  onPressAdd,
-  accentColor,
-  accentTextColor: _accentTextColor,
-}: {
-  onPressAdd: () => void;
-  accentColor: string;
-  accentTextColor: string;
-}) {
-  return (
-    <View style={styles.emptyWrap}>
-      <View
-        style={[styles.emptyIconWrap, { backgroundColor: `${accentColor}14` }]}
-      >
-        <Feather name="heart" size={22} color={accentColor} />
-      </View>
-      <AppText
-        typographyRole="celebration"
-        preset="unifiedTitle"
-        style={styles.emptyTitle}
-      >
-        아직 등록된 아이가 없어요
-      </AppText>
-      <AppText preset="unifiedBody" style={styles.emptyBody}>
-        아이를 등록하면 홈과 기록, 일정에서 함께 관리할 수 있어요.
-      </AppText>
-      <CtaButton
-        role="primary"
-        activeOpacity={0.92}
-        style={[styles.addButton, {}]}
-        onPress={onPressAdd}
-      >
-        <CtaText
-          preset="unifiedBody"
-          styleOverridesPreset
-          style={styles.addButtonText}
-        >
-          아이 등록하기
-        </CtaText>
-      </CtaButton>
-    </View>
-  );
+const keyExtractor = (pet: Pet) => pet.id;
+const Separator = memo(function PetManagementSeparator() {
+  return <View style={styles.separator} />;
 });
 
 export default function PetManagementScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
-  const theme = useTheme();
-
+  const window = useWindowDimensions();
+  const [containerWidth, setContainerWidth] = useState(window.width);
+  const layout = getPetManagementLayout(containerWidth);
+  const backRef = useRef<React.ComponentRef<typeof TouchableOpacity> | null>(
+    null,
+  );
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
   const selectPet = usePetStore(s => s.selectPet);
   const setPets = usePetStore(s => s.setPets);
   const [deleteTarget, setDeleteTarget] = useState<Pet | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const [lastPetGuardVisible, setLastPetGuardVisible] = useState(false);
-
-  const accentPalette = NEUTRAL_UI_PALETTE;
+  const requestInFlight = useRef(false);
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   const onPressBack = useEntryAwareBackAction({
     entrySource: route.params?.entrySource,
-    onHome: () => {
+    onHome: () =>
       navigation.reset({
         index: 0,
         routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
-      });
-    },
+      }),
     onMore: () => {
       navigation.goBack();
-      requestAnimationFrame(() => {
-        openMoreDrawer();
-      });
+      requestAnimationFrame(() => openMoreDrawer());
     },
-    onFallback: () => {
-      navigation.goBack();
-    },
+    onFallback: () => navigation.goBack(),
   });
-
-  const handleSelect = useCallback(
-    (petId: string) => {
-      selectPet(petId);
-    },
-    [selectPet],
-  );
-
+  const handleSelect = useCallback((id: string) => selectPet(id), [selectPet]);
   const handleEdit = useCallback(
-    (petId: string) => {
+    (id: string) => {
       navigation.navigate('PetProfileEdit', {
-        petId,
-        // Editing returns to this list, not the list's original Home/More entry.
+        petId: id,
         entrySource: 'stack',
       });
     },
     [navigation],
   );
-
+  const handleAddPet = useCallback(
+    () => navigation.navigate('PetCreate', { from: 'header_plus' }),
+    [navigation],
+  );
+  const cancelDelete = useCallback(() => {
+    if (requestInFlight.current) return;
+    setDeleteTarget(null);
+    setDeleteError(null);
+    requestAnimationFrame(() => {
+      const tag = findNodeHandle(backRef.current);
+      if (tag) AccessibilityInfo.setAccessibilityFocus(tag);
+    });
+  }, []);
   const handleDelete = useCallback(
-    (petId: string) => {
-      if (deleting) return;
+    (id: string) => {
+      if (requestInFlight.current) return;
       if (pets.length <= 1) {
         setLastPetGuardVisible(true);
         return;
       }
-
-      const target = pets.find(pet => pet.id === petId) ?? null;
+      const target = pets.find(pet => pet.id === id);
       if (!target) {
         Alert.alert('삭제할 수 없어요', '아이 프로필을 다시 확인해 주세요.');
         return;
       }
-
+      setDeleteError(null);
       setDeleteTarget(target);
     },
-    [deleting, pets],
+    [pets],
   );
 
-  const executeDeletePet = useCallback(async () => {
-    if (!deleteTarget || deleting) return;
-
-    setDeleting(true);
-    try {
-      const result = await deletePetSafely(deleteTarget.id);
-      if (useAuthStore.getState().session?.user.id !== result.userId) return;
-      const localRemainingPets = pets.filter(
-        candidate => candidate.id !== deleteTarget.id,
-      );
-
-      useRecordStore.getState().clearPet(deleteTarget.id);
-      useScheduleStore.getState().clearPet(deleteTarget.id);
-      setPets(localRemainingPets, { userId: result.userId });
-
+  const executeDeletePet = useCallback(
+    async (confirmation: PetDeleteConfirmation) => {
+      const target = deleteTarget;
+      if (
+        !target ||
+        confirmation.petId !== target.id ||
+        requestInFlight.current ||
+        !isPetDeleteConfirmationReady(
+          confirmation.consentChecked,
+          confirmation.confirmationText,
+        )
+      )
+        return;
+      const ownerId = useAuthStore.getState().session?.user.id;
+      if (!ownerId) {
+        setDeleteError(
+          '로그인이 잠시 끊어졌어요. 다시 로그인한 뒤 시도해 주세요.',
+        );
+        return;
+      }
+      requestInFlight.current = true;
+      setDeleting(true);
+      setDeleteError(null);
       try {
-        const refreshedPets = await fetchMyPets(result.userId);
-        if (useAuthStore.getState().session?.user.id === result.userId) setPets(refreshedPets, { userId: result.userId });
-      } catch (refreshError) {
-        captureMonitoringException(refreshError);
+        const result = await deletePetSafely(target.id);
+        if (
+          useAuthStore.getState().session?.user.id !== result.userId ||
+          result.userId !== ownerId
+        )
+          return;
+        // Only successful deletion changes the list. Preserve the store's current selection/fallback policy.
+        const remaining = usePetStore
+          .getState()
+          .pets.filter(candidate => candidate.id !== target.id);
+        useRecordStore.getState().clearPet(target.id);
+        useScheduleStore.getState().clearPet(target.id);
+        setPets(remaining, { userId: result.userId });
+        try {
+          const refreshed = await fetchMyPets(result.userId);
+          if (useAuthStore.getState().session?.user.id === result.userId)
+            setPets(refreshed, { userId: result.userId });
+        } catch (error) {
+          captureMonitoringException(error);
+        }
+        if (!mounted.current) return;
+        setDeleteTarget(null);
+        if (result.walkCleanupPending) {
+          showToast({
+            tone: 'warning',
+            title: '프로필은 삭제됐어요',
+            message: '기기에 남은 산책 정보 정리를 다시 시도할게요.',
+            durationMs: 3200,
+          });
+        } else if (result.storageCleanup.failedBuckets.length > 0) {
+          captureMonitoringMessage('pet_delete_storage_cleanup_pending', {
+            level: 'warning',
+            extras: { failedBuckets: result.storageCleanup.failedBuckets },
+          });
+          showToast({
+            tone: 'warning',
+            title: '프로필은 삭제됐어요',
+            message: '일부 사진 파일 정리를 완료하지 못했어요.',
+            durationMs: 3200,
+          });
+        } else {
+          showToast({
+            tone: 'success',
+            title: '프로필을 삭제했어요',
+            message: `${target.name} 프로필이 목록에서 정리됐어요.`,
+          });
+        }
+      } catch (error) {
+        captureMonitoringException(error);
+        if (
+          mounted.current &&
+          useAuthStore.getState().session?.user.id === ownerId
+        )
+          setDeleteError(getPetDeleteErrorMessage(error));
+      } finally {
+        requestInFlight.current = false;
+        if (mounted.current) setDeleting(false);
       }
-
-      setDeleteTarget(null);
-
-      if (result.walkCleanupPending) {
-        showToast({ tone: 'warning', title: '프로필은 삭제됐어요', message: '기기에 남은 산책 정보 정리를 다시 시도할게요.', durationMs: 3200 });
-      } else if (result.storageCleanup.failedBuckets.length > 0) {
-        captureMonitoringMessage('pet_delete_storage_cleanup_pending', {
-          level: 'warning',
-          tags: { petId: deleteTarget.id },
-          extras: { failedBuckets: result.storageCleanup.failedBuckets },
-        });
-        showToast({
-          tone: 'warning',
-          title: '프로필은 삭제됐어요',
-          message: '일부 사진 파일 정리를 완료하지 못했어요.',
-          durationMs: 3200,
-        });
-      } else {
-        showToast({
-          tone: 'success',
-          title: '프로필을 삭제했어요',
-          message: `${deleteTarget.name} 프로필이 목록에서 정리됐어요.`,
-        });
-      }
-    } catch (error) {
-      captureMonitoringException(error);
-      Alert.alert(
-        '아이 프로필을 삭제하지 못했어요',
-        getPetDeleteErrorMessage(error),
-      );
-    } finally {
-      setDeleting(false);
-    }
-  }, [deleteTarget, deleting, pets, setPets]);
-
-  const handleAddPet = useCallback(() => {
-    navigation.navigate('PetCreate', { from: 'header_plus' });
-  }, [navigation]);
+    },
+    [deleteTarget, setPets],
+  );
 
   const renderItem = useCallback<ListRenderItem<Pet>>(
     ({ item }) => (
       <PetManagementCard
         pet={item}
+        availableWidth={containerWidth}
         isSelected={item.id === selectedPetId}
         onPressSelect={handleSelect}
         onPressEdit={handleEdit}
         onPressDelete={handleDelete}
       />
     ),
-    [handleDelete, handleEdit, handleSelect, selectedPetId],
+    [containerWidth, handleDelete, handleEdit, handleSelect, selectedPetId],
   );
-
-  const footer = useMemo(
-    () =>
-      pets.length > 0 ? (
-        <CtaButton
-          role="primary"
-          activeOpacity={0.92}
-          style={[styles.addButton, styles.footerAddButton, {}]}
-          onPress={handleAddPet}
-        >
-          <CtaText
-            preset="unifiedBody"
-            styleOverridesPreset
-            style={styles.addButtonText}
-          >
-            + 아이 등록하기
-          </CtaText>
-        </CtaButton>
-      ) : null,
-    [handleAddPet, pets.length],
-  );
-
-  const emptyComponent = useMemo(
+  const addButton = useMemo(
     () => (
-      <EmptyPetState
-        onPressAdd={handleAddPet}
-        accentColor={accentPalette.primary}
-        accentTextColor={accentPalette.onPrimary}
-      />
+      <TouchableOpacity
+        testID="pet-management-add"
+        accessibilityRole="button"
+        style={styles.add}
+        activeOpacity={0.85}
+        onPress={handleAddPet}
+      >
+        <AppText preset="button" style={styles.addText}>
+          + 아이 등록하기
+        </AppText>
+      </TouchableOpacity>
     ),
-    [accentPalette.onPrimary, accentPalette.primary, handleAddPet],
+    [handleAddPet],
   );
-
-  const subtitle =
-    pets.length > 0
-      ? `우리 아이 ${pets.length}마리`
-      : '등록한 아이들을 한곳에서 관리할 수 있어요.';
 
   return (
     <View
       testID="pet-management-screen"
-      style={[
-        styles.screen,
-        {
-          backgroundColor: theme.colors.background,
-          paddingBottom: insets.bottom,
-        },
-      ]}
+      style={[styles.screen, { paddingBottom: insets.bottom }]}
+      onLayout={event => setContainerWidth(event.nativeEvent.layout.width)}
     >
       <View
-        style={[
-          styles.header,
-          {
-            paddingTop: Math.max(insets.top + 8, 18),
-            backgroundColor: theme.colors.background,
-          },
-        ]}
+        style={styles.content}
+        accessibilityElementsHidden={Boolean(deleteTarget)}
+        importantForAccessibility={
+          deleteTarget ? 'no-hide-descendants' : 'auto'
+        }
       >
-        <TouchableOpacity
-          activeOpacity={0.88}
-          style={styles.backButton}
-          accessibilityRole="button"
-          accessibilityLabel="뒤로가기"
-          onPress={onPressBack}
+        <View
+          style={[
+            styles.header,
+            {
+              paddingTop: Math.max(insets.top + 8, 18),
+              paddingHorizontal: layout.pageInset,
+            },
+          ]}
         >
-          <Feather
-            name="arrow-left"
-            size={20}
-            color={theme.colors.textPrimary}
-          />
-        </TouchableOpacity>
-
-        <View style={styles.headerTextWrap}>
-          <AppText
-            typographyRole="screenTitle"
-            preset="unifiedTitle"
-            styleOverridesPreset
-            style={[styles.title, { color: theme.colors.textPrimary }]}
-          >
-            아이들 프로필 관리
-          </AppText>
-          <AppText
-            preset="unifiedMeta"
-            styleOverridesPreset
-            style={[styles.subtitle, { color: theme.colors.textSecondary }]}
-          >
-            {subtitle}
+          <View style={styles.headerRow}>
+            <TouchableOpacity
+              ref={backRef}
+              testID="pet-management-back"
+              accessibilityRole="button"
+              accessibilityLabel="뒤로가기"
+              style={styles.back}
+              onPress={onPressBack}
+            >
+              <NuriSemanticIcon
+                family="feather"
+                name="arrow-left"
+                preserveOriginal
+                size={24}
+                color={colors.ink}
+              />
+            </TouchableOpacity>
+            <AppText preset="title1" style={styles.title}>
+              아이들 프로필 관리
+            </AppText>
+          </View>
+          <AppText preset="body" style={styles.count}>
+            우리 아이{' '}
+            <AppText preset="body" style={styles.countAccent}>
+              {pets.length}마리
+            </AppText>
           </AppText>
         </View>
+        <FlatList
+          testID="pet-management-list"
+          data={pets}
+          extraData={selectedPetId}
+          keyExtractor={keyExtractor}
+          renderItem={renderItem}
+          contentContainerStyle={[
+            styles.list,
+            { paddingHorizontal: layout.pageInset },
+          ]}
+          ItemSeparatorComponent={Separator}
+          ListFooterComponent={pets.length > 0 ? addButton : undefined}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <NuriSemanticIcon
+                family="feather"
+                name="heart"
+                preserveOriginal
+                size={28}
+                color={colors.accent}
+              />
+              <AppText preset="titleMd" style={styles.emptyTitle}>
+                아직 등록된 아이가 없어요
+              </AppText>
+              <AppText preset="bodySm" style={styles.emptyBody}>
+                아이를 등록하면 홈과 기록, 일정에서 함께 관리할 수 있어요.
+              </AppText>
+              {addButton}
+            </View>
+          }
+        />
       </View>
-
-      <FlatList
-        data={pets}
-        keyExtractor={keyExtractor}
-        renderItem={renderItem}
-        contentContainerStyle={[
-          styles.listContent,
-          { paddingBottom: insets.bottom + spacing.xl },
-        ]}
-        ItemSeparatorComponent={ItemSeparator}
-        ListEmptyComponent={emptyComponent}
-        ListFooterComponent={footer ?? undefined}
-        showsVerticalScrollIndicator={false}
-      />
-
       {deleteTarget ? (
         <PetDeleteConfirmDialog
+          key={deleteTarget.id}
           visible
           pet={deleteTarget}
           deleting={deleting}
-          onCancel={() => setDeleteTarget(null)}
-          onConfirm={() => {
-            executeDeletePet().catch(() => {});
+          errorMessage={deleteError}
+          onCancel={cancelDelete}
+          onConfirm={confirmation => {
+            executeDeletePet(confirmation).catch(() => {});
           }}
         />
       ) : null}
@@ -367,92 +367,60 @@ export default function PetManagementScreen() {
     </View>
   );
 }
-
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-  },
-  header: {
-    paddingHorizontal: 18,
-    paddingBottom: 14,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 8,
-  },
-  backButton: {
+  screen: { flex: 1, backgroundColor: colors.canvas },
+  content: { flex: 1 },
+  header: { paddingBottom: 8 },
+  headerRow: { flexDirection: 'row', alignItems: 'center' },
+  back: {
     width: 48,
     height: 48,
-    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  headerTextWrap: {
-    flex: 1,
-    gap: 6,
-    paddingTop: 3,
   },
   title: {
-    fontSize: 18,
-    lineHeight: 26,
-    fontWeight: '700',
-  },
-  subtitle: {
-    fontSize: 12,
-    lineHeight: 18,
-  },
-  listContent: {
-    paddingHorizontal: 18,
-    paddingTop: 4,
-    flexGrow: 1,
-  },
-  itemSeparator: {
-    height: 12,
-  },
-  emptyWrap: {
+    ...type.managementTitle,
     flex: 1,
-    minHeight: 360,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 28,
+    color: colors.ink,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
-  emptyIconWrap: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 18,
+  count: {
+    ...type.count,
+    color: colors.muted,
+    marginLeft: 48,
+    marginTop: -3,
+    paddingVertical: 0,
+    includeFontPadding: false,
   },
-  emptyTitle: {
-    textAlign: 'center',
-    fontWeight: '900',
-    color: '#182133',
-  },
-  emptyBody: {
-    marginTop: 10,
-    textAlign: 'center',
-    color: '#7C889A',
-    lineHeight: 22,
-  },
-  addButton: {
-    minHeight: 48,
-    borderRadius: 8,
+  countAccent: { ...type.count, color: colors.accent },
+  list: { flexGrow: 1, paddingTop: 0, paddingBottom: 24 },
+  separator: { height: 14 },
+  add: {
+    minHeight: 56,
+    borderRadius: 13,
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 18,
-    marginTop: 20,
-    shadowColor: '#000000',
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 2,
+    paddingVertical: 14,
+    marginTop: 16,
+    backgroundColor: colors.accent,
   },
-  footerAddButton: {
-    marginTop: 18,
+  addText: {
+    ...type.add,
+    color: colors.white,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
   },
-  addButtonText: {
-    fontSize: 13,
-    lineHeight: 20,
-    fontWeight: '600',
+  empty: {
+    flex: 1,
+    minHeight: 300,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+    gap: 12,
   },
+  emptyTitle: { ...type.title, color: colors.ink, textAlign: 'center' },
+  emptyBody: { ...type.dialogBody, color: colors.muted, textAlign: 'center' },
 });

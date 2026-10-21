@@ -124,6 +124,7 @@ function CustomTabBar(
   return (
     <AppNavigationToolbar
       activeKey={activeKey}
+      homeHero={activeKey === 'home'}
       onPressActiveHome={onPressActiveHome}
       onNavigateTab={onNavigateTab}
       onLayout={props.onToolbarLayout}

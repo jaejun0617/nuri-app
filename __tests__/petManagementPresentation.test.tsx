@@ -1,40 +1,54 @@
 import React from 'react';
-import { Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import TestRenderer from 'react-test-renderer';
+import * as Native from 'react-native';
+import {
+  FlatList,
+  Image,
+  Modal,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
+} from 'react-native';
+import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
-
 import { createTheme } from '../src/app/theme/theme';
-import { SEASON_CTA } from '../src/app/theme/ctaPalette';
-import CtaButton from '../src/app/ui/CtaButton';
-import { HOME_FLOATING_WIDGET_MATERIAL } from '../src/components/home/HomeWidgetMaterial';
-import PetDeleteConfirmDialog from '../src/components/pets/PetDeleteConfirmDialog';
+import PetDeleteConfirmDialog, {
+  type PetDeleteConfirmation,
+} from '../src/components/pets/PetDeleteConfirmDialog';
 import PetManagementCard from '../src/components/pets/PetManagementCard';
+import PetDeletionRecoveryMarker from '../src/components/pets/PetDeletionRecoveryMarker';
 import PetManagementScreen from '../src/screens/Pets/PetManagementScreen';
 import { formatPetAgeLabelFromBirthDate } from '../src/services/pets/age';
-import { deletePetSafely, fetchMyPets } from '../src/services/supabase/pets';
+import {
+  deletePetSafely,
+  fetchMyPets,
+  getPetDeleteErrorMessage,
+} from '../src/services/supabase/pets';
 import { useAuthStore } from '../src/store/authStore';
 import { usePetStore, type Pet } from '../src/store/petStore';
-import type { SeasonKey } from '../src/theme/seasonal/season';
+import {
+  PET_MANAGEMENT_TYPE as type,
+  getPetManagementLayout,
+  getPetDeleteLayout,
+} from '../src/theme/pets/management';
 import { diffDaysFromKst } from '../src/utils/date';
-
-let mockSeason: SeasonKey = 'autumn';
-jest.mock('../src/app/providers/SeasonPreferenceProvider', () => ({
-  useEffectiveSeason: () => mockSeason,
-}));
 
 const mockNavigation = {
   navigate: jest.fn(),
   goBack: jest.fn(),
   reset: jest.fn(),
 };
+let mockDimensions = { width: 393, height: 852, scale: 3, fontScale: 1 };
+jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
+  __esModule: true,
+  default: () => mockDimensions,
+}));
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
   useNavigation: () => mockNavigation,
   useRoute: () => ({ params: { entrySource: 'more' } }),
-  useFocusEffect: (callback: () => void | (() => void)) => {
-    const runtime = jest.requireActual('react') as typeof React;
-    runtime.useEffect(callback, [callback]);
-  },
+  useFocusEffect: jest.fn(),
 }));
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
@@ -43,13 +57,21 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('../src/services/supabase/pets', () => ({
   deletePetSafely: jest.fn(),
   fetchMyPets: jest.fn(),
-  getPetDeleteErrorMessage: jest.fn(),
+  getPetDeleteErrorMessage: jest.fn(() => '잠시 후 다시 시도해 주세요.'),
 }));
-
+jest.mock('../src/services/monitoring/sentry', () => ({
+  captureMonitoringException: jest.fn(),
+  captureMonitoringMessage: jest.fn(),
+}));
+jest.mock('../src/store/uiStore', () => ({
+  ...jest.requireActual('../src/store/uiStore'),
+  showToast: jest.fn(),
+  openMoreDrawer: jest.fn(),
+}));
 const pet: Pet = {
-  id: 'pet-card-fixture',
-  name: '누리',
-  avatarUrl: 'https://example.test/pet.jpg',
+  id: 'fixture-a',
+  name: '샘플 A',
+  avatarUrl: 'https://example.test/a.jpg',
   birthDate: '2020-03-01',
   adoptionDate: '2020-03-02',
   species: 'dog',
@@ -58,565 +80,524 @@ const pet: Pet = {
   weightKg: 6,
   gender: 'male',
 };
-const otherPet: Pet = { id: 'pet-other-fixture', name: '구름이' };
+const other: Pet = { id: 'fixture-b', name: '샘플 B', deathDate: '2026-01-01' };
 const callbacks = {
   onPressSelect: jest.fn(),
   onPressEdit: jest.fn(),
   onPressDelete: jest.fn(),
 };
+const confirmation = (p = pet): PetDeleteConfirmation => ({
+  petId: p.id,
+  consentChecked: true,
+  confirmationText: '삭제하기',
+});
 const theme = createTheme('light');
+function contentText(value: unknown): string {
+  if (typeof value === 'string' || typeof value === 'number')
+    return String(value);
+  if (Array.isArray(value)) return value.map(contentText).join('');
+  return React.isValidElement<{ children?: React.ReactNode }>(value)
+    ? contentText(value.props.children)
+    : '';
+}
+const text = (r: TestRenderer.ReactTestRenderer) =>
+  r.root
+    .findAllByType(Text)
+    .map(n => contentText(n.props.children))
+    .join('\n');
+const flush = () => new Promise<void>(resolve => setImmediate(resolve));
 
-describe('pet management photo cards', () => {
+describe('pet profile management reference and safety', () => {
   let renderer: TestRenderer.ReactTestRenderer;
-  const originalStore = usePetStore.getState();
-
-  function card(nextPet = pet, isSelected = true) {
-    return (
-      <ThemeProvider theme={theme}>
-        <PetManagementCard
-          pet={nextPet}
-          isSelected={isSelected}
-          {...callbacks}
-        />
-      </ThemeProvider>
-    );
-  }
-  function renderCard(nextPet = pet, isSelected = true) {
-    TestRenderer.act(() => {
-      renderer = TestRenderer.create(card(nextPet, isSelected));
-    });
-  }
-  function view(testID: string) {
-    const node = renderer.root
-      .findAllByType(View)
-      .find(item => item.props.testID === testID);
-    if (!node) throw new Error(`Missing view: ${testID}`);
-    return node;
-  }
-  function texts() {
-    return renderer.root.findAllByType(Text).map(node => node.props.children);
-  }
-  function action(testID: string) {
-    return renderer.root
-      .findAllByType(CtaButton)
-      .find(node => node.props.testID === testID);
-  }
-  function renderScreen(pets = [pet, otherPet]) {
-    usePetStore.setState({ pets, selectedPetId: pet.id });
-    TestRenderer.act(() => {
+  const initialPets = usePetStore.getState();
+  const initialAuth = useAuthStore.getState();
+  function mount(child: React.ReactElement) {
+    act(() => {
       renderer = TestRenderer.create(
-        <ThemeProvider theme={theme}>
-          <PetManagementScreen />
-        </ThemeProvider>,
+        <ThemeProvider theme={theme}>{child}</ThemeProvider>,
       );
     });
   }
-
+  function update(child: React.ReactElement) {
+    act(() =>
+      renderer.update(<ThemeProvider theme={theme}>{child}</ThemeProvider>),
+    );
+  }
+  function button(id: string) {
+    const node = renderer.root
+      .findAllByType(TouchableOpacity)
+      .find(n => n.props.testID === id);
+    if (!node) throw Error('Missing button: ' + id);
+    return node;
+  }
+  function view(id: string) {
+    const node = renderer.root
+      .findAllByType(View)
+      .find(n => n.props.testID === id);
+    if (!node) throw Error('Missing view: ' + id);
+    return node;
+  }
+  function label(id: string) {
+    const node = renderer.root
+      .findAllByType(Text)
+      .find(n => n.props.testID === id);
+    if (!node) throw Error('Missing text: ' + id);
+    return node;
+  }
+  function openDelete(p = pet) {
+    act(() =>
+      button('pet-more-' + p.id).props.onPress({ stopPropagation: jest.fn() }),
+    );
+    act(() => button('pet-delete-entry-' + p.id).props.onPress());
+  }
+  function screen(list = [pet, other], selected = pet.id) {
+    usePetStore.setState({ pets: list, selectedPetId: selected });
+    mount(<PetManagementScreen />);
+  }
+  function dialog(
+    p = pet,
+    props: Partial<React.ComponentProps<typeof PetDeleteConfirmDialog>> = {},
+  ) {
+    return (
+      <PetDeleteConfirmDialog
+        visible
+        pet={p}
+        deleting={false}
+        onCancel={jest.fn()}
+        onConfirm={jest.fn()}
+        {...props}
+      />
+    );
+  }
   beforeEach(() => {
     jest.clearAllMocks();
-    mockSeason = 'autumn';
+    mockDimensions = { width: 393, height: 852, scale: 3, fontScale: 1 };
+    jest.spyOn(Native.Keyboard, 'isVisible').mockReturnValue(false);
+    useAuthStore.setState({
+      session: {
+        access_token: 'fixture',
+        refresh_token: 'fixture',
+        expires_in: 3600,
+        token_type: 'bearer',
+        user: {
+          id: 'fixture-owner',
+          aud: 'authenticated',
+          app_metadata: {},
+          user_metadata: {},
+          created_at: '2026-01-01T00:00:00Z',
+        },
+      },
+    });
   });
   afterEach(() => {
-    TestRenderer.act(() => {
-      renderer?.unmount();
-    });
-    usePetStore.setState(originalStore);
+    act(() => renderer?.unmount());
+    usePetStore.setState(initialPets);
+    useAuthStore.setState(initialAuth);
+    jest.restoreAllMocks();
   });
 
   it.each([
-    [1600, 900],
-    [900, 1600],
-    [1000, 1000],
+    [320, 568],
+    [360, 640],
+    [393, 852],
+    [412, 915],
+    [430, 932],
   ])(
-    'shows the whole %s x %s photo in the left portrait area without distortion',
+    'fits square photos and safe overlay limits at %i x %i',
     (width, height) => {
-      renderCard();
-      const image = renderer.root.findByType(Image);
-      expect(image.props.source).toEqual({ uri: pet.avatarUrl });
-      expect(image.props.resizeMode).toBe('contain');
-      TestRenderer.act(() => {
-        image.props.onLoad?.({
-          nativeEvent: { source: { width, height, uri: pet.avatarUrl } },
-        });
-      });
+      const layout = getPetManagementLayout(width);
+      expect(
+        layout.cardWidth -
+          layout.cardInset * 2 -
+          layout.photoSize -
+          layout.photoGap,
+      ).toBeGreaterThan(100);
+      expect(layout.photoSize).toBeLessThanOrEqual(138);
+      expect(getPetDeleteLayout(height, 24, 18).maxHeight).toBe(height - 66);
+      mount(
+        <PetManagementCard
+          pet={pet}
+          isSelected
+          {...callbacks}
+          availableWidth={width}
+        />,
+      );
       const frame = StyleSheet.flatten(
-        view(`pet-photo-frame-${pet.id}`).props.style,
+        view('pet-photo-frame-' + pet.id).props.style,
       );
-      expect(frame).toMatchObject({
-        width: '50%',
-        overflow: 'hidden',
-      });
-      expect(frame.aspectRatio).toBeUndefined();
-      expect(frame.padding).toBeUndefined();
-      expect(StyleSheet.flatten(image.props.style)).toMatchObject({
-        position: 'absolute',
-        top: 0,
-        right: 0,
-        bottom: 0,
-        left: 0,
-      });
+      expect(frame.width).toBe(frame.height);
+      expect(renderer.root.findByType(Image).props.resizeMode).toBe('cover');
     },
   );
-
-  it('does not use photo load dimensions to change the layout', () => {
-    renderCard();
-    const image = renderer.root.findByType(Image);
-    expect(image.props.resizeMode).toBe('contain');
-    expect(image.props.onLoad).toBeUndefined();
+  it('uses final PO font reductions and retains enlarged text support', () => {
+    expect(type.title.fontSize).toBe(22);
+    expect(type.managementTitle.fontSize).toBe(19);
+    expect(type.value.fontSize).toBe(15);
+    expect(type.action.fontSize).toBe(13);
+    expect(type.dialogAction.fontSize).toBe(14);
+    mockDimensions = { width: 320, height: 568, scale: 3, fontScale: 2 };
+    mount(
+      <PetManagementCard
+        pet={{ ...pet, name: '긴 이름을 가진 합성 반려동물' }}
+        isSelected
+        {...callbacks}
+      />,
+    );
+    expect(
+      renderer.root
+        .findAllByType(Text)
+        .every(n => n.props.allowFontScaling !== false),
+    ).toBe(true);
+    expect(
+      StyleSheet.flatten(view('pet-card-' + pet.id).props.style).height,
+    ).toBeUndefined();
+    expect(
+      StyleSheet.flatten(button('pet-edit-' + pet.id).props.style).minHeight,
+    ).toBeGreaterThanOrEqual(48);
   });
-
-  it('keeps the frame size unchanged when the profile photo changes', () => {
-    renderCard();
-    const firstLoad = renderer.root.findByType(Image).props.onLoad;
-    TestRenderer.act(() => {
-      firstLoad?.({
-        nativeEvent: {
-          source: { width: 900, height: 1600, uri: pet.avatarUrl },
-        },
-      });
-      renderer.update(
-        card({ ...pet, avatarUrl: 'https://example.test/landscape.jpg' }),
-      );
-    });
+  it('centers CTA labels and removes the profile edit pencil icon', () => {
+    mount(<PetManagementCard pet={pet} isSelected {...callbacks} />);
+    const edit = button('pet-edit-' + pet.id);
     expect(
-      StyleSheet.flatten(view(`pet-photo-frame-${pet.id}`).props.style).width,
-    ).toBe('50%');
-    TestRenderer.act(() => {
-      renderer.root.findByType(Image).props.onLoad?.({
-        nativeEvent: {
-          source: {
-            width: 1600,
-            height: 900,
-            uri: 'https://example.test/landscape.jpg',
-          },
-        },
-      });
-    });
-    TestRenderer.act(() => {
-      firstLoad?.({
-        nativeEvent: {
-          source: { width: 900, height: 1600, uri: pet.avatarUrl },
-        },
-      });
-    });
-    expect(
-      StyleSheet.flatten(view(`pet-photo-frame-${pet.id}`).props.style).width,
-    ).toBe('50%');
-  });
-
-  it('places the portrait and information side by side, with the actions underneath', () => {
-    renderCard();
-    const content = view(`pet-content-${pet.id}`);
-    expect(StyleSheet.flatten(content.props.style)).toMatchObject({
-      flexDirection: 'row',
-      alignItems: 'stretch',
-      minHeight: 224,
-    });
-    expect(
-      content.findAllByProps({ testID: `pet-photo-frame-${pet.id}` }),
-    ).not.toHaveLength(0);
-    expect(
-      content.findAllByProps({ testID: `pet-info-${pet.id}` }),
-    ).not.toHaveLength(0);
-    expect(
-      content.findAllByProps({ testID: `pet-actions-${pet.id}` }),
+      edit.findAll(
+        n => String(n.type) === 'Feather' && n.props.name === 'edit-2',
+      ),
     ).toHaveLength(0);
-    const info = StyleSheet.flatten(view(`pet-info-${pet.id}`).props.style);
-    expect(info).toMatchObject({
+    expect(
+      StyleSheet.flatten(label('pet-edit-label-' + pet.id).props.style),
+    ).toMatchObject({
+      textAlign: 'center',
+      textAlignVertical: 'center',
+      includeFontPadding: false,
       flex: 1,
-      minWidth: 0,
-      padding: 16,
-      justifyContent: 'center',
     });
-    expect(info.height).toBeUndefined();
+    expect(StyleSheet.flatten(edit.props.style).flexWrap).toBeUndefined();
   });
-
-  it('aligns the four basic fields and time together as compact label/value rows', () => {
-    renderCard();
-    for (const field of ['age', 'gender', 'weight', 'birthday', 'together']) {
-      const row = view(`pet-${field}-${pet.id}`);
-      expect(StyleSheet.flatten(row.props.style)).toMatchObject({
-        flexDirection: 'row',
-        alignItems: 'baseline',
-        gap: 8,
-      });
-      const [label, value] = row.findAllByType(Text);
-      expect(StyleSheet.flatten(label.props.style)).toMatchObject({
-        fontSize: 12,
-        lineHeight: 18,
-      });
-      expect(StyleSheet.flatten(value.props.style)).toMatchObject({
-        flex: 1,
-        minWidth: 0,
-        fontSize: 14,
-        lineHeight: 20,
-        textAlign: 'right',
-      });
-      expect(value.props.allowFontScaling).toBe(true);
-      expect(value.props.numberOfLines).toBeUndefined();
-      expect(
-        StyleSheet.flatten(row.props.style).borderLeftWidth,
-      ).toBeUndefined();
-    }
-    expect(
-      view(`pet-age-${pet.id}`).findAllByType(Text)[1].props.children,
-    ).toBe(formatPetAgeLabelFromBirthDate(pet.birthDate));
-    expect(
-      view(`pet-weight-${pet.id}`).findAllByType(Text)[1].props.children,
-    ).toBe('6kg');
-    expect(
-      view(`pet-stats-${pet.id}`)
-        .findAllByType(Text)
-        .map(node => node.props.children),
-    ).toEqual([
-      '나이',
-      formatPetAgeLabelFromBirthDate(pet.birthDate),
-      '성별',
+  it('retains taxonomy, gender, valid age, weight and existing inclusive day policy', () => {
+    mount(<PetManagementCard pet={pet} isSelected {...callbacks} />);
+    const value = text(renderer);
+    for (const s of [
+      '말티즈',
       '남아',
-      '몸무게',
       '6kg',
-      '생일',
       '2020.03.01',
-      '함께한 시간',
-      `${diffDaysFromKst(pet.adoptionDate ?? '')}일`,
-    ]);
+      formatPetAgeLabelFromBirthDate(pet.birthDate) ?? '',
+      (diffDaysFromKst(pet.adoptionDate ?? '') ?? 0).toLocaleString('ko-KR') +
+        '일',
+    ])
+      expect(value).toContain(s);
   });
-
-  it('separates readable information from the photo on the shared beveled glass', () => {
-    renderCard();
-    expect(
-      StyleSheet.flatten(view('home-reflective-fill').props.style),
-    ).toEqual(expect.objectContaining(HOME_FLOATING_WIDGET_MATERIAL));
-    expect(view(`pet-photo-frame-${pet.id}`).findAllByType(Text)).toHaveLength(
-      0,
-    );
-    expect(texts()).toContain('누리');
-    expect(texts()).toContain('말티즈');
-    expect(texts()).not.toContain('말티즈 · 남아');
-    expect(texts()).toContain(formatPetAgeLabelFromBirthDate(pet.birthDate));
-    expect(texts()).toContain('몸무게');
-    expect(texts()).toContain('6kg');
-  });
-
-  it('uses the stored display name for custom breeds and keeps memorial status', () => {
-    renderCard({
-      ...pet,
-      speciesDetailKey: 'custom',
-      speciesDisplayName: '믹스견',
-      deathDate: '2026-01-01',
-    });
-    expect(texts()).toContain('믹스견');
-    expect(texts()).toContain('추모');
-  });
-
-  it('keeps missing data honest instead of fabricating weight or gender', () => {
-    renderCard({ id: pet.id, name: pet.name, avatarUrl: null });
-    expect(renderer.root.findAllByType(Image)).toHaveLength(0);
-    expect(texts()).toContain('등록된 사진이 없어요');
-    expect(texts()).toContain('미입력');
-    for (const field of ['age', 'gender', 'weight', 'birthday', 'together']) {
-      expect(
-        view(`pet-${field}-${pet.id}`).findAllByType(Text)[1].props.children,
-      ).toBe('미입력');
-    }
-    expect(texts()).not.toContain('남아');
-    expect(texts()).not.toContain('6kg');
-  });
-
-  it.each([null, 0, -1, NaN, Infinity])(
-    'marks invalid weight %s as missing without removing the row',
-    weightKg => {
-      renderCard({ ...pet, weightKg });
-      expect(
-        view(`pet-weight-${pet.id}`).findAllByType(Text)[1].props.children,
-      ).toBe('미입력');
-    },
-  );
-
-  it.each<Pet['gender']>([null, undefined, 'unknown'])(
-    'marks unspecified gender %s as missing',
-    gender => {
-      renderCard({ ...pet, gender });
-      expect(
-        view(`pet-gender-${pet.id}`).findAllByType(Text)[1].props.children,
-      ).toBe('미입력');
-    },
-  );
-
-  it.each([null, '', 'invalid', '2020-02-30', '2020-13-01'])(
-    'does not invent an age or birthday from %s',
-    birthDate => {
-      renderCard({ ...pet, birthDate });
-      for (const field of ['age', 'birthday']) {
-        expect(
-          view(`pet-${field}-${pet.id}`).findAllByType(Text)[1].props.children,
-        ).toBe('미입력');
-      }
-    },
-  );
-
-  it.each([null, '', 'invalid', '2020-02-30', '2999-01-01'])(
-    'does not invent time together from missing or unusable adoption date %s',
-    adoptionDate => {
-      renderCard({ ...pet, adoptionDate });
-      expect(
-        view(`pet-together-${pet.id}`).findAllByType(Text)[1].props.children,
-      ).toBe('미입력');
-    },
-  );
-
-  it('updates birthday, age and time together when the stored dates change', () => {
-    renderCard();
-    TestRenderer.act(() => {
-      renderer.update(card({ ...pet, adoptionDate: '2021-01-01' }));
-    });
-    expect(
-      view(`pet-together-${pet.id}`).findAllByType(Text)[1].props.children,
-    ).toBe(`${diffDaysFromKst('2021-01-01')}일`);
-    TestRenderer.act(() => {
-      renderer.update(
-        card({ ...pet, adoptionDate: '2021-01-01', birthDate: '2021-12-25' }),
-      );
-    });
-    expect(
-      view(`pet-birthday-${pet.id}`).findAllByType(Text)[1].props.children,
-    ).toBe('2021.12.25');
-    expect(
-      view(`pet-age-${pet.id}`).findAllByType(Text)[1].props.children,
-    ).toBe(formatPetAgeLabelFromBirthDate('2021-12-25'));
-  });
-
-  it('handles a failed photo and retries when a different profile URL arrives', () => {
-    renderCard();
-    TestRenderer.act(() => {
-      renderer.root.findByType(Image).props.onError();
-    });
-    expect(texts()).toContain('사진을 불러오지 못했어요');
-    TestRenderer.act(() => {
-      renderer.update(
-        card({ ...pet, avatarUrl: 'https://example.test/updated.jpg' }),
-      );
-    });
-    expect(renderer.root.findByType(Image).props.source.uri).toBe(
-      'https://example.test/updated.jpg',
-    );
-  });
-
-  it('updates weight, sex and species labels without remounting the memoized card', () => {
-    renderCard();
-    TestRenderer.act(() => {
-      renderer.update(
-        card({
-          ...pet,
-          weightKg: 5.25,
-          gender: 'female',
-          speciesDisplayName: '새 품종',
-        }),
-      );
-    });
-    expect(texts()).toContain('5.25kg');
-    expect(texts()).toContain('새 품종');
-    expect(texts()).toContain('여아');
-    expect(texts()).not.toContain('6kg');
-  });
-
-  it('places the selected status, edit and delete in one row with unchanged callbacks', () => {
-    renderCard();
-    expect(
-      StyleSheet.flatten(view(`pet-actions-${pet.id}`).props.style),
-    ).toMatchObject({ flexDirection: 'row' });
-    expect(view(`pet-selected-status-${pet.id}`).props.accessibilityLabel).toBe(
-      '누리, 지금 보고 있는 아이',
-    );
-    expect(action(`pet-select-${pet.id}`)).toBeUndefined();
-    TestRenderer.act(() => {
-      action(`pet-edit-${pet.id}`)?.props.onPress();
-      action(`pet-delete-entry-${pet.id}`)?.props.onPress();
-    });
-    expect(callbacks.onPressEdit).toHaveBeenCalledWith(pet.id);
-    expect(callbacks.onPressDelete).toHaveBeenCalledWith(pet.id);
+  it('keeps memorial and selected states independent and does not select on edit/menu', () => {
+    mount(<PetManagementCard pet={other} isSelected={false} {...callbacks} />);
+    expect(text(renderer)).toContain('추모');
+    act(() => button('pet-edit-' + other.id).props.onPress());
+    openDelete(other);
+    expect(callbacks.onPressEdit).toHaveBeenCalledWith(other.id);
+    expect(callbacks.onPressDelete).toHaveBeenCalledWith(other.id);
     expect(callbacks.onPressSelect).not.toHaveBeenCalled();
+    expect(text(renderer)).toContain(other.name);
   });
-
-  it.each<SeasonKey>(['spring', 'summer', 'autumn', 'winter'])(
-    'uses the existing %s subtle season palette for selected and selectable pets',
-    season => {
-      mockSeason = season;
-      renderCard({ ...pet, themeColor: '#000000' });
-      const selected = view(`pet-selected-status-${pet.id}`);
-      expect(StyleSheet.flatten(selected.props.style)).toMatchObject({
-        backgroundColor: SEASON_CTA[season].subtle,
-        minHeight: 48,
-      });
-      expect(selected.props.onPress).toBeUndefined();
-      const selectedLabel = selected
-        .findAllByType(Text)
-        .find(node => node.props.children === '보고 있어요');
-      expect(StyleSheet.flatten(selectedLabel?.props.style).color).toBe(
-        SEASON_CTA[season].primary,
+  it.each([0, -1, NaN, Infinity, null])(
+    'does not invent weight from %s',
+    weightKg => {
+      mount(
+        <PetManagementCard
+          pet={{ ...pet, weightKg }}
+          isSelected
+          {...callbacks}
+        />,
       );
-      const check = selected.find(
-        node => String(node.type) === 'Feather' && node.props.name === 'check',
-      );
-      expect(check.props.color).toBe(SEASON_CTA[season].primary);
-      TestRenderer.act(() => {
-        renderer.update(card({ ...pet, themeColor: '#000000' }, false));
-      });
-      const select = renderer.root
-        .findAllByType(TouchableOpacity)
-        .find(node => node.props.accessibilityLabel === '누리 선택하기');
-      expect(select).toBeDefined();
-      expect(StyleSheet.flatten(select?.props.style)).toMatchObject({
-        backgroundColor: SEASON_CTA[season].subtle,
-        minHeight: 48,
-      });
       expect(
-        StyleSheet.flatten(select?.findByType(Text).props.style).color,
-      ).toBe(SEASON_CTA[season].primary);
-    },
-  );
-
-  it.each<SeasonKey>(['spring', 'summer', 'autumn', 'winter'])(
-    'keeps %s add primary, edit charcoal and delete soft pink/red',
-    season => {
-      mockSeason = season;
-      renderScreen();
-      const buttons = renderer.root.findAllByType(CtaButton);
-      const add = buttons.find(button =>
-        button
+        view('pet-weight-' + pet.id)
           .findAllByType(Text)
-          .some(label => label.props.children === '+ 아이 등록하기'),
-      );
-      if (!add) throw new Error('Missing add pet action');
-      const edit = action(`pet-edit-${pet.id}`);
-      const remove = action(`pet-delete-entry-${pet.id}`);
-      if (!edit || !remove) throw new Error('Missing pet card actions');
-      for (const [button, palette] of [
-        [
-          add,
-          { backgroundColor: SEASON_CTA[season].primary, color: '#FFFFFF' },
-        ],
-        [edit, { backgroundColor: 'rgba(255,255,255,0.62)', color: '#243042' }],
-        [
-          remove,
-          { backgroundColor: 'rgba(255,241,243,0.85)', color: '#B93645' },
-        ],
-      ] as const) {
-        const host = button.find(
-          node => typeof node.props.style === 'function',
-        );
-        expect(
-          StyleSheet.flatten(host.props.style({ pressed: false })),
-        ).toMatchObject({
-          backgroundColor: palette.backgroundColor,
-          minHeight: 48,
-        });
-        expect(
-          StyleSheet.flatten(button.findByType(Text).props.style).color,
-        ).toBe(palette.color);
-      }
+          .some(n => n.props.children === '미입력'),
+      ).toBe(true);
     },
   );
-
-  it('selects only the requested pet and exposes clear accessible action names', () => {
-    renderCard(pet, false);
-    const select = renderer.root.findAllByProps({
-      accessibilityLabel: '누리 선택하기',
-    })[0];
-    expect(select).toBeDefined();
-    TestRenderer.act(() => {
-      select.props.onPress();
-    });
-    expect(callbacks.onPressSelect).toHaveBeenCalledWith(pet.id);
-    expect(action(`pet-edit-${pet.id}`)?.props.accessibilityLabel).toBe(
-      '누리 프로필 수정하기',
+  it('reserves the frame through load failure and a new URL retry', () => {
+    mount(<PetManagementCard pet={pet} isSelected {...callbacks} />);
+    const before = StyleSheet.flatten(
+      view('pet-photo-frame-' + pet.id).props.style,
     );
-    expect(action(`pet-delete-entry-${pet.id}`)?.props.accessibilityHint).toBe(
-      '확인 절차를 열며 바로 삭제하지 않습니다.',
+    act(() => renderer.root.findByType(Image).props.onError());
+    expect(text(renderer)).toContain('사진을 불러오지 못했어요');
+    update(
+      <PetManagementCard
+        pet={{ ...pet, avatarUrl: 'https://example.test/b.jpg' }}
+        isSelected
+        {...callbacks}
+      />,
     );
+    expect(renderer.root.findByType(Image).props.source.uri).toBe(
+      'https://example.test/b.jpg',
+    );
+    expect(
+      StyleSheet.flatten(view('pet-photo-frame-' + pet.id).props.style),
+    ).toEqual(before);
   });
-
-  it('allows long names and enlarged fonts without imposing a fixed card height', () => {
-    const name = '정말긴이름을가지고있는우리집사랑스러운반려동물';
-    renderCard({ ...pet, name });
-    const label = renderer.root
-      .findAllByType(Text)
-      .find(node => node.props.children === name);
-    expect(label?.props.numberOfLines).toBeUndefined();
-    expect(label?.props.allowFontScaling).toBe(true);
-    expect(StyleSheet.flatten(label?.props.style)).toMatchObject({
-      fontSize: 18,
-      lineHeight: 24,
-      flexShrink: 1,
-    });
-    const row = StyleSheet.flatten(view(`pet-actions-${pet.id}`).props.style);
-    expect(row.height).toBeUndefined();
-    for (const button of renderer.root.findAllByType(CtaButton)) {
-      const layout = StyleSheet.flatten(button.props.style);
-      expect(layout).toMatchObject({ flex: 1, minWidth: 0, minHeight: 48 });
-    }
+  it.each([0, 1, 3])('renders real count %i without inventing pets', count => {
+    const list = Array.from({ length: count }, (_, i) => ({
+      ...pet,
+      id: 'fixture-' + i,
+    }));
+    screen(list);
+    expect(renderer.root.findByType(FlatList).props.data).toEqual(list);
+    expect(text(renderer)).toContain(count + '마리');
+    if (count === 0)
+      expect(text(renderer)).toContain('아직 등록된 아이가 없어요');
   });
-
-  it('uses the compact count subtitle and retains edit and add destinations', () => {
-    renderScreen();
-    expect(texts()).toContain('우리 아이 2마리');
-    TestRenderer.act(() => {
-      action(`pet-edit-${pet.id}`)?.props.onPress();
-    });
+  it('keeps edit/add routes, immediate selection, ordering and safe-area padding', () => {
+    screen();
+    act(() => button('pet-edit-' + pet.id).props.onPress());
     expect(mockNavigation.navigate).toHaveBeenCalledWith('PetProfileEdit', {
       petId: pet.id,
       entrySource: 'stack',
     });
-    const add = renderer.root
-      .findAllByType(CtaButton)
-      .find(node =>
-        node
-          .findAllByType(Text)
-          .some(text => text.props.children === '+ 아이 등록하기'),
-      );
-    TestRenderer.act(() => {
-      add?.props.onPress();
-    });
+    act(() => button('pet-management-add').props.onPress());
     expect(mockNavigation.navigate).toHaveBeenCalledWith('PetCreate', {
       from: 'header_plus',
     });
-  });
-
-  it('keeps the scrolling viewport above system navigation as well as padding the content end', () => {
-    renderScreen();
+    act(() => button('pet-select-' + other.id).props.onPress());
+    expect(usePetStore.getState().selectedPetId).toBe(other.id);
+    expect(usePetStore.getState().pets.map(p => p.id)).toEqual([
+      pet.id,
+      other.id,
+    ]);
     expect(
-      StyleSheet.flatten(view('pet-management-screen').props.style),
-    ).toMatchObject({ paddingBottom: 18 });
+      StyleSheet.flatten(view('pet-management-screen').props.style)
+        .paddingBottom,
+    ).toBe(18);
+    expect(renderer.root.findByType(FlatList).props.extraData).toBe(other.id);
   });
-
-  it('opens the existing confirmation without immediately deleting any pet', () => {
-    renderScreen();
-    TestRenderer.act(() => {
-      action(`pet-delete-entry-${pet.id}`)?.props.onPress();
-    });
+  it('opens the explicit unselected target without mutating count/order/selection', () => {
+    screen();
+    openDelete(other);
     expect(
       renderer.root.findByType(PetDeleteConfirmDialog.type).props.pet.id,
-    ).toBe(pet.id);
+    ).toBe(other.id);
+    expect(usePetStore.getState().selectedPetId).toBe(pet.id);
+    expect(usePetStore.getState().pets).toEqual([pet, other]);
     expect(deletePetSafely).not.toHaveBeenCalled();
   });
-
-  it('keeps the last-pet deletion guard', () => {
-    renderScreen([pet]);
-    TestRenderer.act(() => {
-      action(`pet-delete-entry-${pet.id}`)?.props.onPress();
-    });
+  it('preserves the last-pet guard', () => {
+    screen([pet]);
+    openDelete();
     expect(
       renderer.root.findAllByType(PetDeleteConfirmDialog.type),
     ).toHaveLength(0);
-    expect(texts()).toContain('최소 1개의 아이 프로필은 필요해요.');
+    expect(text(renderer)).toContain('최소 1개의 아이 프로필은 필요해요.');
     expect(deletePetSafely).not.toHaveBeenCalled();
   });
-  it('removes a confirmed deleted pet even while local Walk cleanup is pending', async () => {
-    useAuthStore.setState({ session: { access_token: 'fixture', refresh_token: 'fixture', expires_in: 3600, token_type: 'bearer', user: { id: 'fixture-owner', aud: 'authenticated', app_metadata: {}, user_metadata: {}, created_at: '2026-01-01T00:00:00.000Z' } } });
-    jest.mocked(deletePetSafely).mockResolvedValueOnce({ deletedPetId: pet.id, userId: 'fixture-owner', walkCleanupPending: true, storageCleanup: { failedBuckets: [] } });
-    jest.mocked(fetchMyPets).mockResolvedValueOnce([otherPet]); renderScreen();
-    TestRenderer.act(() => action(`pet-delete-entry-${pet.id}`)?.props.onPress());
-    await TestRenderer.act(async () => { renderer.root.findByType(PetDeleteConfirmDialog.type).props.onConfirm(); await new Promise<void>(r => setImmediate(r)); });
-    expect(usePetStore.getState().pets.map(p => p.id)).toEqual([otherPet.id]);
+  it('rechecks target and both inputs at the submit boundary', async () => {
+    screen();
+    openDelete();
+    const submit = renderer.root.findByType(PetDeleteConfirmDialog.type).props
+      .onConfirm;
+    await act(async () => {
+      submit({ ...confirmation(), petId: other.id });
+      submit({ ...confirmation(), consentChecked: false });
+      submit({ ...confirmation(), confirmationText: '삭제하기 ' });
+      await flush();
+    });
+    expect(deletePetSafely).not.toHaveBeenCalled();
+  });
+  it.each([pet.id, other.id])(
+    'deletes confirmed %s once and applies existing selection fallback',
+    async id => {
+      screen();
+      const target = id === pet.id ? pet : other;
+      openDelete(target);
+      let resolve!: (
+        value: Awaited<ReturnType<typeof deletePetSafely>>,
+      ) => void;
+      jest.mocked(deletePetSafely).mockImplementationOnce(
+        () =>
+          new Promise(r => {
+            resolve = r;
+          }),
+      );
+      const submit = renderer.root.findByType(PetDeleteConfirmDialog.type).props
+        .onConfirm;
+      act(() => {
+        submit(confirmation(target));
+        submit(confirmation(target));
+      });
+      expect(deletePetSafely).toHaveBeenCalledTimes(1);
+      expect(deletePetSafely).toHaveBeenCalledWith(target.id);
+      expect(button('pet-delete-cancel').props.disabled).toBe(true);
+      const remaining = [pet, other].filter(p => p.id !== id);
+      jest.mocked(fetchMyPets).mockResolvedValueOnce(remaining);
+      await act(async () => {
+        resolve({
+          deletedPetId: id,
+          userId: 'fixture-owner',
+          walkCleanupPending: true,
+          storageCleanup: { failedBuckets: [] },
+        });
+        await flush();
+      });
+      expect(usePetStore.getState().pets).toEqual(remaining);
+      expect(usePetStore.getState().selectedPetId).toBe(remaining[0].id);
+      expect(
+        renderer.root.findAllByType(PetDeleteConfirmDialog.type),
+      ).toHaveLength(0);
+    },
+  );
+  it('retains the target/list and readable inline error after failure, then retries', async () => {
+    screen();
+    openDelete(other);
+    jest
+      .mocked(deletePetSafely)
+      .mockRejectedValueOnce(new Error('internal fixture error'));
+    await act(async () => {
+      renderer.root
+        .findByType(PetDeleteConfirmDialog.type)
+        .props.onConfirm(confirmation(other));
+      await flush();
+    });
+    expect(getPetDeleteErrorMessage).toHaveBeenCalled();
+    expect(text(renderer)).toContain('잠시 후 다시 시도해 주세요.');
+    expect(text(renderer)).not.toContain('internal fixture error');
+    expect(usePetStore.getState().pets).toEqual([pet, other]);
+    jest
+      .mocked(deletePetSafely)
+      .mockResolvedValueOnce({
+        deletedPetId: other.id,
+        userId: 'fixture-owner',
+        storageCleanup: { failedBuckets: [] },
+      });
+    jest.mocked(fetchMyPets).mockResolvedValueOnce([pet]);
+    await act(async () => {
+      renderer.root
+        .findByType(PetDeleteConfirmDialog.type)
+        .props.onConfirm(confirmation(other));
+      await flush();
+    });
+    expect(deletePetSafely).toHaveBeenCalledTimes(2);
+  });
+  it('ignores a result after the authenticated owner changes', async () => {
+    screen();
+    openDelete();
+    let resolve!: (value: Awaited<ReturnType<typeof deletePetSafely>>) => void;
+    jest.mocked(deletePetSafely).mockImplementationOnce(
+      () =>
+        new Promise(r => {
+          resolve = r;
+        }),
+    );
+    act(() =>
+      renderer.root
+        .findByType(PetDeleteConfirmDialog.type)
+        .props.onConfirm(confirmation()),
+    );
+    useAuthStore.setState({ session: null });
+    await act(async () => {
+      resolve({
+        deletedPetId: pet.id,
+        userId: 'fixture-owner',
+        storageCleanup: { failedBuckets: [] },
+      });
+      await flush();
+    });
+    expect(usePetStore.getState().pets).toEqual([pet, other]);
+  });
+  it('requires consent plus exact text even when an onPress is invoked directly', () => {
+    const onConfirm = jest.fn();
+    mount(dialog(pet, { onConfirm }));
+    const press = () => act(() => button('pet-delete-confirm').props.onPress());
+    press();
+    act(() => button('pet-delete-consent').props.onPress());
+    press();
+    act(() =>
+      renderer.root.findByType(TextInput).props.onChangeText('삭제하기 '),
+    );
+    press();
+    expect(onConfirm).not.toHaveBeenCalled();
+    act(() =>
+      renderer.root.findByType(TextInput).props.onChangeText('삭제하기'),
+    );
+    act(() => {
+      button('pet-delete-confirm').props.onPress();
+      button('pet-delete-confirm').props.onPress();
+    });
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(onConfirm).toHaveBeenCalledWith(confirmation());
+  });
+  it('resets consent/text when hidden, reopened or switched to another target', () => {
+    mount(dialog());
+    act(() => {
+      button('pet-delete-consent').props.onPress();
+      renderer.root.findByType(TextInput).props.onChangeText('삭제하기');
+    });
+    update(dialog(other));
+    expect(renderer.root.findByType(TextInput).props.value).toBe('');
+    expect(button('pet-delete-consent').props.accessibilityState.checked).toBe(
+      false,
+    );
+    update(dialog(other, { visible: false }));
+    update(dialog(other));
+    expect(button('pet-delete-confirm').props.disabled).toBe(true);
+  });
+  it('dismisses the IME before the modal, and blocks close/edit during a request', () => {
+    const onCancel = jest.fn();
+    const dismiss = jest.spyOn(Native.Keyboard, 'dismiss');
+    mount(dialog(pet, { onCancel }));
+    jest.mocked(Native.Keyboard.isVisible).mockReturnValue(true);
+    act(() => renderer.root.findByType(Modal).props.onRequestClose());
+    expect(dismiss).toHaveBeenCalled();
+    expect(onCancel).not.toHaveBeenCalled();
+    jest.mocked(Native.Keyboard.isVisible).mockReturnValue(false);
+    act(() => renderer.root.findByType(Modal).props.onRequestClose());
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    update(dialog(pet, { onCancel, deleting: true }));
+    act(() => {
+      renderer.root.findByType(Modal).props.onRequestClose();
+      button('pet-delete-close').props.onPress();
+    });
+    expect(onCancel).toHaveBeenCalledTimes(1);
+    expect(renderer.root.findByType(TextInput).props.editable).toBe(false);
+  });
+  it('follows wrapped recovery text with separate full-height marker strokes', () => {
+    mount(<PetDeletionRecoveryMarker />);
+    act(() =>
+      label('pet-delete-recovery-copy').props.onTextLayout({
+        nativeEvent: {
+          lines: [
+            { x: 0, y: 0, width: 120, height: 28 },
+            { x: 0, y: 28, width: 50, height: 28 },
+          ],
+        },
+      }),
+    );
+    const strokes = renderer.root
+      .findAllByType(View)
+      .filter(n => n.props.testID === 'pet-delete-marker-line');
+    expect(strokes).toHaveLength(2);
+    const first = StyleSheet.flatten(strokes[0].props.style);
+    const second = StyleSheet.flatten(strokes[1].props.style);
+    expect(first.width).toBe(124);
+    expect(first.height).toBeGreaterThan(20);
+    expect(Number(second.top) - Number(first.top)).toBe(28);
+    expect(second.width).toBe(54);
+  });
+  it('sizes the named delete menu to content rather than a fixed width', () => {
+    mount(
+      <PetManagementCard
+        pet={{ ...pet, name: '아주 긴 이름의 합성 반려동물' }}
+        isSelected
+        {...callbacks}
+      />,
+    );
+    act(() =>
+      button('pet-more-' + pet.id).props.onPress({
+        stopPropagation: jest.fn(),
+      }),
+    );
+    const style = StyleSheet.flatten(view('pet-management-menu').props.style);
+    expect(style.width).toBeUndefined();
+    expect(style.maxWidth).toBe(361);
+    expect(text(renderer)).toContain(
+      '아주 긴 이름의 합성 반려동물 프로필 삭제',
+    );
   });
 });

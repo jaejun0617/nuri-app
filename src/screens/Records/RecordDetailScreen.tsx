@@ -1,4 +1,5 @@
 import CtaButton, { CtaIcon, CtaText } from '../../app/ui/CtaButton';
+import { getRecordCareLabel } from '../../services/records/metadata';
 // 파일: src/screens/Records/RecordDetailScreen.tsx
 // 역할:
 // - 선택한 추억 1개를 집중해서 보여주는 상세 화면
@@ -579,9 +580,14 @@ const FeedPostCard = memo(function FeedPostCardView({
             ))}
           </View>
         ) : null}
+        {item.metadata?.grooming?.careTypes.length ? (
+          <AppText preset="unifiedBody" style={styles.postTagsText}>
+            관리 항목 · {item.metadata.grooming.careTypes.map(code => getRecordCareLabel(code, item.subCategory === 'bathing' ? 'bathing' : 'grooming')).filter(Boolean).join(' · ')}
+          </AppText>
+        ) : null}
         {priceText ? (
           <AppText preset="unifiedMeta" style={styles.postTagsText}>
-            {item.category === 'health' || item.subCategory === 'hospital' ? '병원·건강 비용' : '구매 가격'} {priceText}
+            {item.category === 'health' || item.subCategory === 'hospital' ? '병원·건강 비용' : item.subCategory === 'grooming' ? '미용 비용' : item.subCategory === 'bathing' ? '목욕·위생 비용' : '구매 가격'} {priceText}
           </AppText>
         ) : null}
       </View>

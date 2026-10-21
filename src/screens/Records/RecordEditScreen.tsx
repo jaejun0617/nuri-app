@@ -4,6 +4,8 @@ import { usePetDisplayName } from '../../hooks/usePetDisplayName';
 import RecordChoiceGrid from '../../components/records/RecordChoiceGrid';
 import MedicalRecordFields from '../../components/records/MedicalRecordFields';
 import { emptyHealthCareDetails, type HealthCareDetails } from '../../services/records/metadata';
+import { buildGroomingRecordMetadata, filterRecordCareTypes, isRecordCareCategory, type GroomingCareType } from '../../services/records/metadata';
+import RecordCareFields from '../../components/records/RecordCareFields';
 // 파일: src/screens/Records/RecordEditScreen.tsx
 // 목적:
 // - 기존 memory 수정(완전체)
@@ -89,6 +91,8 @@ import {
   isExpenseRecordCategory,
   parseRecordTags,
   parseRecordPrice,
+  parseOptionalWonPrice,
+  optionalWonPriceError,
   RECORD_MAIN_CATEGORIES,
   RECORD_WRITE_OTHER_SUBCATEGORIES,
   RECORD_EMOTION_OPTIONS,
@@ -210,6 +214,9 @@ export default function RecordEditScreen() {
   const [otherSubCategoryKey, setOtherSubCategoryKey] =
     useState<RecordOtherSubCategoryKey | null>(null);
   const [priceText, setPriceText] = useState('');
+  const [careTypes, setCareTypes] = useState<GroomingCareType[]>([]);
+  const [careCategoryChanged, setCareCategoryChanged] = useState(false);
+  const [priceTouched, setPriceTouched] = useState(false);
   const [healthCare, setHealthCare] = useState<HealthCareDetails>(emptyHealthCareDetails);
   const [dateModalVisible, setDateModalVisible] = useState(false);
 
@@ -233,6 +240,9 @@ export default function RecordEditScreen() {
     if (dirty) return;
 
     setTitle(record.title ?? '');
+    setCareTypes(record.metadata?.grooming?.careTypes ?? []);
+    setCareCategoryChanged(false);
+    setPriceTouched(false);
     setHealthCare(record.metadata?.health?.care ?? emptyHealthCareDetails());
     setContent(record.content ?? '');
     setOccurredAt(record.occurredAt ?? '');
@@ -259,9 +269,18 @@ export default function RecordEditScreen() {
     [mainCategoryKey, otherSubCategoryKey],
   );
   const isExpenseCategory = isExpenseRecordCategory(mainCategoryKey, otherSubCategoryKey);
+  const careCategory = isRecordCareCategory(mainCategoryKey, otherSubCategoryKey) ? otherSubCategoryKey : null;
+  const careExpenseLabel = careCategory === 'bathing' ? '목욕·위생 비용 (원)' : '미용 비용 (원)';
+  const legacyCareTypes = !careCategoryChanged ? record?.metadata?.grooming?.careTypes ?? [] : [];
+  const effectiveCareTypes = useMemo(() => careCategory && careCategoryChanged ? filterRecordCareTypes(careCategory, careTypes) : careTypes, [careCategory, careCategoryChanged, careTypes]);
+  const invalidCareSelection = careCategory !== null && effectiveCareTypes.length === 0 &&
+    (careCategoryChanged || legacyCareTypes.length > 0);
+  // Optional bathing costs are now supported; untouched legacy amounts are never rewritten.
+  const preserveCarePrice = careCategory !== null && !priceTouched && !careCategoryChanged;
+  const priceError = careCategory && !preserveCarePrice ? optionalWonPriceError(priceText) : null;
   const priceLabel = useMemo(
-    () => formatRecordPriceLabel(parseRecordPrice(priceText)),
-    [priceText],
+    () => priceError ? '' : formatRecordPriceLabel(preserveCarePrice ? record?.price : careCategory ? parseOptionalWonPrice(priceText) : parseRecordPrice(priceText)),
+    [priceText, priceError, careCategory, preserveCarePrice, record?.price],
   );
 
   const occurredAtLabel = useMemo(() => {
@@ -493,36 +512,46 @@ export default function RecordEditScreen() {
   }, []);
 
   const onSelectMainCategory = useCallback((nextKey: RecordMainCategoryKey) => {
+    if (nextKey !== mainCategoryKey) {
+      setCareCategoryChanged(true);
+      setCareTypes([]);
+      setPriceText('');
+    }
     setDirty(true);
     setMainCategoryKey(nextKey);
     if (nextKey !== 'other') {
       setOtherSubCategoryKey(null);
       if (nextKey !== 'health') setPriceText('');
     }
-  }, []);
+  }, [mainCategoryKey]);
 
   const onSelectOtherSubCategory = useCallback(
     (nextKey: RecordOtherSubCategoryKey) => {
+      if (nextKey !== otherSubCategoryKey) {
+        setCareCategoryChanged(true);
+        setCareTypes([]);
+        setPriceText('');
+      }
       setDirty(true);
       setMainCategoryKey('other');
       setOtherSubCategoryKey(nextKey);
-      if (nextKey !== 'shopping' && nextKey !== 'hospital') {
-        setPriceText('');
-      }
     },
-    [],
+    [otherSubCategoryKey],
   );
 
   const clearOtherSubCategory = useCallback(() => {
     setDirty(true);
+    setCareCategoryChanged(true);
+    setCareTypes([]);
     setOtherSubCategoryKey(null);
     setPriceText('');
   }, []);
 
   const onChangePriceText = useCallback((value: string) => {
     setDirty(true);
-    setPriceText(normalizeRecordPriceInput(value));
-  }, []);
+    setPriceTouched(true);
+    setPriceText(careCategory ? value : normalizeRecordPriceInput(value));
+  }, [careCategory]);
 
   const onRemoveActiveImage = useCallback(() => {
     if (saving) return;
@@ -550,6 +579,11 @@ export default function RecordEditScreen() {
     if (submitInFlightRef.current) return;
     if (!petId || !memoryId) return;
     if (!record) return;
+    if (invalidCareSelection) {
+      Alert.alert('관리 항목을 1개 이상 선택해 주세요.');
+      return;
+    }
+    if (priceError) { Alert.alert('금액을 확인해 주세요.', priceError); return; }
 
     const nextTitle = title.trim();
     if (!nextTitle) {
@@ -585,14 +619,21 @@ export default function RecordEditScreen() {
       const occurred = validateRecordOccurredAt(occurredAt);
       const nextContent = content.trim() || null;
       const nextTags = parseRecordTags(tagsText);
-      const nextPrice = isExpenseCategory ? parseRecordPrice(priceText) : null;
-      const nextMetadata = mainCategoryKey === 'health'
+      const nextPrice = preserveCarePrice ? record.price ?? null : isExpenseCategory ? (careCategory ? parseOptionalWonPrice(priceText) : parseRecordPrice(priceText)) : null;
+      let nextMetadata = mainCategoryKey === 'health'
         ? { ...record.metadata, version: 1 as const, health: {
             condition: record.metadata?.health?.condition ?? null,
             weightKg: record.metadata?.health?.weightKg ?? null,
             care: healthCare,
           } }
         : record.metadata;
+      if (careCategory && effectiveCareTypes.length > 0) {
+        nextMetadata = { ...nextMetadata, ...buildGroomingRecordMetadata(effectiveCareTypes) };
+      } else if (careCategoryChanged && nextMetadata?.grooming) {
+        const remaining = { ...nextMetadata };
+        delete remaining.grooming;
+        nextMetadata = remaining;
+      }
 
       await updateMemoryFields({
         memoryId,
@@ -748,6 +789,12 @@ export default function RecordEditScreen() {
     mainCategoryKey,
     otherSubCategoryKey,
     priceText,
+    careCategory,
+    effectiveCareTypes,
+    careCategoryChanged,
+    invalidCareSelection,
+    preserveCarePrice,
+    priceError,
     healthCare,
     emotion,
     tagsText,
@@ -843,7 +890,7 @@ export default function RecordEditScreen() {
 
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
           <HeaderTextActionButton appearance="seasonalText" label="수정" role="primarySubtle" compact
-            loading={saving} disabled={saving || !title.trim() || !sourceReady} onPress={onSubmit}
+            loading={saving} disabled={saving || !title.trim() || !sourceReady || invalidCareSelection || Boolean(priceError)} onPress={onSubmit}
             accessibilityLabel="기록 수정 저장" />
         </View>
       </View>
@@ -1042,10 +1089,14 @@ export default function RecordEditScreen() {
               onChange={value => { setDirty(true); setHealthCare(value); }}
               onFocus={() => scrollRef.current?.assureFocusedInputVisible()} />
           ) : null}
+          {careCategory ? (
+            <RecordCareFields category={careCategory} selected={effectiveCareTypes} legacy={legacyCareTypes}
+              onChange={values => { setDirty(true); setCareTypes(values); }} disabled={saving} />
+          ) : null}
           {isExpenseCategory ? (
             <>
               <AppText preset="unifiedMeta" style={styles.label}>
-                {isShoppingCategory ? '구매 가격 (선택)' : '병원·건강 비용 (선택)'}
+                {careCategory ? careExpenseLabel : isShoppingCategory ? '구매 가격 (선택)' : '병원·건강 비용 (선택)'}
               </AppText>
               <AppTextInput
                 style={styles.input}
@@ -1055,12 +1106,14 @@ export default function RecordEditScreen() {
                 placeholder="예: 25000"
                 placeholderTextColor="#8A94A6"
                 keyboardType="number-pad"
+                accessibilityLabel={careCategory ? careExpenseLabel : undefined}
+                testID="record-edit-price"
                 editable={!saving}
               />
               <AppText preset="unifiedMeta" style={styles.helperText}>
-                {priceLabel
+                {priceError ?? (priceLabel
                   ? `저장 예정 금액: ${priceLabel}`
-                  : '원 단위로 입력해 주세요. 비워 두면 지출 합계에 포함되지 않아요.'}
+                  : '원 단위로 입력해 주세요. 비워 두면 지출 합계에 포함되지 않아요.')}
               </AppText>
             </>
           ) : null}
@@ -1122,7 +1175,7 @@ export default function RecordEditScreen() {
             loading={saving}
             style={[styles.primary, saving ? styles.primaryDisabled : null]}
             onPress={onSubmit}
-            disabled={saving || !sourceReady}
+            disabled={saving || !sourceReady || invalidCareSelection || Boolean(priceError)}
             accessibilityLabel={saving ? '기록 수정 중' : '기록 수정 완료'}
             accessibilityHint={
               saving

@@ -42,7 +42,7 @@ function text(tree: TestRenderer.ReactTestRenderer) {
 describe('More monthly expense summary', () => {
   beforeEach(() => {
     jest.useFakeTimers().setSystemTime(new Date('2026-09-30T15:00:00Z'));
-    mockData = { items: [], total: 42300, shopping: 12000, medical: 30300, legacyDateCount: 0 };
+    mockData = { items: [], total: 42300, shopping: 12000, medical: 30300, grooming: 0, legacyDateCount: 0 };
     mockIsError = false;
     mockDimensions = { width: 384, height: 832, scale: 2.8125, fontScale: 1 };
     mockUseMonthlyExpenses.mockClear();
@@ -70,7 +70,7 @@ describe('More monthly expense summary', () => {
     ['loading', undefined, false, '불러오는 중'],
     ['error with cached data', 42300, true, '조회하지 못했어요'],
   ] as const)('keeps %s truthful without a fixture amount', async (_state, total, error, expected) => {
-    mockData = total === undefined ? undefined : { items: [], total, shopping: total, medical: 0, legacyDateCount: 0 };
+    mockData = total === undefined ? undefined : { items: [], total, shopping: total, medical: 0, grooming: 0, legacyDateCount: 0 };
     mockIsError = error;
     const tree = await render();
     expect(text(tree)).toContain(expected);
@@ -79,7 +79,7 @@ describe('More monthly expense summary', () => {
   });
 
   it.each([320, 360, 384, 430])('keeps title and total in the same row at %sdp with accessible text wrapping', async width => {
-    mockData = { items: [], total: Number.MAX_SAFE_INTEGER, shopping: Number.MAX_SAFE_INTEGER, medical: 0, legacyDateCount: 0 };
+    mockData = { items: [], total: Number.MAX_SAFE_INTEGER, shopping: Number.MAX_SAFE_INTEGER, medical: 0, grooming: 0, legacyDateCount: 0 };
     for (const fontScale of [1, 1.3, 1.5]) {
       mockDimensions = { ...mockDimensions, width, fontScale };
       const tree = await render();

@@ -8,20 +8,16 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import AppText from '../../../../app/ui/AppText';
 import Feather from '../../../../components/icons/NuriFeatherIcon';
+import NuriSemanticIcon from '../../../../components/icons/NuriSemanticIcon';
 import PetAvatar from '../../../../components/pets/PetAvatar';
-import { HomeFloatingWidgetSurface } from '../../../../components/home/HomeWidgetMaterial';
 import { formatMemorialPetName } from '../../../../services/pets/memorial';
 import { NEUTRAL_UI_PALETTE } from '../../../../services/pets/themePalette';
 import type { Pet } from '../../../../store/petStore';
-import {
-  HOME_SEASONAL_BACKGROUND_GRADIENTS,
-  HOME_SEASONAL_BACKGROUND_LOCATIONS,
-} from '../../../../theme/home/seasonalAmbient';
+import { HOME_HERO_COLORS, HOME_HERO_ACCENT } from '../../../../theme/home/heroLayout';
 import type { SeasonKey } from '../../../../theme/seasonal/season';
 import { HomePetSheetHeader } from './HomePetSheetHeader';
 
@@ -41,8 +37,6 @@ export function HomePetSelectionSheet({
   visible,
   pets,
   selectedPetId,
-  season,
-  accentColor,
   onClose,
   onSelect,
   onManage,
@@ -88,17 +82,6 @@ export function HomePetSelectionSheet({
             },
           ]}
         >
-          <LinearGradient
-            accessible={false}
-            pointerEvents="none"
-            colors={[...HOME_SEASONAL_BACKGROUND_GRADIENTS[season]]}
-            locations={[...HOME_SEASONAL_BACKGROUND_LOCATIONS]}
-            style={StyleSheet.absoluteFill}
-          />
-          <HomeFloatingWidgetSurface
-            radius={28}
-            testIDPrefix="home-pet-selection-glass"
-          />
           <View style={styles.handle} accessible={false} />
           <View style={styles.header}>
             <HomePetSheetHeader
@@ -150,19 +133,23 @@ export function HomePetSelectionSheet({
                     {name}
                   </AppText>
                   <View
+                    testID={`home-pet-selection-indicator-${pet.id}`}
                     style={[
                       styles.selection,
                       {
                         borderColor: selected
-                          ? accentColor
+                          ? HOME_HERO_ACCENT.primary
                           : NEUTRAL_UI_PALETTE.muted,
-                        backgroundColor: selected ? accentColor : 'transparent',
+                        backgroundColor: selected ? HOME_HERO_ACCENT.primary : 'transparent',
                       },
                     ]}
                     accessible={false}
                   >
                     {selected ? (
-                      <Feather
+                      <NuriSemanticIcon
+                        family="feather"
+                        preserveOriginal
+                        testID="home-pet-selection-check"
                         name="check"
                         size={14}
                         color="#FFFFFF"
@@ -209,6 +196,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(33,22,17,0.28)',
   },
   sheet: {
+    backgroundColor: HOME_HERO_COLORS.surface,
     borderTopLeftRadius: 28,
     borderTopRightRadius: 28,
     overflow: 'hidden',

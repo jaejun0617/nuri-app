@@ -1,11 +1,17 @@
-import CtaButton, { CtaText } from '../../app/ui/CtaButton';
-import React, { memo, useCallback, useMemo, useState } from 'react';
-import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
-import { useTheme } from 'styled-components/native';
-
+import React, { memo, useCallback, useRef, useState } from 'react';
+import {
+  Image,
+  Modal,
+  Pressable,
+  StyleSheet,
+  Text as NativeText,
+  TouchableOpacity,
+  useWindowDimensions,
+  View,
+  type GestureResponderEvent,
+} from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppText from '../../app/ui/AppText';
-import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
-import { resolveCtaPalette } from '../../app/theme/ctaPalette';
 import { formatPetAgeLabelFromBirthDate } from '../../services/pets/age';
 import {
   buildPetSpeciesSelection,
@@ -13,63 +19,64 @@ import {
 } from '../../services/pets/species';
 import type { Pet } from '../../store/petStore';
 import {
+  PET_MANAGEMENT_COLORS as colors,
+  PET_MANAGEMENT_TYPE as type,
+  getPetManagementLayout,
+} from '../../theme/pets/management';
+import {
   diffCalendarDaysBetweenYmd,
   diffDaysFromKst,
   formatYmdToDots,
 } from '../../utils/date';
-import { HomeReflectiveGlass } from '../home/HomeReflectiveGlass';
-import Feather from '../icons/NuriFeatherIcon';
+import { getPetDisplayName } from '../../utils/petDisplayName';
+import { HomeFloatingWidgetSurface } from '../home/HomeWidgetMaterial';
 import NuriSemanticIcon from '../icons/NuriSemanticIcon';
 
 type Props = {
   pet: Pet;
   isSelected: boolean;
+  availableWidth?: number;
   onPressSelect: (petId: string) => void;
   onPressEdit: (petId: string) => void;
   onPressDelete: (petId: string) => void;
 };
 
-const PetManagementPhotoStage = memo(function PetManagementPhotoStageView({
+const Photo = memo(function PetManagementPhoto({
   uri,
   name,
   petId,
+  size,
 }: {
   uri: string | null;
   name: string;
   petId: string;
+  size: number;
 }) {
-  const theme = useTheme();
-  const [loadFailed, setLoadFailed] = useState(false);
-
+  const [failed, setFailed] = useState(false);
   return (
-    <View testID={`pet-photo-frame-${petId}`} style={styles.photoFrame}>
-      {uri && !loadFailed ? (
+    <View
+      testID={`pet-photo-frame-${petId}`}
+      style={[styles.photoFrame, { width: size, height: size }]}
+    >
+      {uri && !failed ? (
         <Image
           source={{ uri }}
-          style={styles.photo}
-          resizeMode="contain"
-          resizeMethod="resize"
-          accessibilityRole="image"
+          style={StyleSheet.absoluteFill}
+          resizeMode="cover"
           accessibilityLabel={`${name} 프로필 사진`}
-          onError={() => setLoadFailed(true)}
+          accessibilityRole="image"
+          onError={() => setFailed(true)}
         />
       ) : (
-        <View
-          style={[
-            styles.photoFallback,
-            { backgroundColor: theme.colors.surface },
-          ]}
-        >
-          <Feather name="image" size={28} color={theme.colors.textSecondary} />
-          <AppText
-            preset="unifiedMeta"
-            styleOverridesPreset
-            style={[
-              styles.meta,
-              styles.fallbackText,
-              { color: theme.colors.textSecondary },
-            ]}
-          >
+        <View style={styles.photoFallback}>
+          <NuriSemanticIcon
+            family="feather"
+            name="image"
+            preserveOriginal
+            size={24}
+            color={colors.muted}
+          />
+          <AppText preset="bodySm" style={styles.fallbackText}>
             {uri ? '사진을 불러오지 못했어요' : '등록된 사진이 없어요'}
           </AppText>
         </View>
@@ -78,382 +85,495 @@ const PetManagementPhotoStage = memo(function PetManagementPhotoStageView({
   );
 });
 
-function PetManagementCardComponent({
+function CardActionContent({
+  label,
+  icon,
+  size,
+  testID,
+  accent = false,
+}: {
+  label: string;
+  icon?: 'edit-2' | 'check';
+  size: number;
+  testID: string;
+  accent?: boolean;
+}) {
+  // Restore the icon slot; equal side widths keep the label itself centered.
+  return (
+    <View style={styles.actionRow}>
+      <View style={styles.iconSlot}>
+        {icon === 'check' ? (
+          <View style={styles.selectedCheck}>
+            <NuriSemanticIcon
+              family="feather"
+              name="check"
+              preserveOriginal
+              size={size}
+              color={colors.white}
+            />
+          </View>
+        ) : icon ? (
+          <NuriSemanticIcon
+            family="feather"
+            name={icon}
+            preserveOriginal
+            size={20}
+            color={colors.muted}
+          />
+        ) : null}
+      </View>
+      <AppText
+        testID={testID}
+        preset="button"
+        style={[
+          styles.actionText,
+          { fontSize: size, color: accent ? colors.accent : colors.ink },
+        ]}
+      >
+        {label}
+      </AppText>
+      <View
+        style={styles.iconSlot}
+        accessible={false}
+        importantForAccessibility="no-hide-descendants"
+      />
+    </View>
+  );
+}
+
+function PetManagementCard({
   pet,
   isSelected,
+  availableWidth,
   onPressSelect,
   onPressEdit,
   onPressDelete,
 }: Props) {
-  const theme = useTheme();
-  const season = useEffectiveSeason();
-  const selectionPalette = resolveCtaPalette({
-    role: 'primarySubtle',
-    season,
-    colorScheme: theme.mode,
-    colors: theme.colors,
-  });
-  const photoUri = pet.avatarUrl?.trim() || null;
+  const window = useWindowDimensions();
+  const insets = useSafeAreaInsets();
+  const layout = getPetManagementLayout(availableWidth ?? window.width);
+  const moreRef = useRef<React.ComponentRef<typeof TouchableOpacity> | null>(
+    null,
+  );
+  const menuDeleting = useRef(false);
+  const [menu, setMenu] = useState<{ right: number; top: number } | null>(null);
+  const name = getPetDisplayName(pet.name);
+  const uri = pet.avatarUrl?.trim() || null;
   const birthDate =
     diffCalendarDaysBetweenYmd(pet.birthDate, pet.birthDate) === 0
-      ? pet.birthDate ?? null
+      ? pet.birthDate
       : null;
-  const ageLabel = useMemo(
-    () => formatPetAgeLabelFromBirthDate(birthDate) ?? '미입력',
-    [birthDate],
-  );
-  const speciesLabel = useMemo(() => {
-    const detail =
-      pet.speciesDisplayName?.trim() ||
-      pet.speciesDetailKey?.trim() ||
-      pet.breed?.trim() ||
-      '';
-    if (!pet.species && !pet.speciesKey && !detail) return '미입력';
-    const speciesKey = deriveCanonicalPetSpeciesKey({
-      species: pet.species,
-      speciesKey: pet.speciesKey,
-      speciesDetailKey: pet.speciesDetailKey,
-      speciesDisplayName: pet.speciesDisplayName,
-      breed: pet.breed,
-    });
-    return buildPetSpeciesSelection(speciesKey, detail).speciesDisplayName;
-  }, [
-    pet.species,
-    pet.speciesKey,
-    pet.speciesDetailKey,
-    pet.speciesDisplayName,
-    pet.breed,
-  ]);
-  const genderLabel =
+  const detail =
+    pet.speciesDisplayName?.trim() ||
+    pet.speciesDetailKey?.trim() ||
+    pet.breed?.trim() ||
+    '';
+  const species =
+    !pet.species && !pet.speciesKey && !detail
+      ? '미입력'
+      : buildPetSpeciesSelection(
+          deriveCanonicalPetSpeciesKey({ ...pet, species: pet.species }),
+          detail,
+        ).speciesDisplayName;
+  const gender =
     pet.gender === 'male'
       ? '남아'
       : pet.gender === 'female'
       ? '여아'
       : '미입력';
-  const weightLabel =
-    typeof pet.weightKg === 'number' &&
-    Number.isFinite(pet.weightKg) &&
-    pet.weightKg > 0
-      ? `${Number(pet.weightKg.toFixed(2))}kg`
-      : '미입력';
-  // Use Home's inclusive KST adoption-day calculation, without storing a total.
-  const togetherDays = diffDaysFromKst(pet.adoptionDate ?? '');
-  const details = [
-    { key: 'age', label: '나이', value: ageLabel },
-    { key: 'gender', label: '성별', value: genderLabel },
-    { key: 'weight', label: '몸무게', value: weightLabel },
+  const days = diffDaysFromKst(pet.adoptionDate ?? '');
+  const stats = [
     {
-      key: 'birthday',
-      label: '생일',
-      value: formatYmdToDots(birthDate) ?? '미입력',
+      key: 'age',
+      label: '나이',
+      value: formatPetAgeLabelFromBirthDate(birthDate) ?? '미입력',
+    },
+    {
+      key: 'weight',
+      label: '몸무게',
+      value:
+        typeof pet.weightKg === 'number' &&
+        Number.isFinite(pet.weightKg) &&
+        pet.weightKg > 0
+          ? `${Number(pet.weightKg.toFixed(2))}kg`
+          : '미입력',
     },
     {
       key: 'together',
       label: '함께한 시간',
       value:
-        togetherDays !== null && togetherDays > 0
-          ? `${togetherDays}일`
+        days !== null && days > 0
+          ? `${days.toLocaleString('ko-KR')}일`
           : '미입력',
     },
   ];
-  const handleSelect = useCallback(() => {
-    onPressSelect(pet.id);
-  }, [onPressSelect, pet.id]);
-  const handleEdit = useCallback(() => {
-    onPressEdit(pet.id);
-  }, [onPressEdit, pet.id]);
-  const handleDelete = useCallback(() => {
-    onPressDelete(pet.id);
-  }, [onPressDelete, pet.id]);
+  const openMenu = useCallback(
+    (event: GestureResponderEvent) => {
+      event.stopPropagation();
+      menuDeleting.current = false;
+      setMenu({ right: 16, top: insets.top + 80 });
+      moreRef.current?.measureInWindow((x, y, width, height) => {
+        setMenu({
+          right: Math.max(16, window.width - x - width),
+          top: Math.min(y + height, window.height - insets.bottom - 80),
+        });
+      });
+    },
+    [insets.bottom, insets.top, window.height, window.width],
+  );
 
   return (
-    <HomeReflectiveGlass borderRadius={8} style={styles.card}>
-      {/* Keep the whole photo visible; the information column can grow for text. */}
-      <View testID={`pet-content-${pet.id}`} style={styles.content}>
-        <PetManagementPhotoStage
-          key={photoUri ?? 'no-photo'}
-          uri={photoUri}
-          name={pet.name}
+    <View
+      testID={`pet-card-${pet.id}`}
+      style={[
+        styles.card,
+        {
+          borderColor: isSelected ? colors.border : colors.quietBorder,
+          padding: layout.cardInset,
+        },
+      ]}
+    >
+      <HomeFloatingWidgetSurface
+        radius={layout.cardRadius}
+        testIDPrefix="pet-management-glass"
+      />
+      <View
+        testID={`pet-content-${pet.id}`}
+        style={[styles.content, { gap: layout.photoGap }]}
+      >
+        <Photo
+          key={`${pet.id}:${uri ?? 'none'}`}
+          uri={uri}
+          name={name}
           petId={pet.id}
+          size={layout.photoSize}
         />
-
         <View testID={`pet-info-${pet.id}`} style={styles.info}>
-          <View style={styles.identity}>
-            <View style={styles.nameRow}>
-              <AppText
-                preset="unifiedBody"
-                styleOverridesPreset
-                style={[styles.name, { color: theme.colors.textPrimary }]}
-              >
-                {pet.name}
-              </AppText>
-              {pet.deathDate ? (
-                <View
-                  style={[
-                    styles.memorialBadge,
-                    { backgroundColor: theme.colors.surface },
-                  ]}
-                >
-                  <AppText
-                    preset="unifiedMeta"
-                    styleOverridesPreset
-                    style={[styles.meta, { color: theme.colors.textSecondary }]}
-                  >
-                    추모
-                  </AppText>
-                </View>
-              ) : null}
-            </View>
+          <View style={styles.nameRow}>
             <AppText
-              preset="unifiedMeta"
-              styleOverridesPreset
-              style={[styles.meta, { color: theme.colors.textSecondary }]}
+              preset="title1"
+              accessibilityLabel={name}
+              style={[
+                styles.name,
+                {
+                  fontSize: Array.from(name).length > 6 ? 18 : layout.nameSize,
+                  lineHeight: layout.nameLineHeight,
+                },
+              ]}
             >
-              {speciesLabel}
+              {name}
             </AppText>
-          </View>
-          <View testID={`pet-stats-${pet.id}`} style={styles.stats}>
-            {details.map(detail => (
-              <View
-                key={detail.key}
-                testID={`pet-${detail.key}-${pet.id}`}
-                style={styles.statRow}
-              >
-                <AppText
-                  preset="unifiedMeta"
-                  styleOverridesPreset
-                  style={[styles.meta, { color: theme.colors.textSecondary }]}
+            {pet.deathDate ? (
+              <View style={styles.memorial}>
+                <NativeText
+                  accessible={false}
+                  accessibilityElementsHidden
+                  style={styles.memorialEmoji}
                 >
-                  {detail.label}
-                </AppText>
-                <AppText
-                  preset="unifiedBody"
-                  styleOverridesPreset
-                  style={[
-                    styles.statValue,
-                    { color: theme.colors.textPrimary },
-                  ]}
-                >
-                  {detail.value}
+                  🌈
+                </NativeText>
+                <AppText preset="bodySm" style={styles.memorialText}>
+                  추모
                 </AppText>
               </View>
-            ))}
+            ) : null}
+          </View>
+          <AppText
+            testID={`pet-species-${pet.id}`}
+            preset="bodySm"
+            style={[styles.meta, { fontSize: layout.metaSize }]}
+          >
+            {species} · {gender}
+          </AppText>
+          <View testID={`pet-birthday-${pet.id}`} style={styles.birthday}>
+            <AppText
+              preset="bodySm"
+              style={[styles.meta, { fontSize: layout.metaSize }]}
+            >
+              생일{' '}
+            </AppText>
+            <AppText
+              preset="bodySm"
+              style={[styles.birthdayValue, { fontSize: layout.metaSize }]}
+            >
+              {formatYmdToDots(birthDate) ?? '미입력'}
+            </AppText>
           </View>
         </View>
+        <TouchableOpacity
+          ref={moreRef}
+          testID={`pet-more-${pet.id}`}
+          onPress={openMenu}
+          accessibilityRole="button"
+          accessibilityLabel={`${name} 더보기`}
+          accessibilityHint="이 아이의 프로필 삭제 메뉴를 엽니다."
+          activeOpacity={0.7}
+          style={styles.more}
+        >
+          <NuriSemanticIcon
+            family="feather"
+            name="more-vertical"
+            preserveOriginal
+            size={22}
+            color={colors.moreIcon}
+          />
+        </TouchableOpacity>
       </View>
-
+      <View testID={`pet-stats-${pet.id}`} style={styles.stats}>
+        {stats.map((stat, index) => (
+          <View
+            key={stat.key}
+            testID={`pet-${stat.key}-${pet.id}`}
+            style={[
+              styles.stat,
+              index > 0 && styles.statDivider,
+              { paddingLeft: index > 0 ? (layout.compact ? 12 : 20) : 0 },
+            ]}
+          >
+            <AppText preset="caption" style={styles.statLabel}>
+              {stat.label}
+            </AppText>
+            <AppText preset="titleMd" style={styles.statValue}>
+              {stat.value}
+            </AppText>
+          </View>
+        ))}
+      </View>
       <View testID={`pet-actions-${pet.id}`} style={styles.actions}>
+        <TouchableOpacity
+          testID={`pet-edit-${pet.id}`}
+          onPress={() => onPressEdit(pet.id)}
+          accessibilityRole="button"
+          accessibilityLabel={`${name} 프로필 수정하기`}
+          style={[styles.action, styles.edit]}
+          activeOpacity={0.8}
+        >
+          <CardActionContent
+            label="프로필 수정"
+            size={layout.actionSize}
+            testID={`pet-edit-label-${pet.id}`}
+          />
+        </TouchableOpacity>
         {isSelected ? (
           <View
             testID={`pet-selected-status-${pet.id}`}
             accessible
-            accessibilityLabel={`${pet.name}, 지금 보고 있는 아이`}
-            style={[
-              styles.action,
-              styles.selectedStatus,
-              { backgroundColor: selectionPalette.background },
-            ]}
+            accessibilityLabel={`${name}, 지금 보고 있는 아이`}
+            style={[styles.action, styles.selection]}
           >
-            <NuriSemanticIcon
-              family="feather"
-              name="check"
-              preserveOriginal
-              size={12}
-              color={selectionPalette.text}
+            <CardActionContent
+              label="보고 있어요"
+              icon="check"
+              size={layout.actionSize}
+              testID={`pet-selected-label-${pet.id}`}
+              accent
             />
-            <AppText
-              preset="unifiedMeta"
-              styleOverridesPreset
-              style={[styles.actionText, { color: selectionPalette.text }]}
-            >
-              보고 있어요
-            </AppText>
           </View>
         ) : (
           <TouchableOpacity
-            activeOpacity={0.85}
+            testID={`pet-select-${pet.id}`}
+            onPress={() => onPressSelect(pet.id)}
             accessibilityRole="button"
-            accessibilityLabel={`${pet.name} 선택하기`}
-            style={[
-              styles.action,
-              { backgroundColor: selectionPalette.background },
-            ]}
-            onPress={handleSelect}
+            accessibilityLabel={`${name} 선택하기`}
+            style={[styles.action, styles.selection]}
+            activeOpacity={0.8}
           >
-            <AppText
-              preset="unifiedMeta"
-              styleOverridesPreset
-              style={[styles.actionText, { color: selectionPalette.text }]}
-            >
-              선택
-            </AppText>
+            <CardActionContent
+              label="이 아이 선택"
+              size={layout.actionSize}
+              testID={`pet-select-label-${pet.id}`}
+              accent
+            />
           </TouchableOpacity>
         )}
-
-        <CtaButton
-          role="secondary"
-          testID={`pet-edit-${pet.id}`}
-          accessibilityLabel={`${pet.name} 프로필 수정하기`}
-          style={styles.action}
-          onPress={handleEdit}
-        >
-          <CtaText
-            preset="unifiedMeta"
-            styleOverridesPreset
-            style={styles.actionText}
-          >
-            프로필 수정
-          </CtaText>
-        </CtaButton>
-
-        <CtaButton
-          role="destructiveEntry"
-          testID={`pet-delete-entry-${pet.id}`}
-          accessibilityLabel={`${pet.name} 아이 프로필 삭제하기`}
-          accessibilityHint="확인 절차를 열며 바로 삭제하지 않습니다."
-          style={styles.action}
-          onPress={handleDelete}
-        >
-          <CtaText
-            preset="unifiedMeta"
-            styleOverridesPreset
-            style={styles.actionText}
-          >
-            삭제하기
-          </CtaText>
-        </CtaButton>
       </View>
-    </HomeReflectiveGlass>
+      <Modal
+        visible={menu !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenu(null)}
+        onDismiss={() => {
+          if (!menuDeleting.current) moreRef.current?.focus();
+        }}
+      >
+        <Pressable
+          style={styles.menuBackdrop}
+          onPress={() => setMenu(null)}
+          accessibilityLabel="더보기 메뉴 닫기"
+          accessibilityRole="button"
+        />
+        <View
+          testID="pet-management-menu"
+          accessibilityViewIsModal
+          style={[
+            styles.menu,
+            {
+              right: menu?.right ?? 16,
+              top: menu?.top ?? insets.top + 80,
+              maxWidth: window.width - 32,
+            },
+          ]}
+        >
+          <TouchableOpacity
+            testID={`pet-delete-entry-${pet.id}`}
+            accessibilityRole="button"
+            accessibilityLabel={`${name} 아이 프로필 삭제하기`}
+            accessibilityHint="확인 절차를 열며 바로 삭제하지 않습니다."
+            style={styles.menuAction}
+            onPress={() => {
+              menuDeleting.current = true;
+              setMenu(null);
+              onPressDelete(pet.id);
+            }}
+          >
+            <AppText preset="body" style={styles.deleteLabel}>
+              {name} 프로필 삭제
+            </AppText>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+    </View>
   );
 }
-
-function areEqual(prev: Props, next: Props) {
-  return (
-    prev.isSelected === next.isSelected &&
-    prev.onPressSelect === next.onPressSelect &&
-    prev.onPressEdit === next.onPressEdit &&
-    prev.onPressDelete === next.onPressDelete &&
-    prev.pet.id === next.pet.id &&
-    prev.pet.name === next.pet.name &&
-    prev.pet.avatarUrl === next.pet.avatarUrl &&
-    prev.pet.birthDate === next.pet.birthDate &&
-    prev.pet.adoptionDate === next.pet.adoptionDate &&
-    prev.pet.speciesDetailKey === next.pet.speciesDetailKey &&
-    prev.pet.speciesDisplayName === next.pet.speciesDisplayName &&
-    prev.pet.species === next.pet.species &&
-    prev.pet.speciesKey === next.pet.speciesKey &&
-    prev.pet.breed === next.pet.breed &&
-    prev.pet.weightKg === next.pet.weightKg &&
-    prev.pet.gender === next.pet.gender &&
-    prev.pet.deathDate === next.pet.deathDate &&
-    prev.pet.themeColor === next.pet.themeColor
-  );
-}
-
-const PetManagementCard = memo(PetManagementCardComponent, areEqual);
 
 const styles = StyleSheet.create({
   card: {
-    marginTop: 0,
+    borderWidth: 1,
+    borderRadius: 18,
+    backgroundColor: colors.glass,
+    overflow: 'hidden',
   },
   content: {
     flexDirection: 'row',
-    alignItems: 'stretch',
-    minHeight: 224,
+    alignItems: 'flex-start',
+    position: 'relative',
   },
   photoFrame: {
-    width: '50%',
-    minWidth: 0,
+    flexShrink: 0,
+    borderRadius: 13,
     overflow: 'hidden',
-  },
-  photo: {
-    ...StyleSheet.absoluteFill,
+    backgroundColor: colors.subtle,
   },
   photoFallback: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
-    padding: 12,
+    padding: 8,
+    gap: 6,
   },
-  fallbackText: {
-    textAlign: 'center',
-  },
-  info: {
-    flex: 1,
-    minWidth: 0,
-    padding: 16,
-    justifyContent: 'center',
-    gap: 12,
-  },
-  identity: {
-    minWidth: 0,
-    gap: 8,
-  },
+  fallbackText: { ...type.label, textAlign: 'center', color: colors.muted },
+  info: { flex: 1, minWidth: 0, paddingTop: 14, gap: 14 },
   nameRow: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     alignItems: 'center',
+    flexWrap: 'wrap',
     gap: 6,
+    paddingRight: 10,
   },
-  name: {
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: '700',
-    flexShrink: 1,
+  name: { ...type.name, color: colors.ink, flexShrink: 1 },
+  memorial: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  memorialText: { ...type.label, color: colors.muted },
+  memorialEmoji: {
+    fontFamily: 'sans-serif',
+    fontSize: type.label.fontSize,
+    lineHeight: type.label.lineHeight,
+    includeFontPadding: false,
   },
-  meta: {
-    fontSize: 12,
-    lineHeight: 18,
+  meta: { ...type.meta, color: colors.muted },
+  birthday: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'baseline',
+    columnGap: 4,
+  },
+  birthdayValue: { ...type.meta, color: colors.ink },
+  more: {
+    position: 'absolute',
+    right: -10,
+    top: -12,
+    width: 48,
+    height: 48,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   stats: {
-    gap: 6,
-  },
-  statRow: {
+    borderTopWidth: 1,
+    borderTopColor: colors.quietBorder,
+    marginTop: 14,
+    paddingTop: 16,
     flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: 8,
   },
-  statValue: {
-    flex: 1,
-    minWidth: 0,
-    fontSize: 14,
-    lineHeight: 20,
-    fontWeight: '600',
-    textAlign: 'right',
-  },
-  memorialBadge: {
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-  },
+  stat: { flex: 1, minWidth: 0, paddingRight: 6, gap: 4 },
+  statDivider: { borderLeftWidth: 1, borderLeftColor: colors.quietBorder },
+  statLabel: { ...type.label, color: colors.muted },
+  statValue: { ...type.value, color: colors.ink },
   actions: {
+    marginTop: 20,
     flexDirection: 'row',
-    gap: 6,
+    gap: 10,
     alignItems: 'stretch',
-    padding: 8,
   },
   action: {
     flex: 1,
     minWidth: 0,
-    minHeight: 48,
-    borderRadius: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 8,
+    minHeight: 50,
+    paddingHorizontal: 8,
+    paddingVertical: 10,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  selectedStatus: {
-    flexDirection: 'row',
-    gap: 4,
+  actionRow: { width: '100%', flexDirection: 'row', alignItems: 'center' },
+  iconSlot: {
+    width: 22,
+    minHeight: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  edit: {
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.glass,
+  },
+  selection: { backgroundColor: colors.subtle },
+  selectedCheck: {
+    backgroundColor: colors.accent,
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actionText: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '600',
+    ...type.action,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    color: colors.ink,
     textAlign: 'center',
-    flexShrink: 1,
+    flex: 1,
+    minWidth: 0,
+  },
+  menuBackdrop: { ...StyleSheet.absoluteFill, backgroundColor: 'transparent' },
+  menu: {
+    position: 'absolute',
+    minWidth: 120,
+    padding: 4,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+    elevation: 4,
+  },
+  menuAction: {
+    minHeight: 48,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    justifyContent: 'center',
+  },
+  deleteLabel: {
+    ...type.dialogBody,
+    color: colors.danger,
+    textAlign: 'center',
   },
 });
-
-export default PetManagementCard;
+export default memo(PetManagementCard);

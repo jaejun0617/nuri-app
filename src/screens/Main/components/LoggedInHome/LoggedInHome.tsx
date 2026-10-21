@@ -11,6 +11,7 @@ import AppText from '../../../../app/ui/AppText';
 import { FixedTypographyBoundary } from '../../../../app/providers/AppFontPreferenceProvider';
 import React, {
   useEffect,
+  useContext,
   useMemo,
   useCallback,
   useRef,
@@ -30,6 +31,7 @@ import {
   Platform,
   Pressable,
   ScrollView,
+  StatusBar,
   TouchableOpacity,
   UIManager,
   View,
@@ -62,6 +64,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 import Screen from '../../../../components/layout/Screen';
+import { ToolbarHeightContext } from '../../../../components/navigation/ToolbarHeightContext';
 import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
 import { useHealthVisualQa } from '../../../../components/health/healthVisualQa';
 import { HomeScheduleCalendar } from '../../../../components/home/HomeScheduleCalendar';
@@ -116,18 +119,12 @@ import {
   getRecentEmptyDataState,
 } from './HomeEditorialStates';
 import { HomeAmbientBubbleCanvas } from './HomeAmbientBubbleCanvas';
-import {
-  HomeHeroPhotoBackground,
-  useHomeHeroPhoto,
-} from './HomeHeroPhotoBackground';
+import { HomeHeroPhotoBackground } from './HomeHeroPhotoBackground';
 import {
   HomeHeroContentSheet,
   HomeHeroInfoPanel,
 } from './HomeHeroInfoPanel';
-import {
-  HomeHeroFooterOrnaments,
-  HomeHeroPhotoStarlights,
-} from './HomeHeroDecorations';
+import { getHomeHeroColors, getHomeHeroMinimumHeight, getHomeHeroSeasonCopy } from '../../../../theme/home/heroLayout';
 import { HomeSectionDecorations } from './HomeSectionDecorations';
 import { HomePetSelectionSheet } from './HomePetSelectionSheet';
 import { HomePetSheetHeader } from './HomePetSheetHeader';
@@ -137,11 +134,9 @@ import {
 } from './HomePetBasicInfoSection';
 import {
   HOME_FOREGROUND_UI_SEASON,
-  HOME_SEASONAL_BACKGROUND_GRADIENTS,
 } from '../../../../theme/home/seasonalAmbient';
 import {
   AutumnLeafOrnament,
-  SeasonalHomeAutumnStage,
 } from './SeasonalHomeAutumn';
 import {
   WinterOrnament,
@@ -257,9 +252,7 @@ type Nav = CompositeNavigationProp<
 
 const HOME_SCROLL_OFFSET_BY_KEY = new Map<string, number>();
 const AUTUMN_PROFILE_SHEET_BOTTOM_WAVE = require('../../../../assets/seasonal/home/autumn/profile-sheet-bottom-wave.png');
-const AUTUMN_MEMORY_CHIP_FLOW_COMPENSATION = 26;
 // Temporary PO review: keep the edit target and layout, but do not draw the ring.
-const HOME_HERO_PROFILE_RING_VISIBLE = false;
 
 if (Platform.OS === 'android') {
   UIManager.setLayoutAnimationEnabledExperimental?.(true);
@@ -1081,10 +1074,12 @@ const HomeNotificationOverlay = React.memo(function HomeNotificationOverlay({
 
 const HomeHeaderSection = React.memo(function HomeHeaderSection({
   season,
+  petName,
   onPressNotifications,
   notificationUnreadCount,
 }: {
   season: SeasonalHomeVisual['season'] | null;
+  petName: string;
   onPressNotifications: () => void;
   notificationUnreadCount: number;
 }) {
@@ -1111,11 +1106,20 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
             family="material"
             preserveOriginal
             name="heart"
-            size={12}
+            size={18}
             color={styles.brandWordmark.color}
             style={styles.brandPaw}
           />
         </View>
+        <AppText
+          testID="home-hero-season-copy"
+          preset="unifiedLabel"
+          styleOverridesPreset
+          numberOfLines={2}
+          style={styles.heroSeasonCopy}
+        >
+          {getHomeHeroSeasonCopy(petName, season ?? 'autumn')}
+        </AppText>
       </View>
 
       <View style={styles.notificationAnchor}>
@@ -1129,7 +1133,7 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
           <NuriIcon
             testID="home-notification-icon"
             name="bell"
-            size={18}
+            size={26}
             color="#FFFFFF"
             colorMode="theme"
             variant="outline"
@@ -1151,142 +1155,6 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
   );
 });
 
-const HeroProfileIdentity = React.memo(function HeroProfileIdentity({
-  petTheme,
-  selectedAvatarUri,
-  season,
-  avatarDiameter,
-  onPressPetProfileEdit,
-}: {
-  petTheme: ReturnType<typeof buildPetThemePalette>;
-  selectedAvatarUri: string | null;
-  season: SeasonalHomeVisual['season'] | null;
-  avatarDiameter: number;
-  onPressPetProfileEdit: () => void;
-}) {
-  const isWinter = season === 'winter';
-  const isSpring = season === 'spring';
-  const isSummer = season === 'summer';
-  const isSeasonal = season !== null;
-  const heroPressScale = useRef(new RNAnimated.Value(1)).current;
-  const animateHeroPress = useCallback(
-    (toValue: number) => {
-      RNAnimated.timing(heroPressScale, {
-        toValue,
-        duration: 120,
-        useNativeDriver: true,
-      }).start();
-    },
-    [heroPressScale],
-  );
-
-  return (
-    <>
-      <View style={styles.heroCenter}>
-        <Pressable
-          style={[
-            styles.heroAvatarPressTarget,
-            { width: avatarDiameter, height: avatarDiameter },
-          ]}
-          onPress={onPressPetProfileEdit}
-          onPressIn={() => animateHeroPress(0.988)}
-          onPressOut={() => animateHeroPress(1)}
-          accessibilityRole="button"
-          accessibilityLabel="반려동물 프로필 수정"
-        >
-          <RNAnimated.View
-            style={[
-              styles.heroAvatarOuter,
-              styles.heroAvatarPressVisual,
-              {
-                width: avatarDiameter,
-                height: avatarDiameter,
-                transform: [{ scale: heroPressScale }],
-              },
-            ]}
-          >
-            {HOME_HERO_PROFILE_RING_VISIBLE ? (
-              <>
-                {isSeasonal ? (
-                  <View
-                    style={[
-                      isWinter
-                        ? styles.winterHeroHalo
-                        : isSpring
-                        ? styles.springHeroHalo
-                        : isSummer
-                        ? styles.summerHeroHalo
-                        : styles.autumnHeroHalo,
-                      {
-                        width: avatarDiameter + 16,
-                        height: avatarDiameter + 16,
-                        borderRadius: (avatarDiameter + 16) / 2,
-                      },
-                    ]}
-                  />
-                ) : null}
-                <View
-                  style={[
-                    styles.heroAvatarGlow,
-                    isWinter
-                      ? styles.winterHeroAvatarGlow
-                      : isSpring
-                      ? styles.springHeroAvatarGlow
-                      : isSummer
-                      ? styles.summerHeroAvatarGlow
-                      : isSeasonal
-                      ? styles.autumnHeroAvatarGlow
-                      : null,
-                    { width: avatarDiameter - 2, height: avatarDiameter - 2 },
-                    {
-                      backgroundColor: petTheme.glow,
-                      shadowColor: petTheme.primary,
-                    },
-                  ]}
-                />
-                <LinearGradient
-                  colors={petTheme.ringGradient}
-                  locations={[0, 0.55, 1]}
-                  start={{ x: 0.18, y: 0.12 }}
-                  end={{ x: 0.82, y: 0.9 }}
-                  style={[
-                    styles.heroAvatarRing,
-                    {
-                      width: avatarDiameter - 12,
-                      height: avatarDiameter - 12,
-                      shadowColor: petTheme.primary,
-                    },
-                  ]}
-                >
-                  <View style={styles.heroAvatarRingInner}>
-                    <View
-                      style={[
-                        styles.heroAvatarWrap,
-                        {
-                          width: avatarDiameter - 24,
-                          height: avatarDiameter - 24,
-                        },
-                      ]}
-                    >
-                      {selectedAvatarUri ? (
-                        <Image
-                          source={{ uri: selectedAvatarUri }}
-                          style={styles.heroAvatarImg}
-                        />
-                      ) : (
-                        <View style={styles.heroAvatarPlaceholder} />
-                      )}
-                    </View>
-                  </View>
-                </LinearGradient>
-              </>
-            ) : null}
-          </RNAnimated.View>
-        </Pressable>
-      </View>
-    </>
-  );
-});
 
 const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
   petTheme,
@@ -2074,51 +1942,6 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
   );
 });
 
-const HeroProfileSection = React.memo(function HeroProfileSection({
-  petTheme,
-  selectedAvatarUri,
-  onPressPetProfileEdit,
-  season,
-  avatarDiameter,
-}: {
-  petTheme: ReturnType<typeof buildPetThemePalette>;
-  selectedAvatarUri: string | null;
-  onPressPetProfileEdit: () => void;
-  season: SeasonalHomeVisual['season'] | null;
-  avatarDiameter: number;
-}) {
-  const isAutumn = season === 'autumn';
-  const isWinter = season === 'winter';
-  const isSpring = season === 'spring';
-  const isSummer = season === 'summer';
-  const isSeasonal = season !== null;
-  const usesCanonicalHeroGeometry =
-    isAutumn || isWinter || isSpring || isSummer;
-  const usesCanonicalWarmSurface = isSeasonal && !isWinter;
-
-  return (
-    <View
-      style={[
-        styles.heroCard,
-        usesCanonicalWarmSurface ? styles.autumnHeroCard : null,
-        usesCanonicalHeroGeometry ? styles.autumnHeroCardWithMemoryChip : null,
-        isWinter ? styles.winterHeroCard : null,
-      ]}
-    >
-      <View
-        style={usesCanonicalHeroGeometry ? styles.autumnHeroBodyGroup : null}
-      >
-        <HeroProfileIdentity
-          petTheme={petTheme}
-          selectedAvatarUri={selectedAvatarUri}
-          season={season}
-          avatarDiameter={avatarDiameter}
-          onPressPetProfileEdit={onPressPetProfileEdit}
-        />
-      </View>
-    </View>
-  );
-});
 
 const RecommendationTipsSection = React.memo(
   function RecommendationTipsSection({
@@ -2513,15 +2336,17 @@ const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
 });
 
 export default function LoggedInHome() {
+  const heroColors = getHomeHeroColors();
   // ---------------------------------------------------------
   // 0) navigation
   // ---------------------------------------------------------
   const insets = useSafeAreaInsets();
-  const bottomTabBarHeight = useBottomTabBarHeight();
+  const fallbackTabBarHeight = useBottomTabBarHeight();
+  const bottomTabBarHeight = useContext(ToolbarHeightContext) ?? fallbackTabBarHeight;
   const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  const [heroFrameWidth, setHeroFrameWidth] = useState(windowWidth);
   const { season: ambientSeason } =
     useSeasonPreference();
-  const homeBackgroundColor = HOME_SEASONAL_BACKGROUND_GRADIENTS[ambientSeason][0];
   // Keep foreground geometry stable while the selected season owns the canvas.
   const seasonalHomeVisual = useMemo(
     () => getSeasonalHomeVisual(HOME_FOREGROUND_UI_SEASON),
@@ -2531,18 +2356,6 @@ export default function LoggedInHome() {
     () => getSeasonalHomeVisual(ambientSeason),
     [ambientSeason],
   );
-  const heroAvatarDiameter = seasonalHomeVisual
-    ? Math.min(176, Math.max(146, Math.round(windowWidth * 0.41)))
-    : 156;
-  const seasonalHeroOffset =
-    seasonalHomeVisual?.season === 'autumn' ||
-    seasonalHomeVisual?.season === 'winter' ||
-    seasonalHomeVisual?.season === 'spring' ||
-    seasonalHomeVisual?.season === 'summer'
-      ? Math.min(34, Math.max(26, Math.round(windowWidth * 0.075)))
-      : seasonalHomeVisual
-      ? Math.min(48, Math.max(36, Math.round(windowWidth * 0.11)))
-      : 0;
   const navigation = useNavigation<Nav>();
   const isScreenFocused = useIsFocused();
   const homeScrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(
@@ -3174,15 +2987,6 @@ export default function LoggedInHome() {
     () => selectedPet?.avatarUrl?.trim() || null,
     [selectedPet?.avatarUrl],
   );
-  const heroPhoto = useHomeHeroPhoto(selectedAvatarUri);
-  const heroPhotoHeight = heroPhoto.aspectRatio
-    ? windowWidth / heroPhoto.aspectRatio
-    : 0;
-  // The lower sheet meets the natural photo edge rather than an empty viewport.
-  const heroStageMinHeight =
-    Number.isFinite(heroPhotoHeight) && heroPhotoHeight > 0
-      ? heroPhotoHeight
-      : seasonalHeroViewportHeight;
   const hasMultiplePets = pets.length > 1;
   const petSelectionVisible = hasMultiplePets && isScreenFocused &&
     petSelectionOwnerId !== null && petSelectionOwnerId === sessionUserId;
@@ -3646,6 +3450,8 @@ export default function LoggedInHome() {
     [windowHeight],
   );
   const handleHomeViewportLayout = useCallback((event: LayoutChangeEvent) => {
+    const nextWidth = event.nativeEvent.layout.width;
+    if (nextWidth > 0) setHeroFrameWidth(previous => previous === nextWidth ? previous : nextWidth);
     const nextHeight = Math.round(event.nativeEvent.layout.height);
     if (nextHeight > 0) {
       setHomeViewportHeight(currentHeight =>
@@ -3680,7 +3486,8 @@ export default function LoggedInHome() {
   }, []);
   const homeHeader = (
     <HomeHeaderSection
-      season={seasonalHomeVisual?.season ?? null}
+      season={ambientSeason}
+      petName={profilePetName}
       onPressNotifications={openHomeNotifications}
       notificationUnreadCount={homeNotificationUnreadCount}
     />
@@ -3692,15 +3499,6 @@ export default function LoggedInHome() {
       stoppingKeys={activeAlarms.stoppingKeys}
       onStop={activeAlarms.stop}
       onRefresh={activeAlarms.refresh}
-    />
-  );
-  const homeHero = (
-    <HeroProfileSection
-      petTheme={petTheme}
-      selectedAvatarUri={selectedAvatarUri}
-      onPressPetProfileEdit={onPressPetProfileEdit}
-      season={seasonalHomeVisual?.season ?? null}
-      avatarDiameter={heroAvatarDiameter}
     />
   );
   const frequentRecordsSection = (
@@ -3872,7 +3670,9 @@ export default function LoggedInHome() {
       season={HOME_FOREGROUND_UI_SEASON}
       headingSeason={ambientSeason}
     >
-      <Screen style={[styles.screen, { backgroundColor: homeBackgroundColor }]}>
+      <Screen style={[styles.screen, { backgroundColor: heroColors.statusBar }]}>
+        {isScreenFocused ? <StatusBar barStyle="dark-content" /> : null}
+        <View style={{ flex: 1 }}>
         {seasonalHomeVisual ? (
           <HomeAmbientBubbleCanvas
             backgroundMode="homePalette"
@@ -3885,12 +3685,14 @@ export default function LoggedInHome() {
         <ScrollView
           ref={homeScrollRef}
           keyboardShouldPersistTaps="handled"
-          style={[styles.scroll, styles.ambientBackgroundTransparent]}
+          style={[styles.scroll, { backgroundColor: heroColors.surface }]}
           contentContainerStyle={[
             styles.scrollContent,
             {
               paddingBottom: Math.max(132, insets.bottom + 108),
-              gap: seasonalHomeVisual ? 0 : 24,
+              paddingHorizontal: 0,
+              paddingTop: 0,
+              gap: 0,
             },
           ]}
           contentOffset={{ x: 0, y: initialHomeScrollOffset }}
@@ -3900,60 +3702,28 @@ export default function LoggedInHome() {
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
         >
-          {seasonalHomeVisual ? (
-            <SeasonalHomeAutumnStage
-              atmosphere={seasonalHomeVisual.atmosphere}
-              atmosphereAspectRatio={seasonalHomeVisual.atmosphereAspectRatio}
-              backgroundImageVisible={false}
-              ambientSeason={ambientSeason}
-              minHeight={heroStageMinHeight}
-              background={
-                <>
-                  <HomeHeroPhotoBackground
-                    uri={selectedAvatarUri}
-                    aspectRatio={heroPhoto.aspectRatio}
-                    onError={heroPhoto.onError}
-                  />
-                  <HomeHeroPhotoStarlights
-                    season={ambientSeason}
-                    aspectRatio={heroPhoto.aspectRatio}
-                    active={isScreenFocused}
-                  />
-                </>
-              }
-            >
-              {homeHeader}
-              {activeAlarmNotice}
-              <Animated.View
-                style={[
-                  animatedContentStyle,
-                  {
-                    marginTop:
-                      seasonalHeroOffset - AUTUMN_MEMORY_CHIP_FLOW_COMPENSATION,
-                  },
-                ]}
-              >
-                {homeHero}
-              </Animated.View>
-            </SeasonalHomeAutumnStage>
-          ) : (
-            <>
-              {homeHeader}
-              {activeAlarmNotice}
-            </>
-          )}
-
-          {/* Fade container */}
-          <Animated.View
-            style={animatedContentStyle}
-            onLayout={handleAmbientContentLayout}
-            // Only the seasonal sheet overlaps the photo; its actions stay reachable.
-            pointerEvents="box-none"
+          <View
+            testID="home-hero-fold"
+            style={{
+              width: '100%',
+              minHeight: getHomeHeroMinimumHeight(
+                homeViewportHeight || windowHeight - insets.top,
+                bottomTabBarHeight,
+              ),
+              backgroundColor: heroColors.surface,
+            }}
           >
-            {seasonalHomeVisual ? null : homeHero}
-
-            <HomeHeroContentSheet season={ambientSeason}>
+            <View style={{ position: 'relative' }}>
+              <HomeHeroPhotoBackground uri={selectedAvatarUri} frameWidth={heroFrameWidth} colors={heroColors} />
+              <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
+                {homeHeader}
+                {activeAlarmNotice}
+              </View>
+            </View>
+            <Animated.View style={animatedContentStyle}>
               <HomeHeroInfoPanel
+                colors={heroColors}
+                containerWidth={heroFrameWidth}
                 petTheme={petTheme}
                 profilePetName={profilePetName}
                 titleBadge={homeTitleBadge}
@@ -3963,7 +3733,16 @@ export default function LoggedInHome() {
                 onPressProfileInfo={openProfileInfoSheet}
                 onPressPetProfileEdit={onPressPetProfileEdit}
               />
-              <HomeHeroFooterOrnaments season={ambientSeason} />
+            </Animated.View>
+          </View>
+
+          {/* Fade container */}
+          <Animated.View
+            style={animatedContentStyle}
+            onLayout={handleAmbientContentLayout}
+            pointerEvents="box-none"
+          >
+            <HomeHeroContentSheet season={ambientSeason}>
               <FixedTypographyBoundary>
                 <HomeWeatherSection
                   weather={weatherGuide}
@@ -4027,6 +3806,7 @@ export default function LoggedInHome() {
           onToggleExpandedItem={onToggleHomeNotificationExpanded}
           onSetExpandedItem={onSetHomeNotificationExpanded}
         />
+        </View>
       </Screen>
     </HomeSeasonProvider>
   );

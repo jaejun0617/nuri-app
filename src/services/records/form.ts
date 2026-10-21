@@ -82,7 +82,7 @@ export function isExpenseRecordCategory(
   otherSubCategoryKey: RecordOtherSubCategoryKey | null,
 ) {
   return mainCategoryKey === 'health' ||
-    (mainCategoryKey === 'other' && (otherSubCategoryKey === 'shopping' || otherSubCategoryKey === 'hospital'));
+    (mainCategoryKey === 'other' && (otherSubCategoryKey === 'shopping' || otherSubCategoryKey === 'hospital' || otherSubCategoryKey === 'grooming' || otherSubCategoryKey === 'bathing'));
 }
 
 export function normalizePositiveDecimalInput(value: string) {
@@ -127,6 +127,21 @@ export function parseRecordPrice(value: string) {
     throw new Error('가격을 다시 확인해 주세요.');
   }
   return parsed;
+}
+
+/** Care costs keep raw input until validated: a minus/decimal/paste must not become another amount. */
+export function parseOptionalWonPrice(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  if (!/^\d{1,9}$/.test(trimmed)) {
+    throw new Error('금액은 0~999,999,999원 사이의 정수로 입력해 주세요.');
+  }
+  return parseRecordPrice(trimmed);
+}
+
+export function optionalWonPriceError(value: string): string | null {
+  try { parseOptionalWonPrice(value); return null; }
+  catch (error) { return error instanceof Error ? error.message : '금액을 다시 확인해 주세요.'; }
 }
 
 export function formatRecordPriceLabel(price: number | null | undefined) {

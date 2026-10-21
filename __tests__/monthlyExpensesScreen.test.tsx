@@ -32,6 +32,9 @@ jest.mock('../src/hooks/useMonthlyExpenses', () => ({
     };
   },
 }));
+jest.mock('../src/screens/Records/monthlyExpensePreview', () => ({
+  isMonthlyExpensePreviewEnabled: () => false,
+}));
 jest.mock('../src/components/common/SeasonalFormSurface', () => {
   const ReactRuntime = jest.requireActual('react') as typeof React;
   const { View } = jest.requireActual('react-native') as typeof import('react-native');

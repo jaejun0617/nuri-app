@@ -8,12 +8,11 @@ import ReactNative, {
   TouchableOpacity,
 } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
-import LinearGradient from 'react-native-linear-gradient';
 
 import AppText from '../src/app/ui/AppText';
 import { HomePetSelectionSheet } from '../src/screens/Main/components/LoggedInHome/HomePetSelectionSheet';
 import { HomePetSheetHeader } from '../src/screens/Main/components/LoggedInHome/HomePetSheetHeader';
-import { HOME_SEASONAL_BACKGROUND_GRADIENTS } from '../src/theme/home/seasonalAmbient';
+import { HOME_HERO_COLORS, HOME_HERO_ACCENT } from '../src/theme/home/heroLayout';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 
 jest.mock('../src/app/ui/AppText', () => 'AppText');
@@ -92,7 +91,7 @@ describe('Home pet selection and contextual editing', () => {
   it('removes duplicate header identity while reusing the existing selection, management and edit routes', () => {
     const header = homeSource.slice(
       homeSource.indexOf('const HomeHeaderSection'),
-      homeSource.indexOf('const HeroProfileIdentity'),
+      homeSource.indexOf('const HeroProfileAccordion'),
     );
     expect(header).not.toContain('petSwitcherRow');
     expect(header).not.toContain('petAddChip');
@@ -143,6 +142,17 @@ describe('Home pet selection and contextual editing', () => {
     });
     expect(events).toEqual(['close', 'select:pet-two']);
     expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the selected indicator lavender even for an orange pet theme', async () => {
+    const renderer = await renderSheet({ accentColor: '#F97316' });
+    expect(StyleSheet.flatten(renderer.root.findByProps({ testID: 'home-pet-selection-indicator-pet-one' }).props.style)).toMatchObject({
+      borderColor: HOME_HERO_ACCENT.primary, backgroundColor: HOME_HERO_ACCENT.primary,
+    });
+    expect(StyleSheet.flatten(renderer.root.findByProps({ testID: 'home-pet-selection-indicator-pet-two' }).props.style).backgroundColor).toBe('transparent');
+    expect(renderer.root.findByProps({ testID: 'home-pet-selection-check' }).props).toMatchObject({
+      family: 'feather', preserveOriginal: true, name: 'check', color: '#FFFFFF',
+    });
   });
 
   it('dismisses the already selected pet without fetching or switching it again', async () => {
@@ -246,25 +256,15 @@ describe('Home pet selection and contextual editing', () => {
   });
 
   it.each<SeasonKey>(['spring', 'summer', 'autumn', 'winter'])(
-    'reuses the %s canvas with unchanged geometry',
+    'keeps the Home lavender canvas in %s with unchanged geometry',
     async season => {
       const renderer = await renderSheet({ season });
-      const background = renderer.root
-        .findAllByType(LinearGradient)
-        .find(
-          node =>
-            node.props.colors[0] ===
-            HOME_SEASONAL_BACKGROUND_GRADIENTS[season][0],
-        );
-      expect(background?.props.colors).toEqual([
-        ...HOME_SEASONAL_BACKGROUND_GRADIENTS[season],
-      ]);
       expect(
         StyleSheet.flatten(
           renderer.root.findByProps({ testID: 'home-pet-selection-sheet' })
             .props.style,
         ),
-      ).toMatchObject({ borderTopLeftRadius: 28, borderTopRightRadius: 28 });
+      ).toMatchObject({ backgroundColor: HOME_HERO_COLORS.surface, borderTopLeftRadius: 28, borderTopRightRadius: 28 });
     },
   );
 

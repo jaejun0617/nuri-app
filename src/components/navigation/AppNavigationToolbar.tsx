@@ -26,6 +26,7 @@ import { useTheme } from 'styled-components/native';
 import NuriIcon, { type NuriIconName } from '../icons/NuriIcon';
 
 import AppText from '../../app/ui/AppText';
+import { getHomeHeroColors, HOME_HERO_COLORS, HOME_HERO_ACCENT, HOME_HERO_TOOLBAR_RADIUS } from '../../theme/home/heroLayout';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { ScreenEntrySource } from '../../navigation/entry';
 import { useAuthStore } from '../../store/authStore';
@@ -36,6 +37,7 @@ export type ActiveTabKey = 'home' | 'timeline' | 'community' | 'guestbook' | 'mo
 
 type Props = {
   activeKey: ActiveTabKey;
+  homeHero?: boolean;
   onBeforeNavigate?: () => void;
   onPressMore?: () => void;
   onPressActiveHome?: () => void;
@@ -47,6 +49,7 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function AppNavigationToolbar({
   activeKey,
+  homeHero: homeHeroRequested = false,
   onBeforeNavigate,
   onPressMore,
   onPressActiveHome,
@@ -57,6 +60,8 @@ export default function AppNavigationToolbar({
   const insets = useSafeAreaInsets();
   const theme = useTheme();
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
+  const homeHero = homeHeroRequested && isLoggedIn;
+  const heroColors = getHomeHeroColors();
 
 
   const bottomInset = useMemo(
@@ -66,7 +71,9 @@ export default function AppNavigationToolbar({
         : Math.max(insets.bottom, 10),
     [insets.bottom],
   );
-  const activeColor = isLoggedIn ? theme.colors.textPrimary : theme.colors.brand;
+  // PO: all instances share the same calm purple navigation color hierarchy.
+  const activeColor = HOME_HERO_ACCENT.primary;
+  const inactiveColor = HOME_HERO_COLORS.muted;
 
   const navigateTo = useCallback(
     (target: ActiveTabKey) => {
@@ -143,6 +150,7 @@ export default function AppNavigationToolbar({
         styles.wrap,
         { backgroundColor: theme.colors.background },
         { paddingBottom: bottomInset },
+        homeHero ? { backgroundColor: heroColors.surface, borderTopLeftRadius: HOME_HERO_TOOLBAR_RADIUS, borderTopRightRadius: HOME_HERO_TOOLBAR_RADIUS } : null,
       ]}
     >
       <View
@@ -152,6 +160,7 @@ export default function AppNavigationToolbar({
             backgroundColor: theme.colors.background,
             borderTopColor: theme.colors.border,
           },
+          homeHero ? { backgroundColor: heroColors.surface, borderTopColor: 'transparent', borderTopLeftRadius: HOME_HERO_TOOLBAR_RADIUS, borderTopRightRadius: HOME_HERO_TOOLBAR_RADIUS } : null,
         ]}
       >
         {tabs.map(tab => {
@@ -168,7 +177,7 @@ export default function AppNavigationToolbar({
               <NuriIcon
                 name={tab.icon}
                 size={18}
-                color={active ? activeColor : theme.colors.textMuted}
+                color={active ? activeColor : inactiveColor}
                 colorMode="theme"
                 variant={active ? 'glass' : 'outline'}
               />
@@ -181,8 +190,7 @@ export default function AppNavigationToolbar({
                 minimumFontScale={0.75}
                 style={[
                   styles.label,
-                  { color: theme.colors.textMuted },
-                  active ? { color: activeColor } : null,
+                  { color: active ? activeColor : inactiveColor },
                 ]}
               >
                 {tab.label}

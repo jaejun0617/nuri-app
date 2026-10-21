@@ -55,33 +55,44 @@ export const styles = StyleSheet.create({
   // ---------------------------------------------------------
   header: {
     position: 'relative',
-    marginBottom: 2,
+    marginBottom: 0,
     flexDirection: 'row',
-    alignItems: 'center',
+    alignItems: 'flex-start',
     justifyContent: 'space-between',
-    paddingTop: 8,
-    paddingBottom: 16,
+    paddingTop: 14,
+    paddingBottom: 0,
+    paddingHorizontal: 22,
   },
   brandContentStack: {
     flex: 1,
     minWidth: 0,
     alignItems: 'flex-start',
+    paddingRight: 12,
   },
   seasonalHeader: {
-    paddingTop: 4,
-    paddingBottom: 12,
+    paddingTop: 14,
+    paddingBottom: 0,
   },
   brandLockup: {
     flexDirection: 'row',
     alignItems: 'flex-start',
   },
   brandWordmark: {
-    fontSize: 22,
-    lineHeight: 28,
+    fontSize: 26,
+    lineHeight: 32,
     color: '#FFFFFF',
     fontFamily: typography.family.display,
     fontWeight: '400',
     letterSpacing: 0,
+    includeFontPadding: false,
+  },
+  heroSeasonCopy: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: '#FFFFFF',
+    fontWeight: '400',
+    includeFontPadding: false,
+    marginTop: 2,
   },
   brandPaw: {
     marginTop: -2,
@@ -90,6 +101,7 @@ export const styles = StyleSheet.create({
   notificationAnchor: {
     flexShrink: 0,
     zIndex: 1,
+    marginTop: -6,
   },
   title: { fontSize: 16, fontWeight: '900', color: BRAND_DEEP },
   subTitle: {
@@ -100,8 +112,8 @@ export const styles = StyleSheet.create({
   },
 
   headerIconBtn: {
-    width: 34,
-    height: 34,
+    width: 48,
+    height: 48,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',

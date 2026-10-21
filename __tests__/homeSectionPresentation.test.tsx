@@ -117,12 +117,12 @@ describe('Home section rhythm and material', () => {
 
   it('aligns the compact white wordmark and bare notification in one centered header row', () => {
     expect(homeStyles.brandWordmark).toMatchObject({
-      fontSize: 22, lineHeight: 28, color: '#FFFFFF', letterSpacing: 0,
+      fontSize: 28, lineHeight: 34, color: '#FFFFFF', letterSpacing: 0,
     });
-    const header = source.slice(source.indexOf('const HomeHeaderSection'), source.indexOf('const HeroProfileIdentity'));
+    const header = source.slice(source.indexOf('const HomeHeaderSection'), source.indexOf('const HeroProfileAccordion'));
     expect(header).toContain('style={styles.brandWordmark}');
-    expect(header).toMatch(/preserveOriginal\s+name="heart"\s+size=\{12\}\s+color=\{styles\.brandWordmark\.color\}/);
-    expect(homeStyles.header).toMatchObject({ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' });
+    expect(header).toMatch(/preserveOriginal\s+name="heart"\s+size=\{18\}\s+color=\{styles\.brandWordmark\.color\}/);
+    expect(homeStyles.header).toMatchObject({ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' });
     expect(homeStyles.brandContentStack).toMatchObject({ flex: 1, minWidth: 0, alignItems: 'flex-start' });
     expect(homeStyles.notificationAnchor).toMatchObject({ flexShrink: 0 });
     expect(homeStyles.notificationAnchor).not.toHaveProperty('position');
@@ -132,11 +132,11 @@ describe('Home section rhythm and material', () => {
   it('removes notification glass while preserving the white icon, target and badge', () => {
     const header = source.slice(
       source.indexOf('const HomeHeaderSection'),
-      source.indexOf('const HeroProfileIdentity'),
+      source.indexOf('const HeroProfileAccordion'),
     );
     expect(homeStyles.headerIconBtn).toMatchObject({
-      width: 34,
-      height: 34,
+      width: 48,
+      height: 48,
       backgroundColor: 'transparent',
       borderWidth: 0,
       alignItems: 'center',
@@ -151,7 +151,7 @@ describe('Home section rhythm and material', () => {
     expect(header).toContain('onPress={onPressNotifications}');
     expect(header).toContain('accessibilityLabel={notificationAccessibilityLabel}');
     expect(header).toContain('accessibilityRole="button"');
-    expect(header).toMatch(/<NuriIcon\s+testID="home-notification-icon"\s+name="bell"\s+size=\{18\}\s+color="#FFFFFF"\s+colorMode="theme"\s+variant="outline"/);
+    expect(header).toMatch(/<NuriIcon\s+testID="home-notification-icon"\s+name="bell"\s+size=\{26\}\s+color="#FFFFFF"\s+colorMode="theme"\s+variant="outline"/);
     expect(header).toContain('notificationUnreadCount > 0');
     expect(header).toContain('styles.headerNotificationBadge');
   });
@@ -170,7 +170,7 @@ describe('Home section rhythm and material', () => {
   it('uses a black profile-sheet close icon without changing its close action or hit slop', async () => {
     const sheet = source.slice(
       source.indexOf('const ProfileInfoBottomSheet'),
-      source.indexOf('const HeroProfileSection'),
+      source.indexOf('const RecommendationTipsSection'),
     );
     expect(sheet).toContain('<HomePetSheetHeader');
     expect(sheet).toContain('closeLabel="프로필 상세 닫기"');
@@ -232,19 +232,9 @@ describe('Home section rhythm and material', () => {
   });
 
   it('preserves the photo geometry and profile actions without the Hero record connection', () => {
-    expect(homeStyles.autumnHeroBodyGroup.paddingTop).toBe(14 + 16);
-    expect(homeStyles.autumnHeroBodyGroup).not.toHaveProperty('transform');
-    expect(homeStyles.autumnMemoryChipAnchor).toMatchObject({
-      position: 'absolute', top: 6,
-    });
-    expect(homeStyles.autumnHeroCardWithMemoryChip.paddingTop).toBe(34);
-    expect(homeStyles.heroCenter.paddingTop).toBe(10);
-    expect(source).toMatch(
-      /const usesCanonicalHeroGeometry =\s*isAutumn \|\| isWinter \|\| isSpring \|\| isSummer;/,
-    );
-    expect(source).toMatch(
-      /style=\{usesCanonicalHeroGeometry \? styles\.autumnHeroBodyGroup : null\}[\s\S]*?<HeroProfileIdentity/,
-    );
+    expect(source).toContain('frameWidth={heroFrameWidth}');
+    expect(source).not.toContain('heroPhoto.aspectRatio');
+    expect(source).toContain('getHomeHeroMinimumHeight(');
     expect(source).toContain('<HomeHeroInfoPanel');
     expect(source).toContain('onPressPetProfileEdit={onPressPetProfileEdit}');
     expect(source).toContain('onPressProfileInfo={openProfileInfoSheet}');
@@ -286,11 +276,10 @@ describe('Home section rhythm and material', () => {
     expect(panel).toContain('HOME_SEASONAL_BACKGROUND_GRADIENTS[season]');
     expect(panel).not.toContain('HomeFrostedGlass');
     expect(homeStyles.brandWordmark.color).toBe('#FFFFFF');
-    expect(panel).toContain('color: NEUTRAL_UI_PALETTE.primary');
     expect(panel).toContain('color={petTheme.primary}');
-    expect(panel).toContain('const identityTextStyle = { color: petTheme.primary }');
+    expect(panel).toContain('color: petTheme.primary');
     expect(panel).toContain('onPress={onPressProfileInfo}');
-    expect(panel).not.toContain('name="chevron-right"');
+    expect(panel).toContain('name="chevron-right"');
     expect(panel).toContain('name="chevron-down"');
     expect(panel).toContain("textAlign: 'center'");
   });

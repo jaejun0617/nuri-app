@@ -1,349 +1,115 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import React from 'react';
-import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
-import TestRenderer from 'react-test-renderer';
-import {
-  HomeHeroPhotoBackground,
-  useHomeHeroPhoto,
-} from '../src/screens/Main/components/LoggedInHome/HomeHeroPhotoBackground';
-import { SeasonalHomeAutumnStage } from '../src/screens/Main/components/LoggedInHome/SeasonalHomeAutumn';
-import type { SeasonKey } from '../src/theme/seasonal/season';
+import { Image, StyleSheet } from 'react-native';
+import Renderer, { act } from 'react-test-renderer';
+import { HomeHeroPhotoBackground } from '../src/screens/Main/components/LoggedInHome/HomeHeroPhotoBackground';
+import { getHomeHeroPhotoGeometry, getHomeHeroMinimumHeight, getHomeHeroTypography, HOME_HERO_TOOLBAR_RADIUS } from '../src/theme/home/heroLayout';
 
-const homeSource = fs.readFileSync(
-  path.join(
-    __dirname,
-    '../src/screens/Main/components/LoggedInHome/LoggedInHome.tsx',
-  ),
-  'utf8',
-);
+jest.mock('../src/app/ui/AppText', () => 'AppText');
 
-describe('Home Hero original photo review wiring', () => {
-  it('places the current pet photo behind the existing header, not an attached design asset', () => {
-    expect(homeSource).toContain(
-      'const heroPhoto = useHomeHeroPhoto(selectedAvatarUri)',
-    );
-    const stage = homeSource.slice(
-      homeSource.indexOf('<SeasonalHomeAutumnStage'),
-      homeSource.indexOf('</SeasonalHomeAutumnStage>'),
-    );
-    expect(stage).toContain('<HomeHeroPhotoBackground');
-    expect(stage).toContain('uri={selectedAvatarUri}');
-    expect(stage).toContain('aspectRatio={heroPhoto.aspectRatio}');
-    expect(stage).toContain('{homeHeader}');
-    expect(stage).toContain('{activeAlarmNotice}');
-    expect(stage).toContain('{homeHero}');
-    expect(stage).not.toContain('codex-clipboard');
-    expect(stage).not.toContain('resizeMode="cover"');
-  });
-
-  it('places seasonal photo starlights behind the header with real photo bounds and the Home focus gate', () => {
-    const stage = homeSource.slice(
-      homeSource.indexOf('<SeasonalHomeAutumnStage'),
-      homeSource.indexOf('</SeasonalHomeAutumnStage>'),
-    );
-    expect(stage).toContain('<HomeHeroPhotoStarlights');
-    const lights = stage.slice(stage.indexOf('<HomeHeroPhotoStarlights'));
-    expect(lights).toContain('aspectRatio={heroPhoto.aspectRatio}');
-    expect(lights).toContain('season={ambientSeason}');
-    expect(lights).toContain('active={isScreenFocused}');
-    expect(lights.indexOf('active={isScreenFocused}')).toBeLessThan(lights.indexOf('{homeHeader}'));
-  });
-
-  it('temporarily hides the ring while preserving edit and the lower information wiring', () => {
-    expect(homeSource).toContain(
-      'const HOME_HERO_PROFILE_RING_VISIBLE = false;',
-    );
-    const identity = homeSource.slice(
-      homeSource.indexOf('const HeroProfileIdentity'),
-      homeSource.indexOf('const HeroProfileAccordion'),
-    );
-    expect(identity).toContain('{HOME_HERO_PROFILE_RING_VISIBLE ? (');
-    expect(identity).toContain('onPress={onPressPetProfileEdit}');
-    expect(identity).toContain('accessibilityLabel="반려동물 프로필 수정"');
-    expect(identity).toContain(
-      '{ width: avatarDiameter, height: avatarDiameter }',
-    );
-    expect(identity).not.toContain('styles.heroTogetherPill');
-    const info = homeSource.slice(
-      homeSource.indexOf('<HomeHeroInfoPanel'),
-      homeSource.indexOf(
-        '<FixedTypographyBoundary>',
-        homeSource.indexOf('<HomeHeroInfoPanel'),
-      ),
-    );
-    expect(info).toContain('profilePetName={profilePetName}');
-    expect(info).toContain('titleBadge={homeTitleBadge}');
-    expect(info).not.toContain('topMetaLine=');
-    expect(info).toContain('togetherDays={togetherDays}');
-    expect(info).toContain('onPressProfileInfo={openProfileInfoSheet}');
-  });
-
-  it('moves structured pet basics into the first bottom-sheet item rather than parsing a Hero string', () => {
-    expect(homeSource).toContain('basicInfo={profileBasicInfo}');
-    const sheet = homeSource.slice(homeSource.indexOf('const ProfileInfoBottomSheet'), homeSource.indexOf('const HeroProfileSection'));
-    expect(sheet).toContain('<HomePetBasicInfoSection');
-    expect(sheet).toContain('info={basicInfo}');
-    expect(sheet).toContain('${profilePetName}의 소개와 취향');
-    expect(sheet).not.toContain('${profilePetName}의 취향 이야기');
-    expect(sheet.indexOf('<HomePetBasicInfoSection')).toBeLessThan(sheet.indexOf('<HeroProfileAccordion'));
-    expect(homeSource).not.toContain('const topMetaLine =');
-    expect(homeSource).toContain('breed, age: ageText, weight: weightText, gender: genderText');
-  });
-});
-
-type Dimensions = { width: number; height: number };
-const photoUri = 'https://example.test/current-pet.jpg';
-
-describe('original-ratio Hero photo background', () => {
-  let renderer: TestRenderer.ReactTestRenderer;
-  let requests: Map<
-    string,
-    {
-      resolve: (dimensions: Dimensions) => void;
-      reject: (error: Error) => void;
-    }
-  >;
-  const pressed = jest.fn();
-
-  function Harness({
-    uri,
-    width = 384,
-    season = 'autumn',
-  }: {
-    uri: string | null;
-    width?: number;
-    season?: SeasonKey;
-  }) {
-    const photo = useHomeHeroPhoto(uri);
-    const photoHeight = photo.aspectRatio ? width / photo.aspectRatio : 0;
-    return (
-      <SeasonalHomeAutumnStage
-        atmosphere={1}
-        atmosphereAspectRatio={1}
-        backgroundImageVisible={false}
-        ambientSeason={season}
-        minHeight={Math.max(704, photoHeight)}
-        background={
-          <HomeHeroPhotoBackground
-            uri={uri}
-            aspectRatio={photo.aspectRatio}
-            onError={photo.onError}
-          />
-        }
-      >
-        <TouchableOpacity testID="preserved-header-action" onPress={pressed} />
-      </SeasonalHomeAutumnStage>
-    );
-  }
-
-  async function render(
-    uri: string | null = photoUri,
-    width = 384,
-    season: SeasonKey = 'autumn',
-  ) {
-    await TestRenderer.act(async () => {
-      renderer = TestRenderer.create(
-        <Harness uri={uri} width={width} season={season} />,
-      );
+describe('fixed full-bleed Home photo frame', () => {
+  let renderer: Renderer.ReactTestRenderer;
+  const uri = 'https://example.test/pet-a.jpg';
+  const render = async (photo: string | null = uri, width = 412) => {
+    await act(async () => {
+      renderer = Renderer.create(<HomeHeroPhotoBackground uri={photo} frameWidth={width} />);
     });
-  }
+  };
+  const frame = () => StyleSheet.flatten(renderer.root.findByProps({ testID: 'home-hero-photo-frame' }).props.style);
+  const image = () => renderer.root.findByType(Image);
+  afterEach(async () => { if (renderer) await act(async () => renderer.unmount()); });
 
-  async function resolve(uri: string, dimensions: Dimensions) {
-    const request = requests.get(uri);
-    if (!request) throw new Error('Photo metadata request not found');
-    await TestRenderer.act(async () => request.resolve(dimensions));
-  }
-
-  beforeEach(() => {
-    pressed.mockReset();
-    requests = new Map();
-    jest.spyOn(Image, 'getSize').mockImplementation(
-      (uri: string) =>
-        new Promise<Dimensions>((resolveSize, reject) => {
-          requests.set(uri, { resolve: resolveSize, reject });
-        }),
-    );
-  });
-  afterEach(() => {
-    TestRenderer.act(() => renderer?.unmount());
-    jest.restoreAllMocks();
-  });
-
-  it.each([
-    [1200, 1600],
-    [1600, 900],
-    [1000, 1000],
-  ])(
-    'shows the full %s x %s source with its native aspect ratio',
+  it.each([[1600, 900], [1000, 1000], [900, 1200], [900, 1600], [500, 4000]])(
+    'ignores source metadata %s x %s both before and after loading',
     async (width, height) => {
+      const metadata = jest.spyOn(Image, 'getSize');
       await render();
-      expect(renderer.root.findAllByType(Image)).toHaveLength(0);
-      await resolve(photoUri, { width, height });
-      const image = renderer.root.findByType(Image);
-      expect(image.props.source).toEqual({ uri: photoUri });
-      expect(image.props.resizeMode).toBe('contain');
-      expect(StyleSheet.flatten(image.props.style)).toMatchObject({
-        width: '100%',
-        top: 0,
-        left: 0,
-        position: 'absolute',
-        aspectRatio: width / height,
-      });
-      const style = StyleSheet.flatten(image.props.style);
-      expect(style.height).toBeUndefined();
-      expect(style.borderRadius).toBeUndefined();
-      expect(style.transform).toBeUndefined();
+      const before = frame();
+      await act(async () => image().props.onLoad({ nativeEvent: { source: { width, height } } }));
+      expect(frame()).toEqual(before);
+      expect(frame()).toMatchObject({ width: '100%', height: 412 * 1061 / 852 });
+      expect(image().props.resizeMode).toBe('cover');
+      expect(StyleSheet.flatten(image().props.style)).toMatchObject({ top: 0, bottom: 0, left: 0, right: 0, opacity: 1 });
+      expect(metadata).not.toHaveBeenCalled();
+      metadata.mockRestore();
     },
   );
 
-  it.each<SeasonKey>(['spring', 'summer', 'autumn', 'winter'])(
-    'uses identical untouchable photo geometry behind the %s content',
-    async season => {
-      await render(photoUri, 384, season);
-      await resolve(photoUri, { width: 1200, height: 1600 });
-      const views = renderer.root.findAllByType(View);
-      const stage = views[0];
-      const background = views.find(
-        view => view.props.testID === 'home-hero-photo-background',
-      );
-      if (!background) throw new Error('Photo background missing');
-      expect(background.props.pointerEvents).toBe('none');
-      expect(background.props.accessible).toBe(false);
-      expect(background.props.importantForAccessibility).toBe(
-        'no-hide-descendants',
-      );
-      expect(StyleSheet.flatten(background.props.style)).toMatchObject({
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-      });
-      expect(StyleSheet.flatten(stage.props.style)).toMatchObject({
-        marginHorizontal: -16,
-        minHeight: 704,
-        backgroundColor: 'transparent',
-      });
-      const directChildren = stage.children.filter(
-        child => typeof child !== 'string',
-      );
-      expect(
-        directChildren[0].findByProps({
-          testID: 'home-hero-photo-background',
-        }),
-      ).toBe(background);
-      expect(directChildren[0].findAllByType(Image)).toHaveLength(1);
-      renderer.root
-        .findByProps({ testID: 'preserved-header-action' })
-        .props.onPress();
-      expect(pressed).toHaveBeenCalledTimes(1);
-    },
-  );
-
-  it('limits a subtle untouchable shade to the photo top without changing the image geometry', async () => {
-    await render();
-    expect(renderer.root.findAllByType(LinearGradient)).toHaveLength(0);
-    await resolve(photoUri, { width: 1200, height: 1600 });
-    const clip = renderer.root.findByProps({ testID: 'home-hero-photo-shade-clip' });
-    expect(StyleSheet.flatten(clip.props.style)).toMatchObject({
-      position: 'absolute', top: 0, left: 0, width: '100%',
-      aspectRatio: 0.75, overflow: 'hidden',
-    });
-    const shade = clip.findByType(LinearGradient);
-    expect(shade.props.colors).toEqual([
-      'rgba(0,0,0,0.36)', 'rgba(0,0,0,0.14)', 'rgba(0,0,0,0)',
-    ]);
-    expect(shade.props.locations).toEqual([0, 0.5, 1]);
-    expect(shade.props.start).toEqual({ x: 0.5, y: 0 });
-    expect(shade.props.end).toEqual({ x: 0.5, y: 1 });
-    expect(StyleSheet.flatten(shade.props.style)).toMatchObject({
-      position: 'absolute', top: 0, left: 0, right: 0, height: 128,
-    });
-    expect(clip.props.pointerEvents).toBe('none');
-    expect(clip.props.accessible).toBe(false);
-    expect(clip.props.importantForAccessibility).toBe('no-hide-descendants');
-    expect(shade.props.pointerEvents).toBe('none');
-    expect(shade.props.accessible).toBe(false);
-    expect(renderer.root.findByType(Image).props.resizeMode).toBe('contain');
-  });
-
-  it.each([320, 384, 430])(
-    'allows a tall original photo to fit at %s dp without clipping it',
-    async width => {
-      await render(photoUri, width);
-      await resolve(photoUri, { width: 1000, height: 3000 });
-      const stage = renderer.root.findAllByType(View)[0];
-      expect(StyleSheet.flatten(stage.props.style).minHeight).toBe(width * 3);
-      expect(renderer.root.findByType(Image).props.resizeMode).toBe('contain');
-    },
-  );
-
-  it.each([
-    [0, 10],
-    [10, 0],
-    [-1, 10],
-    [NaN, 10],
-    [10, Infinity],
-  ])(
-    'does not invent a photo ratio from invalid dimensions %s x %s',
-    async (width, height) => {
-      await render();
-      await resolve(photoUri, { width, height });
-      expect(renderer.root.findAllByType(Image)).toHaveLength(0);
-    },
-  );
-
-  it('uses the unchanged seasonal canvas when no photo exists or metadata fails', async () => {
+  it('reserves the same frame for missing, loading, error and retry', async () => {
     await render(null);
-    expect(Image.getSize).not.toHaveBeenCalled();
-    expect(renderer.root.findAllByType(Image)).toHaveLength(0);
-    expect(renderer.root.findAllByType(LinearGradient)).toHaveLength(0);
-    await TestRenderer.act(async () =>
-      renderer.update(<Harness uri={photoUri} />),
-    );
-    const request = requests.get(photoUri);
-    if (!request) throw new Error('Photo metadata request missing');
-    await TestRenderer.act(async () =>
-      request.reject(new Error('fixture unavailable')),
-    );
-    expect(renderer.root.findAllByType(Image)).toHaveLength(0);
-    expect(renderer.root.findAllByType(LinearGradient)).toHaveLength(0);
+    const initial = frame();
+    await act(async () => renderer.update(<HomeHeroPhotoBackground uri={uri} frameWidth={412} />));
+    expect(frame()).toEqual(initial);
+    const firstAttempt = image().props;
+    await act(async () => firstAttempt.onError());
+    expect(frame()).toEqual(initial);
+    const retry = renderer.root.findByProps({ accessibilityLabel: '프로필 사진 다시 불러오기' });
+    expect(StyleSheet.flatten(retry.props.style).minHeight).toBe(48);
+    await act(async () => retry.props.onPress());
+    await act(async () => firstAttempt.onError());
+    expect(renderer.root.findAllByType(Image)).toHaveLength(1);
+    expect(frame()).toEqual(initial);
+    await act(async () => image().props.onLoad());
+    expect(frame()).toEqual(initial);
   });
 
-  it('removes the old pet photo immediately and ignores its late metadata', async () => {
+  it('ignores late load and error callbacks belonging to the previous photo', async () => {
     await render();
-    const oldRequest = requests.get(photoUri);
-    if (!oldRequest) throw new Error('Old metadata request missing');
-    const nextUri = 'https://example.test/other-pet.jpg';
-    await TestRenderer.act(async () =>
-      renderer.update(<Harness uri={nextUri} />),
-    );
-    expect(renderer.root.findAllByType(Image)).toHaveLength(0);
-    await resolve(nextUri, { width: 1600, height: 900 });
-    await TestRenderer.act(async () =>
-      oldRequest.resolve({ width: 900, height: 1600 }),
-    );
-    const image = renderer.root.findByType(Image);
-    expect(image.props.source).toEqual({ uri: nextUri });
-    expect(StyleSheet.flatten(image.props.style).aspectRatio).toBe(1600 / 900);
+    const old = image().props;
+    await act(async () => renderer.update(<HomeHeroPhotoBackground uri="https://example.test/pet-b.jpg" frameWidth={412} />));
+    await act(async () => { old.onLoad(); old.onError(); });
+    expect(image().props.source.uri).toBe('https://example.test/pet-b.jpg');
+    expect(StyleSheet.flatten(image().props.style).opacity).toBe(0);
+    await act(async () => image().props.onLoad());
+    expect(StyleSheet.flatten(image().props.style).opacity).toBe(1);
   });
 
-  it('clears a failed image but an old image error cannot clear a new photo', async () => {
+  it('removes loading and fallback copy from accessibility after the image is ready', async () => {
     await render();
-    await resolve(photoUri, { width: 1200, height: 1600 });
-    const oldError = renderer.root.findByType(Image).props.onError;
-    const nextUri = 'https://example.test/new-photo.jpg';
-    await TestRenderer.act(async () =>
-      renderer.update(<Harness uri={nextUri} />),
-    );
-    await resolve(nextUri, { width: 1600, height: 900 });
-    await TestRenderer.act(async () => oldError());
-    expect(renderer.root.findByType(Image).props.source.uri).toBe(nextUri);
-    await TestRenderer.act(async () =>
-      renderer.root.findByType(Image).props.onError(),
-    );
-    expect(renderer.root.findAllByType(Image)).toHaveLength(0);
+    const loading = renderer.root.findAll(node => node.props.accessibilityLabel === '프로필 사진을 불러오는 중');
+    expect(loading.length).toBeGreaterThan(0);
+    await act(async () => image().props.onLoad());
+    expect(renderer.root.findByProps({ testID: 'home-hero-photo-fallback' }).props.importantForAccessibility).toBe('no-hide-descendants');
+    expect(renderer.root.findAll(node => node.props.accessibilityLabel === '프로필 사진을 불러오는 중')).toHaveLength(0);
+    expect(JSON.stringify(renderer.toJSON())).not.toContain('사진을 불러오지 못했어요');
+    expect(JSON.stringify(renderer.toJSON())).not.toContain('아이의 사진을 기다리고 있어요');
+  });
+
+  it.each([320, 360, 393, 412, 430])('uses the same normalized ellipse at %s dp', async width => {
+    await render(uri, width);
+    const g = getHomeHeroPhotoGeometry(width);
+    expect(frame().height).toBeCloseTo(width * 1061 / 852);
+    // Evaluate the actual transformed circle's lower boundary at both edges
+    // and its centre, independently of any source photo.
+    const radius = g.ellipseSize / 2;
+    const centreY = g.ellipseTop + radius;
+    const boundary = (x: number) => centreY + Math.sqrt(radius ** 2 - (x - width / 2) ** 2) * g.ellipseScaleY;
+    expect(boundary(0)).toBeCloseTo(g.edgeY);
+    expect(boundary(width)).toBeCloseTo(g.edgeY);
+    expect(boundary(width / 2)).toBeCloseTo(g.height);
+    const mask = renderer.root.findByProps({ testID: 'home-hero-photo-mask' });
+    expect(mask.props.maskElement.props.pointerEvents).toBe('none');
+    expect(frame()).not.toHaveProperty('borderTopLeftRadius');
+    expect(frame()).not.toHaveProperty('maxWidth');
+    await act(async () => renderer.unmount());
+  });
+
+  it('recalculates from the actual resized frame without changing photo identity', async () => {
+    await render();
+    await act(async () => image().props.onLoad());
+    await act(async () => renderer.update(<HomeHeroPhotoBackground uri={uri} frameWidth={320} />));
+    expect(frame().height).toBeCloseTo(320 * 1061 / 852);
+    expect(StyleSheet.flatten(image().props.style).opacity).toBe(1);
+  });
+
+  it.each([[320,568],[360,640],[393,852],[412,915],[430,932]])('uses one top-inset and toolbar budget at %s x %s', (width, height) => {
+    const viewport = height - 32;
+    const minimum = getHomeHeroMinimumHeight(viewport, 90);
+    expect(minimum).toBe(height - 32 - 90 + HOME_HERO_TOOLBAR_RADIUS);
+    // Lower Home starts below the entire curved corner, not just the toolbar top.
+    expect(minimum + 90 - viewport).toBe(24);
+    expect(getHomeHeroPhotoGeometry(width).height).toBeLessThan(height);
+    const regular = getHomeHeroTypography(width, '누리');
+    expect(regular.nameSize).toBe(width <= 360 ? 25 : 33);
+    expect(regular.buttonSize).toBeGreaterThanOrEqual(12);
   });
 });

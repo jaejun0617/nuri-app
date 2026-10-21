@@ -1,7 +1,7 @@
-import CtaButton, { CtaText } from '../../app/ui/CtaButton';
-import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import {
   Image,
+  Keyboard,
   Modal,
   Platform,
   Pressable,
@@ -13,62 +13,137 @@ import {
   View,
 } from 'react-native';
 import { KeyboardAvoidingView as KeyboardControllerAvoidingView } from 'react-native-keyboard-controller';
-import Feather from '../icons/NuriFeatherIcon';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
-
 import AppText from '../../app/ui/AppText';
-import AppTextInput from '../../app/ui/AppTextInput';
+import PetDeletionRecoveryMarker from './PetDeletionRecoveryMarker';
+import {
+  useAppFontPreference,
+  useTypographyScope,
+} from '../../app/providers/AppFontPreferenceProvider';
+import { resolveAppFontMode } from '../../app/typography/appFontMode';
 import { useBoundedKeyboardScroll } from '../../hooks/useBoundedKeyboardScroll';
 import type { Pet } from '../../store/petStore';
+import {
+  PET_MANAGEMENT_COLORS as colors,
+  PET_MANAGEMENT_TYPE as type,
+  getPetDeleteLayout,
+} from '../../theme/pets/management';
+import { getPetDisplayName } from '../../utils/petDisplayName';
+import NuriSemanticIcon from '../icons/NuriSemanticIcon';
 
 export const PET_DELETE_CONFIRMATION_TEXT = '삭제하기';
-
 export function isPetDeleteConfirmationReady(
   consentChecked: boolean,
   confirmationText: string,
 ) {
   return consentChecked && confirmationText === PET_DELETE_CONFIRMATION_TEXT;
 }
-
+export type PetDeleteConfirmation = {
+  petId: string;
+  consentChecked: boolean;
+  confirmationText: string;
+};
 type Props = {
   visible: boolean;
   pet: Pet;
   deleting: boolean;
+  errorMessage?: string | null;
   onCancel: () => void;
-  onConfirm: () => void;
+  onConfirm: (confirmation: PetDeleteConfirmation) => void;
 };
 
-function PetDeleteConfirmDialogBase({
+const TargetPhoto = memo(function PetDeletionTargetPhoto({
+  uri,
+  name,
+}: {
+  uri: string | null;
+  name: string;
+}) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <View style={styles.petImage}>
+      {uri && !failed ? (
+        <Image
+          source={{ uri }}
+          resizeMode="cover"
+          style={StyleSheet.absoluteFill}
+          accessibilityLabel={`${name} 프로필 사진`}
+          onError={() => setFailed(true)}
+        />
+      ) : (
+        <NuriSemanticIcon
+          family="feather"
+          name="heart"
+          preserveOriginal
+          size={24}
+          color={colors.muted}
+        />
+      )}
+    </View>
+  );
+});
+
+function PetDeleteConfirmDialog({
   visible,
   pet,
   deleting,
+  errorMessage,
   onCancel,
   onConfirm,
 }: Props) {
   const theme = useTheme();
+  const { mode } = useAppFontPreference();
+  const scope = useTypographyScope();
+  const fontMode = resolveAppFontMode({ mode, scope });
   const insets = useSafeAreaInsets();
   const window = useWindowDimensions();
-  const [consentChecked, setConsentChecked] = useState(false);
-  const [confirmationText, setConfirmationText] = useState('');
+  const layout = getPetDeleteLayout(window.height, insets.top, insets.bottom);
+  const [draft, setDraft] = useState<PetDeleteConfirmation>({
+    petId: pet.id,
+    consentChecked: false,
+    confirmationText: '',
+  });
+  const [inputFocused, setInputFocused] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(layout.maxHeight);
+  const [cardHeight, setCardHeight] = useState(0);
   const confirmationRef = useRef<React.ComponentRef<typeof TextInput> | null>(
     null,
   );
+  const submitted = useRef(false);
   const { scrollProps, revealInput } = useBoundedKeyboardScroll(visible);
-  const canDelete = useMemo(
-    () => isPetDeleteConfirmationReady(consentChecked, confirmationText),
-    [confirmationText, consentChecked],
-  );
-
+  const currentDraft = draft.petId === pet.id;
+  const ready =
+    currentDraft &&
+    isPetDeleteConfirmationReady(draft.consentChecked, draft.confirmationText);
+  const blocked = deleting || !visible || !pet.id.trim() || !ready;
+  const name = getPetDisplayName(pet.name);
+  const uri = pet.avatarUrl?.trim() || null;
   useEffect(() => {
-    if (visible) return;
-    setConsentChecked(false);
-    setConfirmationText('');
-  }, [visible]);
+    submitted.current = false;
+    setDraft({ petId: pet.id, consentChecked: false, confirmationText: '' });
+    setInputFocused(false);
+  }, [visible, pet.id]);
+  useEffect(() => {
+    if (!deleting) submitted.current = false;
+  }, [deleting, errorMessage]);
 
   const handleCancel = () => {
-    if (deleting) return;
+    if (!deleting && !submitted.current) onCancel();
+  };
+  const handleBack = () => {
+    if (deleting || submitted.current) return;
+    if (Keyboard.isVisible()) {
+      Keyboard.dismiss();
+      return;
+    }
     onCancel();
+  };
+  const submit = () => {
+    // Native disabled state is not a security gate: recheck the explicit target and both inputs.
+    if (blocked || submitted.current) return;
+    submitted.current = true;
+    onConfirm({ ...draft });
   };
 
   return (
@@ -77,10 +152,11 @@ function PetDeleteConfirmDialogBase({
       transparent
       animationType="fade"
       statusBarTranslucent
-      onRequestClose={handleCancel}
+      navigationBarTranslucent
+      onRequestClose={handleBack}
     >
       <KeyboardControllerAvoidingView
-        style={[styles.backdrop, { backgroundColor: theme.colors.overlay }]}
+        style={styles.backdrop}
         behavior="padding"
         enabled
         automaticOffset
@@ -90,365 +166,425 @@ function PetDeleteConfirmDialogBase({
           style={StyleSheet.absoluteFill}
           disabled={deleting}
           accessibilityElementsHidden
+          importantForAccessibility="no-hide-descendants"
           onPress={handleCancel}
         />
         <View
-          accessibilityViewIsModal
           style={[
-            styles.card,
-            {
-              maxHeight: Math.max(
-                320,
-                window.height - Math.max(insets.top + insets.bottom + 40, 80),
-              ),
-              backgroundColor: theme.colors.surfaceElevated,
-              borderColor: theme.colors.border,
-            },
+            styles.viewport,
+            { paddingTop: insets.top + 12, paddingBottom: insets.bottom + 12 },
           ]}
+          onLayout={event =>
+            setViewportHeight(
+              Math.max(
+                0,
+                event.nativeEvent.layout.height -
+                  insets.top -
+                  insets.bottom -
+                  24,
+              ),
+            )
+          }
         >
-          <View testID="pet-delete-header" style={styles.titleRow}>
-            <View style={styles.titleSpacer} />
-            <AppText
-              accessibilityRole="header"
-              preset="unifiedTitle"
-              style={[styles.title, { color: theme.colors.textPrimary }]}
-            >
-              아이 프로필을 삭제할까요?
-            </AppText>
-            <TouchableOpacity
-              testID="pet-delete-close"
-              accessibilityRole="button"
-              accessibilityLabel="삭제 확인 닫기"
-              accessibilityState={{ disabled: deleting }}
-              activeOpacity={0.86}
-              disabled={deleting}
-              style={styles.iconButton}
-              onPress={handleCancel}
-            >
-              <Feather name="x" size={20} color={theme.colors.textSecondary} />
-            </TouchableOpacity>
-          </View>
-          <ScrollView
-            {...scrollProps}
-            testID="pet-delete-scroll"
-            style={styles.body}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="none"
-            showsVerticalScrollIndicator={false}
+          <View
+            testID="pet-delete-card"
+            accessibilityViewIsModal
+            importantForAccessibility="yes"
+            onLayout={event => setCardHeight(event.nativeEvent.layout.height)}
+            style={[
+              styles.card,
+              {
+                maxHeight: Math.min(
+                  layout.maxHeight,
+                  viewportHeight || layout.maxHeight,
+                ),
+                top: Math.min(
+                  32,
+                  Math.max(0, (viewportHeight - cardHeight) / 2 - 12),
+                ),
+              },
+            ]}
           >
-            <View
-              style={[
-                styles.petTarget,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
-                },
-              ]}
-            >
-              {pet.avatarUrl ? (
-                <Image
-                  source={{ uri: pet.avatarUrl }}
-                  style={styles.petImage}
+            <View testID="pet-delete-header" style={styles.header}>
+              <AppText
+                preset="title1"
+                accessibilityRole="header"
+                style={styles.title}
+              >
+                {'아이 프로필을\n삭제할까요?'}
+              </AppText>
+              <TouchableOpacity
+                testID="pet-delete-close"
+                accessibilityRole="button"
+                accessibilityLabel="삭제 확인 닫기"
+                accessibilityState={{ disabled: deleting }}
+                disabled={deleting}
+                style={styles.close}
+                onPress={handleCancel}
+              >
+                <NuriSemanticIcon
+                  family="feather"
+                  name="x"
+                  preserveOriginal
+                  size={24}
+                  color={colors.muted}
                 />
-              ) : (
+              </TouchableOpacity>
+            </View>
+            <ScrollView
+              {...scrollProps}
+              testID="pet-delete-scroll"
+              style={styles.body}
+              contentContainerStyle={styles.scrollContent}
+              keyboardShouldPersistTaps="handled"
+              keyboardDismissMode="none"
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.target}>
+                <TargetPhoto
+                  key={`${pet.id}:${uri ?? 'none'}`}
+                  uri={uri}
+                  name={name}
+                />
+                <View style={styles.targetCopy}>
+                  <AppText preset="bodySm" style={styles.targetLabel}>
+                    삭제할 아이
+                  </AppText>
+                  <AppText preset="titleLg" style={styles.petName}>
+                    {name}
+                  </AppText>
+                </View>
+              </View>
+              <View style={styles.warning}>
+                <AppText preset="titleMd" style={styles.warningText}>
+                  삭제한 프로필은{' '}
+                </AppText>
+                <PetDeletionRecoveryMarker />
+              </View>
+              <View style={styles.policy}>
+                <AppText preset="bodySm" style={styles.policyLabel}>
+                  함께 삭제되는 정보
+                </AppText>
+                <AppText preset="body" style={styles.policyValue}>
+                  기록 · 일정 · 건강 데이터 · 사진
+                </AppText>
+                <AppText preset="bodySm" style={styles.exception}>
+                  {
+                    '공개 글 등 일부 콘텐츠는\n아이 연결이 해제된 채 남을 수 있어요.'
+                  }
+                </AppText>
+              </View>
+              <View style={styles.divider} />
+              <TouchableOpacity
+                testID="pet-delete-consent"
+                accessibilityRole="checkbox"
+                accessibilityLabel="삭제 내용을 확인했으며 동의합니다"
+                accessibilityState={{
+                  checked: currentDraft && draft.consentChecked,
+                  disabled: deleting,
+                }}
+                disabled={deleting}
+                style={styles.consent}
+                onPress={() => {
+                  if (!deleting && !submitted.current)
+                    setDraft(previous => ({
+                      ...previous,
+                      consentChecked: !previous.consentChecked,
+                    }));
+                }}
+              >
                 <View
                   style={[
-                    styles.petImageFallback,
-                    { backgroundColor: theme.colors.background },
+                    styles.checkbox,
+                    draft.consentChecked && currentDraft && styles.checked,
                   ]}
                 >
-                  <Feather
-                    name="heart"
-                    size={22}
-                    color={theme.colors.textMuted}
-                  />
+                  {draft.consentChecked && currentDraft ? (
+                    <NuriSemanticIcon
+                      family="feather"
+                      name="check"
+                      preserveOriginal
+                      size={20}
+                      color={colors.white}
+                    />
+                  ) : null}
                 </View>
-              )}
-              <View style={styles.petTargetCopy}>
-                <AppText
-                  preset="unifiedMeta"
-                  style={{ color: theme.colors.textMuted }}
-                >
-                  삭제 대상
+                <AppText preset="body" style={styles.consentText}>
+                  삭제 내용을 확인했으며 동의합니다.
                 </AppText>
-                <AppText
-                  typographyRole="petIdentity"
-                  numberOfLines={2}
-                  preset="unifiedTitle"
-                  style={[styles.petName, { color: theme.colors.textPrimary }]}
-                >
-                  {pet.name}
+              </TouchableOpacity>
+              <View style={styles.field}>
+                <AppText preset="bodySm" style={styles.fieldLabel}>
+                  확인을 위해 ‘삭제하기’를 입력해주세요.
                 </AppText>
-              </View>
-            </View>
-
-            <View style={styles.warningBlock}>
-              <AppText
-                preset="unifiedBody"
-                style={[
-                  styles.warningText,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                삭제한 프로필은 다시 복구할 수 없어요. 이 아이에 연결된 기록,
-                일정, 건강 데이터와 사진 파일은 함께 정리됩니다. 공개 글 등 일부
-                콘텐츠는 아이 연결만 해제된 채 남을 수 있어요.
-              </AppText>
-            </View>
-
-            <TouchableOpacity
-              testID="pet-delete-consent"
-              accessibilityRole="checkbox"
-              accessibilityLabel="삭제 내용을 확인했으며 동의합니다"
-              accessibilityState={{
-                checked: consentChecked,
-                disabled: deleting,
-              }}
-              activeOpacity={0.86}
-              disabled={deleting}
-              style={[
-                styles.consentRow,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: consentChecked
-                    ? theme.colors.danger
-                    : theme.colors.border,
-                },
-              ]}
-              onPress={() => setConsentChecked(current => !current)}
-            >
-              <View
-                style={[
-                  styles.checkbox,
-                  {
-                    backgroundColor: consentChecked
-                      ? theme.colors.danger
-                      : theme.colors.surfaceElevated,
-                    borderColor: consentChecked
-                      ? theme.colors.danger
-                      : theme.colors.border,
-                  },
-                ]}
-              >
-                {consentChecked ? (
-                  <Feather name="check" size={14} color="#FFFFFF" />
+                <View
+                  style={[
+                    styles.inputFrame,
+                    inputFocused && styles.inputFocused,
+                    errorMessage ? styles.inputError : null,
+                  ]}
+                >
+                  <TextInput
+                    ref={confirmationRef}
+                    testID="pet-delete-confirmation-input"
+                    accessibilityLabel="삭제 확인 문구 입력"
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    editable={!deleting}
+                    returnKeyType="done"
+                    allowFontScaling
+                    maxFontSizeMultiplier={2}
+                    value={currentDraft ? draft.confirmationText : ''}
+                    placeholder={PET_DELETE_CONFIRMATION_TEXT}
+                    placeholderTextColor={colors.muted}
+                    selectionColor={colors.accent}
+                    onFocus={() => {
+                      setInputFocused(true);
+                      revealInput(confirmationRef);
+                    }}
+                    onBlur={() => setInputFocused(false)}
+                    style={[
+                      styles.input,
+                      theme.typography.preset.body,
+                      fontMode ? theme.typography.appFontMode[fontMode] : null,
+                      type.dialogAction,
+                    ]}
+                    onChangeText={text => {
+                      if (!deleting && !submitted.current)
+                        setDraft(previous => ({
+                          ...previous,
+                          confirmationText: text,
+                        }));
+                    }}
+                    onSubmitEditing={() => Keyboard.dismiss()}
+                  />
+                  {currentDraft &&
+                  draft.confirmationText === PET_DELETE_CONFIRMATION_TEXT ? (
+                    <View style={styles.inputCheck}>
+                      <NuriSemanticIcon
+                        family="feather"
+                        name="check"
+                        preserveOriginal
+                        size={13}
+                        color={colors.white}
+                      />
+                    </View>
+                  ) : null}
+                </View>
+                {errorMessage ? (
+                  <AppText
+                    testID="pet-delete-error"
+                    preset="bodySm"
+                    accessibilityLiveRegion="polite"
+                    style={styles.error}
+                  >
+                    {errorMessage}
+                  </AppText>
                 ) : null}
               </View>
-              <AppText
-                preset="unifiedLabel"
-                style={[
-                  styles.consentLabel,
-                  { color: theme.colors.textPrimary },
-                ]}
+            </ScrollView>
+            <View testID="pet-delete-actions" style={styles.actions}>
+              <TouchableOpacity
+                testID="pet-delete-cancel"
+                accessibilityRole="button"
+                accessibilityLabel="아이 프로필 삭제 취소"
+                accessibilityState={{ disabled: deleting }}
+                disabled={deleting}
+                style={[styles.button, styles.cancel]}
+                onPress={handleCancel}
               >
-                삭제 내용을 확인했으며 동의합니다.
-              </AppText>
-            </TouchableOpacity>
-
-            <View style={styles.confirmField}>
-              <AppText
-                preset="unifiedLabel"
-                style={{ color: theme.colors.textSecondary }}
-              >
-                확인을 위해 ‘{PET_DELETE_CONFIRMATION_TEXT}’를 입력해주세요.
-              </AppText>
-              <AppTextInput
-                ref={confirmationRef}
-                onFocus={() => revealInput(confirmationRef)}
-                testID="pet-delete-confirmation-input"
-                accessibilityLabel="삭제 확인 문구 입력"
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!deleting}
-                returnKeyType="done"
-                value={confirmationText}
-                placeholder={PET_DELETE_CONFIRMATION_TEXT}
-                placeholderTextColor={theme.colors.textMuted}
-                selectionColor={theme.colors.danger}
+                <AppText preset="button" style={styles.cancelText}>
+                  취소
+                </AppText>
+              </TouchableOpacity>
+              <TouchableOpacity
+                testID="pet-delete-confirm"
+                accessibilityRole="button"
+                accessibilityLabel={
+                  deleting ? '아이 프로필 삭제 중' : '아이 프로필 삭제하기'
+                }
+                accessibilityState={{ disabled: blocked, busy: deleting }}
+                disabled={blocked}
                 style={[
-                  styles.confirmInput,
-                  {
-                    backgroundColor: theme.colors.surface,
-                    borderColor: theme.colors.border,
-                    color: theme.colors.textPrimary,
-                  },
+                  styles.button,
+                  styles.delete,
+                  blocked && styles.disabled,
                 ]}
-                onChangeText={setConfirmationText}
-              />
+                onPress={submit}
+              >
+                <AppText preset="button" style={styles.deleteText}>
+                  {deleting ? '삭제 중…' : '프로필 삭제'}
+                </AppText>
+              </TouchableOpacity>
             </View>
-          </ScrollView>
-          <View testID="pet-delete-actions" style={styles.actions}>
-            <CtaButton
-              role="neutral"
-              testID="pet-delete-cancel"
-              accessibilityRole="button"
-              accessibilityLabel="아이 프로필 삭제 취소"
-              accessibilityState={{ disabled: deleting }}
-              activeOpacity={0.9}
-              disabled={deleting}
-              style={[styles.actionButton, {}]}
-              onPress={handleCancel}
-            >
-              <CtaText preset="unifiedLabel" style={{}}>
-                취소
-              </CtaText>
-            </CtaButton>
-            <CtaButton
-              role="destructiveConfirm"
-              loading={deleting}
-              testID="pet-delete-confirm"
-              accessibilityRole="button"
-              accessibilityLabel={
-                deleting ? '아이 프로필 삭제 중' : '아이 프로필 삭제하기'
-              }
-              accessibilityState={{ disabled: deleting || !canDelete }}
-              activeOpacity={0.9}
-              disabled={deleting || !canDelete}
-              style={[styles.actionButton, {}]}
-              onPress={onConfirm}
-            >
-              <CtaText preset="unifiedLabel" style={styles.deleteButtonText}>
-                {deleting ? '삭제 중...' : '삭제하기'}
-              </CtaText>
-            </CtaButton>
           </View>
         </View>
       </KeyboardControllerAvoidingView>
     </Modal>
   );
 }
-
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-  },
+  backdrop: { flex: 1, backgroundColor: colors.dim },
+  viewport: { flex: 1, justifyContent: 'center', paddingHorizontal: 20 },
   card: {
     flexShrink: 1,
     minHeight: 0,
-    borderRadius: 24,
+    borderRadius: 25,
     borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
     overflow: 'hidden',
-    elevation: 8,
+    elevation: 4,
   },
-  scrollContent: {
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    paddingBottom: 18,
-    gap: 16,
-  },
-  titleRow: {
+  header: {
+    paddingLeft: 30,
+    paddingRight: 20,
+    paddingTop: 24,
+    paddingBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     flexShrink: 0,
-    paddingHorizontal: 18,
-    paddingTop: 18,
-    minHeight: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
   },
-  titleSpacer: {
-    width: 44,
-  },
-  title: {
-    flex: 1,
-    textAlign: 'center',
-    fontWeight: '900',
-  },
-  iconButton: {
-    width: 44,
-    height: 44,
+  title: { ...type.title, color: colors.ink, flex: 1, minWidth: 0 },
+  close: {
+    width: 48,
+    height: 48,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  petTarget: {
-    minHeight: 76,
-    borderRadius: 18,
-    borderWidth: 1,
-    padding: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  petImage: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-  },
-  petImageFallback: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  petTargetCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  petName: {
-    fontWeight: '900',
-  },
-  warningBlock: {
-    gap: 6,
-  },
-  warningText: {
-    lineHeight: 22,
-  },
-  consentRow: {
-    minHeight: 56,
-    borderRadius: 16,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 7,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  consentLabel: {
-    flex: 1,
-    fontWeight: '800',
-  },
-  confirmField: {
-    gap: 8,
-  },
-  confirmInput: {
-    minHeight: 48,
-    borderRadius: 14,
-    borderWidth: 1,
-    paddingHorizontal: 14,
-    fontWeight: '800',
-  },
-  actions: {
-    flexShrink: 0,
-    paddingHorizontal: 18,
-    paddingBottom: 18,
-    flexDirection: 'row',
-    gap: 10,
+    marginTop: -12,
+    marginRight: -8,
   },
   body: { flexShrink: 1, minHeight: 0 },
-  actionButton: {
-    flex: 1,
-    minHeight: 50,
-    borderRadius: 16,
-    paddingHorizontal: 14,
+  scrollContent: { paddingHorizontal: 20 },
+  target: {
+    minHeight: 88,
+    borderRadius: 17,
+    padding: 10,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 18,
+    backgroundColor: colors.canvas,
+  },
+  petImage: {
+    width: 68,
+    height: 68,
+    borderRadius: 12,
+    backgroundColor: colors.subtle,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  deleteButtonText: {
-    color: '#FFFFFF',
-    fontWeight: '900',
+  targetCopy: { flex: 1, minWidth: 0, gap: 4 },
+  targetLabel: { ...type.label, color: colors.muted },
+  petName: { ...type.dialogName, color: colors.ink },
+  warning: {
+    marginTop: 14,
+    marginHorizontal: 10,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'baseline',
+  },
+  warningText: { ...type.warning, color: colors.ink },
+  policy: { marginTop: 16, marginHorizontal: 10, gap: 4 },
+  policyLabel: { ...type.dialogBody, color: colors.muted },
+  policyValue: { ...type.dialogBody, color: colors.ink },
+  exception: { ...type.meta, color: colors.muted, marginTop: 4 },
+  divider: {
+    height: 1,
+    backgroundColor: colors.border,
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  consent: {
+    minHeight: 48,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    flexDirection: 'row',
+    gap: 16,
+    alignItems: 'center',
+  },
+  checkbox: {
+    width: 28,
+    height: 28,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checked: { backgroundColor: colors.accent, borderColor: colors.accent },
+  consentText: { ...type.dialogBody, color: colors.ink, flex: 1 },
+  field: { marginTop: 12, paddingBottom: 2, gap: 8 },
+  fieldLabel: { ...type.meta, color: colors.muted, marginHorizontal: 10 },
+  inputFrame: {
+    minHeight: 48,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 13,
+    backgroundColor: colors.canvas,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingRight: 14,
+  },
+  inputFocused: { borderColor: colors.accent },
+  inputError: { borderColor: colors.danger },
+  input: {
+    flex: 1,
+    minWidth: 0,
+    color: colors.ink,
+    minHeight: 48,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    includeFontPadding: false,
+  },
+  inputCheck: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    backgroundColor: colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0.65,
+  },
+  error: { ...type.meta, color: colors.danger },
+  actions: {
+    flexDirection: 'row',
+    gap: 8,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 20,
+    flexShrink: 0,
+  },
+  button: {
+    flex: 1,
+    minWidth: 0,
+    minHeight: 57,
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+  },
+  cancel: {
+    backgroundColor: colors.canvas,
+    borderColor: colors.border,
+    borderWidth: 1,
+  },
+  delete: { backgroundColor: colors.danger },
+  disabled: { opacity: 0.4 },
+  cancelText: {
+    ...type.dialogAction,
+    color: colors.ink,
+    textAlign: 'center',
+    textAlignVertical: 'center',
+    includeFontPadding: false,
+  },
+  deleteText: {
+    ...type.dialogAction,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+    color: colors.white,
+    textAlign: 'center',
   },
 });
-
-const PetDeleteConfirmDialog = memo(PetDeleteConfirmDialogBase);
-export default PetDeleteConfirmDialog;
+export default memo(PetDeleteConfirmDialog);

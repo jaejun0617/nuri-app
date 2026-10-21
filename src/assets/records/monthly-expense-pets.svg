@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="48" viewBox="0 0 64 48">
+  <!-- Reference-shaped seated dog and cat, deliberately not a users/paw emoji. -->
+  <g fill="#A59AC5">
+    <path d="M17 3C18 1 22 1 24 3L25 7L30 9C33 10 33 13 30 14L27 15C29 18 28 22 26 24L29 38L33 42C35 44 34 47 31 47H11C7 47 5 44 7 41L10 35C5 35 2 31 3 25C3 22 5 20 6 23C4 29 7 31 11 30L15 21C12 19 11 16 12 12L14 6C14 3 15 2 17 3Z"/>
+    <path d="M43 17L41 11C41 9 44 12 46 15L51 15C54 11 56 10 56 13L55 21C57 24 55 28 53 29L56 39C58 42 57 46 54 47H41C38 47 37 44 39 41L42 30C39 27 40 22 43 20ZM55 43C60 42 61 39 59 34C57 30 59 28 60 31C65 37 64 43 58 46Z"/>
+  </g>
+</svg>

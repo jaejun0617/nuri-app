@@ -4,7 +4,7 @@ import { buildHealthReportMonthBounds } from '../health-report/month';
 import { getDateYmdInKst } from '../../utils/date';
 
 export const MONTHLY_EXPENSE_QUERY_KEY = ['monthly-expenses'] as const;
-export type ExpenseKind = 'shopping' | 'medical';
+export type ExpenseKind = 'shopping' | 'medical' | 'grooming';
 export type MonthlyExpense = {
   id: string;
   petId: string;
@@ -20,6 +20,7 @@ export type MonthlyExpenseSummary = {
   total: number;
   shopping: number;
   medical: number;
+  grooming: number;
   legacyDateCount: number;
 };
 
@@ -32,7 +33,8 @@ export function expenseKind(
     (category === 'other' && subCategory === 'hospital')
   )
     return 'medical';
-  return category === 'other' && subCategory === 'shopping' ? 'shopping' : null;
+  if (category === 'other' && subCategory === 'shopping') return 'shopping';
+  return category === 'other' && (subCategory === 'grooming' || subCategory === 'bathing') ? 'grooming' : null;
 }
 
 export function summarizeExpenses(
@@ -41,13 +43,15 @@ export function summarizeExpenses(
   const unique = [...new Map(items.map(item => [item.id, item])).values()];
   let shopping = 0;
   let medical = 0;
+  let grooming = 0;
   for (const item of unique) {
     if (!Number.isSafeInteger(item.price) || item.price < 0)
       throw new Error('지출 금액을 확인하지 못했어요.');
     if (item.kind === 'shopping') shopping += item.price;
+    else if (item.kind === 'grooming') grooming += item.price;
     else medical += item.price;
   }
-  const total = shopping + medical;
+  const total = shopping + medical + grooming;
   if (!Number.isSafeInteger(total))
     throw new Error('지출 합계가 표시 범위를 초과했어요.');
   return {
@@ -57,6 +61,7 @@ export function summarizeExpenses(
     total,
     shopping,
     medical,
+    grooming,
     legacyDateCount: unique.filter(item => item.legacyDate).length,
   };
 }
