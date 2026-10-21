@@ -22,7 +22,7 @@ import org.junit.runner.RunWith
 
 // Explicit selectors only. No automatic UI interaction, request, process kill,
 // production cleanup, Auth read, permission change, screenshot or route export.
-// Host (NURI-12) owns ordinary UI actions and the explicitly verified PID kill.
+// Master host owns ordinary UI actions and the explicitly verified PID kill.
 @RunWith(AndroidJUnit4::class)
 class WalkProductResponseLossTest {
   // Public URL only, copied from the unchanged deployed config.ts. No key/JWT.
@@ -121,8 +121,33 @@ class WalkProductResponseLossTest {
     // verifies the same PID and existing Activity after runner/framework detach.
   }
 
+  @Test fun reviewTestManifestNoRestart() = safe {
+    val args = InstrumentationRegistry.getArguments()
+    val mode = args.getString("reviewOperation")
+    supplementalCheck(mode in setOf("INSPECT", "REMOVE") && args.getString("hostExpectedPid") == Process.myPid().toString()
+      && args.getString("hostNoRestartValidated") == "TRUE" && args.getString("waitForActivitiesToComplete") == "false",
+      "MANIFEST_LIVE_REVIEW_ARGUMENTS_UNSAFE")
+    val label = args.getString("publicHashLabel") ?: throw SupplementalBlocked("PUBLIC_HASH_LABEL_REQUIRED")
+    val manifest = SupplementalManifest(context)
+    val review = manifest.publicReview(label)
+    status("TEST_MANIFEST_REVIEW", review.toString(), if (manifest.exists()) manifest.load().getString("marker") else null)
+    if (mode == "REMOVE") {
+      hostGate()
+      supplementalCheck(args.getString("hostCleanupReviewed") == "TRUE", "EXPLICIT_HOST_REVIEW_REQUIRED")
+      manifest.removeReviewed(args.getString("reviewedRunMarker") ?: throw SupplementalBlocked("REVIEWED_MARKER_REQUIRED"),
+        label, args.getString("reviewedOwnerKey"), args.getString("reviewedPetKey"),
+        args.getString("reviewedServerPetAndSessionsAbsent") == "TRUE", args.getString("reviewedServerAckBound") == "TRUE",
+        WalkReadOnlyJournalAudit(context))
+      status("TEST_MANIFEST_ABSENT_AFTER_REVIEW", manifest.publicReview(label).toString())
+    }
+  }
+
   @Test fun phaseAHoldExactProductDeleteForHostKill() = safe {
     hostGate()
+    val args = InstrumentationRegistry.getArguments()
+    val expectedOwner = args.getString("expectedOwnerKey") ?: throw SupplementalBlocked("FIXED_QA_OWNER_REQUIRED")
+    val label = args.getString("publicHashLabel") ?: throw SupplementalBlocked("PUBLIC_HASH_LABEL_REQUIRED")
+    supplementalCheck(Regex("[0-9a-f]{64}").matches(expectedOwner) && Regex("[0-9a-f]{40,64}").matches(label), "FIXED_QA_OWNER_REQUIRED")
     supplementalCheck(!activityPresent(), "FACTORY_LATE_OR_DUPLICATE")
     val audit = WalkReadOnlyJournalAudit(context)
     val initial = audit.scan(); status("PHASE_A_INITIAL_AUDIT", initial.publicCounts()); initial.requireEmpty()
@@ -133,7 +158,7 @@ class WalkProductResponseLossTest {
     manifest.save(JSONObject().put("version", 1).put("marker", marker).put("stage", "READY")
       .put("pidA", Process.myPid()).put("baseline", JSONArray(audit.fingerprints().toList())))
     val guard = SupplementalGuard(marker, approvedOrigin)
-    val filter = WalkPetDeleteResponseFilter(guard, audit, manifest, recovery = false)
+    val filter = WalkPetDeleteResponseFilter(guard, audit, manifest, recovery = false, expectedOwnerKey = expectedOwner, publicHashLabel = label)
     install(guard, filter)
     try {
       status("PHASE_A_READY_NORMAL_UI_ONE_NEW_PET_ONLY", marker = marker)
@@ -141,12 +166,22 @@ class WalkProductResponseLossTest {
       val deadline = SystemClock.elapsedRealtime() + 900000
       var reportedHold = false
       var reportedFactory = false; var reportedPet = false; var reportedSession = false; var reportedResult = false
+      var reportedLocal = false
       while (SystemClock.elapsedRealtime() < deadline) {
         supplementalCheck(filter.fault == null, filter.fault ?: "PROBE_FAILED")
         if (guard.factoryObserved && !reportedFactory) { reportedFactory = true; status("NETWORK_PROBE_ATTACHED") }
         val saved = manifest.load()
         if (saved.has("pet") && !reportedPet) { reportedPet = true; status("PET_CREATED_BOUND_NO_CREDENTIAL_EXPORT") }
         if (saved.has("session") && !reportedSession) { reportedSession = true; status("ONE_SESSION_ID_BOUND") }
+        if (saved.has("session") && !reportedLocal) {
+          val product = audit.ownedProduct(guard.binding ?: throw SupplementalBlocked("NO_BINDING"), saved.getString("session"))
+          if (product.getString("runtimeState") == "FINISHED_LOCAL" && product.getString("phase") == "FINISH_PENDING"
+            && product.getBoolean("finishEnvelopePresent") && product.getBoolean("payloadPresent") && !product.getBoolean("receiptPresent")) {
+            reportedLocal = true
+            manifest.update { it.put("localFinishObserved", true).put("localPayloadDigest", product.getString("payloadDigest")) }
+            status("OWNED_FINISHED_LOCAL_DURABLE_NO_SERVER_RECEIPT", product.toString())
+          }
+        }
         if (saved.optBoolean("acceptedZero") && !reportedResult) { reportedResult = true; status("OWNED_SESSION_ACCEPTED_CANONICAL_ZERO_NO_MEMORY") }
         if (filter.held && !reportedHold) {
           audit.requireQuiescent(); manifest.requireBaseline(audit)
@@ -212,7 +247,9 @@ class WalkProductResponseLossTest {
     val audit = WalkReadOnlyJournalAudit(context)
     audit.scan().requireEmpty(); audit.requireQuiescent()
     val manifest = SupplementalManifest(context)
-    manifest.requireBaseline(audit); manifest.removeReviewed(marker)
+    manifest.removeReviewed(marker, args.getString("publicHashLabel") ?: throw SupplementalBlocked("PUBLIC_HASH_LABEL_REQUIRED"),
+      args.getString("reviewedOwnerKey"), args.getString("reviewedPetKey"),
+      args.getString("reviewedServerPetAndSessionsAbsent") == "TRUE", args.getString("reviewedServerAckBound") == "TRUE", audit)
     status("ONLY_REVIEWED_TEST_MANIFEST_REMOVED_NO_PRODUCT_CLEANUP")
   }
 }

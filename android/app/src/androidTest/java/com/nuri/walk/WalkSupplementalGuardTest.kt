@@ -4,6 +4,35 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
+class WalkSupplementalCleanupPolicyTest {
+  private fun check(stage: String = "PET_CREATED", bound: Boolean = true, session: Boolean = false,
+    request: Boolean = false, identity: Boolean = true, absent: Boolean = true,
+    ack: Boolean = true, journalEmpty: Boolean = true, quiescent: Boolean = true): String =
+    SupplementalCleanupPolicy.decide(stage, bound, session, request, identity, absent, ack, journalEmpty, quiescent)
+  @Test fun beforeResourcesIsSafeNoOpRemoval() { assertTrue(check("READY", false, identity = false, absent = false, ack = false) == "REMOVE") }
+  @Test fun everyImplementedAbortStageRequiresRealServerCleanup() {
+    for (stage in listOf("PET_CREATED", "REMOTE_SUCCESS_HELD", "BACKOUT_REAL_RESPONSE_RETURNED", "PRODUCT_RECOVERY_OBSERVED")) {
+      assertTrue(check(stage) == "REMOVE")
+      assertTrue(check(stage, absent = false) == "KEEP_PRODUCT_RECONCILIATION_REQUIRED")
+      assertTrue(check(stage, ack = false) == "KEEP_PRODUCT_RECONCILIATION_REQUIRED")
+    }
+  }
+  @Test fun sessionAbortNeverDeletesUnresolvedResources() {
+    assertTrue(check(session = true, absent = false) == "KEEP_PRODUCT_RECONCILIATION_REQUIRED")
+    assertTrue(check(session = true) == "REMOVE")
+  }
+  @Test fun unknownStageAndMalformedReadyFailClosed() {
+    assertTrue(check("FUTURE") == "BLOCK_INVALID_MANIFEST")
+    assertTrue(check("READY", session = true) == "BLOCK_INVALID_MANIFEST")
+    assertTrue(check("PET_CREATED", bound = false) == "BLOCK_INVALID_MANIFEST")
+  }
+  @Test fun wrongOwnerOrDuplicateForeignRunCannotRemove() { assertTrue(check(identity = false) == "BLOCK_REVIEW_IDENTITY_MISMATCH") }
+  @Test fun ambiguousDeletePreservesRecoveryInformation() {
+    assertTrue(check(request = true, journalEmpty = false) == "KEEP_PRODUCT_RECONCILIATION_REQUIRED")
+    assertTrue(check(quiescent = false) == "KEEP_PRODUCT_RECONCILIATION_REQUIRED")
+  }
+}
+
 class WalkSupplementalLiveAuditGuardTest {
   private fun args() = mapOf("class" to SupplementalLiveAuditPolicy.SELECTOR, "hostExpectedPid" to "12345",
     "hostNoRestartValidated" to "TRUE", "waitForActivitiesToComplete" to "false")

@@ -16,6 +16,7 @@ const ALLOWED_SOURCE_PATHS = new Set([
   ...['WalkSupplementalGuard.kt', 'WalkSupplementalGuardTest.kt', 'WalkReadOnlyJournalAudit.kt', 'WalkPetDeleteResponseFilter.kt', 'WalkProductResponseLossTest.kt']
     .map(name => `android/app/src/androidTest/java/com/nuri/walk/${name}`),
   'scripts/secure-release-signing.js', 'scripts/qa/build-android-auxiliary.js', '__tests__/secureReleaseAuxiliary.test.ts',
+  'scripts/qa/run-walk-supplemental.js', '__tests__/walkSupplementalCloseout.test.js',
 ]);
 const fail = code => { throw new Error(code); };
 const digest = file => crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex');

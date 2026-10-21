@@ -155,6 +155,15 @@ describe('auxiliary-only protected signing, synthetic inputs and mocked children
     expect(identity.verifyExternalSigner).not.toHaveBeenCalled();
   });
 
+  test.each(['scripts/qa/run-walk-supplemental.js', '__tests__/walkSupplementalCloseout.test.js'])('supplemental closeout source: accepts only the exact added test path %s', (file: string) => {
+    mockSource(`A\t${file}`);
+    expect(auxiliary.requireAuxiliarySource(root, head).productSourceHead).toBe('01336613d6417605660679ba16a8961d6d075d94');
+  });
+  test.each(['scripts/qa/run-walk-supplemental-other.js', 'src/services/walk/supplemental.js', 'android/app/src/main/java/com/nuri/walk/WalkRuntime.kt'])('supplemental closeout source: rejects neighboring product or unapproved paths %s', (file: string) => {
+    mockSource(`M\t${file}`);
+    expect(() => auxiliary.requireAuxiliarySource(root, head)).toThrow('NURI_AUXILIARY_SOURCE_DELTA_FORBIDDEN');
+  });
+
   test('missing or changed canonical product fails closed without Gradle', async () => {
     mockSource();
     const spawn = jest.spyOn(cp, 'spawn');

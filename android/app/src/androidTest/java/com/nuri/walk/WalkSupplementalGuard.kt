@@ -16,6 +16,18 @@ internal fun supplementalUuid(value: String): String {
   return value
 }
 
+internal object SupplementalCleanupPolicy {
+  fun decide(stage: String, bound: Boolean, session: Boolean, request: Boolean,
+    identity: Boolean, absent: Boolean, ack: Boolean, journalEmpty: Boolean, quiescent: Boolean): String {
+    if (stage !in setOf("READY", "PET_CREATED", "REMOTE_SUCCESS_HELD", "BACKOUT_REAL_RESPONSE_RETURNED", "PRODUCT_RECOVERY_OBSERVED")
+      || stage == "READY" && (bound || session || request) || stage != "READY" && !bound)
+      return "BLOCK_INVALID_MANIFEST"
+    if (bound && !identity) return "BLOCK_REVIEW_IDENTITY_MISMATCH"
+    if (!journalEmpty || !quiescent || bound && (!absent || !ack)) return "KEEP_PRODUCT_RECONCILIATION_REQUIRED"
+    return "REMOVE"
+  }
+}
+
 // Pure policy shared by the live selector and host-side behavioral checks.
 internal object SupplementalLiveAuditPolicy {
   const val SELECTOR = "com.nuri.walk.WalkProductResponseLossTest#liveAuditStoredStateNoRestart"

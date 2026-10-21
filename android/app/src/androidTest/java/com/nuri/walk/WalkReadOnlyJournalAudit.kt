@@ -11,6 +11,8 @@ import java.nio.file.LinkOption
 import java.nio.file.NoSuchFileException
 import java.nio.file.attribute.BasicFileAttributes
 import java.security.MessageDigest
+import javax.crypto.Mac
+import javax.crypto.spec.SecretKeySpec
 import org.json.JSONArray
 import org.json.JSONObject
 
@@ -232,6 +234,22 @@ internal class WalkReadOnlyJournalAudit(context: Context) {
     }
     supplementalCheck(counts.quiescent(), "EXISTING_RUNTIME_NOT_QUIESCENT")
   }
+  fun ownedProduct(b: SupplementalBinding, id: String): JSONObject = database { db ->
+    supplementalUuid(id)
+    val database = db ?: throw SupplementalBlocked("OWNED_PRODUCT_DATABASE_MISSING")
+    database.rawQuery("SELECT runtimeState,metadataRevision,metadataNonce,metadataCiphertext,finishCiphertext FROM walk_local_sessions WHERE sessionId=?", arrayOf(id)).use { c ->
+      supplementalCheck(c.moveToFirst(), "OWNED_PRODUCT_ROW_MISSING")
+      val plain = WalkCipher { WalkKeyStore.key(allowCreate = false) }.decrypt(
+        WalkSealedBytes(c.getBlob(2), c.getBlob(3)), WalkCipher.aad(id, "metadata", c.getLong(1)))
+      val meta = try { WalkCodec.decode(plain) } finally { plain.fill(0) }
+      supplementalCheck(meta.owner == b.owner && meta.pet == b.pet, "OWNED_PRODUCT_SCOPE_MISMATCH")
+      val j = meta.product ?: throw SupplementalBlocked("OWNED_PRODUCT_JOURNAL_MISSING")
+      JSONObject().put("runtimeState", c.getString(0)).put("phase", j.phase.name)
+        .put("activeMs", meta.timing.activeMs).put("finishEnvelopePresent", !c.isNull(4) && c.getBlob(4).isNotEmpty())
+        .put("payloadPresent", j.payloadJson != null).put("receiptPresent", j.receiptJson != null)
+        .put("payloadDigest", j.payloadDigest ?: JSONObject.NULL)
+    }
+  }
   fun fingerprints(): Set<String> = database { db ->
     val result = mutableSetOf<String>()
     if (db != null) for (table in listOf("walk_local_sessions", "walk_point_chunks", "walk_command_receipts", "walk_qa_protocol")) {
@@ -296,14 +314,43 @@ internal class SupplementalManifest(context: Context) {
     val v = load(); val expected = v.getJSONArray("baseline"); val actual = audit.fingerprints()
     supplementalCheck((0 until expected.length()).all { expected.getString(it) in actual }, "PRIOR_WALK_DATA_CHANGED")
   }
-  @Synchronized fun removeReviewed(marker: String) {
+  fun publicReview(label: String): JSONObject {
+    if (!exists()) return JSONObject().put("exists", false)
     val v = load()
-    supplementalCheck(Regex("NQ[0-9a-f]{12}").matches(marker) && v.getString("marker") == marker
-      && v.getString("stage") == "PRODUCT_RECOVERY_OBSERVED" && v.getBoolean("nativeDoneObserved")
-      && v.getBoolean("serverAckObserved"), "TEST_CLEANUP_NOT_REVIEWABLE")
+    supplementalCheck(v.getString("stage") in setOf("READY", "PET_CREATED", "REMOTE_SUCCESS_HELD", "BACKOUT_REAL_RESPONSE_RETURNED", "PRODUCT_RECOVERY_OBSERVED")
+      && v.has("owner") == v.has("pet"), "TEST_MANIFEST_SHAPE_INVALID")
+    return JSONObject().put("exists", true).put("stage", v.getString("stage"))
+      .put("hasPet", v.has("pet")).put("hasSession", v.has("session")).put("hasRequest", v.has("request"))
+      .also { out ->
+        for ((field, domain) in listOf("owner" to "owner", "pet" to "pet", "session" to "client_session", "request" to "request"))
+          if (v.has(field)) out.put(field + "Key", publicHash(label, domain, v.getString(field)))
+        if (v.has("resourceBinding")) out.put("resourceBinding", v.getString("resourceBinding"))
+      }
+  }
+  @Synchronized fun removeReviewed(marker: String, label: String, ownerKey: String?, petKey: String?,
+    serverAbsent: Boolean, serverAck: Boolean, audit: WalkReadOnlyJournalAudit) {
+    if (!exists()) return
+    val v = load()
+    supplementalCheck(Regex("NQ[0-9a-f]{12}").matches(marker) && v.getString("marker") == marker, "TEST_CLEANUP_NOT_REVIEWABLE")
+    requireBaseline(audit)
+    val journal = audit.scan(); audit.requireQuiescent()
+    val identity = v.has("owner") && v.has("pet") && ownerKey == publicHash(label, "owner", v.getString("owner"))
+      && petKey == publicHash(label, "pet", v.getString("pet"))
+    val decision = SupplementalCleanupPolicy.decide(v.getString("stage"), v.has("pet"), v.has("session"), v.has("request"),
+      identity, serverAbsent, serverAck, journal.healthy() && journal.facts.isEmpty(), true)
+    supplementalCheck(decision == "REMOVE", decision)
     // Exact test-owned file only. No folder recursion, AtomicFile recovery,
     // key/alias removal, product DB/journal or Runtime cleanup call.
     supplementalCheck(base.delete() && !exists(), "TEST_MANIFEST_REMOVAL_NOT_VERIFIED")
+  }
+  companion object {
+    fun publicHash(label: String, domain: String, value: String): String {
+      supplementalCheck(Regex("[0-9a-f]{40,64}").matches(label), "PUBLIC_HASH_LABEL_INVALID")
+      return Mac.getInstance("HmacSHA256").run {
+        init(SecretKeySpec(label.toByteArray(Charsets.UTF_8), "HmacSHA256"))
+        doFinal("$domain|$value".toByteArray(Charsets.UTF_8)).joinToString("") { "%02x".format(it.toInt() and 255) }
+      }
+    }
   }
   private fun aad() = "NURI_WALK_SUPPLEMENTAL:1:run".toByteArray(Charsets.UTF_8)
 }

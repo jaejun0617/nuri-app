@@ -18,6 +18,8 @@ internal class WalkPetDeleteResponseFilter(
   private val audit: WalkReadOnlyJournalAudit,
   private val manifest: SupplementalManifest,
   private val recovery: Boolean,
+  private val expectedOwnerKey: String? = null,
+  private val publicHashLabel: String? = null,
 ) : Interceptor {
   @Volatile var fault: String? = null
     private set
@@ -71,6 +73,8 @@ internal class WalkPetDeleteResponseFilter(
           creation = guard.claimCreation(method, url, guard.marker)
           supplementalCheck(body.isNull("weight_kg") && body.isNull("profile_image_url"), "NEW_PET_MUST_HAVE_NO_WEIGHT_OR_IMAGE")
           creationOwner = supplementalUuid(body.getString("user_id"))
+          supplementalCheck(publicHashLabel != null && expectedOwnerKey != null
+            && SupplementalManifest.publicHash(publicHashLabel, "owner", creationOwner) == expectedOwnerKey, "FIXED_QA_OWNER_MISMATCH")
         }
       }
       exactDelete = guard.exactDelete(method, url, request.body == null || request.body?.contentLength() == 0L)
@@ -90,7 +94,23 @@ internal class WalkPetDeleteResponseFilter(
         throw IOException("WALK_SUPPLEMENTAL_SCOPED_ABORT")
     }
 
-    val response = chain.proceed(request)
+    val ownedFinish = method == "POST" && SupplementalGuard.origin(url) == guard.binding?.origin && path == "/rest/v1/rpc/finish_walk_v1"
+    if (ownedFinish) {
+      val input = body(request)
+      val payload = input.getJSONObject("p_payload")
+      supplementalCheck(payload.getString("clientSessionId") == guard.ownedSession && payload.getString("petId") == guard.binding?.pet,
+        "FINISH_SCOPE_MISMATCH")
+      val digest = input.getString("p_payload_digest")
+      supplementalCheck(Regex("[0-9a-f]{64}").matches(digest), "FINISH_DIGEST_INVALID")
+      manifest.update {
+        supplementalCheck(!it.has("finishDigest") || it.getString("finishDigest") == digest, "RETRY_PAYLOAD_CHANGED")
+        it.put("finishDigest", digest).put("finishAttempts", it.optInt("finishAttempts") + 1)
+      }
+    }
+    val response = try { chain.proceed(request) } catch (e: IOException) {
+      if (ownedFinish) manifest.update { it.put("finishTransportFailureObserved", true) }
+      throw e
+    }
     if (gate.closed) return response
     try {
       if (creation) {
@@ -149,6 +169,8 @@ internal class WalkPetDeleteResponseFilter(
       }
       for (row in results) if (row.optString("clientSessionId") == guard.ownedSession && row.optString("state") == "ACCEPTED_SERVER") {
         val summary = row.getJSONObject("summary")
+        val prior = manifest.load()
+        if (prior.optBoolean("localFinishObserved")) supplementalCheck(row.getString("payloadDigest") == prior.getString("localPayloadDigest"), "LOCAL_RETRY_DIGEST_MISMATCH")
         guard.accepted(row.getString("clientSessionId"), row.getString("petId"), summary.getString("acceptedDistanceM"), summary.getString("activeDurationMs"), summary.getString("eligibility"), row.getBoolean("recordClaimExists"))
         manifest.update { it.put("acceptedZero", true).put("activeMs", summary.getString("activeDurationMs")) }
       }
