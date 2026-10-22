@@ -1,5 +1,5 @@
-import CtaButton, { CtaText } from '../../app/ui/CtaButton';
-import { SeasonalFormBackground, SeasonalFormPanel } from '../../components/common/SeasonalFormSurface';
+import CtaButton, { CtaText } from '../../components/records/TimelineButton';
+import { RecordFieldGlass, SeasonalFormBackground, SeasonalFormPanel } from '../../components/records/TimelineFormSurface';
 import MedicalRecordFields from '../../components/records/MedicalRecordFields';
 // 파일: src/screens/Records/RecordCreateScreen.tsx
 // 파일 목적:
@@ -27,7 +27,6 @@ import React, {
 import {
   Alert,
   BackHandler,
-  Image,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -47,18 +46,18 @@ import {
 } from 'react-native-keyboard-controller';
 import Feather from '../../components/icons/NuriFeatherIcon';
 import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
-import NuriIcon from '../../components/icons/NuriIcon';
-import { NURI_MOOD_ICONS } from '../../components/icons/nuriIconNames';
 
 import AppText from '../../app/ui/AppText';
 import { spacing } from '../../app/theme/tokens/spacing';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import PremiumRewardModal from '../../components/common/PremiumRewardModal';
-import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
+import RecordPhotoStrip from '../../components/records/RecordPhotoStrip';
+import TimelineArtwork from '../../components/records/TimelineArtwork';
+import { TIMELINE_DESIGN as C } from '../../theme/timelineDesign';
 import RecordChoiceGrid from '../../components/records/RecordChoiceGrid';
+import { renderRecordCategoryIcon } from '../../components/records/RecordCategoryIcon';
 import RecordCareFields from '../../components/records/RecordCareFields';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
-import RecordImageGallery from '../../components/records/RecordImageGallery';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
   buildPickedRecordImages,
@@ -76,8 +75,6 @@ import {
   parseOptionalWonPrice,
   optionalWonPriceError,
   RECORD_EMOTION_OPTIONS,
-  RECORD_MAIN_CATEGORIES,
-  RECORD_OTHER_SUBCATEGORIES,
   RECORD_WRITE_MAIN_CATEGORIES,
   RECORD_WRITE_OTHER_SUBCATEGORIES,
   normalizeRecordPriceInput,
@@ -208,7 +205,7 @@ export default function RecordCreateScreen() {
     () => pets.find(item => item.id === petId) ?? null,
     [petId, pets],
   );
-  const petTheme = NEUTRAL_UI_PALETTE;
+  const petTheme = { ...NEUTRAL_UI_PALETTE, primary: C.primary, deep: C.primary, soft: C.surface, tint: C.selected, border: C.border };
 
   const todayYmd = useMemo(() => toRecordYmd(new Date()), []);
 
@@ -303,19 +300,6 @@ export default function RecordCreateScreen() {
     !petId ||
     Boolean(priceError) ||
     !hasValidCategoryFields;
-  const selectedMainCategory = useMemo(
-    () =>
-      RECORD_MAIN_CATEGORIES.find(
-        category => category.key === mainCategoryKey,
-      ) ?? null,
-    [mainCategoryKey],
-  );
-  const selectedOtherSubCategory = useMemo(
-    () =>
-      RECORD_OTHER_SUBCATEGORIES.find(sub => sub.key === otherSubCategoryKey) ??
-      null,
-    [otherSubCategoryKey],
-  );
   const isShoppingCategory = useMemo(
     () => isShoppingRecordCategory(mainCategoryKey, otherSubCategoryKey),
     [mainCategoryKey, otherSubCategoryKey],
@@ -333,10 +317,7 @@ export default function RecordCreateScreen() {
     () => mergeRecordTags(selectedTags, mainCategoryKey, otherSubCategoryKey),
     [selectedTags, mainCategoryKey, otherSubCategoryKey],
   );
-  const activeImage = useMemo(
-    () => selectedImages[activeImageIndex] ?? selectedImages[0] ?? null,
-    [selectedImages, activeImageIndex],
-  );
+
   const hasDraftContent = useMemo(() => {
     return (
       title.trim().length > 0 ||
@@ -677,10 +658,10 @@ export default function RecordCreateScreen() {
     }
   }, [saving]);
 
-  const removeActiveImage = useCallback(() => {
+  const removeActiveImage = useCallback((targetIndex = activeImageIndex) => {
     setSelectedImages(prev => {
       if (prev.length === 0) return prev;
-      return prev.filter((_, index) => index !== activeImageIndex);
+      return prev.filter((_, index) => index !== targetIndex);
     });
   }, [activeImageIndex]);
 
@@ -1320,16 +1301,7 @@ export default function RecordCreateScreen() {
         </AppText>
 
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
-          <HeaderTextActionButton
-            appearance="seasonalText"
-            role="primarySubtle"
-            loading={saving}
-            accessibilityLabel={saving ? '기록 저장 중' : '기록 등록'}
-            compact
-            disabled={disabled}
-            label="등록"
-            onPress={onSubmit}
-          />
+          <View />
         </View>
       </View>
 
@@ -1359,15 +1331,10 @@ export default function RecordCreateScreen() {
         <TouchableOpacity
           disabled={isGps}
           activeOpacity={0.9}
-          style={[
-            styles.dateCard,
-            {
-              backgroundColor: petTheme.soft,
-              borderColor: petTheme.border,
-            },
-          ]}
+          style={styles.dateCard}
           onPress={onOpenDateModal}
         >
+          <RecordFieldGlass />
           <View style={styles.dateLeft}>
             <View style={styles.dateIconWrap}>
               <NuriSemanticIcon
@@ -1377,148 +1344,25 @@ export default function RecordCreateScreen() {
                 color={petTheme.primary}
               />
             </View>
-            <AppText preset="unifiedBody" style={styles.dateText}>
+            <AppText preset="unifiedLabel" style={styles.dateText}>
               {isGps && !gps.ready ? '산책 날짜 확인 중' : formattedDate}
             </AppText>
           </View>
-          <Feather name="chevron-right" size={18} color="#C4CAD6" />
+          <NuriSemanticIcon family="feather" name="chevron-right" preserveOriginal
+            testID="record-date-chevron" size={18} color="#000000" accessible={false} />
         </TouchableOpacity>
 
-        <RecordImageGallery
-          items={selectedImages}
-          activeIndex={activeImageIndex}
-          onChangeActiveIndex={setActiveImageIndex}
-          containerStyle={styles.photoBox}
-          stageStyle={styles.photoStage}
-          emptyContent={
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={styles.photoPlaceholderTouch}
-              onPress={pickImage}
-            >
-              <View style={styles.photoPlaceholder}>
-                <View style={styles.photoIconBadge}>
-                  <Feather name="camera" size={22} color="#94A1B5" />
-                </View>
-                <AppText
-                  preset="unifiedBody"
-                  style={styles.photoPlaceholderTitle}
-                >
-                  사진 추가 (최대 10장)
-                </AppText>
-              </View>
-            </TouchableOpacity>
-          }
-          mainContent={
-            activeImage ? (
-              <Image
-                source={{ uri: activeImage.uri }}
-                style={styles.photoImage}
-              />
-            ) : null
-          }
-          topOverlay={
-            activeImage ? (
-              <View style={styles.photoOverlayTop}>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={styles.photoGhostBtn}
-                  onPress={pickImage}
-                >
-                  <AppText
-                    preset="unifiedMeta"
-                    style={styles.photoGhostBtnText}
-                  >
-                    추가
-                  </AppText>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  activeOpacity={0.85}
-                  style={styles.photoGhostBtn}
-                  onPress={removeActiveImage}
-                >
-                  <AppText
-                    preset="unifiedMeta"
-                    style={styles.photoGhostBtnText}
-                  >
-                    제거
-                  </AppText>
-                </TouchableOpacity>
-              </View>
-            ) : null
-          }
-          thumbRowStyle={styles.photoThumbRow}
-          thumbItemStyle={styles.photoThumbWrap}
-          thumbItemActiveStyle={styles.photoThumbWrapActive}
-          thumbImageStyle={styles.photoThumb}
-        />
+        <RecordPhotoStrip surfaceVariant="homeGlass" items={selectedImages} onAdd={pickImage} onRemove={removeActiveImage} disabled={saving} />
 
-        {!isGps && <View style={styles.quickTagRow}>
-          {RECORD_WRITE_MAIN_CATEGORIES.map(category => {
-            const active = category.key === mainCategoryKey;
-            return (
-              <TouchableOpacity
-                key={category.key}
-                activeOpacity={0.88}
-                style={styles.quickTagItem}
-                onPress={() => onSelectMainCategory(category.key)}
-              >
-                <View
-                  style={[
-                    styles.quickTagIconWrap,
-                    active ? styles.quickTagIconWrapActive : null,
-                    active
-                      ? {
-                          backgroundColor: petTheme.primary,
-                          shadowColor: petTheme.deep,
-                        }
-                      : null,
-                  ]}
-                >
-                  <NuriSemanticIcon
-                    family="feather"
-                    name={category.icon}
-                    semantic={
-                      category.key === 'other' ? undefined : category.key
-                    }
-                    size={18}
-                    color={active ? '#FFFFFF' : '#97A2B6'}
-                    variant={active ? 'outline' : 'glass'}
-                  />
-                </View>
-                <AppText
-                  preset="unifiedMeta"
-                  style={[
-                    styles.quickTagLabel,
-                    active ? styles.quickTagLabelActive : null,
-                    active ? { color: petTheme.primary } : null,
-                  ]}
-                >
-                  {category.label}
-                </AppText>
-              </TouchableOpacity>
-            );
-          })}
+        {!isGps && <View style={styles.field}>
+          <AppText preset="unifiedLabel" style={styles.fieldLabel}>어떤 기록인가요?</AppText>
+          <RecordChoiceGrid surfaceVariant="homeGlass" renderIcon={renderRecordCategoryIcon} options={RECORD_WRITE_MAIN_CATEGORIES} selected={mainCategoryKey ? [mainCategoryKey] : []} columns={4} onSelect={onSelectMainCategory} disabled={saving} />
         </View>}
-
-        {selectedMainCategory ? (
-          <View
-            style={[styles.quickTagHint, { backgroundColor: petTheme.tint }]}
-          >
-            <AppText
-              preset="unifiedMeta"
-              style={[styles.quickTagHintText, { color: petTheme.deep }]}
-            >
-              분류: {selectedMainCategory.label}
-              {selectedOtherSubCategory
-                ? ` · ${selectedOtherSubCategory.label}`
-                : ''}
-            </AppText>
-          </View>
-        ) : null}
 
         {mainCategoryKey === 'other' ? (
           <RecordChoiceGrid
+            surfaceVariant="homeGlass"
+            renderIcon={renderRecordCategoryIcon}
             options={RECORD_WRITE_OTHER_SUBCATEGORIES}
             selected={otherSubCategoryKey ? [otherSubCategoryKey] : []}
             onSelect={onSelectOtherSubCategory}
@@ -1528,13 +1372,19 @@ export default function RecordCreateScreen() {
         ) : null}
 
         {isHealthCategory ? (
-          <MedicalRecordFields value={healthCare} onChange={setHealthCare} onFocus={handleFocusField} disabled={saving} />
+          <MedicalRecordFields surfaceVariant="homeGlass" value={healthCare} onChange={setHealthCare} onFocus={handleFocusField} disabled={saving} />
         ) : null}
+        {careCategory ? (
+          <RecordCareFields surfaceVariant="homeGlass" category={careCategory} selected={careTypes} onChange={setGroomingCareTypes} disabled={saving} />
+        ) : null}
+
         {isExpenseCategory ? (
           <View style={styles.field}>
-            <AppText preset="unifiedBody" style={styles.fieldLabel}>
+            <AppText preset="unifiedLabel" style={styles.fieldLabel}>
               {careCategory ? careExpenseLabel : isShoppingCategory ? '구매 가격 (선택)' : '병원·건강 비용 (선택)'}
             </AppText>
+            <View style={styles.inputSurface}>
+            <RecordFieldGlass />
             <AppTextInput
               style={styles.input}
               value={priceText}
@@ -1547,6 +1397,7 @@ export default function RecordCreateScreen() {
               testID="record-create-price"
               editable={!saving}
             />
+            </View>
             {priceError ? (
               <AppText accessibilityRole="alert" preset="unifiedMeta" style={styles.helperText}>{priceError}</AppText>
             ) : priceLabel ? (
@@ -1563,7 +1414,7 @@ export default function RecordCreateScreen() {
 
         {isMealCategory ? (
           <View style={styles.field}>
-            <AppText preset="unifiedBody" style={styles.fieldLabel}>
+            <AppText preset="unifiedLabel" style={styles.fieldLabel}>
               급여량
             </AppText>
             {typeof selectedPet?.defaultMealAmountGrams === 'number' &&
@@ -1600,24 +1451,23 @@ export default function RecordCreateScreen() {
                 </AppText>
               </TouchableOpacity>
             )}
-            <View style={styles.unitInputRow}>
+            <View style={styles.inputSurface}>
+              <RecordFieldGlass />
               <AppTextInput
                 style={[
                   styles.input,
-                  styles.unitInput,
                   useDefaultMealAmount ? styles.inputDisabled : null,
                 ]}
                 value={mealAmountText}
                 onChangeText={onChangeMealAmountText}
                 onFocus={handleFocusField}
-                placeholder="예: 180"
+                placeholder="예: 180g"
+                accessibilityLabel="급여량 (g)"
+                testID="record-create-meal-amount"
                 placeholderTextColor="#8A94A6"
                 keyboardType="number-pad"
                 editable={!saving && !useDefaultMealAmount}
               />
-              <AppText preset="unifiedBody" style={styles.unitLabel}>
-                g
-              </AppText>
             </View>
             <AppText preset="unifiedMeta" style={styles.helperText}>
               음식 종류는 사료로 저장돼요.
@@ -1627,7 +1477,7 @@ export default function RecordCreateScreen() {
 
         {isHealthCategory ? (
           <View style={styles.field}>
-            <AppText preset="unifiedBody" style={styles.fieldLabel}>
+            <AppText preset="unifiedLabel" style={styles.fieldLabel}>
               오늘 컨디션
             </AppText>
             <View style={styles.optionGrid}>
@@ -1640,15 +1490,10 @@ export default function RecordCreateScreen() {
                     style={[
                       styles.optionChip,
                       active ? styles.optionChipActive : null,
-                      active
-                        ? {
-                            backgroundColor: petTheme.tint,
-                            borderColor: petTheme.border,
-                          }
-                        : null,
                     ]}
                     onPress={() => setHealthCondition(option.value)}
                   >
+                    <RecordFieldGlass selected={active} borderRadius={14} />
                     <AppText
                       preset="unifiedMeta"
                       style={[
@@ -1662,12 +1507,14 @@ export default function RecordCreateScreen() {
                 );
               })}
             </View>
-            <AppText preset="unifiedBody" style={styles.fieldLabel}>
+            <AppText preset="unifiedLabel" style={styles.fieldLabel}>
               체중 (선택)
             </AppText>
             <View style={styles.unitInputRow}>
+              <View style={[styles.inputSurface, styles.unitInput]}>
+              <RecordFieldGlass />
               <AppTextInput
-                style={[styles.input, styles.unitInput]}
+                style={styles.input}
                 value={healthWeightText}
                 onChangeText={onChangeHealthWeightText}
                 onFocus={handleFocusField}
@@ -1676,59 +1523,10 @@ export default function RecordCreateScreen() {
                 keyboardType="decimal-pad"
                 editable={!saving}
               />
+              </View>
               <AppText preset="unifiedBody" style={styles.unitLabel}>
                 kg
               </AppText>
-            </View>
-          </View>
-        ) : null}
-
-        {careCategory ? (
-          <RecordCareFields category={careCategory} selected={careTypes} onChange={setGroomingCareTypes} disabled={saving} />
-        ) : null}
-
-        {!isHealthCategory ? (
-          <View style={styles.field}>
-            <AppText preset="unifiedBody" style={styles.fieldLabel}>
-              오늘의 기분
-            </AppText>
-            <View style={styles.moodGrid}>
-              {RECORD_EMOTION_OPTIONS.map(mood => {
-                const active = selectedEmotion === mood.value;
-                return (
-                  <TouchableOpacity
-                    key={mood.value}
-                    activeOpacity={0.88}
-                    style={[
-                      styles.moodChip,
-                      active ? styles.moodChipActive : null,
-                      active
-                        ? {
-                            backgroundColor: petTheme.tint,
-                            borderColor: petTheme.border,
-                          }
-                        : null,
-                    ]}
-                    onPress={() =>
-                      setSelectedEmotion(prev =>
-                        prev === mood.value ? null : mood.value,
-                      )
-                    }
-                  >
-                    <NuriIcon name={NURI_MOOD_ICONS[mood.value]} size={16} />
-                    <AppText
-                      preset="unifiedMeta"
-                      style={[
-                        styles.moodText,
-                        active ? styles.moodTextActive : null,
-                        active ? { color: petTheme.deep } : null,
-                      ]}
-                    >
-                      {mood.label}
-                    </AppText>
-                  </TouchableOpacity>
-                );
-              })}
             </View>
           </View>
         ) : null}
@@ -1740,9 +1538,11 @@ export default function RecordCreateScreen() {
             handleComposerFieldLayout('title', event.nativeEvent.layout.y)
           }
         >
-          <AppText preset="unifiedBody" style={styles.fieldLabel}>
+          <AppText preset="unifiedLabel" style={styles.fieldLabel}>
             제목
           </AppText>
+          <View style={styles.inputSurface}>
+          <RecordFieldGlass />
           <AppTextInput
             style={styles.input}
             value={title}
@@ -1753,6 +1553,7 @@ export default function RecordCreateScreen() {
             placeholder="제목을 입력하세요"
             placeholderTextColor="#B5BDCB"
           />
+          </View>
         </View>
 
         <View
@@ -1762,9 +1563,11 @@ export default function RecordCreateScreen() {
             handleComposerFieldLayout('body', event.nativeEvent.layout.y)
           }
         >
-          <AppText preset="unifiedBody" style={styles.fieldLabel}>
-            내용
+          <AppText preset="unifiedLabel" style={styles.fieldLabel}>
+            내용 · 선택
           </AppText>
+          <View style={styles.inputSurface}>
+          <RecordFieldGlass />
           <AppTextInput
             style={[styles.input, styles.textArea]}
             value={content}
@@ -1777,17 +1580,22 @@ export default function RecordCreateScreen() {
             placeholderTextColor="#B5BDCB"
             textAlignVertical="top"
           />
+          </View>
         </View>
 
         <View style={styles.field}>
-          <AppText preset="unifiedBody" style={styles.fieldLabel}>
+          <AppText preset="unifiedLabel" style={styles.fieldLabel}>
             태그
           </AppText>
           <TouchableOpacity
             activeOpacity={0.9}
             style={styles.tagSelector}
+            testID="record-create-tags"
+            accessibilityRole="button"
+            accessibilityLabel="태그 추가 및 수정"
             onPress={onOpenTagModal}
           >
+            <RecordFieldGlass borderRadius={16} />
             {mergedPreviewTags.length ? (
               <View style={styles.selectedTagsWrap}>
                 {mergedPreviewTags.map(tag => (
@@ -1819,11 +1627,52 @@ export default function RecordCreateScreen() {
           </AppText>
         </View>
 
+        {!isHealthCategory ? (
+          <View style={styles.field}>
+            <AppText preset="unifiedLabel" style={styles.fieldLabel}>
+              오늘의 기분 · 선택
+            </AppText>
+            <View style={styles.moodGrid}>
+              {RECORD_EMOTION_OPTIONS.map(mood => {
+                const active = selectedEmotion === mood.value;
+                return (
+                  <TouchableOpacity
+                    key={mood.value}
+                    activeOpacity={0.88}
+                    style={[
+                      styles.moodChip,
+                      active ? styles.moodChipActive : null,
+                    ]}
+                    onPress={() =>
+                      setSelectedEmotion(prev =>
+                        prev === mood.value ? null : mood.value,
+                      )
+                    }
+                  >
+                    <RecordFieldGlass selected={active} />
+                    <TimelineArtwork name={mood.value} size={28} />
+                    <AppText
+                      preset="unifiedMeta"
+                      style={[
+                        styles.moodText,
+                        active ? styles.moodTextActive : null,
+                        active ? { color: petTheme.deep } : null,
+                      ]}
+                    >
+                      {mood.label}
+                    </AppText>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        ) : null}
+
         <CtaButton
           role="primary"
           loading={saving}
           activeOpacity={0.9}
-          accessibilityLabel={saving ? '기록 저장 중' : '기록 저장 완료'}
+          accessibilityLabel={saving ? '기록 저장 중' : '기록 남기기'}
           accessibilityHint={
             saving
               ? '기록 저장이 완료될 때까지 잠시 기다려 주세요.'
@@ -1843,7 +1692,7 @@ export default function RecordCreateScreen() {
             styleOverridesPreset
             style={styles.bottomSubmitText}
           >
-            완료
+            기록 남기기
           </CtaText>
         </CtaButton>
         </SeasonalFormPanel>

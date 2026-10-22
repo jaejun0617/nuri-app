@@ -1,0 +1,249 @@
+[
+  {
+    "file": "src/assets/activity/growth-companion.png",
+    "source": "/Users/shinjaejun/Desktop/시안/리디자인/활동칭호/활동요약.png",
+    "sourceSha256": "f6c0de1d080057a929fe953298cc7b6486e147c59574867592ad9e043629752c",
+    "region": [
+      552,
+      390,
+      786,
+      574
+    ],
+    "size": [
+      234,
+      184
+    ],
+    "sha256": "cfbb0d5af2a81e556620343db16d0c054274f1d77f01e275e292ff5d90d46c04",
+    "transparentPixels": 17832,
+    "partialAlphaPixels": 1692,
+    "method": "source-pixel extraction; border-fitted background; exterior matte; enclosed white detail preserved; no generation or upscaling"
+  },
+  {
+    "file": "src/assets/activity/first-health.png",
+    "source": "/Users/shinjaejun/Desktop/시안/리디자인/활동칭호/칭호보관함.png",
+    "sourceSha256": "bc36df14417148be80212560b1be0a91ad90d3ec663fbb24f49a0fb5141d19ac",
+    "region": [
+      80,
+      722,
+      212,
+      842
+    ],
+    "size": [
+      132,
+      120
+    ],
+    "sha256": "003d93a8879663d69b60ded31c5de9a2f8569c5460436bc3c29fa9fa5a63774c",
+    "transparentPixels": 5477,
+    "partialAlphaPixels": 970,
+    "method": "source-pixel extraction; border-fitted background; exterior matte; enclosed white detail preserved; no generation or upscaling"
+  },
+  {
+    "file": "src/assets/activity/first-walk.png",
+    "source": "/Users/shinjaejun/Desktop/시안/리디자인/활동칭호/칭호보관함.png",
+    "sourceSha256": "bc36df14417148be80212560b1be0a91ad90d3ec663fbb24f49a0fb5141d19ac",
+    "region": [
+      270,
+      717,
+      397,
+      843
+    ],
+    "size": [
+      127,
+      126
+    ],
+    "sha256": "9359b4858789008af57f508499c1569f21e2af6950c36ce81cd698632d1a4598",
+    "transparentPixels": 5790,
+    "partialAlphaPixels": 600,
+    "method": "source-pixel extraction; border-fitted background; exterior matte; enclosed white detail preserved; no generation or upscaling"
+  },
+  {
+    "file": "src/assets/activity/first-hello.png",
+    "source": "/Users/shinjaejun/Desktop/시안/리디자인/활동칭호/칭호보관함.png",
+    "sourceSha256": "bc36df14417148be80212560b1be0a91ad90d3ec663fbb24f49a0fb5141d19ac",
+    "region": [
+      449,
+      722,
+      594,
+      843
+    ],
+    "size": [
+      145,
+      121
+    ],
+    "sha256": "0bb7dd5a904cb88eda2a2e55c4b6d722ae77fd5614b8bf97efd7310f885ee571",
+    "transparentPixels": 8345,
+    "partialAlphaPixels": 751,
+    "method": "source-pixel extraction; border-fitted background; exterior matte; enclosed white detail preserved; no generation or upscaling"
+  },
+  {
+    "file": "src/assets/activity/first-memory.png",
+    "source": "/Users/shinjaejun/Desktop/시안/리디자인/활동칭호/칭호보관함.png",
+    "sourceSha256": "bc36df14417148be80212560b1be0a91ad90d3ec663fbb24f49a0fb5141d19ac",
+    "region": [
+      646,
+      715,
+      787,
+      845
+    ],
+    "size": [
+      141,
+      130
+    ],
+    "sha256": "e36a2ca07f0403b4a032c917c254dc05294739b0a48739583381c75ef1e017b2",
+    "transparentPixels": 8000,
+    "partialAlphaPixels": 1109,
+    "method": "source-pixel extraction; border-fitted background; exterior matte; enclosed white detail preserved; no generation or upscaling"
+  },
+  {
+    "file": "src/assets/activity/walk-sprout.png",
+    "source": "/Users/shinjaejun/Desktop/시안/리디자인/활동칭호/칭호보관함.png",
+    "sourceSha256": "bc36df14417148be80212560b1be0a91ad90d3ec663fbb24f49a0fb5141d19ac",
+    "region": [
+      74,
+      957,
+      215,
+      1083
+    ],
+    "size": [
+      141,
+      126
+    ],
+    "sha256": "7917009a6bd20c214e8bcd3a2ec1b2d08d6a45934921655f7fa2ec6e66893171",
+    "transparentPixels": 10428,
+    "partialAlphaPixels": 1173,
+    "method": "source-pixel extraction; border-fitted background; exterior matte; enclosed white detail preserved; no generation or upscaling"
+  },
+  {
+    "file": "src/assets/activity/kind-commenter.png",
+    "source": "/Users/shinjaejun/Desktop/시안/리디자인/활동칭호/칭호보관함.png",
+    "sourceSha256": "bc36df14417148be80212560b1be0a91ad90d3ec663fbb24f49a0fb5141d19ac",
+    "region": [
+      266,
+      957,
+      400,
+      1083
+    ],
+    "size": [
+      134,
+      126
+    ],
+    "sha256": "bc5641b4acc41aa0ada95b667990699142022798c6d4f936c0dc7cf6d1691ce6",
+    "transparentPixels": 8197,
+    "partialAlphaPixels": 675,
+    "method": "source-pixel extraction; border-fitted background; exterior matte; enclosed white detail preserved; no generation or upscaling"
+  },
+  {
+    "file": "src/assets/activity/memory-collector.png",
+    "source": "/Users/shinjaejun/Desktop/시안/리디자인/활동칭호/칭호보관함.png",
+    "sourceSha256": "bc36df14417148be80212560b1be0a91ad90d3ec663fbb24f49a0fb5141d19ac",
+    "region": [
+      450,
+      957,
+      595,
+      1085
+    ],
+    "size": [
+      145,
+      128
+    ],
+    "sha256": "cd3a74b2862b6350e8164cc21fb0055ea7f2548390b922e80be72195548afab5",
+    "transparentPixels": 7921,
+    "partialAlphaPixels": 887,
+    "method": "source-pixel extraction; border-fitted background; exterior matte; enclosed white detail preserved; no generation or upscaling"
+  },
+  {
+    "file": "src/assets/activity/daily-recorder.png",
+    "source": "/Users/shinjaejun/Desktop/시안/리디자인/활동칭호/칭호보관함.png",
+    "sourceSha256": "bc36df14417148be80212560b1be0a91ad90d3ec663fbb24f49a0fb5141d19ac",
+    "region": [
+      645,
+      957,
+      792,
+      1085
+    ],
+    "size": [
+      147,
+      128
+    ],
+    "sha256": "3876c4b1ff65a1f6b6eff8f09df098e92a943d42f35c0a0c0859c26dceb68f28",
+    "transparentPixels": 7254,
+    "partialAlphaPixels": 1035,
+    "method": "source-pixel extraction; border-fitted background; exterior matte; enclosed white detail preserved; no generation or upscaling"
+  },
+  {
+    "file": "src/assets/activity/routine-sprout.png",
+    "source": "/Users/shinjaejun/Desktop/시안/리디자인/활동칭호/칭호보관함.png",
+    "sourceSha256": "bc36df14417148be80212560b1be0a91ad90d3ec663fbb24f49a0fb5141d19ac",
+    "region": [
+      74,
+      957,
+      215,
+      1083
+    ],
+    "size": [
+      141,
+      126
+    ],
+    "sha256": "7917009a6bd20c214e8bcd3a2ec1b2d08d6a45934921655f7fa2ec6e66893171",
+    "transparentPixels": 10428,
+    "partialAlphaPixels": 1173,
+    "method": "source-pixel extraction; border-fitted background; exterior matte; enclosed white detail preserved; no generation or upscaling"
+  },
+  {
+    "file": "src/assets/activity/steady-walker.png",
+    "source": "/Users/shinjaejun/Desktop/시안/리디자인/활동칭호/칭호보관함.png",
+    "sourceSha256": "bc36df14417148be80212560b1be0a91ad90d3ec663fbb24f49a0fb5141d19ac",
+    "region": [
+      66,
+      1532,
+      160,
+      1628
+    ],
+    "size": [
+      94,
+      96
+    ],
+    "sha256": "008e59bf9ba78f0b79f40be0752f26eb3236c44669a53562c8f01c6eaad3b80b",
+    "transparentPixels": 3209,
+    "partialAlphaPixels": 891,
+    "method": "source-pixel extraction; border-fitted background; exterior matte; enclosed white detail preserved; no generation or upscaling"
+  },
+  {
+    "file": "src/assets/activity/acquired-check.png",
+    "source": "/Users/shinjaejun/Desktop/시안/리디자인/활동칭호/칭호보관함.png",
+    "sourceSha256": "bc36df14417148be80212560b1be0a91ad90d3ec663fbb24f49a0fb5141d19ac",
+    "region": [
+      129,
+      893,
+      163,
+      927
+    ],
+    "size": [
+      34,
+      34
+    ],
+    "sha256": "0fa9415bd73e7bc242cad7f404d9ad2726a8a2ed1a8dfe5fe48b566311d9880c",
+    "transparentPixels": 322,
+    "partialAlphaPixels": 117,
+    "method": "source-pixel extraction; border-fitted background; exterior matte; enclosed white detail preserved; no generation or upscaling"
+  },
+  {
+    "file": "src/assets/activity/locked.png",
+    "source": "/Users/shinjaejun/Desktop/시안/리디자인/활동칭호/칭호보관함.png",
+    "sourceSha256": "bc36df14417148be80212560b1be0a91ad90d3ec663fbb24f49a0fb5141d19ac",
+    "region": [
+      139,
+      1584,
+      177,
+      1630
+    ],
+    "size": [
+      38,
+      46
+    ],
+    "sha256": "f05bff13602d730a66ba9d1c7f4159fa7da6f69eb45f90a42860ee7126a57cef",
+    "transparentPixels": 557,
+    "partialAlphaPixels": 142,
+    "method": "source-pixel extraction; border-fitted background; exterior matte; enclosed white detail preserved; no generation or upscaling"
+  }
+]

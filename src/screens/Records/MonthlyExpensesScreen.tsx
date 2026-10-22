@@ -13,6 +13,7 @@ import Feather from '../../components/icons/NuriFeatherIcon';
 import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 import { HomeFloatingWidgetSurface } from '../../components/home/HomeWidgetMaterial';
 import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
+import { LavenderScreenBackground } from '../../components/common/LavenderScreenBackground';
 import { useMonthlyExpenses } from '../../hooks/useMonthlyExpenses';
 import { addMonthsToHealthReportMonthKey, normalizeHealthReportMonthKey } from '../../services/health-report/month';
 import { formatRecordPriceLabel } from '../../services/records/form';
@@ -68,7 +69,10 @@ export default function MonthlyExpensesScreen() {
   const onBack = useEntryAwareBackAction({
     entrySource: route.params?.entrySource,
     onHome: returnHome,
-    onMore: () => { navigation.goBack(); requestAnimationFrame(() => openMoreDrawer()); },
+    onMore: () => {
+      navigation.popTo('TimelineMain', undefined, { merge: true });
+      requestAnimationFrame(() => openMoreDrawer());
+    },
     onFallback: () => navigation.goBack(),
   });
   const changeMonth = (offset: number) => {
@@ -98,6 +102,7 @@ export default function MonthlyExpensesScreen() {
     </View>
   );
   return <SafeAreaView testID={preview ? 'monthly-expenses-preview' : 'monthly-expenses-live'} style={styles.screen} edges={['top', 'left', 'right']}>
+    <LavenderScreenBackground testID="monthly-expenses-background-gradient" />
     <View style={styles.header}>
       <TouchableOpacity accessibilityRole="button" accessibilityLabel="뒤로" style={styles.tool} onPress={onBack}>
         <NuriSemanticIcon family="feather" name="arrow-left" size={24} color={colors.ink} preserveOriginal />

@@ -15,26 +15,30 @@ type PhotoState = { uri: string | null; status: 'loading' | 'ready' | 'error' };
 
 /** One native image and one fixed frame, including missing/loading/error/retry. */
 export const HomeHeroPhotoBackground = memo(function HeroPhotoBackground({
-  uri, frameWidth, colors = HOME_HERO_COLORS,
-}: { uri: string | null; frameWidth: number; colors?: HomeHeroColors }) {
+  uri, frameWidth, colors = HOME_HERO_COLORS, onPhotoSettled,
+}: { uri: string | null; frameWidth: number; colors?: HomeHeroColors; onPhotoSettled?: (uri: string | null) => void }) {
   const geometry = getHomeHeroPhotoGeometry(frameWidth);
   const [imageState, setImageState] = useState<PhotoState>({ uri, status: 'loading' });
   const [attempt, setAttempt] = useState(0);
   const currentRequest = useRef({ uri, attempt });
-  currentRequest.current = { uri, attempt };
+  if (currentRequest.current.uri !== uri || currentRequest.current.attempt !== attempt) {
+    currentRequest.current = { uri, attempt };
+  }
+  const request = currentRequest.current;
   const status = imageState.uri === uri ? imageState.status : 'loading';
   const settle = (next: PhotoState['status']) => {
-    if (currentRequest.current.uri === uri && currentRequest.current.attempt === attempt) {
+    if (currentRequest.current === request) {
       setImageState({ uri, status: next });
+      if (next !== 'loading') onPhotoSettled?.(uri);
     }
   };
 
   return (
-    <View testID="home-hero-photo-frame" style={[styles.frame, { height: geometry.height, backgroundColor: colors.surface }]}>
+    <View testID="home-hero-photo-frame" style={[styles.frame, { height: geometry.height }]}>
       <PhotoMask
         testID="home-hero-photo-mask"
         style={styles.fill}
-        androidRenderingMode="software"
+        androidRenderingMode="hardware"
         maskElement={
           <View pointerEvents="none" style={styles.fill}>
             <View style={{ height: geometry.edgeY, backgroundColor: '#000000' }} />
@@ -104,7 +108,8 @@ export const HomeHeroPhotoBackground = memo(function HeroPhotoBackground({
 });
 
 const styles = StyleSheet.create({
-  frame: { width: '100%', backgroundColor: HOME_HERO_COLORS.surface },
+  // Transparent outside the mask so the curved cutout shares the page canvas.
+  frame: { width: '100%', backgroundColor: 'transparent' },
   fill: { ...StyleSheet.absoluteFill },
   fallback: {
     ...StyleSheet.absoluteFill, backgroundColor: HOME_HERO_COLORS.statusBar,

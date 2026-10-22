@@ -5,8 +5,11 @@ import {
   useWindowDimensions,
   View,
 } from 'react-native';
-import { useTheme } from 'styled-components/native';
 import AppText from '../../app/ui/AppText';
+import TimelineArtwork from './TimelineArtwork';
+import NuriSemanticIcon from '../icons/NuriSemanticIcon';
+import { TIMELINE_DESIGN as C, TIMELINE_TYPE as T } from '../../theme/timelineDesign';
+import { RecordFieldGlass, type RecordSurfaceVariant } from './TimelineFormSurface';
 
 /** Equal tracks keep short labels compact without reducing the 48dp touch target. */
 export default function RecordChoiceGrid<Key extends string>({
@@ -16,6 +19,9 @@ export default function RecordChoiceGrid<Key extends string>({
   disabled = false,
   multiple = false,
   onClear,
+  columns: requestedColumns,
+  surfaceVariant = 'plain',
+  renderIcon,
 }: {
   options: ReadonlyArray<{ key: Key; label: string }>;
   selected: readonly Key[];
@@ -23,10 +29,12 @@ export default function RecordChoiceGrid<Key extends string>({
   disabled?: boolean;
   multiple?: boolean;
   onClear?: () => void;
+  columns?: 3 | 4;
+  surfaceVariant?: RecordSurfaceVariant;
+  renderIcon?: (key: Key, selected: boolean) => React.ReactNode;
 }) {
-  const theme = useTheme();
   const { fontScale, width } = useWindowDimensions();
-  const columns = fontScale >= 1.3 || width < 360 ? 2 : 3;
+  const columns = fontScale >= 1.3 || width < 360 ? 2 : requestedColumns ?? 3;
   return (
     <View style={styles.root}>
       <View style={styles.grid}>
@@ -47,7 +55,7 @@ export default function RecordChoiceGrid<Key extends string>({
               activeOpacity={0.65}
               style={[
                 styles.target,
-                { width: columns === 2 ? '50%' : '33.333333%' },
+                { width: columns === 2 ? '50%' : columns === 4 ? '25%' : '33.333333%' },
                 disabled && styles.disabled,
               ]}
             >
@@ -55,24 +63,30 @@ export default function RecordChoiceGrid<Key extends string>({
                 style={[
                   styles.chip,
                   {
-                    backgroundColor: active
-                      ? theme.colors.textPrimary
-                      : theme.colors.surface,
-                    borderColor: active
-                      ? theme.colors.textPrimary
-                      : theme.colors.border,
+                    backgroundColor: surfaceVariant === 'homeGlass' ? 'transparent' : active ? C.selected : C.surface,
+                    borderColor: surfaceVariant === 'homeGlass' ? 'transparent' : active ? C.primary : C.border,
                   },
                 ]}
               >
+                {surfaceVariant === 'homeGlass' ? <RecordFieldGlass selected={active} /> : null}
+                {multiple ? (
+                  <View style={[styles.check, active && styles.checked]}>
+                    {active ? (
+                      <NuriSemanticIcon family="feather" name="check" preserveOriginal
+                        size={11} color={C.surface} testID="record-care-check"
+                        style={styles.checkGlyph} accessible={false} />
+                    ) : null}
+                  </View>
+                ) : renderIcon ? renderIcon(option.key, active) : (
+                  <TimelineArtwork name={option.key} color={active ? C.primary : C.muted} />
+                )}
                 <AppText
                   preset="unifiedMeta"
                   styleOverridesPreset
                   style={[
                     styles.label,
                     {
-                      color: active
-                        ? theme.colors.surface
-                        : theme.colors.textPrimary,
+                      color: active ? C.primary : C.muted,
                     },
                   ]}
                 >
@@ -91,7 +105,7 @@ export default function RecordChoiceGrid<Key extends string>({
           onPress={onClear}
           style={styles.clear}
         >
-          <AppText preset="caption" color={theme.colors.textSecondary}>
+          <AppText preset="caption" color={C.muted}>
             선택 해제
           </AppText>
         </TouchableOpacity>
@@ -110,17 +124,17 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
   },
   chip: {
-    minHeight: 32,
+    minHeight: 60,
     paddingHorizontal: 4,
-    paddingVertical: 4,
-    borderRadius: 8,
+    paddingVertical: 10,
+    borderRadius: 10,
     borderWidth: 1,
     justifyContent: 'center',
     alignItems: 'center',
+    gap: 8,
   },
   label: {
-    fontSize: 13,
-    lineHeight: 20,
+    ...T.meta,
     textAlign: 'center',
     fontWeight: '600',
   },
@@ -132,4 +146,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   disabled: { opacity: 0.5 },
+  check: { width: 16, height: 16, borderRadius: 8, borderWidth: 1, borderColor: '#BAB3D2', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  checkGlyph: { lineHeight: 12, includeFontPadding: false, textAlign: 'center' },
+  checked: { backgroundColor: C.primary, borderColor: C.primary },
 });

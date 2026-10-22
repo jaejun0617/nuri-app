@@ -1,7 +1,11 @@
-import CtaButton, { CtaText } from '../../app/ui/CtaButton';
-import HeaderTextActionButton from '../../components/navigation/HeaderTextActionButton';
+import CtaButton, { CtaText } from '../../components/records/TimelineButton';
+import RecordPhotoStrip from '../../components/records/RecordPhotoStrip';
+import TimelineArtwork from '../../components/records/TimelineArtwork';
+import RecordTagModal from './components/RecordTagModal';
+import { TIMELINE_DESIGN as C } from '../../theme/timelineDesign';
 import { usePetDisplayName } from '../../hooks/usePetDisplayName';
 import RecordChoiceGrid from '../../components/records/RecordChoiceGrid';
+import { renderRecordCategoryIcon } from '../../components/records/RecordCategoryIcon';
 import MedicalRecordFields from '../../components/records/MedicalRecordFields';
 import { emptyHealthCareDetails, type HealthCareDetails } from '../../services/records/metadata';
 import { buildGroomingRecordMetadata, filterRecordCareTypes, isRecordCareCategory, type GroomingCareType } from '../../services/records/metadata';
@@ -23,7 +27,7 @@ import RecordCareFields from '../../components/records/RecordCareFields';
 // 5) “이미지 제거” 의도는 removeRequested 플래그로 관리한다.
 
 import AppTextInput from '../../app/ui/AppTextInput';
-import { SeasonalFormBackground, SeasonalFormPanel } from '../../components/common/SeasonalFormSurface';
+import { RecordFieldGlass, SeasonalFormBackground, SeasonalFormPanel } from '../../components/records/TimelineFormSurface';
 import React, {
   useCallback,
   useContext,
@@ -35,7 +39,6 @@ import React, {
 import {
   ActivityIndicator,
   Alert,
-  Image,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -52,13 +55,11 @@ import {
 } from 'react-native-safe-area-context';
 import { ToolbarHeightContext } from '../../components/navigation/ToolbarHeightContext';
 import Feather from '../../components/icons/NuriFeatherIcon';
-import NuriIcon from '../../components/icons/NuriIcon';
-import { NURI_MOOD_ICONS } from '../../components/icons/nuriIconNames';
+import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
 import PremiumRewardModal from '../../components/common/PremiumRewardModal';
-import RecordImageGallery from '../../components/records/RecordImageGallery';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import type { TimelineScreenRoute } from '../../navigation/types';
@@ -204,20 +205,30 @@ export default function RecordEditScreen() {
   // ---------------------------------------------------------
   // 3) form state
   // ---------------------------------------------------------
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [occurredAt, setOccurredAt] = useState('');
-  const [tagsText, setTagsText] = useState('');
-  const [emotion, setEmotion] = useState<EmotionTag | null>(null);
+  // Detail normally supplies a cached record. Avoid mounting a blank/default
+  // form and rebuilding it during the native push transition.
+  const [title, setTitle] = useState(() => record?.title ?? '');
+  const [content, setContent] = useState(() => record?.content ?? '');
+  const [occurredAt, setOccurredAt] = useState(() => record?.occurredAt ?? '');
+  const [tagsText, setTagsText] = useState(() => record?.tags.join(' ') ?? '');
+  const [tagModalVisible, setTagModalVisible] = useState(false);
+  const [tagDraft, setTagDraft] = useState('');
+  const visibleTags = useMemo(() => Array.from(new Set(parseRecordTags(tagsText))), [tagsText]);
+  const [emotion, setEmotion] = useState<EmotionTag | null>(() => record?.emotion ?? null);
   const [mainCategoryKey, setMainCategoryKey] =
-    useState<RecordMainCategoryKey>('walk');
+    useState<RecordMainCategoryKey>(() => {
+      if (!record) return 'walk';
+      const category = normalizeCategoryKey(record.category ?? record.tags.join(' '));
+      return category === 'all' ? 'walk' : category;
+    });
   const [otherSubCategoryKey, setOtherSubCategoryKey] =
-    useState<RecordOtherSubCategoryKey | null>(null);
-  const [priceText, setPriceText] = useState('');
-  const [careTypes, setCareTypes] = useState<GroomingCareType[]>([]);
+    useState<RecordOtherSubCategoryKey | null>(() => record && mainCategoryKey === 'other'
+      ? normalizeOtherSubKey(record.subCategory ?? record.tags.join(' ')) : null);
+  const [priceText, setPriceText] = useState(() => typeof record?.price === 'number' && Number.isFinite(record.price) ? `${record.price}` : '');
+  const [careTypes, setCareTypes] = useState<GroomingCareType[]>(() => record?.metadata?.grooming?.careTypes ?? []);
   const [careCategoryChanged, setCareCategoryChanged] = useState(false);
   const [priceTouched, setPriceTouched] = useState(false);
-  const [healthCare, setHealthCare] = useState<HealthCareDetails>(emptyHealthCareDetails);
+  const [healthCare, setHealthCare] = useState<HealthCareDetails>(() => record?.metadata?.health?.care ?? emptyHealthCareDetails());
   const [dateModalVisible, setDateModalVisible] = useState(false);
 
   const [saving, setSaving] = useState(false);
@@ -234,10 +245,19 @@ export default function RecordEditScreen() {
   >({});
   const keyboardInset = useKeyboardInset();
   const keyboardVisible = keyboardInset > 0;
+  const [bodyReady, setBodyReady] = useState(false);
+  useEffect(() => {
+    // Mount native form controls after the entering animation, without resetting edits on exit.
+    return navigation.addListener('transitionEnd', event => {
+      if (!event.data.closing) setBodyReady(true);
+    });
+  }, [navigation]);
+  const hydratedRecordRef = useRef(record);
 
   useEffect(() => {
     if (!record) return;
-    if (dirty) return;
+    if (dirty || hydratedRecordRef.current === record) return;
+    hydratedRecordRef.current = record;
 
     setTitle(record.title ?? '');
     setCareTypes(record.metadata?.grooming?.careTypes ?? []);
@@ -321,8 +341,10 @@ export default function RecordEditScreen() {
   // ---------------------------------------------------------
   // 5) image state (preview + replace flow)
   // ---------------------------------------------------------
-  const [imgLoading, setImgLoading] = useState<boolean>(true);
-  const [baseImagePaths, setBaseImagePaths] = useState<string[]>([]);
+  const [_imgLoading, setImgLoading] = useState(() => Boolean(record?.imagePaths?.length || record?.imagePath));
+  const [baseImagePaths, setBaseImagePaths] = useState<string[]>(() => record?.imagePaths?.length
+    ? record.imagePaths : record?.imagePath ? [record.imagePath] : []);
+  const imageRecordRef = useRef(record);
   const [removedPaths, setRemovedPaths] = useState<Set<string>>(new Set());
   const [addedImages, setAddedImages] = useState<AddedImage[]>([]);
   const [recoveryDraft, setRecoveryDraft] = useState<WalkDraft | null>(null);
@@ -339,7 +361,8 @@ export default function RecordEditScreen() {
   >({});
 
   useEffect(() => {
-    if (!record) return;
+    if (!record || imageRecordRef.current === record) return;
+    imageRecordRef.current = record;
     const nextPaths =
       record.imagePaths && record.imagePaths.length > 0
         ? record.imagePaths
@@ -364,7 +387,7 @@ export default function RecordEditScreen() {
       const requestId = request.begin();
       if (visibleExistingPaths.length === 0) {
         if (request.isCurrent(requestId)) {
-          setSignedByPath({});
+          setSignedByPath(previous => Object.keys(previous).length === 0 ? previous : {});
           setImgLoading(false);
         }
         return;
@@ -409,22 +432,6 @@ export default function RecordEditScreen() {
     }));
     return [...existing, ...added];
   }, [visibleExistingPaths, signedByPath, addedImages]);
-
-  const galleryItems = useMemo(
-    () =>
-      previewItems
-        .map(item => ({
-          key: item.key,
-          uri: (item.uri ?? '').trim(),
-        }))
-        .filter(item => item.uri.length > 0),
-    [previewItems],
-  );
-
-  const activeImageUri = useMemo(
-    () => (previewItems[activeImageIndex]?.uri ?? '').trim(),
-    [activeImageIndex, previewItems],
-  );
 
   useEffect(() => {
     if (activeImageIndex < previewItems.length) return;
@@ -553,9 +560,9 @@ export default function RecordEditScreen() {
     setPriceText(careCategory ? value : normalizeRecordPriceInput(value));
   }, [careCategory]);
 
-  const onRemoveActiveImage = useCallback(() => {
+  const onRemoveActiveImage = useCallback((targetIndex = activeImageIndex) => {
     if (saving) return;
-    const target = previewItems[activeImageIndex];
+    const target = previewItems[targetIndex];
     if (!target) return;
 
     setDirty(true);
@@ -575,7 +582,8 @@ export default function RecordEditScreen() {
   // 8) submit (text + image replace) ✅ 즉시 반영
   // ---------------------------------------------------------
   const onSubmit = useCallback(async () => {
-    if (!sourceReady) return;
+    if (!dirty) return;
+    if (!bodyReady || !sourceReady) return;
     if (submitInFlightRef.current) return;
     if (!petId || !memoryId) return;
     if (!record) return;
@@ -782,6 +790,7 @@ export default function RecordEditScreen() {
     petId,
     memoryId,
     record,
+    dirty,
     title,
     content,
     occurredAt,
@@ -807,7 +816,7 @@ export default function RecordEditScreen() {
     setFocusedMemoryId,
     updateOneLocal,
     upsertOneLocal,
-    sourceReady, walkSource, walkScope, recoveryApplied, recoveryDraft,
+    bodyReady, sourceReady, walkSource, walkScope, recoveryApplied, recoveryDraft,
   ]);
 
   const onConfirmSuccess = useCallback(() => {
@@ -889,9 +898,7 @@ export default function RecordEditScreen() {
         </AppText>
 
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
-          <HeaderTextActionButton appearance="seasonalText" label="수정" role="primarySubtle" compact
-            loading={saving} disabled={saving || !title.trim() || !sourceReady || invalidCareSelection || Boolean(priceError)} onPress={onSubmit}
-            accessibilityLabel="기록 수정 저장" />
+          {dirty ? <AppText preset="unifiedMeta">수정 중</AppText> : null}
         </View>
       </View>
 
@@ -901,7 +908,12 @@ export default function RecordEditScreen() {
         setTitle(recoveryDraft.fields.title); setContent(recoveryDraft.fields.content); setEmotion(recoveryDraft.fields.emotion); setTagsText(recoveryDraft.fields.tags.join(' ')); setAddedImages([...recoveryDraft.fields.photos]); setDirty(true); setRecoveryApplied(true);
       } }])}><AppText preset="unifiedMeta">이 기기의 내용·사진 초안 불러오기</AppText></TouchableOpacity>}
 
-      <KeyboardAwareScrollView
+      {!bodyReady ? (
+        <View testID="record-edit-entering" style={[styles.scroll, { alignItems: 'center', justifyContent: 'center' }]}
+          accessibilityRole="progressbar" accessibilityLabel="기록 불러오는 중">
+          <ActivityIndicator color="#8A94A6" />
+        </View>
+      ) : <KeyboardAwareScrollView
         ref={scrollRef}
         style={styles.scroll}
         contentContainerStyle={[
@@ -924,76 +936,89 @@ export default function RecordEditScreen() {
             keyboardVisible ? styles.cardKeyboardVisible : null,
           ]}
         >
-          {/* Image Preview */}
-          <RecordImageGallery
-            items={galleryItems}
-            activeIndex={activeImageIndex}
-            onChangeActiveIndex={setActiveImageIndex}
-            containerStyle={styles.heroWrap}
-            stageStyle={styles.heroStage}
-            emptyContent={
-              <View style={styles.heroPlaceholder}>
-                <AppText
-                  preset="unifiedMeta"
-                  style={styles.heroPlaceholderText}
-                >
-                  사진
-                </AppText>
-              </View>
-            }
-            mainContent={
-              previewItems.length === 0 ? null : imgLoading ? (
-                <View style={styles.heroPlaceholder}>
-                  <ActivityIndicator size="large" color="#8A94A6" />
-                </View>
-              ) : !activeImageUri ? (
-                <View style={styles.heroPlaceholder}>
-                  <AppText
-                    preset="unifiedMeta"
-                    style={styles.heroPlaceholderText}
-                  >
-                    사진
-                  </AppText>
-                </View>
-              ) : (
-                <Image
-                  source={{ uri: activeImageUri }}
-                  style={styles.heroImg}
-                  resizeMode="cover"
-                  fadeDuration={250}
-                />
-              )
-            }
-            thumbRowStyle={styles.thumbRow}
-            thumbItemStyle={styles.thumbItem}
-            thumbItemActiveStyle={styles.thumbItemActive}
-            thumbImageStyle={styles.thumbImage}
-            footerActions={
-              <View style={styles.imgActionsRow}>
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  style={[styles.imgBtn, styles.imgBtnPrimary]}
-                  onPress={onPickImage}
-                  disabled={saving}
-                >
-                  <AppText preset="unifiedMeta" style={styles.imgBtnText}>
-                    사진 추가
-                  </AppText>
-                </TouchableOpacity>
+          <TouchableOpacity
+            activeOpacity={0.9}
+            style={styles.dateCard}
+            onPress={openDateModal}
+            testID="record-edit-date"
+            disabled={saving || !sourceReady || !!walkSource}
+          >
+            <RecordFieldGlass />
+            <View style={styles.dateLeft}>
+            <NuriSemanticIcon family="feather" name="calendar" preserveOriginal size={16} color={C.primary} accessible={false} />
+            <AppText
+              preset="unifiedLabel"
+              style={{ color: occurredAt ? '#0B1220' : '#8A94A6' }}
+            >
+              {occurredAt ? occurredAtLabel : '날짜를 선택해 주세요'}
+            </AppText>
+            </View>
+            <NuriSemanticIcon family="feather" name="chevron-right" preserveOriginal size={18} color="#000000" accessible={false} />
+          </TouchableOpacity>
 
-                <TouchableOpacity
-                  activeOpacity={0.9}
-                  style={[styles.imgBtn, styles.imgBtnDanger]}
-                  onPress={onRemoveActiveImage}
-                  disabled={saving || previewItems.length === 0}
-                >
-                  <AppText preset="unifiedMeta" style={styles.imgBtnDangerText}>
-                    현재 사진 제거
-                  </AppText>
-                </TouchableOpacity>
-              </View>
-            }
+          <RecordPhotoStrip surfaceVariant="homeGlass" items={previewItems} onAdd={onPickImage} onRemove={onRemoveActiveImage} disabled={saving} />
+
+          <AppText preset="unifiedLabel" style={styles.label}>
+            어떤 기록인가요?
+          </AppText>
+          <RecordChoiceGrid
+            surfaceVariant="homeGlass"
+            renderIcon={renderRecordCategoryIcon}
+            columns={4}
+            options={visibleMainCategories}
+            selected={[mainCategoryKey]}
+            onSelect={onSelectMainCategory}
+            disabled={saving || !sourceReady || !!walkSource}
           />
+
+          {mainCategoryKey === 'other' ? (
+            <RecordChoiceGrid
+              surfaceVariant="homeGlass"
+              renderIcon={renderRecordCategoryIcon}
+              options={RECORD_WRITE_OTHER_SUBCATEGORIES}
+              selected={otherSubCategoryKey ? [otherSubCategoryKey] : []}
+              onSelect={onSelectOtherSubCategory}
+              onClear={clearOtherSubCategory}
+              disabled={saving}
+            />
+          ) : null}
+
+          {mainCategoryKey === 'health' ? (
+            <MedicalRecordFields surfaceVariant="homeGlass" value={healthCare} disabled={saving}
+              onChange={value => { setDirty(true); setHealthCare(value); }}
+              onFocus={() => scrollRef.current?.assureFocusedInputVisible()} />
+          ) : null}
+          {careCategory ? (
+            <RecordCareFields surfaceVariant="homeGlass" category={careCategory} selected={effectiveCareTypes} legacy={legacyCareTypes}
+              onChange={values => { setDirty(true); setCareTypes(values); }} disabled={saving} />
+          ) : null}
+          {isExpenseCategory ? (
+            <>
+              <AppText preset="unifiedLabel" style={styles.label}>
+                {careCategory ? careExpenseLabel : isShoppingCategory ? '구매 가격 (선택)' : '병원·건강 비용 (선택)'}
+              </AppText>
+              <View style={styles.inputSurface}>
+              <RecordFieldGlass />
+              <AppTextInput
+                style={styles.input}
+                value={priceText}
+                onChangeText={onChangePriceText}
+                onFocus={handleFocusField}
+                placeholder="예: 25000"
+                placeholderTextColor="#8A94A6"
+                keyboardType="number-pad"
+                accessibilityLabel={careCategory ? careExpenseLabel : undefined}
+                testID="record-edit-price"
+                editable={!saving}
+              />
+              </View>
+              <AppText preset="unifiedMeta" style={styles.helperText}>
+                {priceError ?? (priceLabel
+                  ? `저장 예정 금액: ${priceLabel}`
+                  : '원 단위로 입력해 주세요. 비워 두면 지출 합계에 포함되지 않아요.')}
+              </AppText>
+            </>
+          ) : null}
 
           <View
             testID="timeline-edit-composer-title-section"
@@ -1002,9 +1027,11 @@ export default function RecordEditScreen() {
               handleComposerFieldLayout('title', event.nativeEvent.layout.y)
             }
           >
-            <AppText preset="unifiedMeta" style={styles.label}>
+            <AppText preset="unifiedLabel" style={styles.label}>
               제목
             </AppText>
+            <View style={styles.inputSurface}>
+            <RecordFieldGlass />
             <AppTextInput
               style={styles.input}
               value={title}
@@ -1018,6 +1045,7 @@ export default function RecordEditScreen() {
               placeholderTextColor="#8A94A6"
               editable={!saving}
             />
+            </View>
           </View>
 
           <View
@@ -1027,9 +1055,11 @@ export default function RecordEditScreen() {
               handleComposerFieldLayout('body', event.nativeEvent.layout.y)
             }
           >
-            <AppText preset="unifiedMeta" style={styles.label}>
-              내용(선택)
+            <AppText preset="unifiedLabel" style={styles.label}>
+              내용 · 선택
             </AppText>
+            <View style={styles.inputSurface}>
+            <RecordFieldGlass />
             <AppTextInput
               style={[styles.input, styles.multiline]}
               value={content ?? ''}
@@ -1044,98 +1074,23 @@ export default function RecordEditScreen() {
               multiline
               editable={!saving}
             />
+            </View>
           </View>
 
-          <AppText preset="unifiedMeta" style={styles.label}>
-            날짜(선택)
+          <AppText preset="unifiedLabel" style={styles.label}>
+            태그 · 선택
           </AppText>
-          <TouchableOpacity
-            activeOpacity={0.9}
-            style={styles.input}
-            onPress={openDateModal}
-            testID="record-edit-date"
-            disabled={saving || !sourceReady || !!walkSource}
-          >
-            <AppText
-              preset="unifiedBody"
-              style={{ color: occurredAt ? '#0B1220' : '#8A94A6' }}
-            >
-              {occurredAt ? occurredAtLabel : '날짜를 선택해 주세요'}
-            </AppText>
+          <TouchableOpacity accessibilityRole="button" accessibilityLabel="태그 추가"
+            testID="record-edit-tags" disabled={saving} onPress={()=>setTagModalVisible(true)} style={styles.tagSelector}>
+            <RecordFieldGlass borderRadius={16} />
+            {visibleTags.length > 0 ? <View style={styles.selectedTagsWrap}>
+              {visibleTags.map(tag=><View key={tag} style={styles.selectedTagChip}><AppText preset="unifiedMeta" color={C.primary}>{tag}</AppText></View>)}
+            </View> : <AppText preset="unifiedBody" color={C.muted}>태그를 추가하세요</AppText>}
+            <NuriSemanticIcon family="feather" name="chevron-right" preserveOriginal size={18} color={C.muted} accessible={false} />
           </TouchableOpacity>
 
-          <AppText preset="unifiedMeta" style={styles.label}>
-            분류
-          </AppText>
-          <RecordChoiceGrid
-            options={visibleMainCategories}
-            selected={[mainCategoryKey]}
-            onSelect={onSelectMainCategory}
-            disabled={saving || !sourceReady || !!walkSource}
-          />
-
-          {mainCategoryKey === 'other' ? (
-            <RecordChoiceGrid
-              options={RECORD_WRITE_OTHER_SUBCATEGORIES}
-              selected={otherSubCategoryKey ? [otherSubCategoryKey] : []}
-              onSelect={onSelectOtherSubCategory}
-              onClear={clearOtherSubCategory}
-              disabled={saving}
-            />
-          ) : null}
-
-          {mainCategoryKey === 'health' ? (
-            <MedicalRecordFields value={healthCare} disabled={saving}
-              onChange={value => { setDirty(true); setHealthCare(value); }}
-              onFocus={() => scrollRef.current?.assureFocusedInputVisible()} />
-          ) : null}
-          {careCategory ? (
-            <RecordCareFields category={careCategory} selected={effectiveCareTypes} legacy={legacyCareTypes}
-              onChange={values => { setDirty(true); setCareTypes(values); }} disabled={saving} />
-          ) : null}
-          {isExpenseCategory ? (
-            <>
-              <AppText preset="unifiedMeta" style={styles.label}>
-                {careCategory ? careExpenseLabel : isShoppingCategory ? '구매 가격 (선택)' : '병원·건강 비용 (선택)'}
-              </AppText>
-              <AppTextInput
-                style={styles.input}
-                value={priceText}
-                onChangeText={onChangePriceText}
-                onFocus={handleFocusField}
-                placeholder="예: 25000"
-                placeholderTextColor="#8A94A6"
-                keyboardType="number-pad"
-                accessibilityLabel={careCategory ? careExpenseLabel : undefined}
-                testID="record-edit-price"
-                editable={!saving}
-              />
-              <AppText preset="unifiedMeta" style={styles.helperText}>
-                {priceError ?? (priceLabel
-                  ? `저장 예정 금액: ${priceLabel}`
-                  : '원 단위로 입력해 주세요. 비워 두면 지출 합계에 포함되지 않아요.')}
-              </AppText>
-            </>
-          ) : null}
-
-          <AppText preset="unifiedMeta" style={styles.label}>
-            태그(선택)
-          </AppText>
-          <AppTextInput
-            style={styles.input}
-            value={tagsText}
-            onChangeText={v => {
-              setDirty(true);
-              setTagsText(v);
-            }}
-            onFocus={handleFocusField}
-            placeholder="#산책 #간식 또는 산책,간식"
-            placeholderTextColor="#8A94A6"
-            editable={!saving}
-          />
-
-          <AppText preset="unifiedMeta" style={styles.label}>
-            감정(선택)
+          <AppText preset="unifiedLabel" style={styles.label}>
+            오늘의 기분 · 선택
           </AppText>
 
           <View style={styles.emotionGrid}>
@@ -1155,7 +1110,8 @@ export default function RecordEditScreen() {
                   disabled={saving}
                   activeOpacity={0.9}
                 >
-                  <NuriIcon name={NURI_MOOD_ICONS[em.value]} size={16} />
+                  <RecordFieldGlass selected={active} />
+                  <TimelineArtwork name={em.value} size={28} />
                   <AppText
                     preset="unifiedMeta"
                     style={[
@@ -1175,7 +1131,8 @@ export default function RecordEditScreen() {
             loading={saving}
             style={[styles.primary, saving ? styles.primaryDisabled : null]}
             onPress={onSubmit}
-            disabled={saving || !sourceReady || invalidCareSelection || Boolean(priceError)}
+            testID="record-edit-submit"
+            disabled={!dirty || !title.trim() || saving || !sourceReady || invalidCareSelection || Boolean(priceError)}
             accessibilityLabel={saving ? '기록 수정 중' : '기록 수정 완료'}
             accessibilityHint={
               saving
@@ -1189,31 +1146,17 @@ export default function RecordEditScreen() {
               styleOverridesPreset
               style={styles.primaryText}
             >
-              수정하기
+              변경사항 저장
             </CtaText>
           </CtaButton>
 
-          <CtaButton
-            role="neutral"
-            style={styles.ghost}
-            onPress={safeGoBack}
-            disabled={saving}
-            activeOpacity={0.9}
-          >
-            <CtaText
-              preset="unifiedBody"
-              styleOverridesPreset
-              style={styles.ghostText}
-            >
-              취소하기
-            </CtaText>
-          </CtaButton>
         </SeasonalFormPanel>
-      </KeyboardAwareScrollView>
+      </KeyboardAwareScrollView>}
 
-      <PremiumNoticeModal
+      {tagModalVisible && <RecordTagModal visible tagDraft={tagDraft} selectedTags={visibleTags} onClose={()=>setTagModalVisible(false)} onChangeTagDraft={setTagDraft} onSubmitDraftTag={()=>{if(!tagDraft.trim())return;setDirty(true);setTagsText(Array.from(new Set(parseRecordTags([...visibleTags,tagDraft].join(' ')))).join(' '));setTagDraft('');}} onRemoveTag={tag=>{setDirty(true);setTagsText(visibleTags.filter(value=>value!==tag).join(' '));}} />}
+      {successModalVisible && <PremiumNoticeModal
         confirmRole="primary"
-        visible={successModalVisible}
+        visible
         typographyMode="unified"
         eyebrow="NURI MEMORY"
         iconName="check"
@@ -1222,12 +1165,12 @@ export default function RecordEditScreen() {
         confirmLabel="확인"
         accentColor="#6D6AF8"
         onClose={onConfirmSuccess}
-      />
+      />}
 
-      <PremiumRewardModal
+      {rewardNotice !== null && <PremiumRewardModal
         petName={petName}
         roleBasedActions
-        visible={rewardNotice !== null}
+        visible
         xpAwarded={rewardNotice?.xpAwarded ?? 0}
         totalXp={rewardNotice?.totalXp ?? 0}
         level={rewardNotice?.level ?? 1}
@@ -1241,14 +1184,14 @@ export default function RecordEditScreen() {
         accentColor="#6D6AF8"
         onClose={onConfirmSuccess}
         onDismissToday={dismissRewardNoticeToday}
-      />
+      />}
 
-      <DatePickerModal
-        visible={dateModalVisible}
+      {dateModalVisible && <DatePickerModal
+        visible
         initialDate={occurredAt || null}
         onCancel={closeDateModal}
         onConfirm={applyDateModal}
-      />
+      />}
     </SafeAreaView>
   );
 }

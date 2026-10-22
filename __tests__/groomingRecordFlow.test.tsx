@@ -9,7 +9,7 @@ import RecordCreateScreen from '../src/screens/Records/RecordCreateScreen';
 import RecordEditScreen from '../src/screens/Records/RecordEditScreen';
 import RecordCareFields from '../src/components/records/RecordCareFields';
 import RecordChoiceGrid from '../src/components/records/RecordChoiceGrid';
-import HeaderTextActionButton from '../src/components/navigation/HeaderTextActionButton';
+import TimelineButton from '../src/components/records/TimelineButton';
 import { createMemory, updateMemoryFields, type MemoryRecord } from '../src/services/supabase/memories';
 import { loadRecordCreateDraft, type RecordCreateDraft } from '../src/services/local/recordDraft';
 import { filterRecordCareTypes, getRecordCareOptions, normalizeMemoryRecordMetadata } from '../src/services/records/metadata';
@@ -19,7 +19,10 @@ import { usePetStore } from '../src/store/petStore';
 
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
-  useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn(), canGoBack: () => true, popTo: jest.fn() }),
+  useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn(), canGoBack: () => true, popTo: jest.fn(), addListener: jest.fn((event: string, listener: (value: { data: { closing: boolean } }) => void) => {
+    if (event === 'transitionEnd') listener({ data: { closing: false } });
+    return jest.fn();
+  }) }),
   useRoute: () => ({ params: { petId: 'qa', memoryId: 'm', initialMainCategory: 'other', initialOtherSubCategory: 'grooming' } }),
   useFocusEffect: jest.fn(),
 }));
@@ -69,7 +72,8 @@ describe('grooming and hygiene record compatibility', () => {
   async function mount(edit = false) {
     await act(async () => { tree = TestRenderer.create(<QueryClientProvider client={appQueryClient}><ThemeProvider theme={createTheme('light')}>{edit ? <RecordEditScreen /> : <RecordCreateScreen />}</ThemeProvider></QueryClientProvider>); });
   }
-  async function submit() { await act(async () => tree.root.findByType(HeaderTextActionButton).props.onPress()); }
+  function submitAction() { const node=tree.root.findAllByType(TimelineButton).find(item=>/record-(create|edit)-submit/.test(item.props.testID??''));if(!node)throw new Error('Submit action missing');return node; }
+  async function submit() { await act(async () => submitAction().props.onPress()); }
   it('maps stable category codes while legacy normalization preserves old cross-category choices', () => {
     expect(getRecordCareOptions('grooming').map(item => item.value)).toEqual(['full_grooming', 'partial_grooming', 'sanitary_trim', 'scissor_cut', 'clipper_cut', 'sporting_cut', 'face_trim', 'paw_pad_trim', 'nail_trim', 'coat_care']);
     expect(getRecordCareOptions('bathing').map(item => item.value)).toEqual(['bath', 'drying', 'brushing', 'conditioning', 'spa', 'mud_pack', 'tooth_brushing', 'ear_cleaning', 'anal_gland_care']);
@@ -85,7 +89,7 @@ describe('grooming and hygiene record compatibility', () => {
   it.each([['', null], ['0', 0], ['20000', 20000]] as const)('saves shampoo alone with optional price %s under the latest PO expense policy', async (value, price) => {
     jest.mocked(loadRecordCreateDraft).mockResolvedValue({ ...draftBase, title: '샴푸만', otherSubCategoryKey: 'bathing', priceText: value, groomingCareTypes: ['bath'] });
     await mount();
-    expect(tree.root.findByType(HeaderTextActionButton).props.disabled).toBe(false);
+    expect(submitAction().props.disabled).toBe(false);
     await submit();
     expect(createMemory).toHaveBeenCalledTimes(1);
     expect(createMemory).toHaveBeenCalledWith(expect.objectContaining({ subCategory: 'bathing', price, metadata: { version: 1, grooming: { careTypes: ['bath'] } } }));
@@ -94,7 +98,7 @@ describe('grooming and hygiene record compatibility', () => {
     jest.mocked(loadRecordCreateDraft).mockResolvedValue({ ...draftBase, title: '목욕', otherSubCategoryKey: 'bathing', priceText: value, groomingCareTypes: ['bath'] });
     await mount();
     expect(tree.root.findByProps({ testID: 'record-create-price' }).props.value).toBe(value);
-    expect(tree.root.findByType(HeaderTextActionButton).props.disabled).toBe(true);
+    expect(submitAction().props.disabled).toBe(true);
     await submit(); expect(createMemory).not.toHaveBeenCalled();
   });
   it.each(['grooming', 'bathing'] as const)('preserves the current optional price when %s is selected again', async category => {
@@ -110,7 +114,9 @@ describe('grooming and hygiene record compatibility', () => {
   it('preserves an expanded salon service and cost on an unchanged edit', async () => {
     const metadata = { version: 1 as const, grooming: { careTypes: ['scissor_cut' as const, 'spa' as const] } };
     useRecordStore.getState().upsertOneLocal('qa', { ...legacy, metadata, price: 30000 });
-    await mount(true); await submit();
+    await mount(true);
+    await act(async()=>tree.root.findByProps({placeholder:'제목'}).props.onChangeText('기존 위생의 메모 수정'));
+    await submit();
     expect(updateMemoryFields).toHaveBeenCalledWith(expect.objectContaining({ price: 30000, metadata }));
   });
   it.each(['-1', '1.5', 'abc', '1000000000', '1e3'])('rejects %s instead of silently converting it into a different price', value => {
@@ -129,7 +135,7 @@ describe('grooming and hygiene record compatibility', () => {
     jest.mocked(loadRecordCreateDraft).mockResolvedValue({ ...draftBase, title: '미용', priceText: value, groomingCareTypes: ['nail_trim'] });
     await mount();
     expect(tree.root.findByProps({ testID: 'record-create-price' }).props.value).toBe(value);
-    expect(tree.root.findByType(HeaderTextActionButton).props.disabled).toBe(true);
+    expect(submitAction().props.disabled).toBe(true);
     await submit(); expect(createMemory).not.toHaveBeenCalled();
   });
   it('clears old items and cost when switching to hygiene and back, and requires a current choice', async () => {
@@ -139,13 +145,14 @@ describe('grooming and hygiene record compatibility', () => {
     await act(async () => subGrid().props.onSelect('bathing'));
     expect(tree.root.findByProps({ testID: 'record-create-price' }).props.value).toBe('');
     expect(tree.root.findByType(RecordCareFields).props.selected).toEqual([]);
-    expect(tree.root.findByType(HeaderTextActionButton).props.disabled).toBe(true);
+    expect(submitAction().props.disabled).toBe(true);
     await act(async () => tree.root.findByType(RecordCareFields).props.onChange(['bath', 'ear_cleaning']));
     await submit();
     expect(createMemory).toHaveBeenCalledWith(expect.objectContaining({ subCategory: 'bathing', price: null, metadata: { version: 1, grooming: { careTypes: ['bath', 'ear_cleaning'] } } }));
   });
-  it('preserves every legacy care item and its price on an unchanged edit', async () => {
+  it('preserves every untouched legacy care item and price when editing the title', async () => {
     await mount(true);
+    await act(async()=>tree.root.findByProps({placeholder:'제목'}).props.onChangeText('기존 미용의 메모 수정'));
     expect(tree.root.findByType(RecordCareFields).props.legacy).toEqual(['bath', 'nail_trim', 'ear_cleaning']);
     await submit();
     expect(updateMemoryFields).toHaveBeenCalledWith(expect.objectContaining({ price: 65000, metadata: legacy.metadata }));
@@ -161,14 +168,16 @@ describe('grooming and hygiene record compatibility', () => {
     const grid = tree.root.findAllByType(RecordChoiceGrid).find(node => node.props.options.some((option: { key: string }) => option.key === 'bathing'))!;
     await act(async () => grid.props.onSelect('bathing'));
     expect(tree.root.findByType(RecordCareFields).props.selected).toEqual([]);
-    expect(tree.root.findByType(HeaderTextActionButton).props.disabled).toBe(true);
+    expect(submitAction().props.disabled).toBe(true);
     await act(async () => tree.root.findByType(RecordCareFields).props.onChange(['tooth_brushing']));
     await submit();
     expect(updateMemoryFields).toHaveBeenCalledWith(expect.objectContaining({ subCategory: 'bathing', price: null, metadata: { version: 1, grooming: { careTypes: ['tooth_brushing'] } } }));
   });
   it('does not erase an unchanged legacy hygiene price', async () => {
     useRecordStore.getState().upsertOneLocal('qa', { ...legacy, subCategory: 'bathing', price: 4300 });
-    await mount(true); await submit();
+    await mount(true);
+    await act(async()=>tree.root.findByProps({placeholder:'제목'}).props.onChangeText('기존 위생의 메모 수정'));
+    await submit();
     expect(updateMemoryFields).toHaveBeenCalledWith(expect.objectContaining({ subCategory: 'bathing', price: 4300, metadata: legacy.metadata }));
   });
   it('allows an explicit bathing price edit while preserving unchanged legacy care items', async () => {
@@ -182,7 +191,7 @@ describe('grooming and hygiene record compatibility', () => {
     useRecordStore.getState().upsertOneLocal('qa', { ...legacy, subCategory: 'bathing', price: 4300 });
     await mount(true);
     await act(async () => tree.root.findByProps({ testID: 'record-edit-price' }).props.onChangeText(value));
-    expect(tree.root.findByType(HeaderTextActionButton).props.disabled).toBe(true);
+    expect(submitAction().props.disabled).toBe(true);
     await submit(); expect(updateMemoryFields).not.toHaveBeenCalled();
   });
   it('rejects a stale hidden selection after an explicit category change', async () => {

@@ -1,3 +1,4 @@
+import { TIMELINE_DESIGN as C, TIMELINE_TYPE as T } from '../../theme/timelineDesign';
 // 파일: src/screens/Records/RecordDetailScreen.styles.ts
 // 역할:
 // - 원본 비율 사진, 기록 본문, 과거 추억의 단일 세로 목록 레이아웃
@@ -6,7 +7,7 @@
 import { StyleSheet } from 'react-native';
 import { lightColors, PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 
-export const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: PRODUCT_CANVAS_COLOR,
@@ -118,7 +119,7 @@ export const styles = StyleSheet.create({
   relatedMoreButton: {
     minHeight: 46,
     borderRadius: 16,
-    borderWidth: 1,
+    borderWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
@@ -194,7 +195,7 @@ export const styles = StyleSheet.create({
   postImage: {
     width: '100%',
     height: '100%',
-    backgroundColor: '#EFF2F7',
+    backgroundColor: 'transparent',
   },
   postImageViewport: {
     width: '100%',
@@ -203,7 +204,7 @@ export const styles = StyleSheet.create({
   },
   postImageSlide: {
     overflow: 'hidden',
-    backgroundColor: '#EFF2F7',
+    backgroundColor: 'transparent',
   },
   postImagePager: {
     position: 'absolute',
@@ -494,4 +495,29 @@ export const styles = StyleSheet.create({
     color: '#556070',
     textAlign: 'center',
   },
+});
+
+export const styles = StyleSheet.create({
+  ...baseStyles,
+  screen:{flex:1,backgroundColor:C.canvas},
+  headerLink:{...baseStyles.headerLink,backgroundColor:'transparent',paddingHorizontal:16},
+  headerLinkText:{...baseStyles.headerLinkText,...T.screen,color:C.ink},
+  body:{...baseStyles.body,paddingTop:8},
+  postCard:{marginHorizontal:16,padding:0,backgroundColor:'transparent'},
+  postAvatar:{width:48,height:48,borderRadius:24},
+  postHeader:{...baseStyles.postHeader,paddingBottom:12},
+  postPetName:{...T.section,color:C.ink},postMetaLine:{...T.meta,color:C.muted},
+  categoryChip:{...baseStyles.categoryChip,backgroundColor:C.selected,borderRadius:12},
+  categoryChipText:{...T.meta,color:C.primary},
+  postBody:{paddingTop:16,gap:12},postTitleText:{...T.screen,color:C.ink},postContentText:{...T.body,color:C.ink},
+  postMoodRow:{...baseStyles.postMoodRow,alignSelf:'flex-start',backgroundColor:C.selected,paddingVertical:6,paddingHorizontal:12,borderRadius:20,gap:8},
+  postMoodLabel:{...T.meta,color:C.primary},tagChip:{...baseStyles.tagChip,backgroundColor:C.selected,borderRadius:20},tagText:{...T.meta,color:C.primary},
+  postTagsText:{...T.body,color:C.muted},
+  relatedSection:{...baseStyles.relatedSection,marginTop:20,paddingTop:20,borderTopColor:C.border},
+  relatedSectionTitle:{...T.section,color:C.ink},relatedSectionCount:{...T.meta,color:C.muted},
+  sheetBackdrop:{...baseStyles.sheetBackdrop,backgroundColor:C.overlay},
+  actionSheet:{...baseStyles.actionSheet,borderTopLeftRadius:20,borderTopRightRadius:20,padding:16,backgroundColor:C.surface,gap:0},
+  sheetActionRow:{minHeight:64,flexDirection:'row',alignItems:'center',gap:16,borderBottomWidth:1,borderBottomColor:C.border},
+  sheetActionText:{...T.card,color:C.ink,flex:1},sheetActionDeleteText:{...T.card,color:C.ink,flex:1},
+
 });

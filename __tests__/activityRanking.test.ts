@@ -33,7 +33,7 @@ describe('activity ranking view model', () => {
 
   it('카테고리별 점수 단위를 구분한다', () => {
     expect(formatRankingScore({ score: 1200, category: 'walk' })).toBe('1,200 XP');
-    expect(formatRankingScore({ score: 12, category: 'comments' })).toBe('12건');
+    expect(formatRankingScore({ score: 12, category: 'comments' })).toBe('12개');
     expect(formatRankingScore({ score: 3, category: 'grooming' })).toBe('3건');
   });
 
@@ -62,7 +62,7 @@ describe('activity ranking view model', () => {
     ]);
 
     expect(bars[0].barRatio).toBe(1);
-    expect(bars[0].scoreLabel).toBe('100건');
-    expect(bars[1].barRatio).toBe(0.08);
+    expect(bars[0].scoreLabel).toBe('100개');
+    expect(bars[1].barRatio).toBe(0.01);
   });
 });

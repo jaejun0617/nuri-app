@@ -41,7 +41,13 @@ describe('Home section composition after Today Photo retirement', () => {
     expect(attributes).toContain('petId={petId}');
     expect(attributes).toContain('onPressDetail={onPressScheduleDetail}');
     expect(source).not.toContain('scheduleItems.slice(0, 7)');
-    expect(source).toContain('key={activePetId}');
+    const scheduleSections = findNodes(ts.isJsxSelfClosingElement).filter(
+      node => node.tagName.getText(parsed) === 'ScheduleSection',
+    );
+    expect(scheduleSections).toHaveLength(1);
+    const scheduleAttributes = scheduleSections[0].attributes.properties.map(attribute => attribute.getText(parsed));
+    expect(scheduleAttributes).toContain('petId={activePetId}');
+    expect(scheduleAttributes.some(attribute => attribute.startsWith('key='))).toBe(false);
     expect(attributes).not.toContain('onPressCreate={onPressScheduleCreate}');
     expect(source).toMatch(/navigate\('ScheduleDetail', \{[\s\S]*?scheduleId,/);
   });

@@ -1,9 +1,10 @@
 import React, { memo, type PropsWithChildren } from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import AppText from '../../../../app/ui/AppText';
 import Feather from '../../../../components/icons/NuriFeatherIcon';
-import MaterialCommunityIcons from '../../../../components/icons/NuriMaterialIcon';
+import { HomeReflectiveGlass } from '../../../../components/home/HomeReflectiveGlass';
+import { getTitleArtwork } from '../../../../services/activity/titleArtwork';
 import { buildPetThemePalette } from '../../../../services/pets/themePalette';
 import type { SeasonKey } from '../../../../theme/seasonal/season';
 import { HOME_HERO_COLORS, HOME_HERO_ACCENT, getHomeHeroTypography, type HomeHeroColors } from '../../../../theme/home/heroLayout';
@@ -27,6 +28,7 @@ type Props = {
   containerWidth: number;
   profilePetName: string;
   titleBadge: string | null;
+  titleBadgeKey?: string | null;
   togetherDays: number | null;
   hasMultiplePets: boolean;
   onPressPetSelect: () => void;
@@ -35,17 +37,20 @@ type Props = {
 };
 
 export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
-  containerWidth, profilePetName, titleBadge, togetherDays, colors = HOME_HERO_COLORS,
+  containerWidth, profilePetName, titleBadge, titleBadgeKey, togetherDays, colors = HOME_HERO_COLORS,
   hasMultiplePets, onPressPetSelect, onPressProfileInfo, onPressPetProfileEdit,
 }: Props) {
   const type = getHomeHeroTypography(containerWidth, profilePetName);
+  const titleArt = getTitleArtwork(titleBadgeKey);
+  const titleArtSize = type.nameSize + 3;
+  const nameIconSlot = [styles.selectorIconSlot, { width: titleArtSize }];
+  const hasNameSideSlots = hasMultiplePets || !!titleArt;
   const dayLabel = togetherDays !== null ? togetherDays.toLocaleString('ko-KR') : null;
   return (
-    <View testID="home-hero-info" style={[styles.info, { paddingTop: type.infoTop, backgroundColor: colors.surface }]}>
+    <View testID="home-hero-info" style={[styles.info, { paddingTop: type.infoTop }]}>
       <View testID="home-hero-title-slot" style={styles.badgeSlot}>
         {titleBadge ? (
           <View testID="home-hero-title-badge" style={[styles.badge, { borderColor: HOME_HERO_ACCENT.border }]}>
-            <MaterialCommunityIcons name="sprout" size={16} color={HOME_HERO_ACCENT.primary} accessible={false} />
             <AppText
               preset="unifiedMeta" styleOverridesPreset numberOfLines={2} ellipsizeMode="tail"
               style={[styles.badgeText, { color: HOME_HERO_ACCENT.primary, fontSize: type.badgeSize }]}
@@ -59,13 +64,17 @@ export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
         accessibilityLabel={hasMultiplePets ? `${profilePetName}, 아이 선택` : profilePetName}
         onPress={onPressPetSelect} style={styles.nameAction}
       >
-        {hasMultiplePets ? <View testID="home-hero-name-balance" accessible={false} importantForAccessibility="no-hide-descendants" style={styles.selectorIconSlot} /> : null}
+        {hasNameSideSlots ? (
+          <View testID="home-hero-name-balance" accessible={false} importantForAccessibility="no-hide-descendants" style={nameIconSlot}>
+            {titleArt ? <Image testID="home-hero-title-art" source={titleArt} style={[styles.titleArt, { width: titleArtSize, height: titleArtSize }]} resizeMode="contain" accessible={false} /> : null}
+          </View>
+        ) : null}
         <AppText
           testID="home-hero-pet-name" preset="unifiedTitle" styleOverridesPreset
           numberOfLines={2} ellipsizeMode="tail"
           style={[styles.name, { color: colors.ink, fontSize: type.nameSize, lineHeight: type.nameLineHeight }]}
         >{profilePetName}</AppText>
-        {hasMultiplePets ? <View accessible={false} style={styles.selectorIconSlot}><Feather name="chevron-down" size={24} color={colors.ink} accessible={false} /></View> : null}
+        {hasNameSideSlots ? <View testID="home-hero-name-trailing" accessible={false} style={nameIconSlot}>{hasMultiplePets ? <Feather name="chevron-down" size={24} color={colors.ink} accessible={false} /> : null}</View> : null}
       </TouchableOpacity>
       {dayLabel !== null ? (
         <View testID="home-hero-together" accessible accessibilityLabel={`함께한 시간 ${dayLabel}일`} style={styles.together}>
@@ -74,11 +83,13 @@ export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
         </View>
       ) : null}
       <View testID="home-hero-profile-actions" style={[styles.profileActions, { marginHorizontal: type.actionInset }]}>
+        <View testID="home-hero-action-balance" accessible={false} importantForAccessibility="no-hide-descendants" pointerEvents="none" style={styles.actionBalance} />
         <TouchableOpacity
           testID="home-hero-profile-info" activeOpacity={0.86} accessibilityRole="button"
           accessibilityLabel={`${profilePetName} 더 알아보기`} onPress={onPressProfileInfo}
-          style={[styles.actionButton, { backgroundColor: HOME_HERO_ACCENT.tint }]}
+          style={styles.actionButton}
         >
+          <HomeReflectiveGlass testID="home-hero-profile-info-glass" borderRadius={999} style={styles.actionGlass} />
           <View accessible={false} importantForAccessibility="no-hide-descendants" style={styles.actionIconSlot} />
           <AppText testID="home-hero-profile-info-label" preset="unifiedLabel" styleOverridesPreset numberOfLines={2} ellipsizeMode="tail" style={[styles.actionText, { color: colors.ink, fontSize: type.buttonSize }]}>{profilePetName} 더 알아보기</AppText>
           <View accessible={false} style={styles.actionIconSlot}><Feather name="chevron-right" size={22} color={colors.ink} accessible={false} /></View>
@@ -86,8 +97,9 @@ export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
         <TouchableOpacity
           testID="home-hero-profile-edit" activeOpacity={0.86} accessibilityRole="button"
           accessibilityLabel={`${profilePetName} 프로필 수정하기`} onPress={onPressPetProfileEdit}
-          style={[styles.editButton, { borderColor: HOME_HERO_ACCENT.border, backgroundColor: HOME_HERO_ACCENT.editSurface }]}
+          style={styles.editButton}
         >
+          <HomeReflectiveGlass testID="home-hero-profile-edit-glass" borderRadius={15} borderless style={styles.actionGlass} />
           <Feather name="edit-2" size={24} color={HOME_HERO_ACCENT.primary} accessible={false} />
         </TouchableOpacity>
       </View>
@@ -96,20 +108,24 @@ export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
 });
 
 const styles = StyleSheet.create({
-  sheetBody: { width: '100%', paddingHorizontal: 16, backgroundColor: HOME_HERO_COLORS.surface },
-  info: { width: '100%', paddingBottom: 24, backgroundColor: HOME_HERO_COLORS.surface },
+  sheetBody: { width: '100%', paddingHorizontal: 16, backgroundColor: 'transparent' },
+  info: { width: '100%', paddingBottom: 24, backgroundColor: 'transparent' },
   badgeSlot: { minHeight: 28, alignItems: 'center', marginHorizontal: 24 },
   badge: { maxWidth: '100%', minHeight: 28, paddingHorizontal: 12, paddingVertical: 4, borderWidth: 1, borderRadius: 999, flexDirection: 'row', alignItems: 'center', gap: 6 },
   badgeText: { lineHeight: 16, fontWeight: '500', flexShrink: 1, includeFontPadding: false },
+  titleArt: { width: 36, height: 36 },
   nameAction: { minHeight: 48, marginTop: 8, marginHorizontal: 24, flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', justifyContent: 'center', gap: 8 },
-  selectorIconSlot: { width: 24, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
+  selectorIconSlot: { width: 36, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
   name: { color: HOME_HERO_COLORS.ink, fontWeight: '600', flexShrink: 1, minWidth: 0, textAlign: 'center', includeFontPadding: false },
   together: { marginTop: 4, minHeight: 32, paddingHorizontal: 24, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'center', columnGap: 10, rowGap: 2 },
   togetherText: { lineHeight: 20, color: HOME_HERO_COLORS.muted, fontWeight: '500', includeFontPadding: false },
   days: { lineHeight: 32, fontWeight: '500', includeFontPadding: false },
   profileActions: { marginTop: 6, flexDirection: 'row', alignItems: 'stretch', gap: 7 },
+  actionBalance: { width: 54, flexShrink: 0 },
   actionButton: { flex: 1, minWidth: 0, minHeight: 51, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 999, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
   actionText: { color: HOME_HERO_COLORS.ink, lineHeight: 20, fontWeight: '500', textAlign: 'center', flexShrink: 1, minWidth: 0, includeFontPadding: false },
   actionIconSlot: { width: 22, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
-  editButton: { width: 54, minHeight: 51, borderRadius: 15, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  editButton: { width: 54, minHeight: 51, borderRadius: 15, borderWidth: 0, alignItems: 'center', justifyContent: 'center' },
+  // Absolute edges own the width; 100% would use the padded content width.
+  actionGlass: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, width: 'auto', marginTop: 0 },
 });

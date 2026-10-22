@@ -18,6 +18,25 @@ describe('fixed full-bleed Home photo frame', () => {
   const image = () => renderer.root.findByType(Image);
   afterEach(async () => { if (renderer) await act(async () => renderer.unmount()); });
 
+  it('reveals the shared page gradient through the ellipse instead of painting a flat cutout', async () => {
+    await render();
+    expect(frame().backgroundColor).toBe('transparent');
+    expect(frame().height).toBeCloseTo(412 * 1061 / 852);
+    await act(async () => image().props.onLoad());
+    expect(frame().backgroundColor).toBe('transparent');
+    await act(async () => renderer.update(<HomeHeroPhotoBackground uri={null} frameWidth={412} />));
+    expect(frame().backgroundColor).toBe('transparent');
+  });
+
+  it('keeps the static ellipse on the Android hardware layer during a photo transition', async () => {
+    await render();
+    expect(renderer.root.findByProps({ testID: 'home-hero-photo-mask' }).props.androidRenderingMode).toBe('hardware');
+    await act(async () => image().props.onLoad());
+    await act(async () => renderer.update(<HomeHeroPhotoBackground uri="https://example.test/pet-b.jpg" frameWidth={412} />));
+    expect(renderer.root.findByProps({ testID: 'home-hero-photo-mask' }).props.androidRenderingMode).toBe('hardware');
+    expect(frame().height).toBeCloseTo(412 * 1061 / 852);
+  });
+
   it.each([[1600, 900], [1000, 1000], [900, 1200], [900, 1600], [500, 4000]])(
     'ignores source metadata %s x %s both before and after loading',
     async (width, height) => {
@@ -60,6 +79,23 @@ describe('fixed full-bleed Home photo frame', () => {
     expect(image().props.source.uri).toBe('https://example.test/pet-b.jpg');
     expect(StyleSheet.flatten(image().props.style).opacity).toBe(0);
     await act(async () => image().props.onLoad());
+    expect(StyleSheet.flatten(image().props.style).opacity).toBe(1);
+  });
+
+  it('rejects an old request even after switching back to the same photo URI', async () => {
+    const settled = jest.fn();
+    await act(async () => {
+      renderer = Renderer.create(<HomeHeroPhotoBackground uri={uri} frameWidth={412} onPhotoSettled={settled} />);
+    });
+    const oldRequest = image().props;
+    await act(async () => renderer.update(<HomeHeroPhotoBackground uri="https://example.test/pet-b.jpg" frameWidth={412} onPhotoSettled={settled} />));
+    await act(async () => renderer.update(<HomeHeroPhotoBackground uri={uri} frameWidth={412} onPhotoSettled={settled} />));
+    await act(async () => { oldRequest.onLoad(); oldRequest.onError(); });
+    expect(settled).not.toHaveBeenCalled();
+    expect(StyleSheet.flatten(image().props.style).opacity).toBe(0);
+    await act(async () => image().props.onLoad());
+    expect(settled).toHaveBeenCalledTimes(1);
+    expect(settled).toHaveBeenCalledWith(uri);
     expect(StyleSheet.flatten(image().props.style).opacity).toBe(1);
   });
 

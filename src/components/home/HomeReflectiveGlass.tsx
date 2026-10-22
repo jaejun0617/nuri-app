@@ -4,6 +4,7 @@ import { HOME_FLOATING_WIDGET_MATERIAL, HomeFloatingWidgetSurface } from './Home
 
 type Props = PropsWithChildren<Omit<ViewProps, 'style'> & {
   borderRadius?: number;
+  borderless?: boolean;
   style?: StyleProp<ViewStyle>;
 }>;
 
@@ -12,6 +13,7 @@ export const HomeReflectiveGlass = memo(function HomeReflectiveGlassView({
   children,
   style,
   borderRadius = 22,
+  borderless = false,
   ...viewProps
 }: Props) {
   const frame = StyleSheet.flatten(style);
@@ -27,7 +29,7 @@ export const HomeReflectiveGlass = memo(function HomeReflectiveGlassView({
       style={[styles.root, style, styles.frame, corners]}>
       <View testID="home-reflective-fill" pointerEvents="none" accessible={false}
         importantForAccessibility="no-hide-descendants"
-        style={[StyleSheet.absoluteFill, HOME_FLOATING_WIDGET_MATERIAL, corners]} />
+        style={[StyleSheet.absoluteFill, HOME_FLOATING_WIDGET_MATERIAL, borderless && styles.borderless, corners]} />
       <HomeFloatingWidgetSurface radius={borderRadius} testIDPrefix="home-reflective-glass" />
       {children}
     </View>
@@ -37,4 +39,5 @@ export const HomeReflectiveGlass = memo(function HomeReflectiveGlassView({
 const styles = StyleSheet.create({
   root: { width: '100%', marginTop: 12, position: 'relative' },
   frame: { backgroundColor: 'transparent', borderWidth: 0, overflow: 'hidden', elevation: 0, shadowOpacity: 0 },
+  borderless: { borderWidth: 0 },
 });

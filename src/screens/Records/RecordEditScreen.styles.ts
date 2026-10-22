@@ -1,3 +1,5 @@
+import { TIMELINE_DESIGN as C, TIMELINE_TYPE as T } from '../../theme/timelineDesign';
+import { LAVENDER_CANVAS } from '../../theme/lavenderCanvas';
 // 파일: src/screens/Records/RecordEditScreen.styles.ts
 // 목적:
 // - Compact record form on the shared seasonal glass surface.
@@ -11,7 +13,7 @@ const BORDER = '#E6E8F0';
 const BG = PRODUCT_CANVAS_COLOR;
 const IMAGE_BORDER = '#D5DBE6';
 
-export const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BG },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: 28 },
@@ -352,4 +354,29 @@ export const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '900',
   },
+});
+
+export const styles = StyleSheet.create({
+  ...baseStyles,
+  screen:{flex:1,backgroundColor:LAVENDER_CANVAS.base},
+  header:{...baseStyles.header,paddingHorizontal:16,borderBottomWidth:0},
+  headerTitle:{...baseStyles.headerTitle,...T.screen,color:C.ink},
+  headerSideSlot:{...baseStyles.headerSideSlot,width:56},
+  scrollContent:{paddingHorizontal:16,paddingTop:8},
+  card:{marginHorizontal:0,marginBottom:0,padding:0,backgroundColor:'transparent'},
+  label:{...T.card,color:C.ink,marginTop:20,marginBottom:8},
+  dateCard:{minHeight:48,borderRadius:10,paddingHorizontal:14,paddingVertical:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12,backgroundColor:'transparent'},
+  dateLeft:{flex:1,flexDirection:'row',alignItems:'center',gap:10},
+  inputSurface:{borderRadius:10,position:'relative'},
+  input:{...baseStyles.input,minHeight:48,borderRadius:10,borderColor:'transparent',color:C.ink,backgroundColor:'transparent',paddingHorizontal:14,paddingVertical:12,...T.input},
+  multiline:{minHeight:96,textAlignVertical:'top'},
+  helperText:{...T.caption,color:C.muted,marginTop:6},
+  emotionGrid:{flexDirection:'row',flexWrap:'wrap',gap:6},
+  moodChip:{width:'23%',minHeight:60,paddingHorizontal:2,paddingVertical:8,borderWidth:1,borderColor:'transparent',borderRadius:10,backgroundColor:'transparent',alignItems:'center',justifyContent:'center',gap:5},
+  moodChipActive:{backgroundColor:'transparent',borderColor:'transparent'},moodText:{...T.meta,color:C.muted},moodTextActive:{color:C.primary},
+  tagSelector:{minHeight:48,borderRadius:16,paddingHorizontal:14,paddingVertical:12,flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:8},
+  selectedTagsWrap:{flex:1,flexDirection:'row',flexWrap:'wrap',gap:8},
+  selectedTagChip:{borderRadius:16,paddingHorizontal:10,paddingVertical:6,backgroundColor:C.selected},
+  primary:{...baseStyles.primary,marginTop:20,minHeight:48,borderRadius:10},primaryText:{...T.button,color:C.surface},
+
 });

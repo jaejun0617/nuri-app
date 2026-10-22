@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import AppText from '../../app/ui/AppText';
 import AppTextInput from '../../app/ui/AppTextInput';
+import { RecordFieldGlass, type RecordSurfaceVariant } from './TimelineFormSurface';
 import type {
   HealthCareDetails,
   HealthCareKind,
@@ -24,11 +25,13 @@ export default function MedicalRecordFields({
   onChange,
   onFocus,
   disabled = false,
+  surfaceVariant = 'plain',
 }: {
   value: HealthCareDetails;
   onChange: (value: HealthCareDetails) => void;
   onFocus?: () => void;
   disabled?: boolean;
+  surfaceVariant?: RecordSurfaceVariant;
 }) {
   return (
     <View style={styles.root} testID="medical-record-fields">
@@ -44,32 +47,43 @@ export default function MedicalRecordFields({
             accessibilityLabel={kind.label}
             accessibilityState={{ checked: value.kind === kind.key, disabled }}
             onPress={() => onChange({ ...value, kind: kind.key })}
-            style={[styles.kind, value.kind === kind.key && styles.selected]}
+            style={[styles.kind, value.kind === kind.key && styles.selected, surfaceVariant === 'homeGlass' && styles.glassKind, surfaceVariant === 'homeGlass' && disabled && styles.disabled]}
           >
+            {surfaceVariant === 'homeGlass' ? <RecordFieldGlass selected={value.kind === kind.key} borderRadius={8} /> : null}
             <AppText preset="unifiedBody" color="#303840">
               {kind.label}
             </AppText>
           </Pressable>
         ))}
       </View>
-      {FIELDS.map(field => (
-        <View key={field.key} style={styles.field}>
-          <AppText preset="unifiedMeta" color="#556070">
-            {field.label} (선택)
-          </AppText>
+      {FIELDS.map(field => {
+        const input = (
           <AppTextInput
             value={value[field.key]}
             accessibilityLabel={field.label}
             editable={!disabled}
             maxLength={field.limit}
-            style={styles.input}
+            style={surfaceVariant === 'homeGlass' ? [styles.input, styles.glassInput] : styles.input}
             placeholder={field.label}
             placeholderTextColor="#7A838D"
             onFocus={onFocus}
             onChangeText={text => onChange({ ...value, [field.key]: text })}
           />
+        );
+        return (
+        <View key={field.key} style={styles.field}>
+          <AppText preset="unifiedMeta" color="#556070">
+            {field.label} (선택)
+          </AppText>
+          {surfaceVariant === 'homeGlass' ? (
+            <View style={[styles.glassField, disabled && styles.disabled]}>
+              <RecordFieldGlass borderRadius={8} />
+              {input}
+            </View>
+          ) : input}
         </View>
-      ))}
+        );
+      })}
     </View>
   );
 }
@@ -90,6 +104,10 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
   },
   selected: { borderBottomColor: '#303840' },
+  glassKind: { borderRadius: 8, overflow: 'hidden' },
+  glassField: { borderRadius: 8, overflow: 'hidden' },
+  glassInput: { backgroundColor: 'transparent', borderColor: 'transparent' },
+  disabled: { opacity: 0.5 },
   field: { gap: 6 },
   input: {
     minHeight: 48,

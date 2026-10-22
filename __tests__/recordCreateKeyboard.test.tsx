@@ -5,7 +5,7 @@ import { ThemeProvider } from 'styled-components/native';
 
 import { createTheme } from '../src/app/theme/theme';
 import RecordCreateScreen from '../src/screens/Records/RecordCreateScreen';
-import { SeasonalFormPanel } from '../src/components/common/SeasonalFormSurface';
+import { SeasonalFormPanel } from '../src/components/records/TimelineFormSurface';
 import { usePetStore } from '../src/store/petStore';
 import type { RootStackParamList } from '../src/navigation/RootNavigator';
 import MedicalRecordFields from '../src/components/records/MedicalRecordFields';

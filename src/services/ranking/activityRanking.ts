@@ -39,25 +39,25 @@ export const ACTIVITY_RANKING_CATEGORIES: ReadonlyArray<ActivityRankingCategory>
     key: 'posts',
     label: '글',
     helper: '타임라인·커뮤니티 글 수',
-    unit: '건',
+    unit: '개',
   },
   {
     key: 'comments',
     label: '댓글',
     helper: '댓글 활동 수',
-    unit: '건',
+    unit: '개',
   },
   {
     key: 'health',
     label: '건강',
     helper: '건강 기록 수',
-    unit: '건',
+    unit: '회',
   },
   {
     key: 'life',
     label: '생활',
     helper: '생활 기록 수',
-    unit: '건',
+    unit: '회',
   },
   {
     key: 'grooming',
@@ -132,6 +132,7 @@ export function mapActivityRankingRow(value: unknown): ActivityRankingRow | null
 export function formatRankingScore(
   row: Pick<ActivityRankingRow, 'score' | 'category'>,
 ): string {
+  if (!Number.isFinite(row.score) || row.score < 0) return '확인 필요';
   const category =
     ACTIVITY_RANKING_CATEGORIES.find(item => item.key === row.category) ??
     ACTIVITY_RANKING_CATEGORIES[0];
@@ -140,10 +141,11 @@ export function formatRankingScore(
 }
 
 export function buildRankingBars(rows: ActivityRankingRow[]): ActivityRankingBar[] {
-  const maxScore = rows.reduce((max, row) => Math.max(max, row.score), 0);
+  const validScore = (value: number) => Number.isFinite(value) && value > 0 ? value : 0;
+  const maxScore = rows.reduce((max, row) => Math.max(max, validScore(row.score)), 0);
   return rows.map(row => ({
     ...row,
-    barRatio: maxScore > 0 ? Math.max(0.08, row.score / maxScore) : 0,
+    barRatio: maxScore > 0 ? validScore(row.score) / maxScore : 0,
     scoreLabel: formatRankingScore(row),
   }));
 }
@@ -156,11 +158,39 @@ export async function fetchActivityRanking(input: {
   const { data, error } = await supabase.rpc('get_activity_ranking_v1', {
     p_category: input.category,
     p_limit: input.limit ?? 20,
-    p_include_qa_fixture: input.includeQaFixture ?? true,
+    p_include_qa_fixture: input.includeQaFixture ?? false,
   });
   if (error) throw error;
   if (!Array.isArray(data)) return [];
   return data
     .map(mapActivityRankingRow)
     .filter((row): row is ActivityRankingRow => row !== null);
+}
+
+export type ActivityRankingSnapshot = {
+  rows: ActivityRankingBar[];
+  myRow: ActivityRankingBar | null;
+};
+
+/** A single ranked snapshot keeps top-10 and self consistent even at a tie. */
+export async function fetchActivityRankingSnapshot(
+  category: ActivityRankingCategoryKey,
+): Promise<ActivityRankingSnapshot> {
+  const { data, error } = await supabase.rpc('get_activity_ranking_snapshot_v1', {
+    p_category: category,
+  });
+  if (error) throw error;
+  if (!Array.isArray(data)) throw new Error('NURI_RANKING_INVALID_RESPONSE');
+  const mapped = data.map(mapActivityRankingRow).filter((row): row is ActivityRankingRow => row !== null);
+  if (mapped.length !== data.length || mapped.length > 11 ||
+      mapped.filter(row => row.isCurrentUser).length > 1 ||
+      new Set(mapped.map(row => row.rankNo)).size !== mapped.length ||
+      mapped.some(row => row.category !== category || row.rowSource !== 'user' ||
+        (row.rankNo > 10 && !row.isCurrentUser))) {
+    throw new Error('NURI_RANKING_INVALID_RESPONSE');
+  }
+  const rows = buildRankingBars(mapped.filter(row => row.rankNo <= 10));
+  const own = mapped.find(row => row.isCurrentUser);
+  const myRow = own ? rows.find(row => row.isCurrentUser) ?? buildRankingBars([own])[0] : null;
+  return { rows, myRow };
 }

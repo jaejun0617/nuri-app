@@ -3,7 +3,11 @@ import {
   pickHomePetTitleBadge,
   saveCachedHomePetTitleBadge,
   type HomeTitleBadgeRow,
+  pickHomePetTitleBadgeIdentity,
+  loadCachedHomePetTitleBadgeIdentity,
 } from '../src/services/activity/homeTitleBadge';
+import { SERVER_TITLE_ART, getServerTitleArtwork } from '../src/services/activity/titleArtwork';
+import { TITLE_POLICIES } from '../src/services/activity/progressPolicy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 function title(input: Partial<HomeTitleBadgeRow> & Pick<HomeTitleBadgeRow, 'titleName' | 'petId'>): HomeTitleBadgeRow {
@@ -92,5 +96,25 @@ describe('home title badge policy', () => {
     expect(AsyncStorage.removeItem).toHaveBeenCalledWith(
       '@nuri/home-title-badge/v1:user-1:pet-1',
     );
+  });
+  it('keeps the stable title key without inferring artwork from its localized name', () => {
+    const value = pickHomePetTitleBadgeIdentity({ petId: 'pet-1', titles: [title({ titleKey: 'walk_sprout', titleName: '이름이 바뀌어도 같은 칭호', petId: 'pet-1' })] });
+    expect(value).toEqual({ titleKey: 'walk_sprout', titleName: '이름이 바뀌어도 같은 칭호' });
+    expect(getServerTitleArtwork(value?.titleKey)).toBe(SERVER_TITLE_ART.walk_sprout);
+    expect(getServerTitleArtwork('산책 새싹')).toBeUndefined();
+    expect(getServerTitleArtwork('unrecognized_future_title')).toBeUndefined();
+  });
+  it('reads old name-only caches safely and roundtrips optional identity in the same scoped cache', async () => {
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(JSON.stringify({savedAt: 1000, title: '산책 새싹'}));
+    await expect(loadCachedHomePetTitleBadgeIdentity({userId:'u',petId:'p',now:2000})).resolves.toEqual({titleName:'산책 새싹',titleKey:null});
+    await saveCachedHomePetTitleBadge({userId:'u',petId:'p',title:'산책 새싹',titleKey:'walk_sprout',now:1000});
+    expect(AsyncStorage.setItem).toHaveBeenLastCalledWith('@nuri/home-title-badge/v1:u:p',JSON.stringify({savedAt:1000,title:'산책 새싹',titleKey:'walk_sprout'}));
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(JSON.stringify({savedAt:1000,title:'산책 새싹',titleKey:'walk_sprout'}));
+    await expect(loadCachedHomePetTitleBadgeIdentity({userId:'u',petId:'p',now:2000})).resolves.toEqual({titleName:'산책 새싹',titleKey:'walk_sprout'});
+  });
+  it('explicitly maps every current server title policy while preserving all 11 original IDs', () => {
+    expect(TITLE_POLICIES).toHaveLength(11);
+    expect(Object.keys(SERVER_TITLE_ART).sort()).toEqual(TITLE_POLICIES.map(p=>p.key).sort());
+    for (const item of TITLE_POLICIES) expect(getServerTitleArtwork(item.key)).toBeDefined();
   });
 });

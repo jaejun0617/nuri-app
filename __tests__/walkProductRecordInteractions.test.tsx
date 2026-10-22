@@ -28,6 +28,10 @@ const mockNavigation = {
   goBack: jest.fn(),
   popTo: jest.fn(),
   canGoBack: () => true,
+  addListener: jest.fn((event: string, listener: (value: { data: { closing: boolean } }) => void) => {
+    if (event === 'transitionEnd') listener({ data: { closing: false } });
+    return jest.fn();
+  }),
 };
 let mockGpsMode = true;
 const mockSubmit = jest.fn();
@@ -296,7 +300,7 @@ it('linked edit locks source controls and saves permitted body without legacy re
   const title = tree.root.findByProps({ placeholder: '제목' });
   await act(async () => title.props.onChangeText('수정 본문'));
   const header = tree.root.findAll(
-    n => n.props.accessibilityLabel === '기록 수정 저장',
+    n => n.props.testID === 'record-edit-submit',
   )[0];
   await act(async () => header.props.onPress());
   expect(saveLinkedWalkBody).toHaveBeenCalledWith(
@@ -354,10 +358,13 @@ it('non-Walk edit stays usable while Walk summary endpoint is unavailable and re
   await mount(<RecordEditScreen />);
   expect(useWalkSources).toHaveBeenLastCalledWith('pet', [], false);
   const header = tree.root.findAll(
-    n => n.props.accessibilityLabel === '기록 수정 저장',
+    n => n.props.testID === 'record-edit-submit',
   )[0];
-  expect(header.props.disabled).toBe(false);
-  await act(async () => header.props.onPress());
+  expect(header.props.disabled).toBe(true);
+  await act(async()=>tree.root.findByProps({placeholder:'제목'}).props.onChangeText('식사 메모 수정'));
+  const ready=tree.root.findAll(n=>n.props.testID==='record-edit-submit')[0];
+  expect(ready.props.disabled).toBe(false);
+  await act(async () => ready.props.onPress());
   expect(updateMemoryFields).toHaveBeenCalledTimes(1);
   expect(saveLinkedWalkBody).not.toHaveBeenCalled();
 });
@@ -369,7 +376,7 @@ it('unresolved candidate Walk source fails closed before immutable controls or s
     tree.root.findAllByProps({ testID: 'record-edit-date' })[0].props.disabled,
   ).toBe(true);
   expect(
-    tree.root.findAll(n => n.props.accessibilityLabel === '기록 수정 저장')[0]
+    tree.root.findAll(n => n.props.testID === 'record-edit-submit')[0]
       .props.disabled,
   ).toBe(true);
 });

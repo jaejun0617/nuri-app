@@ -13,7 +13,6 @@ import TimelineSeasonalHeader, {
 import {
   TIMELINE_HERO_IMAGES,
   TIMELINE_SEASON_COLORS,
-  TIMELINE_STATS_ANCHOR,
 } from '../src/theme/seasonal/timeline';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 import {
@@ -149,9 +148,8 @@ describe('Timeline seasonal design', () => {
         backgroundColor: 'rgba(255,255,255,0.65)',
         borderWidth: 1,
         borderColor: 'rgba(255,255,255,0.85)',
-        marginTop:
-          -192 * (1 - TIMELINE_STATS_ANCHOR[season]) -
-          (season === 'summer' ? 8 : 4),
+        marginTop: 12,
+        marginBottom: 4,
       });
       expect(stats.props.blurAmount).toBeUndefined();
       expect(tree.root.findAllByProps({ testID: 'home-reflective-fill' })).toHaveLength(0);
@@ -671,7 +669,7 @@ describe('Timeline seasonal design', () => {
     );
     expect(guest).toContain('backgroundColor: theme.colors.brand');
     expect(guest).not.toContain('<TimelineSeasonalHeader');
-    const background = '<SeasonalAmbientBackground season={season} appearance="light" />';
+    const background = '<LavenderScreenBackground testID="timeline-background-gradient" />';
     expect(source.split(background)).toHaveLength(3);
     expect(guest).toContain(background);
     const loggedIn = source.slice(source.indexOf('onLayout={onListLayout}'));

@@ -6,7 +6,7 @@ import { formatPetCopy } from '../../utils/petDisplayName';
 export const HOME_HERO_PHOTO_ASPECT_RATIO = 852 / 1061;
 export const HOME_HERO_TOOLBAR_RADIUS = 24;
 export const HOME_HERO_COLORS = {
-  surface: '#F8F7FD', statusBar: '#F3F1FD', ink: '#221351',
+  surface: '#F8F7FD', statusBar: '#FFFFFF', ink: '#221351',
   muted: '#8D88AA', onPhoto: '#FFFFFF',
 } as const;
 // PO 2026-10-21: the reference palette is fixed, independent of pet/app theme.
@@ -45,8 +45,8 @@ export function getHomeHeroTypography(width: number, name: string) {
     labelSize: compact ? 12 : 14, labelLineHeight: 20,
     valueSize: compact ? 21 : 25, valueLineHeight: 32,
     buttonSize: compact ? 12 : 14, buttonLineHeight: 20,
-    // Long labels grow horizontally before the bounded two-line fallback.
-    actionInset: Array.from(name).length > 4 ? 16 : compact ? 24 : 50,
+    // Equal side slots center the main CTA; the editor keeps a 16 dp right gutter.
+    actionInset: 16,
     infoTop: compact ? 22 : 29,
   } as const;
 }

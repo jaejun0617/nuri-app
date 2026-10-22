@@ -215,4 +215,58 @@ describe('Home calendar interactions and sizing contract (native layout not simu
     );
     await act(async () => renderer.unmount());
   });
+  it('resets only pet-owned calendar UI without remounting the native grid or retaining a foreign agenda', async () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => { renderer = TestRenderer.create(content()); });
+    const grid = renderer.root.findByProps({ testID: 'home-calendar-grid' });
+    await press(renderer, 'home-calendar-next');
+    await press(renderer, 'home-calendar-day-2026-11-12');
+    expect(renderer.root.findByType(ScheduleCalendarSheet).props.day).toBe('2026-11-12');
+    const nextSchedule = { ...schedule, id: 'next-pet-schedule', petId: 'next-pet' };
+    await act(async () => renderer.update(content({ petId: 'next-pet', items: [nextSchedule] })));
+    expect(renderer.root.findByProps({ testID: 'home-calendar-grid' })).toBe(grid);
+    expect(renderer.root.findAllByType(ScheduleCalendarSheet)).toHaveLength(0);
+    expect(buttons(renderer).find(node => node.props.testID === 'home-calendar-day-2026-10-05')?.props.accessibilityState.selected).toBe(true);
+    expect(buttons(renderer).some(node => node.props.testID === 'home-calendar-preview-qa')).toBe(false);
+    await press(renderer, 'home-calendar-preview-next-pet-schedule');
+    expect(props.onPressDetail).toHaveBeenCalledWith('next-pet-schedule');
+    await act(async () => renderer.unmount());
+  });
+  it('preserves same-pet selection on refresh but resets an A-B-A switch without resubscribing or replacing unchanged day views', async () => {
+    const subscriptions = jest.spyOn(ReactNative.AppState, 'addEventListener');
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => { renderer = TestRenderer.create(content()); });
+    const day = buttons(renderer).find(node => node.props.testID === 'home-calendar-day-2026-10-05');
+    const subscriptionCount = subscriptions.mock.calls.length;
+    await press(renderer, 'home-calendar-day-2026-10-09');
+    await act(async () => renderer.root.findByType(ScheduleCalendarSheet).props.onClose());
+    await act(async () => renderer.update(content({ items: [...props.items] })));
+    expect(buttons(renderer).find(node => node.props.testID === 'home-calendar-day-2026-10-09')?.props.accessibilityState.selected).toBe(true);
+    await act(async () => renderer.update(content({ petId: 'next-pet', items: [] })));
+    expect(buttons(renderer).find(node => node.props.testID === 'home-calendar-day-2026-10-05')?.props.accessibilityState.selected).toBe(true);
+    await act(async () => renderer.update(content()));
+    expect(buttons(renderer).find(node => node.props.testID === 'home-calendar-day-2026-10-05')).toBe(day);
+    expect(buttons(renderer).find(node => node.props.testID === 'home-calendar-day-2026-10-05')?.props.accessibilityState.selected).toBe(true);
+    expect(subscriptions.mock.calls.length).toBe(subscriptionCount);
+    expect(props.onPressDetail).not.toHaveBeenCalled();
+    await act(async () => renderer.unmount());
+  });
+  it.each(['onClose', 'onSaved', 'onDetail'] as const)('ignores a previous pet scope %s callback, including after A-B-A', async callback => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => { renderer = TestRenderer.create(content()); });
+    await press(renderer, 'home-calendar-day-2026-10-09');
+    const oldSheet = renderer.root.findByType(ScheduleCalendarSheet).props;
+    await act(async () => renderer.update(content({ petId: 'next-pet', items: [] })));
+    await act(async () => renderer.update(content()));
+    await press(renderer, 'home-calendar-day-2026-10-08');
+    await act(async () => {
+      if (callback === 'onSaved') oldSheet.onSaved('2026-11-12');
+      else if (callback === 'onDetail') oldSheet.onDetail('old-pet-schedule');
+      else oldSheet.onClose();
+    });
+    expect(props.onPressDetail).not.toHaveBeenCalled();
+    expect(renderer.root.findByType(ScheduleCalendarSheet).props.day).toBe('2026-10-08');
+    expect(buttons(renderer).find(node => node.props.testID === 'home-calendar-day-2026-10-08')?.props.accessibilityState.selected).toBe(true);
+    await act(async () => renderer.unmount());
+  });
 });

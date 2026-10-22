@@ -25,6 +25,7 @@ type ConfirmDialogTone = 'default' | 'warning' | 'danger';
 type Props = {
   visible: boolean;
   title: string;
+  titleContent?: React.ReactNode;
   message: string;
   confirmLabel: string;
   cancelLabel?: string;
@@ -77,6 +78,7 @@ function resolveToneMeta(
 function ConfirmDialogBase({
   visible,
   title,
+  titleContent,
   message,
   confirmLabel,
   cancelLabel = '취소',
@@ -159,7 +161,7 @@ function ConfirmDialogBase({
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.copyBlock}>
-            <AppText
+            {titleContent ?? <AppText
               preset={textPresets.title}
               style={[
                 styles.title,
@@ -168,7 +170,7 @@ function ConfirmDialogBase({
               ]}
             >
               {title}
-            </AppText>
+            </AppText>}
 
             <View style={styles.messageBlock}>
               {lines.map((line, index) =>

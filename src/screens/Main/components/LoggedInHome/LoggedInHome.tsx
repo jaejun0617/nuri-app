@@ -49,6 +49,8 @@ import {
 } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LavenderScreenBackground } from '../../../../components/common/LavenderScreenBackground';
+import { loadHomeTitleSelection } from '../../../../services/activity/homeTitleSelection';
 import Feather from '../../../../components/icons/NuriFeatherIcon';
 import MaterialCommunityIcons from '../../../../components/icons/NuriMaterialIcon';
 import NuriSemanticIcon from '../../../../components/icons/NuriSemanticIcon';
@@ -120,6 +122,7 @@ import {
 } from './HomeEditorialStates';
 import { HomeAmbientBubbleCanvas } from './HomeAmbientBubbleCanvas';
 import { HomeHeroPhotoBackground } from './HomeHeroPhotoBackground';
+import { useHomePetSwitchTransition } from './useHomePetSwitchTransition';
 import {
   HomeHeroContentSheet,
   HomeHeroInfoPanel,
@@ -196,9 +199,10 @@ import {
   isMemorialPet,
 } from '../../../../services/pets/memorial';
 import {
-  fetchHomePetTitleBadge,
-  loadCachedHomePetTitleBadge,
+  fetchHomePetTitleBadgeIdentity,
+  loadCachedHomePetTitleBadgeIdentity,
   saveCachedHomePetTitleBadge,
+  type HomeTitleBadgeIdentity,
 } from '../../../../services/activity/homeTitleBadge';
 import {
   loadHomeRecordScheduleCache,
@@ -2652,7 +2656,8 @@ export default function LoggedInHome() {
 
   const activePetId = selectedPet?.id ?? null;
   const walkMemoryRevision = useQuery<number>({ queryKey: ['walk', sessionUserId, activePetId, 'memory-revision'], queryFn: () => 0, enabled: false }).data ?? 0;
-  const [homeTitleBadge, setHomeTitleBadge] = useState<string | null>(null);
+  const [homeTitleBadge, setHomeTitleBadge] = useState<(HomeTitleBadgeIdentity & { petId: string; ownerId: string }) | null>(null);
+  const activeHomeTitleBadge = homeTitleBadge?.petId === activePetId && homeTitleBadge?.ownerId === sessionUserId ? homeTitleBadge : null;
   const homeScrollStorageKey = useMemo(
     () => activePetId ?? 'logged-in-home-default',
     [activePetId],
@@ -2663,22 +2668,13 @@ export default function LoggedInHome() {
   );
 
   // ---------------------------------------------------------
-  // 3.5) pet switch transition (fade + lift)
+  // 3.5) pet switch presentation follows the committed selection
   // ---------------------------------------------------------
-  const [switching, setSwitching] = useState(false);
-
-  const OUT_OPACITY = 0.92;
-  const OUT_LIFT_PX = 0.1;
-
-  const svOpacity = useSharedValue(1);
-  const svTranslateY = useSharedValue(0);
-
-  const animatedContentStyle = useAnimatedStyle(() => {
-    return {
-      opacity: svOpacity.value,
-      transform: [{ translateY: svTranslateY.value }],
-    };
-  }, []);
+  const selectedAvatarUri = useMemo(
+    () => selectedPet?.avatarUrl?.trim() || null,
+    [selectedPet?.avatarUrl],
+  );
+  const petSwitchTransition = useHomePetSwitchTransition(activePetId, isScreenFocused, selectedAvatarUri);
   const [deferredHomeDataReady, setDeferredHomeDataReady] = useState(false);
 
   // ---------------------------------------------------------
@@ -2876,27 +2872,37 @@ export default function LoggedInHome() {
       };
     }
 
-    loadCachedHomePetTitleBadge({ userId: sessionUserId, petId: activePetId })
-      .then(cachedTitle => {
-        if (!cancelled && cachedTitle) {
-          setHomeTitleBadge(cachedTitle);
+    let fetched = false;
+    const selection = loadHomeTitleSelection({ userId: sessionUserId, petId: activePetId }).catch(() => null);
+    loadCachedHomePetTitleBadgeIdentity({ userId: sessionUserId, petId: activePetId })
+      .then(async cachedTitle => {
+        const chosen = await selection;
+        if (!cancelled && !fetched && cachedTitle) {
+          setHomeTitleBadge({ ...(chosen ?? cachedTitle), petId: activePetId, ownerId: sessionUserId });
+        } else if (!cancelled && !fetched && chosen) {
+          setHomeTitleBadge({ ...chosen, petId: activePetId, ownerId: sessionUserId });
         }
       })
       .catch(() => {});
 
     const task = scheduleIdleTask(() => {
-      fetchHomePetTitleBadge(activePetId)
-        .then(title => {
+      fetchHomePetTitleBadgeIdentity(activePetId)
+        .then(async title => {
+          const chosen = await selection;
           if (cancelled) return;
-          setHomeTitleBadge(title);
+          fetched = true;
+          const visibleTitle = chosen ?? title;
+          setHomeTitleBadge(visibleTitle ? { ...visibleTitle, petId: activePetId, ownerId: sessionUserId } : null);
           saveCachedHomePetTitleBadge({
             userId: sessionUserId,
             petId: activePetId,
-            title,
+            title: title?.titleName ?? null,
+            titleKey: title?.titleKey ?? null,
           }).catch(() => {});
         })
-        .catch(() => {
-          if (!cancelled) setHomeTitleBadge(null);
+        .catch(async () => {
+          const chosen = await selection;
+          if (!cancelled) setHomeTitleBadge(chosen ? { ...chosen, petId: activePetId, ownerId: sessionUserId } : null);
         });
     });
 
@@ -2983,10 +2989,6 @@ export default function LoggedInHome() {
     return normalized;
   }, [selectedPet?.tags]);
 
-  const selectedAvatarUri = useMemo(
-    () => selectedPet?.avatarUrl?.trim() || null,
-    [selectedPet?.avatarUrl],
-  );
   const hasMultiplePets = pets.length > 1;
   const petSelectionVisible = hasMultiplePets && isScreenFocused &&
     petSelectionOwnerId !== null && petSelectionOwnerId === sessionUserId;
@@ -3258,52 +3260,18 @@ export default function LoggedInHome() {
 
   const onPressPetChip = useCallback(
     (petId: string) => {
-      if (switching) return;
-      if (petId === activePetId) return;
+      if (petId === activePetId || !pets.some(pet => pet.id === petId)) return;
 
       bootstrapRecords(petId).catch(() => {});
       bootstrapSchedules(petId).catch(() => {});
-
-      setSwitching(true);
-
-      svOpacity.value = withTiming(OUT_OPACITY, {
-        duration: 140,
-        easing: Easing.out(Easing.cubic),
-      });
-
-      svTranslateY.value = withTiming(
-        OUT_LIFT_PX,
-        { duration: 140, easing: Easing.out(Easing.cubic) },
-        finished => {
-          if (!finished) {
-            runOnJS(setSwitching)(false);
-            return;
-          }
-
-          runOnJS(selectPet)(petId);
-
-          svOpacity.value = withTiming(1, {
-            duration: 180,
-            easing: Easing.out(Easing.cubic),
-          });
-          svTranslateY.value = withTiming(
-            0,
-            { duration: 180, easing: Easing.out(Easing.cubic) },
-            () => runOnJS(setSwitching)(false),
-          );
-        },
-      );
+      selectPet(petId);
     },
     [
-      switching,
       activePetId,
+      pets,
       bootstrapRecords,
       bootstrapSchedules,
       selectPet,
-      svOpacity,
-      svTranslateY,
-      OUT_OPACITY,
-      OUT_LIFT_PX,
     ],
   );
 
@@ -3599,7 +3567,6 @@ export default function LoggedInHome() {
         </View>
         <View onLayout={ambientSectionLayoutHandlers.schedule}>
           <ScheduleSection
-            key={activePetId}
             petId={activePetId}
             scheduleItems={visibleScheduleItems}
             isFocused={isScreenFocused}
@@ -3682,10 +3649,11 @@ export default function LoggedInHome() {
             sectionOrigin={ambientContentY + ambientLowerY}
           />
         ) : null}
+        <LavenderScreenBackground testID="home-background-gradient" statusBarInset={0} />
         <ScrollView
           ref={homeScrollRef}
           keyboardShouldPersistTaps="handled"
-          style={[styles.scroll, { backgroundColor: heroColors.surface }]}
+          style={[styles.scroll, { backgroundColor: 'transparent' }]}
           contentContainerStyle={[
             styles.scrollContent,
             {
@@ -3710,23 +3678,26 @@ export default function LoggedInHome() {
                 homeViewportHeight || windowHeight - insets.top,
                 bottomTabBarHeight,
               ),
-              backgroundColor: heroColors.surface,
+              backgroundColor: 'transparent',
             }}
           >
             <View style={{ position: 'relative' }}>
-              <HomeHeroPhotoBackground uri={selectedAvatarUri} frameWidth={heroFrameWidth} colors={heroColors} />
+              <Animated.View testID="home-hero-photo-transition" style={petSwitchTransition.photoStyle}>
+                <HomeHeroPhotoBackground uri={selectedAvatarUri} frameWidth={heroFrameWidth} colors={heroColors} onPhotoSettled={petSwitchTransition.onPhotoSettled} />
+              </Animated.View>
               <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
                 {homeHeader}
                 {activeAlarmNotice}
               </View>
             </View>
-            <Animated.View style={animatedContentStyle}>
+            <Animated.View testID="home-hero-info-transition" style={petSwitchTransition.contentStyle}>
               <HomeHeroInfoPanel
                 colors={heroColors}
                 containerWidth={heroFrameWidth}
                 petTheme={petTheme}
                 profilePetName={profilePetName}
-                titleBadge={homeTitleBadge}
+                titleBadge={activeHomeTitleBadge?.titleName ?? null}
+                titleBadgeKey={activeHomeTitleBadge?.titleKey ?? null}
                 togetherDays={togetherDays}
                 hasMultiplePets={hasMultiplePets}
                 onPressPetSelect={openPetSelectionSheet}
@@ -3736,9 +3707,7 @@ export default function LoggedInHome() {
             </Animated.View>
           </View>
 
-          {/* Fade container */}
-          <Animated.View
-            style={animatedContentStyle}
+          <View
             onLayout={handleAmbientContentLayout}
             pointerEvents="box-none"
           >
@@ -3758,7 +3727,7 @@ export default function LoggedInHome() {
 
               {lowerHomeSections}
             </HomeHeroContentSheet>
-          </Animated.View>
+          </View>
         </ScrollView>
 
         <HomePetSelectionSheet

@@ -2,7 +2,7 @@
 // 목적:
 // - "더보기"를 탭 이동이 아니라 오버레이(drawer)로 표시
 // - ✅ 오른쪽에서 슬라이드 + 배경 페이드
-// - 닫힘 애니메이션 완료 후 unmount. 실시간 블러는 화면 텍스처로 캐시하지 않는다.
+// - 닫힘·unmount 후 이동하며 메뉴의 고정 표면만 움직이는 동안 임시 캐시한다.
 
 import React, {
   useEffect,
@@ -34,10 +34,20 @@ export default function MoreDrawer({ open, onClose }: Props) {
   // 0) mount control (닫힐 때 애니메이션 끝나고 unmount)
   // ---------------------------------------------------------
   const [mounted, setMounted] = useState(open);
+  const [moving, setMoving] = useState(open);
+  const openRef = useRef(open);
+  openRef.current = open;
+  const pendingNavigation = useRef<(() => void) | null>(null);
 
   useEffect(() => {
-    if (open) setMounted(true);
-  }, [open]);
+    if (open) {
+      pendingNavigation.current = null;
+      if (!mounted) {
+        setMoving(true);
+        setMounted(true);
+      }
+    }
+  }, [mounted, open]);
 
   // ---------------------------------------------------------
   // 1) animation values
@@ -62,51 +72,61 @@ export default function MoreDrawer({ open, onClose }: Props) {
     [drawerWidth, progress],
   );
 
-  const runOpen = useCallback(() => {
-    Animated.spring(progress, {
-      toValue: 1,
-      useNativeDriver: true,
-      // ✅ 부드러운 감속(튕김 최소)
-      speed: 18,
-      bounciness: 0,
-      // Android에서 UI 인터랙션과 충돌 줄이기
-      isInteraction: false,
-    }).start();
-  }, [progress]);
-
-  const runClose = useCallback(() => {
-    Animated.timing(progress, {
-      toValue: 0,
-      duration: 180,
-      easing: Easing.out(Easing.cubic),
-      useNativeDriver: true,
-      isInteraction: false,
-    }).start(({ finished }) => {
-      if (finished) setMounted(false); // ✅ 애니메이션 끝나고 unmount
-    });
-  }, [progress]);
-
-  // ---------------------------------------------------------
-  // 2) open/close effect
-  // ---------------------------------------------------------
   useEffect(() => {
-    if (open) runOpen();
-    else runClose();
-  }, [open, runOpen, runClose]);
+    if (!mounted) return;
+    let cancelled = false;
+    setMoving(true);
+    const animation = open
+      ? Animated.spring(progress, {
+          toValue: 1, useNativeDriver: true, speed: 18, bounciness: 0, isInteraction: false,
+        })
+      : Animated.timing(progress, {
+          toValue: 0, duration: 180, easing: Easing.out(Easing.cubic), useNativeDriver: true, isInteraction: false,
+        });
+    animation.start(({ finished }) => {
+      if (!finished || cancelled) return;
+      setMoving(false);
+      if (!openRef.current) setMounted(false);
+    });
+    return () => {
+      cancelled = true;
+      animation.stop();
+    };
+  }, [mounted, open, progress]);
+
+  // Let content cleanup commit before starting the destination transition.
+  useEffect(() => {
+    if (mounted || open) return;
+    const navigate = pendingNavigation.current;
+    pendingNavigation.current = null;
+    navigate?.();
+  }, [mounted, open]);
+
+  useEffect(() => () => { pendingNavigation.current = null; }, []);
+
+  const requestClose = useCallback(() => {
+    pendingNavigation.current = null;
+    onClose();
+  }, [onClose]);
+  const requestNavigation = useCallback((navigate: () => void) => {
+    if (!openRef.current || pendingNavigation.current) return;
+    pendingNavigation.current = navigate;
+    onClose();
+  }, [onClose]);
 
   // ---------------------------------------------------------
   // 3) Android back handler
   // ---------------------------------------------------------
   useEffect(() => {
-    if (!open) return;
+    if (!mounted) return;
 
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
-      onClose();
+      requestClose();
       return true;
     });
 
     return () => sub.remove();
-  }, [open, onClose]);
+  }, [mounted, requestClose]);
 
   // ---------------------------------------------------------
   // 4) render
@@ -115,11 +135,12 @@ export default function MoreDrawer({ open, onClose }: Props) {
 
   return (
     <View
+      testID="more-drawer-overlay"
       pointerEvents={open ? 'auto' : 'none'}
       style={StyleSheet.absoluteFill}
     >
       {/* overlay */}
-      <Pressable onPress={onClose} style={StyleSheet.absoluteFill}>
+      <Pressable onPress={requestClose} style={StyleSheet.absoluteFill}>
         <Animated.View
           style={[
             StyleSheet.absoluteFill,
@@ -130,6 +151,8 @@ export default function MoreDrawer({ open, onClose }: Props) {
 
       {/* drawer */}
       <Animated.View
+        testID="more-drawer-motion"
+        renderToHardwareTextureAndroid={moving}
         style={[
           styles.drawer,
           {
@@ -138,7 +161,7 @@ export default function MoreDrawer({ open, onClose }: Props) {
           },
         ]}
       >
-        <MoreDrawerContent onRequestClose={onClose} />
+        <MoreDrawerContent onRequestClose={requestClose} onRequestNavigate={requestNavigation} />
       </Animated.View>
     </View>
   );

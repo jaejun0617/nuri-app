@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, TextInput, TouchableOpacity } from 'react-native';
+import { Modal, TextInput, TouchableOpacity, Text } from 'react-native';
 import TestRenderer from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 
@@ -29,6 +29,7 @@ type RenderDialogOptions = {
   confirmDisabled?: boolean;
   onCancel?: () => void;
   onConfirm?: () => void;
+  titleContent?: React.ReactNode;
 };
 
 function renderDialog({
@@ -36,6 +37,7 @@ function renderDialog({
   confirmDisabled,
   onCancel = jest.fn(),
   onConfirm = jest.fn(),
+  titleContent,
 }: RenderDialogOptions = {}) {
   let renderer!: TestRenderer.ReactTestRenderer;
 
@@ -45,6 +47,7 @@ function renderDialog({
         <ConfirmDialog
           visible
           title="확인"
+          titleContent={titleContent}
           message="계속 진행할까요?"
           confirmLabel="확인"
           keyboardAware={keyboardAware}
@@ -62,6 +65,13 @@ function renderDialog({
 }
 
 describe('ConfirmDialog keyboard-aware opt-in', () => {
+  it('allows a scoped custom heading without replacing its body or confirmation callbacks', () => {
+    const { renderer, onConfirm } = renderDialog({ titleContent: <Text testID="custom-heading">강조 제목</Text> });
+    expect(renderer.root.findByProps({ testID: 'custom-heading' }).props.children).toBe('강조 제목');
+    expect(renderer.root.findAllByType(TouchableOpacity)[1].props.onPress).toBe(onConfirm);
+    expect(JSON.stringify(renderer.toJSON())).toContain('계속 진행할까요?');
+    TestRenderer.act(() => renderer.unmount());
+  });
   it('keeps existing callers keyboard-disabled by default', () => {
     const { renderer } = renderDialog();
 

@@ -72,7 +72,7 @@ import {
 import { MORE_MENU } from '../../components/MoreDrawer/moreMenuVisualTokens';
 import MoreMonthlyExpenseSummary from '../../components/MoreDrawer/MoreMonthlyExpenseSummary';
 
-import AppNavigationToolbar from '../../components/navigation/AppNavigationToolbar';
+import AppNavigationToolbar, { type ActiveTabKey } from '../../components/navigation/AppNavigationToolbar';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
 import PetThemePicker from '../../components/pets/PetThemePicker';
@@ -137,6 +137,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type Props = {
   onRequestClose: () => void;
+  onRequestNavigate?: (navigate: () => void) => void;
 };
 
 type PasswordModalProps = {
@@ -1208,7 +1209,7 @@ const ProfileEditModal = memo(function ProfileEditModal({
   );
 });
 
-export default function MoreDrawerContent({ onRequestClose }: Props) {
+export default function MoreDrawerContent({ onRequestClose, onRequestNavigate }: Props) {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -1470,22 +1471,27 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
   const closeAndNavigate = useCallback(
     (navigate: () => void) => {
-      try {
-        const returnOffset = currentMenuScrollOffsetRef.current;
+      const safeNavigate = () => {
+        try {
+          navigate();
+        } catch (error) {
+          const { title, message } = getBrandedErrorMeta(error, 'generic');
+          showToast({ tone: 'error', title, message, durationMs: 2800 });
+        }
+      };
+      const returnOffset = currentMenuScrollOffsetRef.current;
+      if (onRequestNavigate) {
+        onRequestNavigate(safeNavigate);
+      } else {
+        // Non-animated hosts have no closing transition to await.
         onRequestClose();
         preserveMoreDrawerReturnPosition(returnOffset);
-        navigate();
-      } catch (error) {
-        const { title, message } = getBrandedErrorMeta(error, 'generic');
-        showToast({
-          tone: 'error',
-          title,
-          message,
-          durationMs: 2800,
-        });
+        safeNavigate();
+        return;
       }
+      preserveMoreDrawerReturnPosition(returnOffset);
     },
-    [onRequestClose],
+    [onRequestClose, onRequestNavigate],
   );
 
   const openPetManagement = useCallback(() => {
@@ -1531,11 +1537,22 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
         screen: 'TimelineTab',
         params: {
           screen: 'MonthlyExpenses',
+          initial: false,
           params: { monthKey, entrySource: 'more', entryRequestId: Date.now() },
         },
       }),
     );
   }, [closeAndNavigate, navigation]);
+
+  const onNavigateMoreTab = useCallback((target: Exclude<ActiveTabKey, 'more'>) => {
+    if (target === 'timeline') {
+      openTimeline();
+      return;
+    }
+    closeAndNavigate(() => navigation.navigate('AppTabs', {
+      screen: target === 'home' ? 'HomeTab' : target === 'community' ? 'CommunityTab' : 'GuestbookTab',
+    }));
+  }, [closeAndNavigate, navigation, openTimeline]);
 
   const openGuideList = useCallback(() => {
     closeAndNavigate(() =>
@@ -2364,7 +2381,8 @@ export default function MoreDrawerContent({ onRequestClose }: Props) {
 
         <AppNavigationToolbar
           activeKey="more"
-          onBeforeNavigate={onRequestClose}
+          onNavigateTab={onNavigateMoreTab}
+          onPressMore={onRequestClose}
           onLayout={handleToolbarLayout}
         />
       </BlurCaptureExclusion>

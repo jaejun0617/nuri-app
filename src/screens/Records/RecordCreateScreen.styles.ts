@@ -1,5 +1,7 @@
+import { TIMELINE_DESIGN as C, TIMELINE_TYPE as T } from '../../theme/timelineDesign';
 import { StyleSheet } from 'react-native';
 import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
+import { LAVENDER_CANVAS } from '../../theme/lavenderCanvas';
 
 const BRAND = '#4B5563';
 const BRAND_DARK = '#303840';
@@ -9,7 +11,7 @@ const BORDER = '#E5EAF3';
 const BG = PRODUCT_CANVAS_COLOR;
 const CARD = '#FFFFFF';
 
-export const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   screen: {
     flex: 1,
     backgroundColor: BG,
@@ -605,4 +607,35 @@ export const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '900',
   },
+});
+
+export const styles = StyleSheet.create({
+  ...baseStyles,
+  screen: {flex:1,backgroundColor:LAVENDER_CANVAS.base},
+  header: {...baseStyles.header,borderBottomWidth:0,paddingHorizontal:16,paddingBottom:8},
+  headerTitle:{...baseStyles.headerTitle,...T.screen,color:C.ink},
+  content:{...baseStyles.content,paddingHorizontal:16,paddingTop:8},
+  formPanel:{padding:0},
+  dateCard:{...baseStyles.dateCard,minHeight:48,borderRadius:10,paddingHorizontal:14,backgroundColor:'transparent',borderColor:'transparent'},
+  dateText:{...T.input,color:C.ink},
+  field:{marginTop:20},
+  fieldLabel:{...T.card,color:C.ink,marginBottom:8},
+  // The existing input keeps its native focus/IME owner; glass is paint behind it.
+  inputSurface:{borderRadius:10,position:'relative'},
+  input:{...baseStyles.input,minHeight:48,borderRadius:10,borderColor:'transparent',backgroundColor:'transparent',color:C.ink,paddingHorizontal:14,paddingVertical:12,...T.input},
+  inputDisabled:{...baseStyles.inputDisabled,backgroundColor:'transparent'},
+  textArea:{minHeight:96,textAlignVertical:'top'},
+  moodGrid:{flexDirection:'row',flexWrap:'wrap',gap:6},
+  moodChip:{width:'23%',minHeight:60,paddingHorizontal:2,paddingVertical:8,borderRadius:10,borderWidth:1,borderColor:'transparent',backgroundColor:'transparent',alignItems:'center',justifyContent:'center',gap:5},
+  moodChipActive:{backgroundColor:'transparent',borderColor:'transparent'},
+  moodText:{...T.meta,color:C.muted},moodTextActive:{color:C.primary},
+  optionChip:{...baseStyles.optionChip,minHeight:48,backgroundColor:'transparent',borderColor:'transparent'},
+  optionChipActive:{backgroundColor:'transparent',borderColor:'transparent'},
+  checkRow:{...baseStyles.checkRow,minHeight:48},
+  tagSelector:{...baseStyles.tagSelector,minHeight:48,borderRadius:16,borderColor:'transparent',backgroundColor:'transparent'},
+  selectedTagChip:{...baseStyles.selectedTagChip,borderRadius:16,backgroundColor:C.selected},
+  selectedTagText:{...T.meta,color:C.primary},helperText:{...T.caption,color:C.muted,marginTop:6},
+  bottomSubmitBtn:{...baseStyles.bottomSubmitBtn,borderRadius:10,marginTop:20,minHeight:48},
+  bottomSubmitText:{...T.button,color:C.surface},
+
 });

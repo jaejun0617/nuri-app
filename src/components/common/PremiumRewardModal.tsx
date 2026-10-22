@@ -1,30 +1,12 @@
-import { formatPetCopy } from '../../utils/petDisplayName';
-// 파일: src/components/common/PremiumRewardModal.tsx
-// 역할:
-// - XP/포인트 획득 결과를 NURI 톤의 프리미엄 모달로 표시한다.
-// - 서버 XP 계약은 변경하지 않고, write-path가 받은 AwardXpResult만 presentation으로 보여준다.
-
-import React, { memo, useMemo } from 'react';
-import {
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  useWindowDimensions,
-  View,
-} from 'react-native';
-import Feather from '../icons/NuriFeatherIcon';
-import { useTheme } from 'styled-components/native';
-
+import React, { memo, useEffect, useMemo, useState } from 'react';
+import { Image, Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
+import LinearGradient from 'react-native-linear-gradient';
 import AppText from '../../app/ui/AppText';
-import CtaButton, { CtaText } from '../../app/ui/CtaButton';
+import NuriSemanticIcon from '../icons/NuriSemanticIcon';
 import { useOptionalSafeAreaInsets } from '../../hooks/useOptionalSafeAreaInsets';
 import { buildPremiumRewardLevelStatus } from '../../services/activity/rewardNoticePresentation';
 import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
-import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
-
+import { formatPetCopy } from '../../utils/petDisplayName';
 
 type Props = {
   petName?: string | null;
@@ -42,10 +24,21 @@ type Props = {
   roleBasedActions?: boolean;
 };
 
+const C = {
+  ink: '#161331',
+  muted: '#716A9C',
+  accent: '#8354FF',
+  track: '#E2D7FC',
+  panel: 'rgba(131,84,255,0.055)',
+  overlay: 'rgba(24,20,45,0.40)',
+};
+const COMPANION = require('../../assets/activity/growth-companion.png');
+const BRAND = require('../../assets/logo/logo_v2.png');
 function formatXp(value: number): string {
   return Math.max(0, value).toLocaleString('ko-KR');
 }
 
+/** Present the existing award only; checkbox changes persist through the caller on confirmation. */
 function PremiumRewardModalBase({
   petName,
   visible,
@@ -56,278 +49,106 @@ function PremiumRewardModalBase({
   streakDays = null,
   title = '경험치가 예쁘게 쌓였어요',
   message = '오늘의 활동이 성장 기록에 반영됐어요.',
-  accentColor,
   onClose,
   onDismissToday,
-  roleBasedActions = false,
 }: Props) {
-  const theme = useTheme();
   const insets = useOptionalSafeAreaInsets();
-  const { height: windowHeight } = useWindowDimensions();
+  const { width, height: windowHeight } = useWindowDimensions();
+  const compact = width < 360 || windowHeight < 720;
   const maxCardHeight = getResponsiveOverlayMaxHeight({
     windowHeight,
     topInset: insets.top,
     bottomInset: insets.bottom,
     verticalMargin: 20,
   });
-
-
-  const petTheme = NEUTRAL_UI_PALETTE;
-  const primaryColor = accentColor ?? petTheme.primary;
-  const safeAwarded = Math.max(0, xpAwarded);
+  const [hideToday, setHideToday] = useState(false);
+  useEffect(() => { if (visible) setHideToday(false); }, [visible]);
   const levelStatus = useMemo(
     () => buildPremiumRewardLevelStatus({ totalXp, level }),
     [level, totalXp],
   );
-  const hasXpAward = safeAwarded > 0;
-  const rewardTitle = hasXpAward
-    ? `+${formatXp(safeAwarded)} XP`
-    : '성장 기록 반영';
+  const rewardTitle = xpAwarded > 0 ? `+${formatXp(xpAwarded)} XP` : '성장 기록 반영';
+  const confirm = () => {
+    if (hideToday && onDismissToday) onDismissToday();
+    else onClose();
+  };
 
+  if (!visible) return null;
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-    >
+    <Modal visible transparent animationType="fade" statusBarTranslucent navigationBarTranslucent onRequestClose={onClose}>
       <View style={styles.backdrop}>
-        <Pressable
-          accessible={false}
-          style={[styles.scrim, { backgroundColor: theme.colors.overlay }]}
-          onPress={onClose}
-        />
-
-        <View
-          accessibilityViewIsModal
-          accessible
-          accessibilityRole="alert"
-          style={[
-            styles.card,
-            {
-              backgroundColor: theme.colors.surfaceElevated,
-              borderColor: theme.colors.border,
-              maxHeight: maxCardHeight,
-            },
-          ]}
-        >
-          <TouchableOpacity
-            activeOpacity={0.86}
-            accessibilityRole="button"
-            accessibilityLabel="보상 안내 닫기"
-            style={[styles.closeButton, { backgroundColor: petTheme.soft }]}
-            onPress={onClose}
-          >
-            <Feather name="x" size={18} color={theme.colors.textSecondary} />
+        <Pressable accessible={false} style={styles.scrim} onPress={onClose} />
+        <View testID="reward-modal-card" accessibilityViewIsModal importantForAccessibility="yes"
+          style={[styles.card, { maxHeight: maxCardHeight }]}>
+          <LinearGradient pointerEvents="none" accessible={false}
+            colors={['#FFFAFF', '#FFFFFF', '#FFF9FA']} locations={[0, 0.5, 1]}
+            start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
+          <TouchableOpacity testID="reward-modal-close" accessibilityRole="button"
+            accessibilityLabel="보상 안내 닫기" onPress={onClose} style={styles.closeButton}>
+            <NuriSemanticIcon family="feather" name="x" preserveOriginal size={22} color={C.muted} accessible={false} />
           </TouchableOpacity>
-
-          <ScrollView
-            style={styles.cardScroll}
-            contentContainerStyle={styles.cardContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <AppText
-              preset="unifiedBody"
-              style={[styles.eyebrow, { color: primaryColor }]}
-            >
-              NURI REWARD
-            </AppText>
-            <AppText
-              typographyRole="celebration"
-              preset="unifiedTitle"
-              style={[styles.title, { color: theme.colors.textPrimary }]}
-            >
-              {title}
-            </AppText>
-            <AppText
-              preset="unifiedBody"
-              style={[styles.message, { color: theme.colors.textSecondary }]}
-            >
-              {message}
-            </AppText>
-
-            <View
-              style={[styles.rewardPanel, { backgroundColor: petTheme.soft }]}
-            >
-              <View style={styles.rewardHeader}>
-                <AppText
-                  typographyRole="celebration"
-                  preset="unifiedTitle"
-                  style={[styles.rewardTitle, { color: primaryColor }]}
-                >
-                  {rewardTitle}
-                </AppText>
-                {leveledUp ? (
-                  <View
-                    style={[
-                      styles.levelUpPill,
-                      { backgroundColor: primaryColor },
-                    ]}
-                  >
-                    <AppText preset="unifiedBody" style={styles.levelUpText}>
-                      LEVEL UP
-                    </AppText>
-                  </View>
-                ) : null}
+          <ScrollView style={styles.cardScroll} contentContainerStyle={styles.cardContent}
+            showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+            <Image testID="reward-illustration" source={COMPANION} resizeMode="contain"
+              accessible={false} style={[styles.illustration, compact && styles.illustrationCompact]} />
+            <AppText preset="unifiedTitle" styleOverridesPreset accessibilityRole="header"
+              style={[styles.title, compact && styles.titleCompact]}>{title}</AppText>
+            <AppText preset="unifiedBody" styleOverridesPreset style={styles.message}>{message}</AppText>
+            <View style={styles.awardRow}>
+              <View style={styles.spark} pointerEvents="none" accessible={false}>
+                <View style={styles.sparkTop} /><View style={styles.sparkBottom} />
               </View>
-
-              <View style={styles.metricRow}>
-                <View
-                  style={[
-                    styles.metricCard,
-                    { backgroundColor: theme.colors.surfaceElevated },
-                  ]}
-                >
-                  <AppText preset="unifiedBody" style={styles.metricLabel}>
-                    누적 XP
-                  </AppText>
-                  <AppText
-                    preset="unifiedTitle"
-                    style={[
-                      styles.metricValue,
-                      { color: theme.colors.textPrimary },
-                    ]}
-                  >
-                    {formatXp(totalXp)}
-                  </AppText>
-                </View>
-                <View
-                  style={[
-                    styles.metricCard,
-                    { backgroundColor: theme.colors.surfaceElevated },
-                  ]}
-                >
-                  <AppText preset="unifiedBody" style={styles.metricLabel}>
-                    현재 레벨
-                  </AppText>
-                  <AppText
-                    preset="unifiedTitle"
-                    style={[
-                      styles.metricValue,
-                      { color: theme.colors.textPrimary },
-                    ]}
-                  >
-                    Lv.{levelStatus.level}
-                  </AppText>
-                </View>
-              </View>
-
-              <View style={styles.levelProgressBlock}>
-                <View
-                  style={[
-                    styles.levelProgressTrack,
-                    { backgroundColor: petTheme.border },
-                  ]}
-                >
-                  <View
-                    style={[
-                      styles.levelProgressFill,
-                      {
-                        width: `${Math.round(levelStatus.progress * 100)}%`,
-                        backgroundColor: primaryColor,
-                      },
-                    ]}
-                  />
-                </View>
-                <AppText
-                  preset="unifiedBody"
-                  style={[
-                    styles.levelStatusText,
-                    {
-                      color: levelStatus.isMaxLevel
-                        ? primaryColor
-                        : theme.colors.textSecondary,
-                    },
-                  ]}
-                >
-                  {levelStatus.statusLabel}
-                </AppText>
+              <AppText testID="reward-xp-value" preset="unifiedTitle" styleOverridesPreset
+                style={[styles.rewardTitle, compact && styles.rewardTitleCompact]}>{rewardTitle}</AppText>
+              <View style={[styles.spark, styles.sparkRight]} pointerEvents="none" accessible={false}>
+                <View style={styles.sparkTop} /><View style={styles.sparkBottom} />
               </View>
             </View>
-
-            {streakDays && streakDays > 0 ? (
-              <View
-                style={[
-                  styles.streakStrip,
-                  {
-                    borderColor: petTheme.border,
-                    backgroundColor: theme.colors.surface,
-                  },
-                ]}
-              >
-                <AppText
-                  preset="unifiedBody"
-                  style={[
-                    styles.streakText,
-                    { color: theme.colors.textSecondary },
-                  ]}
-                >
+            {leveledUp ? <AppText preset="unifiedMeta" styleOverridesPreset style={styles.levelUpText}>LEVEL UP</AppText> : null}
+            <View style={styles.rewardPanel}>
+              <View style={styles.metricRow}>
+                <View style={styles.metricCard}>
+                  <AppText preset="unifiedMeta" styleOverridesPreset style={styles.metricLabel}>누적 XP</AppText>
+                  <AppText testID="reward-total-xp" preset="unifiedTitle" styleOverridesPreset style={styles.metricValue}>{formatXp(totalXp)}</AppText>
+                </View>
+                <View style={[styles.metricCard, styles.metricDivider]}>
+                  <AppText preset="unifiedMeta" styleOverridesPreset style={styles.metricLabel}>현재 레벨</AppText>
+                  <AppText testID="reward-current-level" preset="unifiedTitle" styleOverridesPreset style={styles.metricValue}>Lv.{levelStatus.level}</AppText>
+                </View>
+              </View>
+              <View testID="reward-level-progress" style={styles.levelProgressTrack}
+                accessibilityRole="progressbar" accessibilityLabel="현재 레벨 성장"
+                accessibilityValue={{ min: 0, max: 100, now: Math.round(levelStatus.progress * 100) }}>
+                <LinearGradient colors={['#9064FF', '#7C50FF']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
+                  style={[styles.levelProgressFill, { width: `${Math.round(levelStatus.progress * 100)}%` }]} />
+              </View>
+              <AppText preset="unifiedMeta" styleOverridesPreset style={styles.levelStatusText}>{levelStatus.statusLabel}</AppText>
+            </View>
+            {streakDays !== null && streakDays > 0 ? (
+              <View style={styles.streakStrip}>
+                <Image testID="reward-streak-brand" source={BRAND} resizeMode="contain" accessible={false} style={styles.brand} />
+                <AppText preset="unifiedMeta" styleOverridesPreset style={styles.streakText}>
                   {formatPetCopy(`우리 아이와 ${streakDays}일 연속 산책 중이에요`, petName)}
                 </AppText>
               </View>
             ) : null}
-
-            {roleBasedActions ? (
-              <CtaButton
-                role="neutral"
-                accessibilityLabel="보상 안내 닫기"
-                onPress={onClose}
-                style={styles.primaryButton}
-              >
-                <CtaText preset="unifiedLabel" style={styles.primaryButtonText}>
-                  닫기
-                </CtaText>
-              </CtaButton>
-            ) : (
-              <TouchableOpacity
-                activeOpacity={0.92}
-                accessibilityRole="button"
-                accessibilityLabel="보상 안내 닫기"
-                style={[
-                  styles.primaryButton,
-                  { backgroundColor: primaryColor },
-                ]}
-                onPress={onClose}
-              >
-                <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
-                  닫기
-                </AppText>
-              </TouchableOpacity>
-            )}
-
-            {onDismissToday ? (
-              roleBasedActions ? (
-                <CtaButton
-                  role="secondary"
-                  accessibilityLabel="오늘 하루 보상 안내 보지 않기"
-                  onPress={onDismissToday}
-                  style={styles.dismissTodayButton}
-                >
-                  <CtaText preset="unifiedBody" style={styles.dismissTodayText}>
-                    오늘 하루 안 보기
-                  </CtaText>
-                </CtaButton>
-              ) : (
-                <TouchableOpacity
-                  activeOpacity={0.82}
-                  accessibilityRole="button"
-                  accessibilityLabel="오늘 하루 보상 안내 보지 않기"
-                  style={styles.dismissTodayButton}
-                  onPress={onDismissToday}
-                >
-                  <AppText
-                    preset="unifiedBody"
-                    style={[
-                      styles.dismissTodayText,
-                      { color: theme.colors.textMuted },
-                    ]}
-                  >
-                    오늘 하루 안 보기
-                  </AppText>
-                </TouchableOpacity>
-              )
-            ) : null}
           </ScrollView>
+          <TouchableOpacity testID="reward-confirm" accessibilityRole="button" accessibilityLabel="보상 안내 확인"
+            onPress={confirm} style={styles.primaryButton} activeOpacity={0.85}>
+            <LinearGradient pointerEvents="none" accessible={false} colors={['#8C58FF', '#7D4FFD']}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+            <AppText preset="unifiedLabel" styleOverridesPreset style={styles.primaryButtonText}>확인</AppText>
+          </TouchableOpacity>
+          {onDismissToday ? (
+            <TouchableOpacity testID="reward-dismiss-today" accessibilityRole="checkbox"
+              accessibilityLabel="오늘 하루 보상 안내 보지 않기" accessibilityState={{ checked: hideToday }}
+              style={styles.dismissTodayButton} onPress={() => setHideToday(current => !current)}>
+              <View style={[styles.checkbox, hideToday && styles.checkboxChecked]}>
+                {hideToday ? <NuriSemanticIcon family="feather" name="check" preserveOriginal size={13} color="#FFFFFF" accessible={false} /> : null}
+              </View>
+              <AppText preset="unifiedMeta" styleOverridesPreset style={styles.dismissTodayText}>오늘 하루 안 보기</AppText>
+            </TouchableOpacity>
+          ) : null}
         </View>
       </View>
     </Modal>
@@ -335,201 +156,47 @@ function PremiumRewardModalBase({
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    justifyContent: 'center',
-    paddingHorizontal: 22,
-  },
-  scrim: {
-    ...StyleSheet.absoluteFill,
-  },
+  backdrop: { flex: 1, justifyContent: 'center', paddingHorizontal: 22 },
+  scrim: { ...StyleSheet.absoluteFill, backgroundColor: C.overlay },
   card: {
-    width: '100%',
-    maxWidth: 440,
-    alignSelf: 'center',
-    borderRadius: 30,
-    borderWidth: 1,
-    paddingHorizontal: 22,
-    paddingTop: 58,
-    paddingBottom: 20,
-    alignItems: 'center',
-    overflow: 'hidden',
-    ...(Platform.OS === 'ios'
-      ? {
-          shadowColor: '#121826',
-          shadowOpacity: 0.24,
-          shadowRadius: 26,
-          shadowOffset: { width: 0, height: 16 },
-        }
-      : {
-          elevation: 13,
-        }),
+    width: '100%', maxWidth: 420, alignSelf: 'center', borderRadius: 30,
+    backgroundColor: '#FFFFFF', paddingHorizontal: 16, paddingTop: 24, paddingBottom: 12,
+    overflow: 'hidden', flexShrink: 1,
   },
-  cardScroll: { flexGrow: 0, width: '100%' },
-  cardContent: { width: '100%', alignItems: 'center' },
-  closeButton: {
-    position: 'absolute',
-    top: 16,
-    right: 16,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 2,
-  },
-  eyebrow: {
-    marginTop: 0,
-    fontSize: 11,
-    lineHeight: 15,
-    fontWeight: '900',
-    letterSpacing: 0,
-  },
-  title: {
-    marginTop: 8,
-    textAlign: 'center',
-    fontSize: 21,
-    lineHeight: 29,
-    fontWeight: '900',
-    letterSpacing: 0,
-  },
-  message: {
-    marginTop: 8,
-    textAlign: 'center',
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '600',
-    letterSpacing: 0,
-  },
-  rewardPanel: {
-    width: '100%',
-    marginTop: 18,
-    borderRadius: 24,
-    padding: 16,
-  },
-  rewardHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
-  },
-  rewardTitle: {
-    flex: 1,
-    fontSize: 28,
-    lineHeight: 34,
-    fontWeight: '900',
-    letterSpacing: 0,
-  },
-  levelUpPill: {
-    minHeight: 28,
-    borderRadius: 14,
-    paddingHorizontal: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  levelUpText: {
-    color: '#FFF8EE',
-    fontWeight: '900',
-    fontSize: 10,
-    lineHeight: 14,
-    letterSpacing: 0,
-  },
-  metricRow: {
-    marginTop: 14,
-    flexDirection: 'row',
-    gap: 10,
-  },
-  metricCard: {
-    flex: 1,
-    minHeight: 70,
-    borderRadius: 18,
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    justifyContent: 'center',
-  },
-  metricLabel: {
-    color: '#7B8494',
-    fontWeight: '800',
-    fontSize: 12,
-    lineHeight: 16,
-    letterSpacing: 0,
-  },
-  metricValue: {
-    marginTop: 4,
-    fontWeight: '900',
-    fontSize: 20,
-    lineHeight: 25,
-    letterSpacing: 0,
-  },
-  levelProgressBlock: {
-    marginTop: 14,
-    gap: 8,
-  },
-  levelProgressTrack: {
-    height: 8,
-    borderRadius: 999,
-    overflow: 'hidden',
-  },
-  levelProgressFill: {
-    height: '100%',
-    borderRadius: 999,
-  },
-  levelStatusText: {
-    textAlign: 'center',
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '900',
-    letterSpacing: 0,
-  },
-  streakStrip: {
-    width: '100%',
-    marginTop: 12,
-    minHeight: 40,
-    borderRadius: 16,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-  },
-  streakText: {
-    flexShrink: 1,
-    fontWeight: '800',
-    fontSize: 13,
-    lineHeight: 18,
-    letterSpacing: 0,
-  },
-  primaryButton: {
-    width: '100%',
-    marginTop: 18,
-    minHeight: 52,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  primaryButtonText: {
-    color: '#FFF8EE',
-    fontWeight: '900',
-    fontSize: 15,
-    lineHeight: 20,
-    letterSpacing: 0,
-  },
-  dismissTodayButton: {
-    marginTop: 12,
-    minHeight: 32,
-    paddingHorizontal: 12,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dismissTodayText: {
-    fontSize: 12,
-    lineHeight: 16,
-    fontWeight: '800',
-    letterSpacing: 0,
-  },
+  closeButton: { position: 'absolute', top: 6, right: 6, width: 48, height: 48, alignItems: 'center', justifyContent: 'center', zIndex: 2 },
+  cardScroll: { flexGrow: 0, flexShrink: 1, minHeight: 0, width: '100%' },
+  cardContent: { width: '100%', alignItems: 'center', paddingTop: 10, paddingBottom: 4 },
+  illustration: { width: 166, height: 130 },
+  illustrationCompact: { width: 140, height: 110 },
+  title: { marginTop: 6, textAlign: 'center', fontSize: 22, lineHeight: 30, fontWeight: '800', letterSpacing: 0, color: C.ink },
+  titleCompact: { fontSize: 20, lineHeight: 28 },
+  message: { marginTop: 6, maxWidth: 280, textAlign: 'center', fontSize: 14, lineHeight: 21, fontWeight: '600', letterSpacing: 0, color: C.muted },
+  awardRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 4, maxWidth: '100%' },
+  rewardTitle: { flexShrink: 1, textAlign: 'center', fontSize: 52, lineHeight: 64, fontWeight: '800', letterSpacing: 0, color: C.accent },
+  rewardTitleCompact: { fontSize: 46, lineHeight: 58 },
+  spark: { width: 18, height: 40, gap: 10, justifyContent: 'center' },
+  sparkRight: { transform: [{ scaleX: -1 }] },
+  sparkTop: { width: 14, height: 5, borderRadius: 3, backgroundColor: '#D8B5FD', transform: [{ rotate: '55deg' }], alignSelf: 'flex-end' },
+  sparkBottom: { width: 12, height: 5, borderRadius: 3, backgroundColor: '#E5C7FB', transform: [{ rotate: '15deg' }] },
+  levelUpText: { color: C.accent, fontSize: 12, lineHeight: 18, fontWeight: '700', textAlign: 'center' },
+  rewardPanel: { width: '100%', marginTop: 6, borderRadius: 20, paddingHorizontal: 14, paddingVertical: 12, backgroundColor: C.panel },
+  metricRow: { flexDirection: 'row' },
+  metricCard: { flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'center', gap: 4 },
+  metricDivider: { borderLeftWidth: 1, borderLeftColor: '#DBCCFC' },
+  metricLabel: { color: C.muted, fontSize: 12, lineHeight: 18, fontWeight: '600', letterSpacing: 0, textAlign: 'center' },
+  metricValue: { color: C.ink, fontSize: 26, lineHeight: 32, fontWeight: '700', letterSpacing: 0, textAlign: 'center' },
+  levelProgressTrack: { height: 10, borderRadius: 5, backgroundColor: C.track, overflow: 'hidden', marginTop: 12 },
+  levelProgressFill: { height: '100%', borderRadius: 5 },
+  levelStatusText: { color: C.muted, textAlign: 'center', fontSize: 12, lineHeight: 18, marginTop: 8, letterSpacing: 0 },
+  streakStrip: { width: '100%', minHeight: 36, marginTop: 10, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 18, backgroundColor: C.panel, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  brand: { width: 23, height: 21 },
+  streakText: { flexShrink: 1, color: C.muted, textAlign: 'center', fontSize: 12, lineHeight: 18, fontWeight: '600', letterSpacing: 0 },
+  primaryButton: { width: '100%', minHeight: 48, marginTop: 10, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
+  primaryButtonText: { color: '#FFFFFF', fontSize: 16, lineHeight: 22, fontWeight: '700', letterSpacing: 0 },
+  dismissTodayButton: { minHeight: 48, marginTop: 4, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
+  dismissTodayText: { color: C.muted, fontSize: 12, lineHeight: 18, fontWeight: '600', letterSpacing: 0 },
+  checkbox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1, borderColor: C.muted, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  checkboxChecked: { borderColor: C.accent, backgroundColor: C.accent },
 });
 
-const PremiumRewardModal = memo(PremiumRewardModalBase);
-
-export default PremiumRewardModal;
+export default memo(PremiumRewardModalBase);

@@ -12,7 +12,7 @@
 // - 탭 목록이나 param 타입을 바꾸면 하단 툴바, 기록 작성 복귀 흐름, More 드로어 동작이 함께 영향을 받는다.
 // - MoreTab은 실제 화면 이동이 아니라 오버레이를 여는 동작이므로 일반 탭처럼 취급하면 안 된다.
 
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useContext, useState } from 'react';
 import {
   View,
   StyleSheet,
@@ -22,7 +22,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { CommonActions, getFocusedRouteNameFromRoute, type NavigatorScreenParams } from '@react-navigation/native';
+import { CommonActions, NavigationContainerRefContext, StackActions, getFocusedRouteNameFromRoute, type NavigatorScreenParams } from '@react-navigation/native';
 import { useTheme } from 'styled-components/native';
 
 import MainScreen from '../screens/Main/MainScreen';
@@ -91,6 +91,7 @@ function CustomTabBar(
   },
 ) {
   const { state } = props;
+  const rootNavigation = useContext(NavigationContainerRefContext);
   const currentRoute = state.routes[state.index];
   const currentRouteName = currentRoute?.name;
   const activeKey =
@@ -118,6 +119,29 @@ function CustomTabBar(
     if (!route) return;
     const event = props.navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
     if (!event.defaultPrevented) {
+      if (target === 'timeline' && getFocusedRouteNameFromRoute(route) !== 'TimelineMain') {
+        // Reuse the existing main route instead of restoring a leftover expense/detail scene.
+        // The container assembles lazy child state that isn't always present in tab-bar state.
+        const rootState = rootNavigation?.getRootState();
+        const tabState = rootState?.key === state.key
+          ? rootState
+          : rootState?.routes.find(item => item.name === 'AppTabs')?.state;
+        const childState = tabState?.routes.find(item => item.key === route.key)?.state;
+        if (childState?.key) {
+          props.navigation.dispatch({ ...CommonActions.navigate({ name: route.name, merge: true }), target: state.key });
+          props.navigation.dispatch({
+            ...StackActions.popTo('TimelineMain', undefined, { merge: true }),
+            target: childState.key,
+          });
+          return;
+        } else {
+          props.navigation.dispatch({
+            ...CommonActions.navigate({ name: route.name, params: { screen: 'TimelineMain', merge: true, pop: true }, merge: true }),
+            target: state.key,
+          });
+          return;
+        }
+      }
       props.navigation.dispatch({ ...CommonActions.navigate({ name: route.name, merge: true }), target: state.key });
     }
   };

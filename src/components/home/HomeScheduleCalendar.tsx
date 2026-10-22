@@ -1,6 +1,6 @@
 import { usePetDisplayName } from '../../hooks/usePetDisplayName';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
-import React, { memo, useEffect, useMemo, useState } from 'react';
+import React, { memo, useEffect, useMemo, useRef, useState } from 'react';
 import {
   AppState,
   Pressable,
@@ -67,6 +67,19 @@ export const HomeScheduleCalendar = memo(function HomeScheduleCalendarView({
   const [month, setMonth] = useState(() => homeCalendarMonth(today));
   const [selectedDay, setSelectedDay] = useState(today);
   const [sheetMode, setSheetMode] = useState<'agenda' | 'create' | null>(null);
+  const [calendarPetId, setCalendarPetId] = useState(petId);
+  const calendarScopeRef = useRef({ petId });
+  if (calendarPetId !== petId) {
+    // Reset pet-owned UI before commit, without destroying all 42 native day cells.
+    const nextToday = getKstYmd();
+    calendarScopeRef.current = { petId };
+    setCalendarPetId(petId);
+    setToday(nextToday);
+    setMonth(homeCalendarMonth(nextToday));
+    setSelectedDay(nextToday);
+    setSheetMode(null);
+  }
+  const calendarScope = calendarScopeRef.current;
   useEffect(() => {
     if (!isFocused) {
       setSheetMode(null);
@@ -95,11 +108,13 @@ export const HomeScheduleCalendar = memo(function HomeScheduleCalendarView({
     month.slice(5, 7),
   )}월`;
   const navigateMonth = (amount: number) => {
+    if (calendarScopeRef.current !== calendarScope) return;
     const next = shiftHomeCalendarMonth(month, amount);
     setMonth(next);
     setSelectedDay(next);
   };
   const openDay = (ymd: string) => {
+    if (calendarScopeRef.current !== calendarScope) return;
     setSelectedDay(ymd);
     setMonth(homeCalendarMonth(ymd));
     const found = days.find(day => day.ymd === ymd);
@@ -108,9 +123,11 @@ export const HomeScheduleCalendar = memo(function HomeScheduleCalendarView({
     );
   };
   const create = () => {
+    if (calendarScopeRef.current !== calendarScope) return;
     setSheetMode('create');
   };
   const detail = (id: string) => {
+    if (calendarScopeRef.current !== calendarScope) return;
     setSheetMode(null);
     onPressDetail(id);
   };
@@ -337,7 +354,9 @@ export const HomeScheduleCalendar = memo(function HomeScheduleCalendarView({
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="선택 날짜의 모든 일정 보기"
-            onPress={() => setSheetMode('agenda')}
+            onPress={() => {
+              if (calendarScopeRef.current === calendarScope) setSheetMode('agenda');
+            }}
             style={styles.moreDay}
           >
             <AppText preset="unifiedMicro" color={accentDeepColor}>
@@ -381,8 +400,11 @@ export const HomeScheduleCalendar = memo(function HomeScheduleCalendarView({
           season={season}
           accentColor={accentColor}
           accentDeepColor={accentDeepColor}
-          onClose={() => setSheetMode(null)}
+          onClose={() => {
+            if (calendarScopeRef.current === calendarScope) setSheetMode(null);
+          }}
           onSaved={ymd => {
+            if (calendarScopeRef.current !== calendarScope) return;
             setSelectedDay(ymd);
             setMonth(homeCalendarMonth(ymd));
             setSheetMode(null);

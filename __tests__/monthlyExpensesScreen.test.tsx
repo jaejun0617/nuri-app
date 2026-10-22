@@ -6,8 +6,9 @@ import { createTheme } from '../src/app/theme/theme';
 import MonthlyExpensesScreen from '../src/screens/Records/MonthlyExpensesScreen';
 import { useUiStore } from '../src/store/uiStore';
 import type { TimelineStackParamList } from '../src/navigation/TimelineStackNavigator';
+import { CommonActions, StackActions, StackRouter } from '@react-navigation/routers';
 
-const mockNavigation = { navigate: jest.fn(), goBack: jest.fn() };
+const mockNavigation = { navigate: jest.fn(), goBack: jest.fn(), popTo: jest.fn() };
 let mockParams: TimelineStackParamList['MonthlyExpenses'];
 const mockQuery = jest.fn();
 jest.mock('react-native-safe-area-context', () => ({
@@ -73,6 +74,36 @@ describe('monthly expense entry navigation', () => {
     global.requestAnimationFrame = originalFrame;
     useUiStore.setState({ moreDrawerOpen: false });
     jest.restoreAllMocks();
+    mockNavigation.goBack.mockReset();
+    mockNavigation.popTo.mockReset();
+  });
+
+  it.each([
+    ['MonthlyExpenses'],
+    ['TimelineMain', 'MonthlyExpenses'],
+    ['TimelineMain', 'RecordDetail', 'MonthlyExpenses'],
+  ])('clears a %j More-return stack without discarding the original main params', async (...names) => {
+    const options = { routeNames: ['TimelineMain', 'RecordDetail', 'MonthlyExpenses'], routeParamList: {}, routeGetIdList: {} };
+    const router = StackRouter({ initialRouteName: 'TimelineMain' });
+    let state = router.getRehydratedState({ stale: true, index: names.length - 1,
+      routes: names.map(name => ({ name, ...(name === 'TimelineMain' ? { key: 'original-main', params: { ymFilter: '2026-09', mainCategory: 'walk' } } : {}) })) }, options);
+    mockNavigation.goBack.mockImplementation(() => {
+      const next = router.getStateForAction(state, CommonActions.goBack(), options);
+      if (next) state = router.getRehydratedState(next, options);
+    });
+    mockNavigation.popTo.mockImplementation((name: string, params?: object, config?: { merge?: boolean }) => {
+      const next = router.getStateForAction(state, StackActions.popTo(name, params, config), options);
+      if (next) state = router.getRehydratedState(next, options);
+    });
+    const tree = await render();
+    await TestRenderer.act(async () => button(tree, '뒤로').props.onPress());
+    expect(state.routes.map(route => route.name)).toEqual(['TimelineMain']);
+    if (names.includes('TimelineMain')) {
+      expect(state.routes[0].key).toBe('original-main');
+      expect(state.routes[0].params).toMatchObject({ ymFilter: '2026-09', mainCategory: 'walk' });
+    }
+    expect(useUiStore.getState().moreDrawerOpen).toBe(true);
+    await TestRenderer.act(async () => tree.unmount());
   });
 
   it.each(['header', 'hardware'])('returns the %s back action to the More drawer', async action => {
@@ -82,7 +113,8 @@ describe('monthly expense entry navigation', () => {
       if (action === 'header') button(tree, '뒤로').props.onPress();
       else expect(hardwareBack?.({} as never)).toBe(true);
     });
-    expect(mockNavigation.goBack).toHaveBeenCalledTimes(1);
+    expect(mockNavigation.popTo).toHaveBeenCalledWith('TimelineMain', undefined, { merge: true });
+    expect(mockNavigation.goBack).not.toHaveBeenCalled();
     expect(useUiStore.getState().moreDrawerOpen).toBe(true);
     expect(mockNavigation.navigate).not.toHaveBeenCalled();
     await TestRenderer.act(async () => tree.unmount());

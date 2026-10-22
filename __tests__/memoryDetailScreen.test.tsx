@@ -8,6 +8,7 @@ import {
   FlatList,
   Image,
   View,
+  Dimensions,
 } from 'react-native';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
@@ -161,6 +162,29 @@ describe('memory detail rendered contract', () => {
         };
       },
     );
+  });
+  it('removes the default black outline from the more memories action', () => {
+    expect(StyleSheet.flatten(styles.relatedMoreButton)).toMatchObject({ borderWidth: 0 });
+  });
+  it.each([[1600, 900], [800, 800], [400, 1600]])('does not paint gray bands around an uncropped %sx%s photo', async (width, height) => {
+    mockRecord.imagePaths = ['qa/fit-only.jpg'];
+    const size = jest.spyOn(Image, 'getSize').mockImplementation((_uri, success) => success(width, height));
+    const tree = await render();
+    try {
+      const viewport = tree.root.findAllByType(View).find(node => node.props.testID === 'memory-detail-photo-viewport');
+      if (!viewport) throw new Error('Photo viewport missing');
+      TestRenderer.act(() => viewport.props.onLayout({ nativeEvent: { layout: { width: 320 } } }));
+      expect(StyleSheet.flatten(viewport.props.style).height).toBe(Math.min(320 / (width / height), Dimensions.get('window').height * 0.7));
+      const photo = tree.root.findAllByType(OptimizedImage).find(node => node.props.uri.endsWith('fit-only.jpg'));
+      if (!photo) throw new Error('Resolved original photo missing');
+      expect(photo.props.resizeMode).toBe('contain');
+      expect(StyleSheet.flatten(photo.props.style)).toMatchObject({ backgroundColor: 'transparent' });
+      expect(StyleSheet.flatten(styles.postImageSlide)).toMatchObject({ backgroundColor: 'transparent' });
+      expect(deleteMemoryWithFile).not.toHaveBeenCalled();
+    } finally {
+      TestRenderer.act(() => tree.unmount());
+      size.mockRestore();
+    }
   });
   it('uses one vertical list and reserves the measured overlay toolbar once', async () => {
     const tree = await render();

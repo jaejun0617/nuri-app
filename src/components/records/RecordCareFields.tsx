@@ -2,6 +2,7 @@ import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import AppText from '../../app/ui/AppText';
 import RecordChoiceGrid from './RecordChoiceGrid';
+import type { RecordSurfaceVariant } from './TimelineFormSurface';
 import {
   getRecordCareOptions,
   type GroomingCareType,
@@ -9,12 +10,13 @@ import {
 } from '../../services/records/metadata';
 
 /** Both care categories share the current multi-select UI and stable metadata codes. */
-export default function RecordCareFields({ category, selected, legacy = [], onChange, disabled = false }: {
+export default function RecordCareFields({ category, selected, legacy = [], onChange, disabled = false, surfaceVariant = 'plain' }: {
   category: RecordCareCategory;
   selected: GroomingCareType[];
   legacy?: readonly GroomingCareType[];
   onChange: (values: GroomingCareType[]) => void;
   disabled?: boolean;
+  surfaceVariant?: RecordSurfaceVariant;
 }) {
   return <View style={styles.field} testID="record-care-fields">
     <AppText preset="unifiedBody" style={styles.label}>관리 항목 (1개 이상)</AppText>
@@ -22,6 +24,7 @@ export default function RecordCareFields({ category, selected, legacy = [], onCh
       options={getRecordCareOptions(category, legacy).map(option => ({ key: option.value, label: option.label }))}
       selected={selected}
       multiple
+      surfaceVariant={surfaceVariant}
       disabled={disabled}
       onSelect={value => onChange(selected.includes(value) ? selected.filter(item => item !== value) : [...selected, value])}
     />

@@ -1,22 +1,38 @@
-import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useAuthStore } from '../../store/authStore';
-import { appQueryClient } from '../../services/query/appQueryClient';
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
+  ActivityIndicator,
+  Image,
+  Modal,
+  Pressable,
   RefreshControl,
   ScrollView,
   StyleSheet,
-  TouchableOpacity,
   View,
+  useWindowDimensions,
+  type StyleProp,
+  type TextStyle,
+  type ViewStyle,
 } from 'react-native';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Feather from '../../components/icons/NuriFeatherIcon';
-import { useTheme } from 'styled-components/native';
-
 import AppText from '../../app/ui/AppText';
-import { spacing } from '../../app/theme/tokens/spacing';
+import MarkerText from '../../app/ui/MarkerText';
+import Feather from 'react-native-vector-icons/Feather';
+import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
+import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
+import { LavenderScreenBackground } from '../../components/common/LavenderScreenBackground';
+import PetAvatar from '../../components/pets/PetAvatar';
+import { HomeReflectiveGlass } from '../../components/home/HomeReflectiveGlass';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
@@ -24,916 +40,1381 @@ import {
   loadActivityDashboard,
   type ActivityAchievement,
   type ActivityDashboardData,
-  type CommonActivityDashboardSummary,
   type PetActivityDashboardSummary,
 } from '../../services/activity/activityDashboard';
-import { LEVEL_THRESHOLDS } from '../../services/activity/progressPolicy';
-import { TIMELINE_MAIN_CATEGORY_OPTIONS } from '../../services/memories/categoryMeta';
-import { buildPetThemePalette, NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
-import { openMoreDrawer, showToast } from '../../store/uiStore';
+import { appQueryClient } from '../../services/query/appQueryClient';
+import {
+  loadHomeTitleSelection,
+  saveHomeTitleSelection,
+} from '../../services/activity/homeTitleSelection';
+import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
+import { openMoreDrawer } from '../../store/uiStore';
+import {
+  ACHIEVEMENT_ART,
+  ACTIVITY_ART,
+  ACTIVITY_COLORS as C,
+  getActivityLayout,
+  getActivityVault,
+  getChallengeProgress,
+  getWalkActivityCount,
+} from './activityAchievementsPresentation';
 
-type Nav = NativeStackNavigationProp<RootStackParamList, 'PetActivityAchievements'>;
-type Route = RootScreenRoute<'PetActivityAchievements'>;
+type Nav = NativeStackNavigationProp<
+  RootStackParamList,
+  'PetActivityAchievements'
+>;
+type Tab = 'summary' | 'vault';
+const fmt = (value: number) => value.toLocaleString('ko-KR');
+const NURI_BRAND = require('../../assets/logo/logo_v2.png');
 
-type MetricCardProps = {
-  label: string;
-  value: string;
-  helper: string;
-  icon: string;
-  tint: string;
-};
-
-const DEFAULT_LEVEL = {
-  totalXp: 0,
-  level: 1,
-  currentLevelXp: 0,
-  nextLevelXp: 100,
-  updatedAt: null,
-};
-
-const MetricCard = memo(function MetricCard({
-  label,
-  value,
-  helper,
-  icon,
-  tint,
-}: MetricCardProps) {
-  return (
-    <View style={styles.metricCard}>
-      <View style={[styles.metricIcon, { backgroundColor: `${tint}18` }]}>
-        <Feather name={icon} size={16} color={tint} />
-      </View>
-      <AppText preset="unifiedMeta" style={styles.metricLabel}>
-        {label}
-      </AppText>
-      <AppText preset="unifiedTitle" style={styles.metricValue}>
-        {value}
-      </AppText>
-      <AppText preset="unifiedMeta" style={styles.metricHelper} numberOfLines={2}>
-        {helper}
-      </AppText>
-    </View>
-  );
-});
-
-const SectionCard = memo(function SectionCard({
-  title,
-  eyebrow,
+/** Home's AppText owns the real family and single-weight jisu mapping. */
+const Copy = memo(function ActivityCopy({
   children,
+  style,
+  kind = 'body',
+  testID,
 }: {
-  title: string;
-  eyebrow?: string;
   children: React.ReactNode;
+  style?: StyleProp<TextStyle>;
+  kind?: 'body' | 'label' | 'title' | 'section' | 'number' | 'caption';
+  testID?: string;
 }) {
+  const textStyle = kind === 'section' ? s.sectionTitle : s[kind];
   return (
-    <View style={styles.sectionCard}>
-      {eyebrow ? (
-        <AppText preset="unifiedMeta" style={styles.sectionEyebrow}>
-          {eyebrow}
-        </AppText>
-      ) : null}
-      <AppText typographyRole="sectionTitle" preset="unifiedTitle" style={styles.sectionTitle}>
-        {title}
-      </AppText>
+    <AppText
+      testID={testID}
+      preset={
+        kind === 'caption' || kind === 'body'
+          ? 'unifiedBody'
+          : kind === 'label'
+          ? 'unifiedLabel'
+          : 'unifiedTitle'
+      }
+      styleOverridesPreset
+      style={[s.copy, textStyle, style]}
+    >
       {children}
+    </AppText>
+  );
+});
+const Glass = memo(function ActivityGlass({
+  children,
+  style,
+  testID,
+  selected = false,
+}: {
+  children: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+  testID?: string;
+  selected?: boolean;
+}) {
+  const requestedRadius = StyleSheet.flatten(style)?.borderRadius;
+  const radius = typeof requestedRadius === 'number' ? requestedRadius : 18;
+  return (
+    <HomeReflectiveGlass
+      testID={testID}
+      borderRadius={radius}
+      style={[s.glass, style]}
+    >
+      {selected ? (
+        <View
+          pointerEvents="none"
+          accessible={false}
+          style={[
+            StyleSheet.absoluteFill,
+            s.selectedGlass,
+            { borderRadius: radius },
+          ]}
+        />
+      ) : null}
+      {children}
+    </HomeReflectiveGlass>
+  );
+});
+function SectionHeading({ title, detail }: { title: string; detail?: string }) {
+  return (
+    <View style={s.sectionHeading}>
+      <Copy kind="section" style={s.flex}>
+        {title}
+      </Copy>
+      {detail ? (
+        <Copy kind="caption" style={s.sectionDetail}>
+          {detail}
+        </Copy>
+      ) : null}
     </View>
   );
-});
-
-function formatXp(value: number) {
-  return `${Math.max(0, Math.floor(value)).toLocaleString('ko-KR')} XP`;
 }
-
-function getAchievementTone(achievement: ActivityAchievement) {
-  if (achievement.achieved) return '#20D34A';
-  if (achievement.domain === 'health') return '#7C8EA6';
-  if (achievement.domain === 'community' || achievement.domain === 'comment') {
-    return '#8A7BFF';
-  }
-  return '#4FA7FF';
-}
-
-function getNextLevelLabel(input: ActivityDashboardData) {
-  const { levelSummary, maxLevel } = input;
-  if (levelSummary.level >= maxLevel) return '최고 레벨 달성';
-  const remaining = Math.max(0, levelSummary.nextLevelXp - levelSummary.totalXp);
-  return `다음 레벨까지 ${remaining.toLocaleString('ko-KR')} XP`;
-}
-
-const DashboardSkeleton = memo(function DashboardSkeleton({
-  accentColor,
-}: {
-  accentColor: string;
-}) {
-  return (
-    <>
-      <View style={[styles.growthCard, { borderColor: `${accentColor}25` }]}>
-        <View style={styles.skeletonLineShort} />
-        <View style={styles.skeletonLineLarge} />
-        <View style={styles.skeletonProgressTrack}>
-          <View style={[styles.skeletonProgressFill, { backgroundColor: `${accentColor}35` }]} />
-        </View>
-        <View style={styles.skeletonMetaRow}>
-          <View style={styles.skeletonLineTiny} />
-          <View style={styles.skeletonLineTiny} />
-        </View>
-      </View>
-
-      <SectionCard title="아이별 성장 기록" eyebrow="멀티펫 분리">
-        <View style={styles.skeletonPetRow}>
-          <View style={styles.skeletonPetCard} />
-          <View style={styles.skeletonPetCard} />
-        </View>
-      </SectionCard>
-
-      <SectionCard title="활동 요약" eyebrow="카드별 정리 중">
-        <View style={styles.metricGrid}>
-          {[0, 1, 2, 3].map(index => (
-            <View key={index} style={styles.metricCard}>
-              <View style={styles.skeletonIcon} />
-              <View style={styles.skeletonLineShort} />
-              <View style={styles.skeletonLineTiny} />
-            </View>
-          ))}
-        </View>
-      </SectionCard>
-
-      <SectionCard title="칭호·훈장 보관함" eyebrow="달성/잠금">
-        <View style={styles.achievementGrid}>
-          {[0, 1, 2].map(index => (
-            <View key={index} style={styles.achievementCard}>
-              <View style={styles.skeletonIcon} />
-              <View style={styles.achievementTextWrap}>
-                <View style={styles.skeletonLineShort} />
-                <View style={styles.skeletonLineWide} />
-              </View>
-            </View>
-          ))}
-        </View>
-      </SectionCard>
-    </>
-  );
-});
-
 function GrowthCard({
   dashboard,
-  accentColor,
+  stack,
 }: {
   dashboard: ActivityDashboardData;
-  accentColor: string;
+  stack: boolean;
 }) {
-  const progressPercent = Math.round(dashboard.levelProgress * 100);
-  const levelSummary = dashboard.levelSummary ?? DEFAULT_LEVEL;
-
+  const level = dashboard.levelSummary;
   return (
-    <View style={[styles.growthCard, { borderColor: NEUTRAL_UI_PALETTE.border }]}>
-      <View style={styles.growthTopRow}>
-        <View>
-          <AppText preset="unifiedMeta" style={styles.growthEyebrow}>
-            나의 활동 성장
+    <Glass testID="activity-growth" style={s.growth}>
+      <Copy kind="label" style={s.muted}>
+        나의 활동 성장
+      </Copy>
+      <View style={[s.growthMiddle, stack && s.growthStack]}>
+        <View style={s.growthCopy}>
+          <AppText
+            testID="activity-user-level"
+            preset="display"
+            styleOverridesPreset
+            style={s.level}
+          >
+            Lv.{level.level}
           </AppText>
-          <AppText typographyRole="heroCopy" preset="display" style={styles.growthTitle}>
-            Lv.{levelSummary.level}
-          </AppText>
+          <View style={s.titleBubble}>
+            <MaterialIcon name="heart" size={17} color={C.accent} />
+            <Copy style={s.titleBubbleText}>
+              {dashboard.representativeTitle}
+            </Copy>
+          </View>
         </View>
-        <View style={[styles.titlePill, { backgroundColor: `${accentColor}16` }]}>
-          <AppText preset="unifiedMeta" style={[styles.titlePillText, { color: accentColor }]}>
-            {dashboard.representativeTitle}
-          </AppText>
-        </View>
+        <Image
+          testID="activity-growth-art"
+          source={ACTIVITY_ART.growth}
+          style={s.growthArt}
+          resizeMode="contain"
+          accessible={false}
+          importantForAccessibility="no"
+        />
       </View>
-
-      <View style={styles.progressTrack}>
+      <View
+        testID="activity-level-progress"
+        style={s.progressTrack}
+        accessibilityRole="progressbar"
+        accessibilityLabel="나의 레벨 진행률"
+        accessibilityValue={{
+          min: 0,
+          max: 100,
+          now: Math.round(dashboard.levelProgress * 100),
+        }}
+      >
         <View
           style={[
-            styles.progressFill,
-            { width: `${progressPercent}%`, backgroundColor: NEUTRAL_UI_PALETTE.primary },
+            s.progressFill,
+            {
+              width: `${
+                Math.min(1, Math.max(0, dashboard.levelProgress)) * 100
+              }%`,
+            },
           ]}
         />
       </View>
-      <View style={styles.growthBottomRow}>
-        <AppText preset="unifiedMeta" style={styles.growthMeta}>
-          {formatXp(levelSummary.totalXp)}
-        </AppText>
-        <AppText preset="unifiedMeta" style={styles.growthMeta}>
-          {getNextLevelLabel(dashboard)}
-        </AppText>
+      <View style={[s.growthMeta, stack && s.wrap]}>
+        <Copy testID="activity-user-xp" style={s.muted}>
+          누적 {fmt(level.totalXp)} XP
+        </Copy>
+        <Copy style={s.muted}>
+          {level.level >= dashboard.maxLevel
+            ? '최고 레벨 달성'
+            : `다음 레벨까지 ${fmt(
+                Math.max(0, level.nextLevelXp - level.totalXp),
+              )} XP`}
+        </Copy>
       </View>
-      <AppText preset="unifiedMeta" style={styles.levelPolicyNote}>
-        Lv.1~{LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1]?.level ?? 30}
-        까지 열려 있어요. 높은 레벨일수록 더 오래 쌓아야 해요.
-      </AppText>
+    </Glass>
+  );
+}
+function Challenge({
+  item,
+  stack,
+}: {
+  item: ActivityAchievement;
+  stack: boolean;
+}) {
+  const progress = getChallengeProgress(item);
+  return (
+    <View
+      testID={`activity-challenge-${item.key}`}
+      style={s.challenge}
+      accessible
+      accessibilityLabel={`${item.name}, ${item.conditionLabel}, ${
+        progress.current
+      }/${progress.target}${item.domain === 'streak' ? '일' : ''}, 도전 중`}
+    >
+      <View style={s.challengeArtwork}>
+        {ACHIEVEMENT_ART[item.key] ? (
+          <Image
+            source={ACHIEVEMENT_ART[item.key]}
+            resizeMode="contain"
+            style={s.challengeArt}
+            accessible={false}
+          />
+        ) : null}
+        <Image
+          source={ACTIVITY_ART.lock}
+          resizeMode="contain"
+          style={s.lock}
+          accessible={false}
+        />
+      </View>
+      <View style={[s.challengeCopy, stack && s.challengeStack]}>
+        <View style={s.flex}>
+          <Copy kind="label">{item.name}</Copy>
+          <Copy style={s.condition}>{item.conditionLabel}</Copy>
+        </View>
+        <View style={[s.challengeProgress, stack && s.challengeProgressStack]}>
+          <Copy kind="label" style={s.fraction}>
+            {fmt(progress.current)} / {fmt(progress.target)}
+            {item.domain === 'streak' ? '일' : ''}
+          </Copy>
+          <View
+            style={s.segments}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          >
+            {progress.segmented ? (
+              Array.from({ length: progress.target }, (_, index) => (
+                <View
+                  key={index}
+                  testID={`activity-segment-${item.key}-${index}`}
+                  style={[
+                    s.segment,
+                    index < progress.current && s.segmentActive,
+                  ]}
+                />
+              ))
+            ) : (
+              <View style={s.continuousTrack}>
+                <View
+                  style={[
+                    s.progressFill,
+                    { width: `${progress.ratio * 100}%` },
+                  ]}
+                />
+              </View>
+            )}
+          </View>
+        </View>
+      </View>
     </View>
   );
 }
-
-function PetSelector({
-  pets,
-  selectedPetId,
-  onSelect,
-  accentColor,
-}: {
-  pets: PetActivityDashboardSummary[];
-  selectedPetId: string | null;
-  onSelect: (petId: string) => void;
-  accentColor: string;
-}) {
-  if (pets.length === 0) {
-    return (
-      <View style={styles.emptyPetsCard}>
-        <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
-          아직 연결된 아이가 없어요
-        </AppText>
-        <AppText preset="unifiedBody" style={styles.emptyBody}>
-          아이를 등록하면 펫별 산책, 타임라인, 건강 기록을 따로 볼 수 있어요.
-        </AppText>
-      </View>
-    );
-  }
-
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.petSelectorContent}
-    >
-      {pets.map(pet => {
-        const active = pet.petId === selectedPetId;
-        return (
-          <TouchableOpacity
-            key={pet.petId}
-            activeOpacity={0.9}
-            style={[
-              styles.petSelectorCard,
-              active ? { borderColor: accentColor, backgroundColor: `${accentColor}10` } : null,
-            ]}
-            onPress={() => onSelect(pet.petId)}
-          >
-            <AppText preset="unifiedTitle" style={styles.petSelectorName} numberOfLines={1}>
-              {pet.petName}
-            </AppText>
-            <AppText preset="unifiedMeta" style={styles.petSelectorMeta}>
-              {formatXp(pet.xp)} · 훈장 {pet.achievements.filter(item => item.achieved).length}개
-            </AppText>
-            <AppText preset="unifiedMeta" style={styles.petSelectorMeta}>
-              최고 산책 {pet.streak?.bestStreak ?? 0}일
-            </AppText>
-          </TouchableOpacity>
-        );
-      })}
-    </ScrollView>
-  );
-}
-
-function PetActivityCards({
+function Summary({
+  dashboard,
   pet,
-  accentColor,
+  photos,
+  activeId,
+  onSelect,
+  stack,
+  petCardWidth,
 }: {
+  dashboard: ActivityDashboardData;
   pet: PetActivityDashboardSummary | null;
-  accentColor: string;
+  photos: ReadonlyMap<string, string | null>;
+  activeId: string | null;
+  onSelect: (id: string) => void;
+  stack: boolean;
+  petCardWidth: number;
 }) {
-  if (!pet) return null;
-
-  const categoryLabels = TIMELINE_MAIN_CATEGORY_OPTIONS.map(item => ({
-    key: item.key,
-    label: item.label,
-    count: pet.timelineCategoryCounts[item.key] ?? 0,
-  }));
-
+  const categoryItems = [
+    { key: 'walk', label: '산책', icon: 'paw' },
+    { key: 'meal', label: '식사', icon: 'silverware-fork-knife' },
+    { key: 'diary', label: '일기장', icon: 'notebook-outline' },
+    { key: 'other', label: '생활', icon: 'home-outline' },
+  ] as const;
   return (
     <>
-      <SectionCard title={`${pet.petName} 활동 요약`} eyebrow="펫별 활동">
-        <View style={styles.metricGrid}>
-          <MetricCard
-            label="산책"
-            value={`${pet.walk.eventCount}회`}
-            helper={`${formatXp(pet.walk.xp)} · 현재 ${pet.streak?.currentStreak ?? 0}일`}
-            icon="activity"
-            tint={accentColor}
-          />
-          <MetricCard
-            label="타임라인"
-            value={`${pet.timelineCategoryCounts.all ?? pet.timeline.eventCount}개`}
-            helper={`${formatXp(pet.timeline.xp)} · 카테고리별 분리`}
-            icon="book-open"
-            tint="#4FA7FF"
-          />
-          <MetricCard
-            label="건강관리"
-            value={`${pet.health.recordCount}개`}
-            helper={`${formatXp(pet.health.xp)} · 건강 기록 기준`}
-            icon="heart"
-            tint="#7C8EA6"
-          />
-        </View>
-      </SectionCard>
-
-      <SectionCard title="타임라인 카테고리" eyebrow="선택한 아이 기준">
-        <View style={styles.categoryGrid}>
-          {categoryLabels.map(item => (
-            <View key={item.key} style={styles.categoryPill}>
-              <AppText preset="unifiedMeta" style={styles.categoryLabel}>
-                {item.label}
-              </AppText>
-              <AppText preset="unifiedTitle" style={styles.categoryCount}>
-                {item.count}
-              </AppText>
+      <GrowthCard dashboard={dashboard} stack={stack} />
+      <View style={s.section}>
+        <SectionHeading title="아이별 성장 기록" />
+        {dashboard.petSummaries.length ? (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={s.petRow}
+          >
+            {dashboard.petSummaries.map(item => (
+              <Pressable
+                key={item.petId}
+                testID={`activity-pet-${item.petId}`}
+                accessibilityRole="button"
+                accessibilityLabel={`${item.petName}, ${fmt(
+                  item.xp,
+                )} XP, 최고 연속 산책 ${item.streak?.bestStreak ?? 0}일`}
+                accessibilityState={{ selected: activeId === item.petId }}
+                onPress={() => onSelect(item.petId)}
+                style={{ width: petCardWidth }}
+              >
+                <Glass
+                  testID="activity-pet-glass"
+                  style={[s.petCard, stack && s.petStack]}
+                  selected={activeId === item.petId}
+                >
+                  <PetAvatar
+                    key={photos.get(item.petId) ?? item.petId}
+                    uri={photos.get(item.petId) ?? null}
+                    fallbackLabel={item.petName}
+                    size={48}
+                  />
+                  <View style={s.petCopy}>
+                    <Copy kind="label">{item.petName}</Copy>
+                    <Copy style={s.muted}>
+                      {fmt(item.xp)} XP · 훈장{' '}
+                      {item.achievements.filter(a => a.achieved).length}개
+                    </Copy>
+                    <Copy style={s.muted}>
+                      최고 연속 산책 {item.streak?.bestStreak ?? 0}일
+                    </Copy>
+                  </View>
+                </Glass>
+              </Pressable>
+            ))}
+          </ScrollView>
+        ) : (
+          <Copy style={s.muted}>등록한 아이가 없어요</Copy>
+        )}
+      </View>
+      {pet ? (
+        <>
+          <View style={s.section}>
+            <SectionHeading
+              title={`${pet.petName}의 활동`}
+              detail="선택한 아이 기준"
+            />
+            <Glass style={s.metrics}>
+              {[
+                {
+                  label: '산책',
+                  icon: 'paw',
+                  value: getWalkActivityCount(pet),
+                  unit: '회',
+                },
+                {
+                  label: '타임라인',
+                  icon: 'text-box-outline',
+                  value: pet.timelineCategoryCounts.all,
+                  unit: '개',
+                },
+                {
+                  label: '건강 기록',
+                  icon: 'heart-outline',
+                  value: pet.health.recordCount,
+                  unit: '개',
+                },
+              ].map((item, index) => (
+                <View
+                  key={item.label}
+                  style={[s.metric, index > 0 && s.divider]}
+                >
+                  {item.icon === 'paw' ? (
+                    <Image
+                      testID="activity-walk-brand"
+                      source={NURI_BRAND}
+                      resizeMode="contain"
+                      style={s.walkBrand}
+                      accessible={false}
+                    />
+                  ) : (
+                    <MaterialIcon name={item.icon} size={24} color={C.accent} />
+                  )}
+                  <Copy kind="label" style={s.metricLabel}>
+                    {item.label}
+                  </Copy>
+                  <Copy kind="number">
+                    {fmt(item.value)}
+                    {item.unit}
+                  </Copy>
+                </View>
+              ))}
+            </Glass>
+          </View>
+          <View style={s.section}>
+            <SectionHeading
+              title="타임라인 카테고리"
+              detail={`전체 ${fmt(pet.timelineCategoryCounts.all)}개`}
+            />
+            <Glass style={[s.categories, stack && s.wrap]}>
+              {categoryItems.map((item, index) => (
+                <View
+                  key={item.key}
+                  style={[
+                    s.category,
+                    stack && s.categoryStack,
+                    index > 0 && !stack && s.divider,
+                  ]}
+                >
+                  <View style={[s.categoryLabel, stack && s.wrap]}>
+                    {item.key === 'walk' ? (
+                      <Image
+                        testID="activity-category-walk-brand"
+                        source={NURI_BRAND}
+                        resizeMode="contain"
+                        style={s.categoryWalkBrand}
+                        accessible={false}
+                      />
+                    ) : (
+                      <MaterialIcon
+                        name={item.icon}
+                        size={19}
+                        color={C.accent}
+                      />
+                    )}
+                    <Copy style={s.muted}>{item.label}</Copy>
+                  </View>
+                  <Copy kind="number" style={s.categoryValue}>
+                    {fmt(pet.timelineCategoryCounts[item.key])}
+                  </Copy>
+                </View>
+              ))}
+            </Glass>
+          </View>
+        </>
+      ) : null}
+      <View style={s.section}>
+        <SectionHeading title="나의 공통 활동" detail="아이와 별도로 집계" />
+        <Glass style={[s.common, stack && s.commonStack]}>
+          {[
+            {
+              label: '커뮤니티 글',
+              icon: 'message-circle',
+              count: dashboard.commonSummary.communityPosts.postCount,
+              xp: dashboard.commonSummary.communityPosts.xp,
+            },
+            {
+              label: '댓글',
+              icon: 'send',
+              count: dashboard.commonSummary.comments.commentCount,
+              xp: dashboard.commonSummary.comments.xp,
+            },
+          ].map((item, index) => (
+            <View
+              key={item.label}
+              testID={`activity-common-${item.icon}`}
+              style={[s.commonMetric, index > 0 && !stack && s.divider]}
+            >
+              <Feather name={item.icon} size={29} color={C.accent} />
+              <View style={s.commonCopy}>
+                <Copy kind="label" style={[s.muted, s.centered]}>
+                  {item.label}
+                </Copy>
+                <View style={s.commonValues}>
+                  <Copy kind="number" style={s.commonCount}>
+                    {fmt(item.count)}개
+                  </Copy>
+                  <Copy style={s.muted}>{fmt(item.xp)} XP</Copy>
+                </View>
+              </View>
             </View>
           ))}
-        </View>
-      </SectionCard>
+        </Glass>
+      </View>
     </>
-  );
-}
-
-function CommonActivityCard({
-  summary,
-}: {
-  summary: CommonActivityDashboardSummary;
-}) {
-  return (
-    <SectionCard title="공통 활동" eyebrow="사용자 전체 기준">
-      <AppText preset="unifiedBody" style={styles.commonDescription}>
-        커뮤니티 글과 댓글은 특정 아이에게 중복 합산하지 않고 내 활동으로만 보여줘요.
-      </AppText>
-      <View style={styles.metricGrid}>
-        <MetricCard
-          label="커뮤니티 글"
-          value={`${summary.communityPosts.postCount}개`}
-          helper={`${formatXp(summary.communityPosts.xp)} · 공통 활동`}
-          icon="message-circle"
-          tint="#8A7BFF"
-        />
-        <MetricCard
-          label="댓글"
-          value={`${summary.comments.commentCount}개`}
-          helper={`${formatXp(summary.comments.xp)} · 공통 활동`}
-          icon="send"
-          tint="#8A7BFF"
-        />
-      </View>
-    </SectionCard>
-  );
-}
-
-function AchievementVault({
-  achievements,
-}: {
-  achievements: ActivityAchievement[];
-}) {
-  const sorted = [...achievements].sort((left, right) => {
-    if (left.achieved !== right.achieved) return left.achieved ? -1 : 1;
-    return left.threshold - right.threshold || left.name.localeCompare(right.name);
-  });
-
-  return (
-    <SectionCard title="칭호·훈장 보관함" eyebrow="달성/잠금">
-      <View style={styles.achievementGrid}>
-        {sorted.slice(0, 18).map(item => {
-          const tint = getAchievementTone(item);
-          return (
-            <View
-              key={`${item.scope}:${item.ownerId}:${item.key}`}
-              style={[
-                styles.achievementCard,
-                item.achieved
-                  ? { borderColor: `${tint}50`, backgroundColor: `${tint}10` }
-                  : null,
-              ]}
-            >
-              <View style={[styles.achievementIcon, { backgroundColor: `${tint}18` }]}>
-                <Feather
-                  name={item.achieved ? 'award' : 'lock'}
-                  size={15}
-                  color={item.achieved ? tint : '#9AA4B3'}
-                />
-              </View>
-              <View style={styles.achievementTextWrap}>
-                <AppText preset="unifiedBody" style={styles.achievementName} numberOfLines={1}>
-                  {item.name}
-                </AppText>
-                <AppText preset="unifiedMeta" style={styles.achievementCondition} numberOfLines={2}>
-                  {item.ownerLabel} · {item.conditionLabel} · {item.currentValue}/{item.threshold}
-                </AppText>
-              </View>
-            </View>
-          );
-        })}
-      </View>
-    </SectionCard>
   );
 }
 
 export default function PetActivityAchievementsScreen() {
   const navigation = useNavigation<Nav>();
-  const route = useRoute<Route>();
+  const route = useRoute<RootScreenRoute<'PetActivityAchievements'>>();
   const insets = useSafeAreaInsets();
-  const theme = useTheme();
-
+  const { width, fontScale } = useWindowDimensions();
+  const layout = getActivityLayout(width, fontScale);
   const pets = usePetStore(state => state.pets);
-  const ownerId = useAuthStore(state => state.session?.user.id ?? null);
-  const walkActivityRevision = useQuery<number>({ queryKey: ['walk', ownerId, 'activity-revision'], queryFn: () => 0, enabled: false }).data ?? 0;
-  const dashboardRequest = useRef(0);
   const selectedPetId = usePetStore(state => state.selectedPetId);
-  const [selectedDashboardPetId, setSelectedDashboardPetId] =
-    useState<string | null>(selectedPetId);
-  const [dashboard, setDashboard] = useState<ActivityDashboardData | null>(null);
+  const ownerId = useAuthStore(state => state.session?.user.id ?? null);
+  const revision =
+    useQuery<number>({
+      queryKey: ['walk', ownerId, 'activity-revision'],
+      queryFn: () => 0,
+      enabled: false,
+    }).data ?? 0;
+  const [tab, setTab] = useState<Tab>('summary');
+  const [viewPetId, setViewPetId] = useState<string | null>(selectedPetId);
+  const [result, setResult] = useState<{
+    owner: string;
+    data: ActivityDashboardData;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-  const selectedPet = useMemo(
-    () => pets.find(pet => pet.id === (selectedDashboardPetId ?? selectedPetId)) ?? pets[0] ?? null,
-    [pets, selectedDashboardPetId, selectedPetId],
+  const [error, setError] = useState(false);
+  const [info, setInfo] = useState(false);
+  const [picker, setPicker] = useState(false);
+  const [selection, setSelection] = useState<{
+    ownerId: string;
+    petId: string;
+    key: string | null;
+  } | null>(null);
+  const [savingTitle, setSavingTitle] = useState(false);
+  const [selectionError, setSelectionError] = useState<string | null>(null);
+  const [titlePrompt, setTitlePrompt] = useState<{
+    ownerId: string;
+    petId: string;
+    key: string;
+    name: string;
+    petName: string;
+  } | null>(null);
+  const titleWrite = useRef(false);
+  const titleMounted = useRef(true);
+  const titleReads = useRef(0);
+  const titleScope = useRef({ ownerId, petId: '' });
+  const requests = useRef(0);
+  const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const offsets = useRef<Record<Tab, number>>({ summary: 0, vault: 0 });
+  const dashboard = result?.owner === ownerId ? result.data : null;
+  const inputs = useMemo(
+    () =>
+      pets.map(p => ({
+        id: p.id,
+        name: p.name,
+        themeColor: p.themeColor ?? null,
+      })),
+    [pets],
   );
-  const accentPalette = useMemo(
-    () => buildPetThemePalette(selectedPet?.themeColor),
-    [selectedPet?.themeColor],
+  const photos = useMemo(
+    () => new Map(pets.map(p => [p.id, p.avatarUrl ?? null])),
+    [pets],
   );
-
-  const selectedPetSummary = useMemo(() => {
-    if (!dashboard) return null;
-    const targetId = selectedDashboardPetId ?? selectedPetId ?? dashboard.petSummaries[0]?.petId;
-    return dashboard.petSummaries.find(pet => pet.petId === targetId) ?? dashboard.petSummaries[0] ?? null;
-  }, [dashboard, selectedDashboardPetId, selectedPetId]);
-
-  const onPressBack = useEntryAwareBackAction({
+  const pet =
+    dashboard?.petSummaries.find(p => p.petId === viewPetId) ??
+    dashboard?.petSummaries[0] ??
+    null;
+  const vault = useMemo(
+    () => (dashboard ? getActivityVault(dashboard, pet) : null),
+    [dashboard, pet],
+  );
+  titleScope.current = { ownerId, petId: pet?.petId ?? '' };
+  const selectedTitleKey =
+    selection?.ownerId === ownerId && selection?.petId === pet?.petId
+      ? selection?.key
+      : null;
+  const activeTitlePrompt =
+    titlePrompt?.ownerId === ownerId && titlePrompt?.petId === pet?.petId
+      ? titlePrompt
+      : null;
+  useEffect(() => {
+    titleMounted.current = true;
+    return () => {
+      titleMounted.current = false;
+    };
+  }, []);
+  useEffect(() => {
+    const request = ++titleReads.current;
+    const petId = pet?.petId;
+    setSelectionError(null);
+    if (!ownerId || !petId) return;
+    let cancelled = false;
+    loadHomeTitleSelection({ userId: ownerId, petId })
+      .then(value => {
+        if (!cancelled && request === titleReads.current)
+          setSelection({ ownerId, petId, key: value?.titleKey ?? null });
+      })
+      .catch(() => {
+        if (!cancelled && request === titleReads.current)
+          setSelectionError('대표 칭호를 확인하지 못했어요.');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [ownerId, pet?.petId]);
+  const chooseTitle = async (key: string) => {
+    const petId = pet?.petId;
+    if (
+      !ownerId ||
+      !petId ||
+      !dashboard ||
+      titleWrite.current ||
+      key === selectedTitleKey
+    )
+      return;
+    if (
+      titleScope.current.petId !== petId ||
+      titleScope.current.ownerId !== ownerId
+    )
+      return;
+    if (
+      useAuthStore.getState().session?.user.id !== ownerId ||
+      !pets.some(p => p.id === petId)
+    )
+      return;
+    const current = () =>
+      titleMounted.current &&
+      titleScope.current.ownerId === ownerId &&
+      titleScope.current.petId === petId &&
+      useAuthStore.getState().session?.user.id === ownerId;
+    titleWrite.current = true;
+    titleReads.current++;
+    setSavingTitle(true);
+    setSelectionError(null);
+    try {
+      const chosen = await saveHomeTitleSelection({
+        userId: ownerId,
+        petId,
+        achievementKey: key,
+        dashboard,
+      });
+      if (current()) {
+        setSelection({ ownerId, petId, key: chosen.titleKey });
+        setTitlePrompt(null);
+      }
+    } catch {
+      if (current())
+        setSelectionError('대표 칭호를 저장하지 못했어요. 다시 눌러 주세요.');
+    } finally {
+      titleWrite.current = false;
+      if (titleMounted.current) setSavingTitle(false);
+    }
+  };
+  const onBack = useEntryAwareBackAction({
     entrySource: route.params?.entrySource,
-    onHome: () => {
+    onHome: () =>
       navigation.reset({
         index: 0,
         routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
-      });
-    },
+      }),
     onMore: () => {
       navigation.goBack();
-      requestAnimationFrame(() => {
-        openMoreDrawer();
-      });
+      requestAnimationFrame(() => openMoreDrawer());
     },
-    onFallback: () => {
-      navigation.goBack();
-    },
+    onFallback: () => navigation.goBack(),
   });
-
   const load = useCallback(
-    async (mode: 'initial' | 'refresh') => {
-      const request = ++dashboardRequest.current;
-      const isCurrent = () => dashboardRequest.current === request && useAuthStore.getState().session?.user.id === ownerId && (appQueryClient.getQueryData<number>(['walk', ownerId, 'activity-revision']) ?? 0) === walkActivityRevision;
-      if (mode === 'initial') setLoading(true);
-      if (mode === 'refresh') setRefreshing(true);
+    async (refresh: boolean) => {
+      const request = ++requests.current;
+      const current = () =>
+        request === requests.current &&
+        useAuthStore.getState().session?.user.id === ownerId &&
+        (appQueryClient.getQueryData<number>([
+          'walk',
+          ownerId,
+          'activity-revision',
+        ]) ?? 0) === revision;
+      setError(false);
+      if (refresh) setRefreshing(true);
+      else setLoading(true);
+      if (!ownerId) {
+        setResult(null);
+        setLoading(false);
+        setRefreshing(false);
+        return;
+      }
       try {
-        const nextDashboard = await loadActivityDashboard(
-          pets.map(pet => ({
-            id: pet.id,
-            name: pet.name,
-            themeColor: pet.themeColor ?? null,
-          })),
-        );
-        if (!isCurrent()) return;
-        setDashboard(nextDashboard);
-        setSelectedDashboardPetId(current =>
-          current ?? selectedPetId ?? nextDashboard.petSummaries[0]?.petId ?? null,
-        );
+        const data = await loadActivityDashboard(inputs);
+        if (current()) setResult({ owner: ownerId, data });
       } catch {
-        if (!isCurrent()) return;
-        showToast({
-          tone: 'error',
-          title: '활동 기록을 불러오지 못했어요',
-          message: '잠시 뒤 다시 열어 주세요.',
-          durationMs: 3000,
-        });
+        if (current()) setError(true);
       } finally {
-        if (isCurrent()) { setLoading(false); setRefreshing(false); }
+        if (current()) {
+          setLoading(false);
+          setRefreshing(false);
+        }
       }
     },
-    [pets, selectedPetId, ownerId, walkActivityRevision],
+    [inputs, ownerId, revision],
   );
-
+  const invalidateRequest = useCallback(() => {
+    requests.current++;
+  }, []);
   useEffect(() => {
-    load('initial');
-  }, [load]);
-
-  const onRefresh = useCallback(() => {
-    load('refresh');
-  }, [load]);
-
-  const activePetId = selectedPetSummary?.petId ?? selectedDashboardPetId;
-
+    load(false);
+    return invalidateRequest;
+  }, [load, invalidateRequest]);
+  const selectPet = useCallback((id: string) => {
+    setViewPetId(id);
+    setPicker(false);
+  }, []);
+  const selectTab = (next: Tab) => {
+    if (next === tab) return;
+    setTab(next);
+    requestAnimationFrame(() =>
+      scroll.current?.scrollTo({ y: offsets.current[next], animated: false }),
+    );
+  };
   return (
-    <View style={[styles.screen, { backgroundColor: theme.colors.background }]}>
+    <View testID="activity-screen" style={s.screen}>
+      <LavenderScreenBackground testID="activity-background-gradient" />
       <View
-        style={[
-          styles.header,
-          {
-            paddingTop: Math.max(insets.top + 8, 18),
-            backgroundColor: theme.colors.background,
-          },
-        ]}
-      >
-        <TouchableOpacity
-          activeOpacity={0.88}
-          style={styles.backButton}
-          onPress={onPressBack}
-        >
-          <Feather name="arrow-left" size={20} color={theme.colors.textPrimary} />
-        </TouchableOpacity>
-        <View style={styles.headerTextWrap}>
-          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={[styles.title, { color: theme.colors.textPrimary }]}>
-            활동·칭호
-          </AppText>
-          <AppText preset="unifiedMeta" style={[styles.subtitle, { color: theme.colors.textMuted }]}>
-            아이별 활동과 내 공통 활동을 분리해서 보여줘요.
-          </AppText>
-        </View>
-      </View>
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: insets.bottom + spacing.xl },
-        ]}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={NEUTRAL_UI_PALETTE.primary}
-          />
+        style={s.flex}
+        importantForAccessibility={
+          picker || info || activeTitlePrompt ? 'no-hide-descendants' : 'auto'
         }
       >
-        {loading && !dashboard ? (
-          <DashboardSkeleton accentColor={NEUTRAL_UI_PALETTE.primary} />
-        ) : dashboard ? (
-          <>
-            <GrowthCard dashboard={dashboard} accentColor={accentPalette.primary} />
-
-            <SectionCard title="아이별 성장 기록" eyebrow="멀티펫 분리">
-              <PetSelector
-                pets={dashboard.petSummaries}
-                selectedPetId={activePetId}
-                onSelect={setSelectedDashboardPetId}
-                accentColor={NEUTRAL_UI_PALETTE.primary}
-              />
-            </SectionCard>
-
-            <PetActivityCards
-              pet={selectedPetSummary}
-              accentColor={NEUTRAL_UI_PALETTE.primary}
-            />
-            <CommonActivityCard summary={dashboard.commonSummary} />
-            <AchievementVault achievements={dashboard.allAchievements} />
-
-            {dashboard.ledgerLimitReached ? (
-              <AppText preset="unifiedMeta" style={styles.limitNotice}>
-                최근 1,000개 XP ledger 기준으로 표시 중이에요. 장기 통계는 후속 summary RPC에서
-                확장합니다.
-              </AppText>
-            ) : null}
-          </>
-        ) : (
-          <View style={styles.emptyPetsCard}>
-            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
-              활동 기록을 불러오지 못했어요
-            </AppText>
-            <AppText preset="unifiedBody" style={styles.emptyBody}>
-              네트워크 상태를 확인한 뒤 다시 시도해 주세요.
-            </AppText>
+        <View style={[s.header, { paddingTop: insets.top + 4 }]}>
+          <View style={s.headerRow}>
+            <Pressable
+              testID="activity-back"
+              accessibilityRole="button"
+              accessibilityLabel="뒤로가기"
+              style={s.iconButton}
+              onPress={onBack}
+            >
+              <Feather name="chevron-left" size={28} color={C.ink} />
+            </Pressable>
+            <Copy kind="title" style={s.headerTitle}>
+              활동·칭호
+            </Copy>
+            <Pressable
+              testID="activity-info"
+              accessibilityRole="button"
+              accessibilityLabel="활동과 칭호 안내"
+              style={s.iconButton}
+              onPress={() => setInfo(true)}
+            >
+              <Feather name="info" size={24} color={C.ink} />
+            </Pressable>
           </View>
-        )}
-      </ScrollView>
+          <Copy style={s.subtitle}>함께한 순간이 차곡차곡 쌓여요</Copy>
+        </View>
+        <View style={s.tabs} accessibilityRole="tablist">
+          {(
+            [
+              { key: 'summary', label: '활동 요약' },
+              { key: 'vault', label: '칭호 보관함' },
+            ] as const
+          ).map(item => (
+            <Pressable
+              key={item.key}
+              testID={`activity-tab-${item.key}`}
+              accessibilityRole="tab"
+              accessibilityState={{ selected: tab === item.key }}
+              onPress={() => selectTab(item.key)}
+              style={s.tab}
+            >
+              <Copy
+                kind="label"
+                style={[s.tabLabel, tab === item.key && s.activeText]}
+              >
+                {item.label}
+              </Copy>
+              {tab === item.key ? <View style={s.tabUnderline} /> : null}
+            </Pressable>
+          ))}
+        </View>
+        <ScrollView
+          ref={scroll}
+          testID="activity-scroll"
+          style={s.flex}
+          contentContainerStyle={[
+            s.content,
+            {
+              paddingHorizontal: layout.inset,
+              paddingBottom: insets.bottom + 20,
+            },
+          ]}
+          showsVerticalScrollIndicator={false}
+          scrollEventThrottle={80}
+          onScroll={event => {
+            offsets.current[tab] = event.nativeEvent.contentOffset.y;
+          }}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                load(true);
+              }}
+              tintColor={C.accent}
+            />
+          }
+        >
+          {loading && !dashboard ? (
+            <View
+              testID="activity-loading"
+              style={s.loading}
+              accessibilityLabel="활동 기록 불러오는 중"
+            >
+              <ActivityIndicator color={C.accent} />
+              <View style={s.skeleton} />
+              <View style={s.skeleton} />
+            </View>
+          ) : null}
+          {error ? (
+            <Glass testID="activity-error" style={s.message}>
+              <Copy kind="label">활동 기록을 불러오지 못했어요</Copy>
+              <Copy style={s.muted}>
+                {dashboard
+                  ? '마지막으로 확인한 기록이에요.'
+                  : '연결 상태를 확인하고 다시 시도해 주세요.'}
+              </Copy>
+              <Pressable
+                accessibilityRole="button"
+                testID="activity-retry"
+                onPress={() => {
+                  load(!!dashboard);
+                }}
+                style={s.retry}
+              >
+                <Copy kind="label" style={s.activeText}>
+                  다시 시도
+                </Copy>
+              </Pressable>
+            </Glass>
+          ) : null}
+          {!loading && !dashboard && !error ? (
+            <Copy style={s.muted}>로그인 후 활동을 확인할 수 있어요</Copy>
+          ) : null}
+          {dashboard && tab === 'summary' ? (
+            <Summary
+              dashboard={dashboard}
+              pet={pet}
+              photos={photos}
+              activeId={pet?.petId ?? null}
+              onSelect={selectPet}
+              stack={layout.stack}
+              petCardWidth={(width - layout.inset * 2 - 10) / 2}
+            />
+          ) : null}
+          {dashboard && vault && tab === 'vault' ? (
+            <>
+              <Glass style={[s.vaultPicker, layout.stack && s.wrap]}>
+                <Pressable
+                  testID="activity-pet-picker"
+                  accessibilityRole="button"
+                  accessibilityLabel="조회할 아이 선택"
+                  onPress={() => setPicker(true)}
+                  disabled={!pets.length}
+                  style={s.pickerButton}
+                >
+                  <PetAvatar
+                    key={photos.get(pet?.petId ?? '') ?? pet?.petId ?? 'empty'}
+                    uri={photos.get(pet?.petId ?? '') ?? null}
+                    fallbackLabel={pet?.petName}
+                    size={44}
+                  />
+                  <Copy kind="label" style={s.flex}>
+                    {pet?.petName ?? '등록한 아이 없음'}
+                  </Copy>
+                  <Feather name="chevron-down" size={20} color={C.ink} />
+                </Pressable>
+                <View style={s.commonHint}>
+                  <Feather name="link" size={19} color={C.muted} />
+                  <Copy style={s.muted}>공통 칭호 함께 표시</Copy>
+                </View>
+              </Glass>
+              <View style={s.section}>
+                <SectionHeading
+                  title="함께 모은 칭호"
+                  detail={`${vault.acquired.length}개`}
+                />
+                <Copy style={s.sectionDescription}>
+                  작은 순간들이 특별한 기억이 되었어요
+                </Copy>
+                {selectionError ? (
+                  <Copy
+                    testID="activity-title-selection-error"
+                    style={s.selectionError}
+                    kind="label"
+                  >
+                    {selectionError}
+                  </Copy>
+                ) : null}
+                <Glass style={s.vaultGrid}>
+                  {vault.acquired.map(item => (
+                    <Pressable
+                      key={`${item.scope}:${item.ownerId}:${item.key}`}
+                      testID={`activity-earned-${item.key}`}
+                      style={[
+                        s.earnedCell,
+                        { width: `${100 / layout.columns}%` },
+                      ]}
+                      accessible
+                      accessibilityRole="button"
+                      accessibilityState={{
+                        selected: item.key === selectedTitleKey,
+                        disabled: savingTitle,
+                        busy: savingTitle,
+                      }}
+                      accessibilityLabel={`${item.name}, 획득 완료${
+                        item.key === selectedTitleKey ? ', 홈 대표 칭호' : ''
+                      }`}
+                      disabled={savingTitle}
+                      onPress={() => {
+                        if (
+                          !ownerId ||
+                          !pet ||
+                          item.key === selectedTitleKey ||
+                          titleWrite.current
+                        )
+                          return;
+                        setSelectionError(null);
+                        setTitlePrompt({
+                          ownerId,
+                          petId: pet.petId,
+                          petName: pet.petName,
+                          key: item.key,
+                          name: item.name,
+                        });
+                      }}
+                    >
+                      {ACHIEVEMENT_ART[item.key] ? (
+                        <Image
+                          source={ACHIEVEMENT_ART[item.key]}
+                          resizeMode="contain"
+                          style={s.earnedArt}
+                          accessible={false}
+                        />
+                      ) : null}
+                      <Copy style={s.earnedName}>{item.name}</Copy>
+                      <View style={s.selectionMark}>
+                        <Image
+                          source={ACTIVITY_ART.check}
+                          style={s.check}
+                          resizeMode="contain"
+                          accessible={false}
+                        />
+                        {item.key === selectedTitleKey ? (
+                          <Copy kind="caption" style={s.activeText}>
+                            대표
+                          </Copy>
+                        ) : null}
+                      </View>
+                    </Pressable>
+                  ))}
+                  {!vault.acquired.length ? (
+                    <Copy testID="activity-vault-empty" style={s.empty}>
+                      아직 모은 칭호가 없어요
+                    </Copy>
+                  ) : null}
+                </Glass>
+              </View>
+              <View style={s.section}>
+                <SectionHeading
+                  title="다음 칭호에 한 걸음"
+                  detail={`도전 중 ${vault.challenges.length}개`}
+                />
+                <Glass style={s.challengeList}>
+                  {vault.challenges.map(item => (
+                    <Challenge
+                      key={`${item.scope}:${item.ownerId}:${item.key}`}
+                      item={item}
+                      stack={layout.stack}
+                    />
+                  ))}
+                  {!vault.challenges.length ? (
+                    <Copy style={s.empty}>모든 칭호를 모았어요</Copy>
+                  ) : null}
+                </Glass>
+              </View>
+              <Copy style={s.footer}>함께하는 하루가 새로운 칭호가 돼요</Copy>
+            </>
+          ) : null}
+          {dashboard?.ledgerLimitReached ? (
+            <Copy style={s.footer}>
+              최근 1,000개 XP 내역 기준의 활동 지표예요. 사용자 누적 XP는 전체
+              성장 기록을 사용해요.
+            </Copy>
+          ) : null}
+        </ScrollView>
+      </View>
+      {picker ? (
+        <Modal
+          transparent
+          visible
+          animationType="fade"
+          onRequestClose={() => setPicker(false)}
+        >
+          <View style={s.modalRoot}>
+            <Pressable
+              accessibilityLabel="아이 선택 닫기"
+              accessibilityRole="button"
+              style={StyleSheet.absoluteFill}
+              onPress={() => setPicker(false)}
+            />
+            <View
+              style={[
+                s.pickerSheet,
+                { paddingBottom: insets.bottom + 20, maxHeight: '75%' },
+              ]}
+              accessibilityViewIsModal
+            >
+              <View style={s.sectionHeading}>
+                <Copy kind="section" style={s.flex}>
+                  아이 선택
+                </Copy>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="닫기"
+                  style={s.iconButton}
+                  onPress={() => setPicker(false)}
+                >
+                  <Feather name="x" size={22} color={C.muted} />
+                </Pressable>
+              </View>
+              <ScrollView>
+                {pets.map(item => (
+                  <Pressable
+                    key={item.id}
+                    testID={`activity-pick-${item.id}`}
+                    accessibilityRole="button"
+                    accessibilityLabel={item.name}
+                    accessibilityState={{ selected: item.id === pet?.petId }}
+                    onPress={() => selectPet(item.id)}
+                    style={s.pickerOption}
+                  >
+                    <PetAvatar
+                      key={item.avatarUrl ?? item.id}
+                      uri={item.avatarUrl ?? null}
+                      fallbackLabel={item.name}
+                      size={40}
+                    />
+                    <Copy kind="label" style={s.flex}>
+                      {item.name}
+                    </Copy>
+                    {item.id === pet?.petId ? (
+                      <Image
+                        source={ACTIVITY_ART.check}
+                        style={s.check}
+                        accessible={false}
+                      />
+                    ) : null}
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      ) : null}
+      {activeTitlePrompt ? (
+        <ConfirmDialog
+          visible
+          title={`${activeTitlePrompt.name} 칭호로 바꿀까요?`}
+          titleContent={
+            <View style={s.confirmTitle} accessible accessibilityRole="header" accessibilityLabel={`${activeTitlePrompt.name} 칭호로 바꿀까요?`}>
+              <View style={s.confirmName}>
+                <MarkerText testID="activity-title-confirm-marker" preset="unifiedTitle" styleOverridesPreset variant="wash" markerColor={C.marker} style={[s.copy, s.title]}>
+                  {activeTitlePrompt.name}
+                </MarkerText>
+              </View>
+              <Copy kind="title">칭호로 바꿀까요?</Copy>
+            </View>
+          }
+          message={`${activeTitlePrompt.petName}의 홈 대표 칭호를 변경해요.`}
+          confirmLabel={savingTitle ? '변경 중…' : '변경하기'}
+          cancelLabel="취소"
+          accentColor={C.accent}
+          typographyMode="unified"
+          confirmDisabled={savingTitle}
+          confirmLoading={savingTitle}
+          onConfirm={() => {
+            chooseTitle(activeTitlePrompt.key);
+          }}
+          onCancel={() => {
+            if (titleWrite.current) return;
+            setTitlePrompt(null);
+            setSelectionError(null);
+          }}
+        >
+          <Image
+            source={ACHIEVEMENT_ART[activeTitlePrompt.key]}
+            style={s.confirmArtwork}
+            resizeMode="contain"
+            accessible={false}
+          />
+          {selectionError ? (
+            <Copy kind="label" style={s.selectionError}>
+              {selectionError}
+            </Copy>
+          ) : null}
+        </ConfirmDialog>
+      ) : null}
+      {info ? (
+        <PremiumNoticeModal
+          visible
+          eyebrow="NURI"
+          iconName="shield"
+          titleLines={['활동과 칭호 안내']}
+          bodyLines={[
+            '나의 성장 XP는 계정 전체의 활동을 기준으로 해요.',
+            '아이별 기록과 공통 활동은 따로 집계해요.',
+            '획득한 칭호는 최고 기록을 보존하고, 도전 중인 연속 산책은 현재 기록을 보여줘요.',
+          ]}
+          accentColor={C.accent}
+          onClose={() => setInfo(false)}
+        />
+      ) : null}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
+const s = StyleSheet.create({
+  screen: { flex: 1, backgroundColor: C.canvas },
+  flex: { flex: 1, minWidth: 0 },
+  copy: {
+    color: C.ink,
+    letterSpacing: 0,
+    includeFontPadding: false,
+    flexShrink: 1,
   },
-  header: {
-    paddingHorizontal: 18,
-    paddingBottom: 16,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-  },
-  backButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  headerTextWrap: {
-    flex: 1,
-    gap: 6,
-    paddingTop: 3,
-  },
-  title: {
-    fontWeight: '900',
-  },
-  subtitle: {
-    lineHeight: 18,
-  },
-  loadingWrap: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 12,
-  },
-  loadingText: {
-    color: '#7C889A',
+  body: { fontSize: 8, lineHeight: 17 },
+  caption: { fontSize: 8, lineHeight: 17 },
+  label: { fontSize: 11, lineHeight: 18, fontWeight: '500' },
+  title: { fontSize: 17, lineHeight: 24, fontWeight: '700' },
+  sectionTitle: { fontSize: 17, lineHeight: 28, fontWeight: '700' },
+  number: {
+    fontSize: 21,
+    lineHeight: 32,
     fontWeight: '700',
+    textAlign: 'center',
   },
-  scroll: {
-    flex: 1,
+  muted: { color: C.muted },
+  header: { paddingHorizontal: 12, paddingBottom: 7 },
+  headerRow: { flexDirection: 'row', alignItems: 'center', minHeight: 48 },
+  headerTitle: { flex: 1, textAlign: 'center' },
+  iconButton: {
+    minWidth: 48,
+    minHeight: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  content: {
-    paddingHorizontal: 18,
-    paddingTop: 4,
-    gap: 14,
-  },
-  growthCard: {
-    borderWidth: 1,
-    borderRadius: 28,
-    backgroundColor: '#FFFFFF',
-    padding: 20,
-    shadowColor: '#101828',
-    shadowOpacity: 0.08,
-    shadowRadius: 22,
-    shadowOffset: { width: 0, height: 14 },
-    elevation: 5,
-  },
-  growthTopRow: {
+  subtitle: { textAlign: 'center', color: C.muted, marginTop: 2 },
+  tabs: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E9E3F5',
+    paddingHorizontal: 16,
   },
-  growthEyebrow: {
-    color: '#7C889A',
-    fontWeight: '800',
+  tab: {
+    flex: 1,
+    minHeight: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 14,
   },
-  growthTitle: {
-    color: '#172033',
-    fontWeight: '900',
-    marginTop: 4,
+  tabLabel: { textAlign: 'center', color: C.muted },
+  activeText: { color: C.accent },
+  tabUnderline: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: C.accent,
   },
-  titlePill: {
-    borderRadius: 999,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    maxWidth: 158,
+  content: { paddingTop: 18 },
+  glass: { marginTop: 0, borderRadius: 18 },
+  selectedGlass: {
+    backgroundColor: 'rgba(125,92,228,0.08)',
   },
-  titlePillText: {
-    fontWeight: '900',
+  growth: { padding: 18 },
+  growthMiddle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    minHeight: 91,
+    gap: 6,
   },
+  growthCopy: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 10,
+    minWidth: 0,
+  },
+  growthStack: { flexWrap: 'wrap' },
+  level: {
+    fontSize: 59,
+    lineHeight: 72,
+    fontWeight: '700',
+    letterSpacing: 0,
+    includeFontPadding: false,
+    color: C.ink,
+  },
+  growthArt: { width: 92, height: 73 },
+  titleBubble: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    borderWidth: 1,
+    borderColor: C.accent,
+    borderRadius: 14,
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    maxWidth: '100%',
+  },
+  titleBubbleText: { fontSize: 8, lineHeight: 17 },
   progressTrack: {
     height: 12,
-    borderRadius: 999,
-    backgroundColor: '#EEF2F7',
+    borderRadius: 6,
+    backgroundColor: C.track,
     overflow: 'hidden',
-    marginTop: 18,
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: 999,
-  },
-  growthBottomRow: {
-    marginTop: 10,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  growthMeta: {
-    color: '#5E6B7A',
-    fontWeight: '800',
-  },
-  levelPolicyNote: {
-    marginTop: 12,
-    color: '#8A95A6',
-    lineHeight: 18,
-  },
-  sectionCard: {
-    borderRadius: 24,
-    backgroundColor: '#FFFFFF',
-    padding: 16,
-    borderWidth: 1,
-    borderColor: '#EDF1F6',
-    shadowColor: '#101828',
-    shadowOpacity: 0.05,
-    shadowRadius: 16,
-    shadowOffset: { width: 0, height: 10 },
-    elevation: 3,
-  },
-  sectionEyebrow: {
-    color: '#8A95A6',
-    fontWeight: '800',
-    marginBottom: 5,
-  },
-  sectionTitle: {
-    color: '#172033',
-    fontWeight: '900',
-    marginBottom: 14,
-  },
-  petSelectorContent: {
-    gap: 10,
-    paddingRight: 2,
-  },
-  petSelectorCard: {
-    width: 172,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: '#E6EBF2',
-    backgroundColor: '#FAFBFD',
-    padding: 14,
-  },
-  petSelectorName: {
-    color: '#172033',
-    fontWeight: '900',
-  },
-  petSelectorMeta: {
-    color: '#687486',
-    fontWeight: '700',
-    marginTop: 6,
-  },
-  metricGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  metricCard: {
-    flexGrow: 1,
-    flexBasis: '30%',
-    minWidth: 130,
-    borderRadius: 20,
-    backgroundColor: '#FAFBFD',
-    borderWidth: 1,
-    borderColor: '#EDF1F6',
-    padding: 14,
-  },
-  metricIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: 10,
-  },
-  metricLabel: {
-    color: '#7C889A',
-    fontWeight: '800',
-  },
-  metricValue: {
-    color: '#172033',
-    fontWeight: '900',
     marginTop: 4,
   },
-  metricHelper: {
-    color: '#687486',
-    lineHeight: 17,
-    marginTop: 5,
-  },
-  categoryGrid: {
+  progressFill: { height: '100%', borderRadius: 6, backgroundColor: '#9973ED' },
+  growthMeta: {
+    marginTop: 8,
     flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 6,
   },
-  categoryPill: {
-    minWidth: 92,
-    flexGrow: 1,
-    borderRadius: 18,
-    backgroundColor: '#F6F8FB',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
+  wrap: { flexWrap: 'wrap' },
+  section: { marginTop: 22, gap: 10 },
+  sectionHeading: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 6,
+  },
+  sectionDetail: { color: C.muted, textAlign: 'right' },
+  sectionDescription: { marginTop: -5, color: C.muted },
+  petRow: { gap: 10 },
+  petCard: {
+    padding: 12,
+    minHeight: 80,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  petCopy: { flex: 1, minWidth: 0, gap: 4 },
+  petStack: { flexDirection: 'column', alignItems: 'flex-start' },
+  metrics: { flexDirection: 'row', paddingVertical: 12 },
+  metric: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    paddingHorizontal: 6,
+    gap: 5,
+  },
+  divider: { borderLeftWidth: 1, borderLeftColor: '#E7E0F6' },
+  metricLabel: { textAlign: 'center', color: C.muted },
+  categories: { flexDirection: 'row', paddingVertical: 12 },
+  category: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 5,
+  },
+  categoryStack: {
+    flexBasis: '50%',
+    flexGrow: 0,
+    flexShrink: 0,
+    marginVertical: 5,
   },
   categoryLabel: {
-    color: '#7C889A',
-    fontWeight: '800',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 5,
   },
-  categoryCount: {
-    color: '#172033',
-    fontWeight: '900',
-    marginTop: 4,
+  categoryValue: { fontSize: 21, lineHeight: 32 },
+  common: { flexDirection: 'row', paddingVertical: 12 },
+  commonStack: { flexDirection: 'column', gap: 10 },
+  commonMetric: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 14,
+    gap: 12,
   },
-  commonDescription: {
-    color: '#5E6B7A',
-    lineHeight: 22,
-    marginBottom: 14,
+  commonValues: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 7,
   },
-  achievementGrid: {
-    gap: 10,
-  },
-  achievementCard: {
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: '#EDF1F6',
-    backgroundColor: '#FAFBFD',
+  commonCount: { fontSize: 17, lineHeight: 28 },
+  commonCopy: { minWidth: 0, flexShrink: 1, alignItems: 'center' },
+  centered: { textAlign: 'center' },
+  walkBrand: { width: 27, height: 24 },
+  categoryWalkBrand: { width: 22, height: 19 },
+  vaultPicker: {
     padding: 12,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 10,
+    borderRadius: 26,
   },
-  achievementIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  achievementTextWrap: {
+  pickerButton: {
     flex: 1,
-  },
-  achievementName: {
-    color: '#172033',
-    fontWeight: '900',
-  },
-  achievementCondition: {
-    color: '#687486',
-    lineHeight: 17,
-    marginTop: 3,
-  },
-  emptyPetsCard: {
-    borderRadius: 22,
-    backgroundColor: '#FAFBFD',
-    borderWidth: 1,
-    borderColor: '#EDF1F6',
-    padding: 18,
-  },
-  emptyTitle: {
-    color: '#172033',
-    fontWeight: '900',
-  },
-  emptyBody: {
-    color: '#687486',
-    lineHeight: 22,
-    marginTop: 8,
-  },
-  limitNotice: {
-    color: '#8A95A6',
-    lineHeight: 18,
-    paddingHorizontal: 4,
-  },
-  skeletonLineLarge: {
-    width: '62%',
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: '#EEF2F7',
-    marginTop: 8,
-  },
-  skeletonLineWide: {
-    width: '86%',
-    height: 13,
-    borderRadius: 7,
-    backgroundColor: '#EEF2F7',
-    marginTop: 8,
-  },
-  skeletonLineShort: {
-    width: '48%',
-    height: 15,
-    borderRadius: 8,
-    backgroundColor: '#EEF2F7',
-  },
-  skeletonLineTiny: {
-    width: 82,
-    height: 12,
-    borderRadius: 6,
-    backgroundColor: '#EEF2F7',
-  },
-  skeletonProgressTrack: {
-    height: 12,
-    borderRadius: 999,
-    backgroundColor: '#EEF2F7',
-    overflow: 'hidden',
-    marginTop: 20,
-  },
-  skeletonProgressFill: {
-    width: '46%',
-    height: '100%',
-    borderRadius: 999,
-  },
-  skeletonMetaRow: {
-    marginTop: 12,
+    minWidth: 110,
+    minHeight: 48,
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  skeletonPetRow: {
-    flexDirection: 'row',
+    alignItems: 'center',
     gap: 10,
   },
-  skeletonPetCard: {
-    width: 172,
-    height: 72,
-    borderRadius: 20,
-    backgroundColor: '#F2F5F9',
+  commonHint: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  vaultGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 5,
+    paddingVertical: 10,
   },
-  skeletonIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 17,
-    backgroundColor: '#EEF2F7',
-    marginBottom: 10,
+  earnedCell: {
+    alignItems: 'center',
+    paddingHorizontal: 3,
+    paddingVertical: 10,
+    gap: 7,
+    minHeight: 118,
+  },
+  earnedArt: { width: '100%', height: 62 },
+  earnedName: { textAlign: 'center', fontSize: 11, lineHeight: 18 },
+  selectionMark: {
+    height: 17,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+  },
+  confirmArtwork: { width: 56, height: 56, alignSelf: 'center' },
+  confirmTitle: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', columnGap: 5, rowGap: 2 },
+  confirmName: { flexShrink: 1, maxWidth: '100%' },
+  selectionError: { color: '#9B4058', marginBottom: 10 },
+  check: { width: 17, height: 17 },
+  challengeList: { paddingHorizontal: 14 },
+  challenge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 16,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: '#E8E1F5',
+  },
+  challengeArtwork: { width: 52, height: 52 },
+  challengeArt: { width: 52, height: 52 },
+  lock: { width: 18, height: 22, position: 'absolute', bottom: -1, right: -1 },
+  challengeCopy: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  challengeStack: { flexDirection: 'column', alignItems: 'stretch' },
+  condition: { color: C.muted, marginTop: 5 },
+  challengeProgress: { width: 118, gap: 7 },
+  challengeProgressStack: { width: '100%' },
+  fraction: { textAlign: 'right' },
+  segments: { flexDirection: 'row', gap: 3, height: 7 },
+  segment: { flex: 1, borderRadius: 4, backgroundColor: '#D5D0E2' },
+  segmentActive: { backgroundColor: '#A079DE' },
+  continuousTrack: {
+    width: '100%',
+    height: 7,
+    borderRadius: 4,
+    backgroundColor: C.track,
+    overflow: 'hidden',
+  },
+  footer: { textAlign: 'center', color: C.muted, marginTop: 18 },
+  empty: { color: C.muted, padding: 16, textAlign: 'center', width: '100%' },
+  loading: { gap: 20, paddingVertical: 15 },
+  skeleton: { height: 100, borderRadius: 18, backgroundColor: '#EEE9F5' },
+  message: { padding: 18, gap: 8, marginBottom: 14 },
+  retry: { minHeight: 48, alignItems: 'center', justifyContent: 'center' },
+  modalRoot: {
+    flex: 1,
+    justifyContent: 'flex-end',
+    backgroundColor: 'rgba(25,21,47,.45)',
+  },
+  pickerSheet: {
+    borderTopLeftRadius: 22,
+    borderTopRightRadius: 22,
+    padding: 20,
+    backgroundColor: C.canvas,
+  },
+  pickerOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    minHeight: 64,
   },
 });

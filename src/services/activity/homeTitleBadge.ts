@@ -13,10 +13,15 @@ export type HomeTitleBadgeRow = {
   earnedAt: string;
   petId: string | null;
 };
+export type HomeTitleBadgeIdentity = {
+  titleKey: string | null;
+  titleName: string;
+};
 
 type HomeTitleBadgeCacheEntry = {
   savedAt: number;
   title: string | null;
+  titleKey?: string;
 };
 
 const HOME_TITLE_BADGE_CACHE_PREFIX = '@nuri/home-title-badge/v1';
@@ -61,10 +66,10 @@ function mapTitleBadgeRow(value: unknown): HomeTitleBadgeRow | null {
   };
 }
 
-export function pickHomePetTitleBadge(input: {
+export function pickHomePetTitleBadgeIdentity(input: {
   titles: HomeTitleBadgeRow[];
   petId: string | null;
-}): string | null {
+}): HomeTitleBadgeIdentity | null {
   if (!input.petId) return null;
   const petTitles = input.titles
     .filter(title => title.petId === input.petId)
@@ -77,14 +82,23 @@ export function pickHomePetTitleBadge(input: {
       return left.titleName.localeCompare(right.titleName, 'ko-KR');
     });
 
-  return petTitles[0]?.titleName ?? null;
+  const title = petTitles[0];
+  return title
+    ? { titleKey: title.titleKey, titleName: title.titleName }
+    : null;
+}
+export function pickHomePetTitleBadge(input: {
+  titles: HomeTitleBadgeRow[];
+  petId: string | null;
+}): string | null {
+  return pickHomePetTitleBadgeIdentity(input)?.titleName ?? null;
 }
 
-export async function loadCachedHomePetTitleBadge(input: {
+export async function loadCachedHomePetTitleBadgeIdentity(input: {
   userId: string | null;
   petId: string | null;
   now?: number;
-}): Promise<string | null> {
+}): Promise<HomeTitleBadgeIdentity | null> {
   if (!input.userId || !input.petId) return null;
 
   const cacheKey = getHomeTitleBadgeCacheKey({
@@ -107,17 +121,28 @@ export async function loadCachedHomePetTitleBadge(input: {
       return null;
     }
 
-    return toNullableString(parsed.title);
+    const titleName = toNullableString(parsed.title);
+    return titleName
+      ? { titleName, titleKey: toNullableString(parsed.titleKey) }
+      : null;
   } catch {
     await AsyncStorage.removeItem(cacheKey);
     return null;
   }
+}
+export async function loadCachedHomePetTitleBadge(input: {
+  userId: string | null;
+  petId: string | null;
+  now?: number;
+}): Promise<string | null> {
+  return (await loadCachedHomePetTitleBadgeIdentity(input))?.titleName ?? null;
 }
 
 export async function saveCachedHomePetTitleBadge(input: {
   userId: string | null;
   petId: string | null;
   title: string | null;
+  titleKey?: string | null;
   now?: number;
 }): Promise<void> {
   if (!input.userId || !input.petId) return;
@@ -125,6 +150,7 @@ export async function saveCachedHomePetTitleBadge(input: {
   const entry: HomeTitleBadgeCacheEntry = {
     savedAt: input.now ?? Date.now(),
     title: toNullableString(input.title),
+    ...(input.titleKey ? { titleKey: input.titleKey } : {}),
   };
 
   await AsyncStorage.setItem(
@@ -136,9 +162,9 @@ export async function saveCachedHomePetTitleBadge(input: {
   );
 }
 
-export async function fetchHomePetTitleBadge(
+export async function fetchHomePetTitleBadgeIdentity(
   petId: string | null,
-): Promise<string | null> {
+): Promise<HomeTitleBadgeIdentity | null> {
   if (!petId) return null;
 
   const { data, error } = await supabase
@@ -155,5 +181,10 @@ export async function fetchHomePetTitleBadge(
     .map(mapTitleBadgeRow)
     .filter((item): item is HomeTitleBadgeRow => item !== null);
 
-  return pickHomePetTitleBadge({ titles, petId });
+  return pickHomePetTitleBadgeIdentity({ titles, petId });
+}
+export async function fetchHomePetTitleBadge(
+  petId: string | null,
+): Promise<string | null> {
+  return (await fetchHomePetTitleBadgeIdentity(petId))?.titleName ?? null;
 }

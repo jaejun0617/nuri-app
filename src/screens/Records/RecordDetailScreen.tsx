@@ -1,4 +1,7 @@
-import CtaButton, { CtaIcon, CtaText } from '../../app/ui/CtaButton';
+import TimelineArtwork from '../../components/records/TimelineArtwork';
+import { LavenderScreenBackground } from '../../components/common/LavenderScreenBackground';
+import { TIMELINE_DESIGN as C } from '../../theme/timelineDesign';
+import CtaButton, { CtaIcon, CtaText } from '../../components/records/TimelineButton';
 import { getRecordCareLabel } from '../../services/records/metadata';
 // 파일: src/screens/Records/RecordDetailScreen.tsx
 // 역할:
@@ -42,23 +45,18 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from '../../components/icons/NuriFeatherIcon';
-import NuriIcon, { type NuriIconName } from '../../components/icons/NuriIcon';
+import { type NuriIconName } from '../../components/icons/NuriIcon';
 import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
-import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
-import ConfirmDialog from '../../components/common/ConfirmDialog';
+import TimelineDeleteDialog from '../../components/records/TimelineDeleteDialog';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import OptimizedImage from '../../components/images/OptimizedImage';
-import { HomeFrostedGlass } from '../../components/home/HomeFrostedGlass';
 import { useSignedMemoryImage } from '../../hooks/useSignedMemoryImage';
-import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
-import { TIMELINE_SEASON_COLORS } from '../../theme/seasonal/timeline';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import {
-  formatRecordRelativeTime,
   getRecordDisplayYmd,
 } from '../../services/records/date';
 import {
@@ -165,8 +163,6 @@ const FeedPostCard = memo(function FeedPostCardView({
   const [expandedImage, setExpandedImage] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
   const window = useWindowDimensions();
-  const season = useEffectiveSeason();
-  const categoryTone = getMemoryDetailCategoryTone(item);
   const moodMeta = item.emotion ? EMOTION_META[item.emotion] : null;
   const imagePaths = useMemo(() => {
     return getMemoryImageRefs(item);
@@ -313,7 +309,7 @@ const FeedPostCard = memo(function FeedPostCardView({
   }, [imageIndex, imagePaths.length]);
 
   const displayDate = useMemo(() => formatMemoryDetailDate(item), [item]);
-  const relativeTime = useMemo(() => formatRecordRelativeTime(item), [item]);
+
   const avatarFallback = useMemo(
     () => petName.trim().charAt(0) || 'N',
     [petName],
@@ -390,10 +386,8 @@ const FeedPostCard = memo(function FeedPostCardView({
   );
 
   return (
-    <HomeFrostedGlass
+    <View
       testID="memory-detail-post-glass"
-      season={season}
-      borderRadius={8}
       style={styles.postCard}
     >
       <View style={styles.postHeader}>
@@ -428,7 +422,7 @@ const FeedPostCard = memo(function FeedPostCardView({
               <View
                 style={[
                   styles.categoryChip,
-                  { backgroundColor: categoryTone.backgroundColor },
+                  { backgroundColor: C.selected },
                 ]}
               >
                 <AppText
@@ -436,7 +430,7 @@ const FeedPostCard = memo(function FeedPostCardView({
                   styleOverridesPreset
                   style={[
                     styles.categoryText,
-                    { color: categoryTone.textColor },
+                    { color: C.primary },
                   ]}
                 >
                   {getMemoryCategoryChipLabel(item)}
@@ -445,7 +439,7 @@ const FeedPostCard = memo(function FeedPostCardView({
             </View>
             <AppText preset="unifiedMeta" style={styles.postMetaLine}>
               {displayDate}
-              {relativeTime ? ` · ${relativeTime}` : ''}
+
             </AppText>
           </View>
         </View>
@@ -500,30 +494,7 @@ const FeedPostCard = memo(function FeedPostCardView({
             </View>
           ) : null}
         </View>
-      ) : (
-        <View
-          testID="memory-detail-no-photo"
-          style={[styles.postImageFallback, styles.noPhoto]}
-        >
-          <NuriSemanticIcon
-            family="feather"
-            name="camera-off"
-            size={36}
-            color="#8D9EB9"
-            preserveOriginal
-          />
-          <AppText
-            preset="unifiedBody"
-            styleOverridesPreset
-            style={styles.noPhotoTitle}
-          >
-            사진 없이 남긴 소중한 기록이에요
-          </AppText>
-          <AppText preset="unifiedMeta" style={styles.postImageFallbackText}>
-            글로 남긴 순간도 충분히 특별해요.
-          </AppText>
-        </View>
-      )}
+      ) : null}
 
       <View style={styles.postBody}>
         <AppText
@@ -544,9 +515,23 @@ const FeedPostCard = memo(function FeedPostCardView({
           </AppText>
         ) : null}
 
+        {item.metadata?.grooming?.careTypes.length || (priceText && (item.subCategory==='grooming'||item.subCategory==='bathing')) ? (
+          <View testID="memory-detail-care-card" style={{padding:16,borderRadius:14,borderWidth:1,borderColor:C.border,backgroundColor:C.surface,gap:12}}>
+            <AppText preset="unifiedLabel" style={{color:C.ink}}>관리 항목</AppText>
+            <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>
+              {item.metadata?.grooming?.careTypes.map(code=><View key={code} style={{backgroundColor:C.selected,borderRadius:20,paddingHorizontal:14,paddingVertical:8}}><AppText preset="unifiedMeta" style={{color:C.primary}}>{getRecordCareLabel(code,item.subCategory==='bathing'?'bathing':'grooming')}</AppText></View>)}
+            </View>
+            {priceText && <View style={{borderTopWidth:1,borderColor:C.border,paddingTop:12,gap:6}}><View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12}}><AppText preset="unifiedMeta" style={{color:C.muted}}>{item.subCategory==='bathing'?'목욕·위생 비용':'미용 비용'}</AppText><AppText preset="unifiedTitle" style={{color:C.ink}}>{priceText}</AppText></View><AppText preset="unifiedMeta" style={{color:C.muted,textAlign:'right'}}>기록한 달의 지출에 함께 반영돼요.</AppText></View>}
+          </View>
+        ) : null}
+        {priceText && item.subCategory!=='grooming' && item.subCategory!=='bathing' ? (
+          <AppText preset="unifiedMeta" style={styles.postTagsText}>
+            {item.category === 'health' || item.subCategory === 'hospital' ? '병원·건강 비용' : item.subCategory === 'grooming' ? '미용 비용' : item.subCategory === 'bathing' ? '목욕·위생 비용' : '구매 가격'} {priceText}
+          </AppText>
+        ) : null}
         {moodMeta ? (
           <View style={styles.postMoodRow}>
-            <NuriIcon name={moodMeta.icon} size={16} />
+            <TimelineArtwork name={item.emotion??'neutral'} size={20} />
             <AppText preset="unifiedMeta" style={styles.postMoodLabel}>
               {moodMeta.label}
             </AppText>
@@ -580,16 +565,6 @@ const FeedPostCard = memo(function FeedPostCardView({
             ))}
           </View>
         ) : null}
-        {item.metadata?.grooming?.careTypes.length ? (
-          <AppText preset="unifiedBody" style={styles.postTagsText}>
-            관리 항목 · {item.metadata.grooming.careTypes.map(code => getRecordCareLabel(code, item.subCategory === 'bathing' ? 'bathing' : 'grooming')).filter(Boolean).join(' · ')}
-          </AppText>
-        ) : null}
-        {priceText ? (
-          <AppText preset="unifiedMeta" style={styles.postTagsText}>
-            {item.category === 'health' || item.subCategory === 'hospital' ? '병원·건강 비용' : item.subCategory === 'grooming' ? '미용 비용' : item.subCategory === 'bathing' ? '목욕·위생 비용' : '구매 가격'} {priceText}
-          </AppText>
-        ) : null}
       </View>
       <Modal
         visible={expandedImage !== null}
@@ -622,7 +597,7 @@ const FeedPostCard = memo(function FeedPostCardView({
           </TouchableOpacity>
         </View>
       </Modal>
-    </HomeFrostedGlass>
+    </View>
   );
 });
 
@@ -633,7 +608,6 @@ const RelatedMemoryCard = memo(function RelatedMemoryCardView({
   item: MemoryRecord;
   onPress: (item: MemoryRecord) => void;
 }) {
-  const season = useEffectiveSeason();
   const image = getTimelinePrimaryMemoryImageSource(item);
   const { signedUrl } = useSignedMemoryImage(image.value, {
     variant: 'timeline-thumb',
@@ -650,10 +624,8 @@ const RelatedMemoryCard = memo(function RelatedMemoryCardView({
       activeOpacity={0.9}
       style={styles.relatedAction}
     >
-      <HomeFrostedGlass
+      <View
         testID="memory-detail-related-glass"
-        season={season}
-        borderRadius={8}
         style={styles.relatedCard}
       >
         <View
@@ -676,13 +648,13 @@ const RelatedMemoryCard = memo(function RelatedMemoryCardView({
           <View
             style={[
               styles.categoryChip,
-              { backgroundColor: tone.backgroundColor },
+              { backgroundColor: C.selected },
             ]}
           >
             <AppText
               preset="unifiedMeta"
               styleOverridesPreset
-              style={[styles.categoryText, { color: tone.textColor }]}
+              style={[styles.categoryText, { color: C.primary }]}
             >
               {getMemoryCategoryChipLabel(item)}
             </AppText>
@@ -700,7 +672,7 @@ const RelatedMemoryCard = memo(function RelatedMemoryCardView({
           </AppText>
         </View>
         <Feather name="chevron-right" size={18} color={styles.relatedTime.color} />
-      </HomeFrostedGlass>
+      </View>
     </TouchableOpacity>
   );
 });
@@ -763,9 +735,7 @@ function DetailHeader({
 export default function RecordDetailScreen() {
   const insets = useSafeAreaInsets();
   const toolbarHeight = useContext(ToolbarHeightContext);
-  const theme = useTheme();
-  const season = useEffectiveSeason();
-  const seasonColors = TIMELINE_SEASON_COLORS[season];
+  const seasonColors = { statsValue: C.primary, selectedCategory: C.primary };
   const navigation = useNavigation<TimelineNav>();
   const route = useRoute<Route>();
   const petId = route.params?.petId?.trim() || null;
@@ -1210,6 +1180,7 @@ export default function RecordDetailScreen() {
 
   return (
     <View style={styles.screen}>
+      <LavenderScreenBackground />
       {detailHeader}
 
       <FlatList
@@ -1317,80 +1288,20 @@ export default function RecordDetailScreen() {
         }
       />
 
-      <Modal
-        visible={actionMenuVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={closeActionMenu}
-      >
-        <View
-          style={[
-            styles.sheetBackdrop,
-            { backgroundColor: theme.colors.overlay },
-          ]}
-        >
-          <Pressable style={styles.sheetDismiss} onPress={closeActionMenu} />
-          <View
-            accessibilityViewIsModal
-            style={[
-              styles.actionSheet,
-              {
-                backgroundColor: theme.colors.surfaceElevated,
-                borderColor: theme.colors.border,
-              },
-            ]}
-          >
-            <CtaButton
-              role="primary"
-              activeOpacity={0.9}
-              style={styles.sheetActionRow}
-              onPress={onPressEdit}
-              disabled={deleting}
-            >
-              <CtaText
-                preset="unifiedBody"
-                style={[styles.sheetActionText, {}]}
-              >
-                수정하기
-              </CtaText>
-            </CtaButton>
-
-            <CtaButton
-              role="destructiveConfirm"
-              activeOpacity={0.9}
-              style={styles.sheetActionRow}
-              onPress={onPressDelete}
-              disabled={deleting}
-            >
-              <CtaText
-                preset="unifiedBody"
-                style={styles.sheetActionDeleteText}
-              >
-                삭제하기
-              </CtaText>
-            </CtaButton>
+      <Modal visible={actionMenuVisible} transparent animationType="slide" onRequestClose={closeActionMenu}>
+        <View style={[styles.sheetBackdrop,{backgroundColor:C.overlay,justifyContent:'flex-end',paddingHorizontal:0}]}>
+          <Pressable style={styles.sheetDismiss} onPress={closeActionMenu}/>
+          <View accessibilityViewIsModal style={[styles.actionSheet,{maxWidth:600,paddingBottom:insets.bottom+20,borderBottomLeftRadius:0,borderBottomRightRadius:0}]}>
+            <View style={{alignSelf:'center',width:40,height:4,borderRadius:2,backgroundColor:'#CBC5DF',marginBottom:18}}/>
+            <AppText preset="unifiedTitle" style={{color:C.ink,marginBottom:12}}>이 기록 관리</AppText>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="기록 수정하기" style={styles.sheetActionRow} onPress={onPressEdit} disabled={deleting}><TimelineArtwork name="edit" size={24}/><AppText style={styles.sheetActionText}>기록 수정하기</AppText><Feather name="chevron-right" size={18} color={C.muted}/></TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="기록 삭제하기" style={styles.sheetActionRow} onPress={onPressDelete} disabled={deleting}><TimelineArtwork name="delete" size={24}/><AppText style={styles.sheetActionDeleteText}>기록 삭제하기</AppText><Feather name="chevron-right" size={18} color={C.muted}/></TouchableOpacity>
+            <CtaButton role="neutral" style={{marginTop:16}} onPress={closeActionMenu}><CtaText>닫기</CtaText></CtaButton>
           </View>
         </View>
       </Modal>
 
-      <ConfirmDialog
-        confirmRole="destructiveConfirm"
-        cancelRole="neutral"
-        confirmLoading={deleting}
-        visible={deleteModalVisible}
-        typographyMode="unified"
-        title="정말 삭제할까요?"
-        message={
-          '삭제된 추억은 다시 복구할 수 없어요.\n신중하게 선택해 주세요.'
-        }
-        cancelLabel="취소"
-        confirmLabel={deleting ? '삭제 중...' : '삭제하기'}
-        tone="danger"
-        onCancel={() => setDeleteModalVisible(false)}
-        onConfirm={() => {
-          onConfirmDelete().catch(() => {});
-        }}
-      />
+      <TimelineDeleteDialog visible={deleteModalVisible} recordTitle={record.title.trim()} loading={deleting} onCancel={()=>setDeleteModalVisible(false)} onConfirm={()=>{onConfirmDelete().catch(()=>{});}} />
     </View>
   );
 }

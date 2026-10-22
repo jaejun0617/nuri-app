@@ -146,6 +146,29 @@ describe('More account deletion confirmation', () => {
     global.requestAnimationFrame = originalRequestAnimationFrame;
   });
 
+  it('defers More child navigation to its animated host while preserving the return offset', async () => {
+    const close = jest.fn();
+    const requestNavigate = jest.fn();
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => {
+      renderer = TestRenderer.create(<ThemeProvider theme={createTheme('light')}>
+        <MoreDrawerContent onRequestClose={close} onRequestNavigate={requestNavigate} />
+      </ThemeProvider>);
+    });
+    await TestRenderer.act(async () => {
+      renderer.root.findByProps({ testID: 'more-menu-scroll' }).props.onScroll({ nativeEvent: { contentOffset: { y: 620 } } });
+      renderer.root.findByProps({ testID: 'more-entry-policy-center' }).props.onPress();
+    });
+    expect(mockNavigation.navigate).not.toHaveBeenCalled();
+    expect(close).not.toHaveBeenCalled();
+    expect(requestNavigate).toHaveBeenCalledTimes(1);
+    expect(useUiStore.getState().moreDrawerScrollOffset).toBe(620);
+    expect(useUiStore.getState().moreDrawerRestorePending).toBe(true);
+    await TestRenderer.act(async () => requestNavigate.mock.calls[0][0]());
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('PolicyCenter', { entrySource: 'more' });
+    await TestRenderer.act(async () => renderer.unmount());
+  });
+
   it('opens the current-month expense list from below the profile and preserves More return position', async () => {
     const close = jest.fn();
     let renderer!: TestRenderer.ReactTestRenderer;
@@ -164,10 +187,37 @@ describe('More account deletion confirmation', () => {
     expect(useUiStore.getState().moreDrawerScrollOffset).toBe(80);
     expect(mockNavigation.navigate).toHaveBeenCalledWith('AppTabs', {
       screen: 'TimelineTab',
-      params: { screen: 'MonthlyExpenses', params: {
+      params: { screen: 'MonthlyExpenses', initial: false, params: {
         monthKey: mockMonthlyExpenses.mock.calls[0][0], entrySource: 'more', entryRequestId: expect.any(Number),
       } },
     });
+    await TestRenderer.act(async () => renderer.unmount());
+  });
+
+  it.each([
+    ['home', { screen: 'HomeTab' }],
+    ['timeline', { screen: 'TimelineTab', params: {
+      screen: 'TimelineMain', params: { mainCategory: 'all', entrySource: 'more' },
+    } }],
+    ['community', { screen: 'CommunityTab' }],
+    ['guestbook', { screen: 'GuestbookTab' }],
+  ])('defers the %s footer destination through the same closing host', async (target, destination) => {
+    const close = jest.fn();
+    const requestNavigate = jest.fn();
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => {
+      renderer = TestRenderer.create(<ThemeProvider theme={createTheme('light')}>
+        <MoreDrawerContent onRequestClose={close} onRequestNavigate={requestNavigate} />
+      </ThemeProvider>);
+    });
+    await TestRenderer.act(async () => {
+      renderer.root.find(node => (node.type as unknown) === 'AppNavigationToolbarMock').props.onNavigateTab(target);
+    });
+    expect(close).not.toHaveBeenCalled();
+    expect(mockNavigation.navigate).not.toHaveBeenCalled();
+    expect(requestNavigate).toHaveBeenCalledTimes(1);
+    await TestRenderer.act(async () => requestNavigate.mock.calls[0][0]());
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('AppTabs', destination);
     await TestRenderer.act(async () => renderer.unmount());
   });
 

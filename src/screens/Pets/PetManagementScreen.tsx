@@ -20,6 +20,7 @@ import {
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { LavenderScreenBackground } from '../../components/common/LavenderScreenBackground';
 import AppText from '../../app/ui/AppText';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
@@ -261,6 +262,7 @@ export default function PetManagementScreen() {
       style={[styles.screen, { paddingBottom: insets.bottom }]}
       onLayout={event => setContainerWidth(event.nativeEvent.layout.width)}
     >
+      <LavenderScreenBackground testID="pet-management-background-gradient" />
       <View
         style={styles.content}
         accessibilityElementsHidden={Boolean(deleteTarget)}

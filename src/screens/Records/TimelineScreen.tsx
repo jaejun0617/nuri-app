@@ -116,7 +116,7 @@ import { styles } from './TimelineScreen.styles';
 import TimelineSeasonalHeader, {
   TimelineSeasonalControls,
 } from './TimelineSeasonalHeader';
-import SeasonalAmbientBackground from '../../components/common/SeasonalAmbientBackground';
+import { LavenderScreenBackground } from '../../components/common/LavenderScreenBackground';
 import TimelineCreateButton from './TimelineCreateButton';
 import {
   buildTimelineDayCounts,
@@ -1441,7 +1441,7 @@ export default function TimelineScreen() {
   if (!isLoggedIn) {
     return (
       <View style={[styles.screen, { paddingTop: insets.top }]}>
-        <SeasonalAmbientBackground season={season} appearance="light" />
+        <LavenderScreenBackground testID="timeline-background-gradient" />
         <View style={styles.header}>
           <View style={styles.headerSideSlot}>
             <TouchableOpacity
@@ -1513,7 +1513,7 @@ export default function TimelineScreen() {
       onLayout={onListLayout}
       style={[styles.screen, { paddingTop: insets.top }]}
     >
-      <SeasonalAmbientBackground season={season} appearance="light" />
+      <LavenderScreenBackground testID="timeline-background-gradient" />
       <FlashList
         key={
           isHomeTotalSummaryEntry

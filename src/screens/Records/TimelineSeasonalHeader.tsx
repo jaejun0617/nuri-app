@@ -30,7 +30,6 @@ import {
   TIMELINE_HERO_ASPECT_RATIO,
   TIMELINE_HERO_IMAGES,
   TIMELINE_SEASON_COLORS,
-  TIMELINE_STATS_ANCHOR,
 } from '../../theme/seasonal/timeline';
 import { appendKoreanParticle } from '../../utils/koreanParticle';
 
@@ -248,11 +247,6 @@ export default memo(function TimelineSeasonalHeader({
         testID="timeline-statistics"
         style={[
           s.stats,
-          {
-            marginTop:
-              -heroHeight * (1 - TIMELINE_STATS_ANCHOR[season]) -
-              (season === 'summer' ? 8 : 4),
-          },
           stack ? s.statsStack : null,
         ]}
       >
@@ -369,6 +363,8 @@ const s = StyleSheet.create({
   heroNavigation: { position: 'absolute', left: 12, top: 4 },
   heroBack: { width: 44, minHeight: 44, justifyContent: 'center' },
   stats: {
+    marginTop: 12,
+    marginBottom: 4,
     marginHorizontal: 18,
     paddingHorizontal: 12,
     paddingVertical: 8,

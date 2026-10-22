@@ -1,0 +1,82 @@
+{
+  "source": "/Users/shinjaejun/Desktop/시안/리디자인/누리랭킹화면/누리랭킹-종합.png",
+  "sourceSha256": "609f061048af0cb13dd748e811cd5ece0718faacb005b2218bf91485653fd6e5",
+  "sourceSize": {
+    "width": 830,
+    "height": 1895
+  },
+  "method": "Original pixels with circular alpha; white fur and lavender background retained",
+  "assets": [
+    {
+      "name": "companion-dog",
+      "rect": {
+        "left": 143,
+        "top": 614,
+        "width": 84,
+        "height": 84
+      },
+      "sha256": "c00211acca164a4139410c16ffaa75604cd86e240d5f72ba9160e05dd3848a9b"
+    },
+    {
+      "name": "companion-cat",
+      "rect": {
+        "left": 143,
+        "top": 715,
+        "width": 84,
+        "height": 84
+      },
+      "sha256": "8998a3cba4b95a1ce0325622db06016dddcf97a740847a259902660252322736"
+    },
+    {
+      "name": "companion-fluffy",
+      "rect": {
+        "left": 143,
+        "top": 816,
+        "width": 84,
+        "height": 84
+      },
+      "sha256": "858fe7276e85aab4023f440bacd55b97771defe9a94331e0e0ded0fd7ad6a83a"
+    },
+    {
+      "name": "companion-brown",
+      "rect": {
+        "left": 143,
+        "top": 1119,
+        "width": 84,
+        "height": 84
+      },
+      "sha256": "a16018b758bca052eaab8a889ccca396fac5f4e03ea60e7b5617b1f739751f79"
+    },
+    {
+      "name": "companion-shiba",
+      "rect": {
+        "left": 143,
+        "top": 1321,
+        "width": 84,
+        "height": 84
+      },
+      "sha256": "036e4dcfbfacd7d792f1e75101caa9c8d2b7b26dbd3b978dc63c57bb9d01c508"
+    },
+    {
+      "name": "companion-black",
+      "rect": {
+        "left": 143,
+        "top": 1523,
+        "width": 84,
+        "height": 84
+      },
+      "sha256": "3b256fad4cb119fa5b86ac12f50a9d90df7225baa2b2427cfe0e3fcf5a3bbeea"
+    }
+  ],
+  "privacyShield": {
+    "source": "/Users/shinjaejun/Desktop/시안/리디자인/누리랭킹화면/누리랭킹-건강.png",
+    "rect": {
+      "left": 619,
+      "top": 415,
+      "width": 25,
+      "height": 31
+    },
+    "method": "Original flat-color shield pixels; background matte converted to alpha",
+    "sha256": "d35a4856af1989893be7403d3a8117d4b03db73acc3ae4ac260800d7d2c4192a"
+  }
+}
