@@ -49,7 +49,7 @@ jest.mock('../src/store/authStore', () => ({
     selector({ isLoggedIn: true }),
 }));
 jest.mock('../src/store/uiStore', () => ({
-  useUiStore: (
+  useUiStore: Object.assign((
     selector: (s: {
       moreDrawerOpen: boolean;
       openMoreDrawer: () => void;
@@ -60,7 +60,7 @@ jest.mock('../src/store/uiStore', () => ({
       moreDrawerOpen: false,
       openMoreDrawer: mockOpenMore,
       closeMoreDrawer: mockCloseMore,
-    }),
+    }), { getState: () => ({ moreDrawerOpen: false, closeMoreDrawer: mockCloseMore }) }),
   openMoreDrawer: () => mockOpenMore(),
 }));
 jest.mock('../src/screens/Main/MainScreen', () => {
@@ -157,13 +157,13 @@ describe('actual root tab navigator and fixed toolbar', () => {
       if (!tab) throw Error('Expected root tab was not rendered');
       tab.props.onPress();
     });
-  test('all actual scenes use a 220ms opacity-only fade while the toolbar stays outside them', async () => {
+  test('all actual scenes use a 400ms opacity-only fade while the toolbar stays outside them', async () => {
     await mount();
     const view = tree.root.findByType(BottomTabView);
     for (const descriptor of Object.values(descriptors())) {
       expect(descriptor.options).toMatchObject({
         animation: 'fade',
-        transitionSpec: { animation: 'timing', config: { duration: 220 } },
+        transitionSpec: { animation: 'timing', config: { duration: 400 } },
       });
       expect(descriptor.options.freezeOnBlur).toBeUndefined();
       expect(descriptor.options.lazy).toBeUndefined();

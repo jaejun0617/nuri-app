@@ -1,13 +1,14 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { ActivityDashboardData } from './activityDashboard';
 import type { HomeTitleBadgeIdentity } from './homeTitleBadge';
-import { ACHIEVEMENT_ART } from './titleArtwork';
+import { getTitleArtwork, SERVER_TITLE_ARTWORK_IDS } from './titleArtwork';
+import { getCanonicalTitleIdentity } from './titleVaultV2';
 
 const PREFIX = '@nuri/home-title-selection/v1';
 const storageKey = (userId: string, petId: string) =>
   `${PREFIX}:${userId}:${petId}`;
 const knownAchievement = (key: string) =>
-  Object.prototype.hasOwnProperty.call(ACHIEVEMENT_ART, key);
+  getTitleArtwork(key) !== undefined;
 
 /** A device-local display preference, never an award or XP settlement. */
 export async function loadHomeTitleSelection(input: {
@@ -29,7 +30,8 @@ export async function loadHomeTitleSelection(input: {
       !entry.titleName.trim()
     )
       return null;
-    return { titleKey: entry.titleKey, titleName: entry.titleName };
+    const legacyUnscoped = Object.prototype.hasOwnProperty.call(SERVER_TITLE_ARTWORK_IDS, entry.titleKey);
+    return (!legacyUnscoped ? getCanonicalTitleIdentity(entry.titleKey) : null) ?? { titleKey: entry.titleKey, titleName: entry.titleName };
   } catch {
     return null;
   }
@@ -54,7 +56,7 @@ export async function saveHomeTitleSelection(input: {
   ].find(a => a.key === input.achievementKey && a.achieved);
   if (!achievement || !knownAchievement(achievement.key))
     throw new Error('TITLE_NOT_EARNED');
-  const identity = { titleKey: achievement.key, titleName: achievement.name };
+  const identity = (achievement.policyVersion !== 1 ? getCanonicalTitleIdentity(achievement.key) : null) ?? { titleKey: achievement.key, titleName: achievement.name };
   await AsyncStorage.setItem(
     storageKey(input.userId, input.petId),
     JSON.stringify({ version: 1, ...identity }),

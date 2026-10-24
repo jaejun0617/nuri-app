@@ -1,5 +1,5 @@
 import React from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { FlatList, StyleSheet, type FlatListProps } from 'react-native';
 import TestRenderer from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 
@@ -25,6 +25,29 @@ const mockNavigation = {
 const mockPerformAccountDeletion = jest.fn();
 const mockSetSeasonOverride = jest.fn<Promise<void>, [SeasonKey | null]>(() => Promise.resolve());
 const mockMonthlyExpenses = jest.fn();
+const mockScrollToOffset = jest.fn();
+
+// Menu contract tests materialize every section; native windowing is checked on device.
+jest.mock('react-native/Libraries/Lists/FlatList', () => {
+  const react = jest.requireActual('react') as typeof React;
+  const component = react.forwardRef(function MenuListMock(props: FlatListProps<unknown>, ref) {
+    react.useImperativeHandle(ref, () => ({ scrollToOffset: mockScrollToOffset }));
+    return react.createElement('MenuListMock', props,
+      props.ListHeaderComponent as React.ReactElement,
+      Array.from(props.data ?? []).map((item, index) => react.createElement(react.Fragment, {
+        key: props.keyExtractor?.(item, index) ?? index,
+      }, props.renderItem?.({ item, index, separators: {
+        highlight: () => {}, unhighlight: () => {}, updateProps: () => {},
+      } }))),
+    );
+  });
+  return { __esModule: true, default: component };
+});
+
+jest.mock('../src/components/settings/AppFontSettingsModal', () => {
+  const react = jest.requireActual('react') as typeof React;
+  return (props: MockProps) => react.createElement('FontSettingsHost', props);
+});
 
 jest.mock('../src/hooks/useMonthlyExpenses', () => ({
   useMonthlyExpenses: (month: string) => {
@@ -169,6 +192,28 @@ describe('More account deletion confirmation', () => {
     await TestRenderer.act(async () => renderer.unmount());
   });
 
+  it('windows sections without changing their order and mounts font settings only on first use', async () => {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await TestRenderer.act(async () => {
+      renderer = TestRenderer.create(<ThemeProvider theme={createTheme('light')}>
+        <MoreDrawerContent onRequestClose={jest.fn()} />
+      </ThemeProvider>);
+    });
+    const menu = renderer.root.findByType(FlatList);
+    expect(menu.props.data.map((section: { key: string }) => section.key)).toEqual([
+      'quick', 'social', 'info', 'settings', 'policy', 'account',
+    ]);
+    expect(menu.props).toMatchObject({ initialNumToRender: 2, maxToRenderPerBatch: 1, windowSize: 3 });
+    expect(renderer.root.findAll(node => String(node.type) === 'FontSettingsHost')).toHaveLength(0);
+    await TestRenderer.act(async () => renderer.root.findByProps({ testID: 'more-entry-app-font' }).props.onPress());
+    const modal = () => renderer.root.find(node => String(node.type) === 'FontSettingsHost');
+    expect(modal().props.visible).toBe(true);
+    await TestRenderer.act(async () => modal().props.onClose());
+    expect(modal().props.visible).toBe(false);
+    expect(menu.props.initialNumToRender).toBe(2);
+    await TestRenderer.act(async () => renderer.unmount());
+  });
+
   it('opens the current-month expense list from below the profile and preserves More return position', async () => {
     const close = jest.fn();
     let renderer!: TestRenderer.ReactTestRenderer;
@@ -179,7 +224,7 @@ describe('More account deletion confirmation', () => {
         </ThemeProvider>,
       );
     });
-    const menu = renderer.root.findByType(ScrollView);
+    const menu = renderer.root.findByType(FlatList);
     await TestRenderer.act(async () => menu.props.onScroll({ nativeEvent: { contentOffset: { y: 80 } } }));
     const entry = menu.find(node => node.props.testID === 'more-monthly-expenses' && typeof node.props.onPress === 'function');
     await TestRenderer.act(async () => entry.props.onPress());
@@ -201,13 +246,14 @@ describe('More account deletion confirmation', () => {
     } }],
     ['community', { screen: 'CommunityTab' }],
     ['guestbook', { screen: 'GuestbookTab' }],
-  ])('defers the %s footer destination through the same closing host', async (target, destination) => {
+  ])('replaces the %s footer destination through the covered-tab host', async (target, destination) => {
     const close = jest.fn();
     const requestNavigate = jest.fn();
+    const requestTabNavigate = jest.fn();
     let renderer!: TestRenderer.ReactTestRenderer;
     await TestRenderer.act(async () => {
       renderer = TestRenderer.create(<ThemeProvider theme={createTheme('light')}>
-        <MoreDrawerContent onRequestClose={close} onRequestNavigate={requestNavigate} />
+        <MoreDrawerContent onRequestClose={close} onRequestNavigate={requestNavigate} onRequestTabNavigate={requestTabNavigate} />
       </ThemeProvider>);
     });
     await TestRenderer.act(async () => {
@@ -215,8 +261,9 @@ describe('More account deletion confirmation', () => {
     });
     expect(close).not.toHaveBeenCalled();
     expect(mockNavigation.navigate).not.toHaveBeenCalled();
-    expect(requestNavigate).toHaveBeenCalledTimes(1);
-    await TestRenderer.act(async () => requestNavigate.mock.calls[0][0]());
+    expect(requestNavigate).not.toHaveBeenCalled();
+    expect(requestTabNavigate).toHaveBeenCalledTimes(1);
+    await TestRenderer.act(async () => requestTabNavigate.mock.calls[0][0]());
     expect(mockNavigation.navigate).toHaveBeenCalledWith('AppTabs', destination);
     await TestRenderer.act(async () => renderer.unmount());
   });
@@ -247,7 +294,7 @@ describe('More account deletion confirmation', () => {
       );
       await Promise.resolve();
     });
-    const menu = renderer.root.findByType(ScrollView);
+    const menu = renderer.root.findByType(FlatList);
     const toggle = menu.find(node =>
       node.props.testID === 'home-review-season-toggle' &&
       typeof node.props.onPress === 'function',
@@ -675,6 +722,10 @@ describe('More account deletion confirmation', () => {
     });
 
     const scroll = renderer.root.findByProps({ testID: 'more-menu-scroll' });
+    await TestRenderer.act(async () => {
+      scroll.props.onLayout({ nativeEvent: { layout: { height: 700 } } });
+      scroll.props.onContentSizeChange(360, 1_400);
+    });
     TestRenderer.act(() => {
       scroll.props.onScroll({ nativeEvent: { contentOffset: { y: 620 } } });
       renderer.root
@@ -709,12 +760,14 @@ describe('More account deletion confirmation', () => {
       testID: 'more-menu-scroll',
     });
     expect(restoredScroll.props.contentOffset).toEqual({ x: 0, y: 620 });
+    expect(restoredScroll.props.initialNumToRender).toBe(restoredScroll.props.data.length);
     TestRenderer.act(() => {
       restoredScroll.props.onLayout({
         nativeEvent: { layout: { height: 500 } },
       });
       restoredScroll.props.onContentSizeChange(360, 1_400);
     });
+    expect(mockScrollToOffset).toHaveBeenLastCalledWith({ offset: 620, animated: false });
     expect(useUiStore.getState().moreDrawerRestorePending).toBe(false);
 
     TestRenderer.act(() => closeMoreDrawer());
@@ -823,7 +876,7 @@ describe('More account deletion confirmation', () => {
     const scroll = renderer.root.findByProps({
       testID: 'more-menu-scroll',
     });
-    expect(scroll.type).toBe(ScrollView);
+    expect(scroll.type).toBe(FlatList);
     expect(StyleSheet.flatten(scroll.props.style)).toEqual(
       expect.objectContaining({ marginBottom: 96 }),
     );

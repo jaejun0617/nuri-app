@@ -109,6 +109,8 @@ function CustomTabBar(
   const onPressActiveHome = () => {
     const route = state.routes[state.index];
     if (route?.name !== 'HomeTab') return;
+    // A rapid tap may reach the old toolbar before the overlay's native tree mounts.
+    if (useUiStore.getState().moreDrawerOpen) useUiStore.getState().closeMoreDrawer();
     props.navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
   };
   if (!isRootTabBarVisible(currentRouteName, currentRoute && getFocusedRouteNameFromRoute(currentRoute))) {
@@ -119,6 +121,7 @@ function CustomTabBar(
     if (!route) return;
     const event = props.navigation.emit({ type: 'tabPress', target: route.key, canPreventDefault: true });
     if (!event.defaultPrevented) {
+      if (useUiStore.getState().moreDrawerOpen) useUiStore.getState().closeMoreDrawer();
       if (target === 'timeline' && getFocusedRouteNameFromRoute(route) !== 'TimelineMain') {
         // Reuse the existing main route instead of restoring a leftover expense/detail scene.
         // The container assembles lazy child state that isn't always present in tab-bar state.
@@ -161,6 +164,7 @@ export default function AppTabsNavigator() {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [toolbarHeight, setToolbarHeight] = useState<number | null>(null);
+  const [moreVisible, setMoreVisible] = useState(false);
   const handleToolbarLayout = useCallback((event: LayoutChangeEvent) => {
     const height = event.nativeEvent.layout.height;
     if (height > 0) setToolbarHeight(height);
@@ -187,7 +191,7 @@ export default function AppTabsNavigator() {
           screenOptions={{
             headerShown: false,
             tabBarHideOnKeyboard: true,
-            ...tabTransitionOptions(reduceMotion),
+            ...tabTransitionOptions(reduceMotion, moreOpen || moreVisible),
           }}
           tabBar={renderTabBar}
         >
@@ -209,7 +213,7 @@ export default function AppTabsNavigator() {
         </Tab.Navigator>
 
         {/* ✅ Overlay Drawer */}
-        <MoreDrawer open={moreOpen} onClose={closeMore} />
+        <MoreDrawer open={moreOpen} onClose={closeMore} onVisibilityChange={setMoreVisible} />
       </View>
     </ToolbarHeightContext.Provider>
   );

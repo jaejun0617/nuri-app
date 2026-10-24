@@ -9,6 +9,7 @@ import {
   Image,
   View,
   Dimensions,
+  Switch,
 } from 'react-native';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
@@ -54,6 +55,16 @@ const mockNavigation = {
 const mockRoute = {
   params: { petId: 'pet', memoryId: 'detail', entrySource: 'timeline' },
 };
+let mockTitleOwner = 'owner';
+const mockManageRemembrance = jest.fn<Promise<boolean>, [string, boolean | null]>();
+jest.mock('../src/services/activity/titleVaultV2', () => ({
+  manageRemembranceRecord: (memory: string, included: boolean | null) => mockManageRemembrance(memory, included),
+}));
+jest.mock('../src/store/authStore', () => ({
+  useAuthStore: Object.assign((select: (state: { session: { user: { id: string } } }) => unknown) =>
+    select({ session: { user: { id: mockTitleOwner } } }),
+  { getState: () => ({ session: { user: { id: mockTitleOwner } } }) }),
+}));
 const mockFetchPage = jest.fn();
 let mockSeason: SeasonKey = 'autumn';
 const mockStore = {
@@ -137,6 +148,8 @@ describe('memory detail rendered contract', () => {
   afterEach(() => appQueryClient.clear());
   beforeEach(() => {
     jest.clearAllMocks();
+    mockTitleOwner = 'owner';
+    mockManageRemembrance.mockReset().mockResolvedValue(false);
     mockSeason = 'autumn';
     mockRecord.imagePaths = [];
     mockRecord.category = 'other';
@@ -162,6 +175,50 @@ describe('memory detail rendered contract', () => {
         };
       },
     );
+  });
+  it('reads remembrance only on menu open and never changes an original record just by reading', async () => {
+    const before = JSON.stringify(mockRecord), tree = await render();
+    try {
+      expect(mockManageRemembrance).not.toHaveBeenCalled();
+      const open = tree.root.findAllByType(TouchableOpacity).find(node => node.props.testID === 'memory-detail-more');
+      if (!open) throw new Error('missing record menu');
+      await TestRenderer.act(async () => open.props.onPress());
+      expect(mockManageRemembrance).toHaveBeenCalledTimes(1);
+      expect(mockManageRemembrance).toHaveBeenCalledWith('detail', null);
+      expect(tree.root.findAllByType(Switch).find(node => node.props.testID === 'memory-remembrance-switch')?.props.value).toBe(false);
+      expect(JSON.stringify(mockRecord)).toBe(before);
+    } finally { TestRenderer.act(() => tree.unmount()); }
+  });
+
+  it('serializes explicit remembrance toggles and uses the server result without editing record fields', async () => {
+    const before = JSON.stringify(mockRecord), tree = await render();
+    try {
+      const open = tree.root.findAllByType(TouchableOpacity).find(node => node.props.testID === 'memory-detail-more');
+      if (!open) throw new Error('missing record menu');
+      await TestRenderer.act(async () => open.props.onPress());
+      const control = tree.root.findAllByType(Switch).find(node => node.props.testID === 'memory-remembrance-switch');
+      if (!control) throw new Error('missing remembrance switch');
+      let resolve: (value: boolean) => void = () => { throw new Error('missing pending operation'); };
+      mockManageRemembrance.mockImplementationOnce(() => new Promise<boolean>(done => { resolve = done; }));
+      TestRenderer.act(() => { control.props.onValueChange(true); control.props.onValueChange(true); });
+      expect(mockManageRemembrance.mock.calls.filter(call => call[1] === true)).toHaveLength(1);
+      await TestRenderer.act(async () => resolve(true));
+      expect(tree.root.findAllByType(Switch).find(node => node.props.testID === 'memory-remembrance-switch')?.props.value).toBe(true);
+      expect(JSON.stringify(mockRecord)).toBe(before);
+    } finally { TestRenderer.act(() => tree.unmount()); }
+  });
+
+  it('shows a retry instead of an unchecked value when remembrance status is unknown', async () => {
+    mockManageRemembrance.mockRejectedValueOnce(new Error('offline'));
+    const tree = await render();
+    try {
+      const open = tree.root.findAllByType(TouchableOpacity).find(node => node.props.testID === 'memory-detail-more');
+      if (!open) throw new Error('missing record menu');
+      await TestRenderer.act(async () => open.props.onPress());
+      expect(tree.root.findAllByType(Switch).filter(node => node.props.testID === 'memory-remembrance-switch')).toHaveLength(0);
+      expect(tree.root.findAll(node => node.props.accessibilityLabel === '추억 활동 다시 확인').length).toBeGreaterThan(0);
+      expect(mockManageRemembrance.mock.calls.every(call => call[1] === null)).toBe(true);
+    } finally { TestRenderer.act(() => tree.unmount()); }
   });
   it('removes the default black outline from the more memories action', () => {
     expect(StyleSheet.flatten(styles.relatedMoreButton)).toMatchObject({ borderWidth: 0 });

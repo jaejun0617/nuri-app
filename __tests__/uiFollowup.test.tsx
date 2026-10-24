@@ -207,7 +207,7 @@ describe('compact controls and seasonal emphasis', () => {
         menu.indexOf('<BlurCaptureExclusion'),
         menu.indexOf('</BlurCaptureExclusion>'),
       ),
-    ).toContain('<ScrollView');
+    ).toContain('<FlatList');
     expect(read('src/components/common/BlurCaptureExclusion.tsx')).toContain(
       "requireNativeComponent<ViewProps>('NuriBlurCaptureExclusion')",
     );

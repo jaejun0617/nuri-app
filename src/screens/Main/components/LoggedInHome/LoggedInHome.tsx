@@ -49,7 +49,6 @@ import {
 } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { LavenderScreenBackground } from '../../../../components/common/LavenderScreenBackground';
 import { loadHomeTitleSelection } from '../../../../services/activity/homeTitleSelection';
 import Feather from '../../../../components/icons/NuriFeatherIcon';
 import MaterialCommunityIcons from '../../../../components/icons/NuriMaterialIcon';
@@ -2340,7 +2339,6 @@ const MonthlyDiarySection = React.memo(function MonthlyDiarySection({
 });
 
 export default function LoggedInHome() {
-  const heroColors = getHomeHeroColors();
   // ---------------------------------------------------------
   // 0) navigation
   // ---------------------------------------------------------
@@ -2351,6 +2349,7 @@ export default function LoggedInHome() {
   const [heroFrameWidth, setHeroFrameWidth] = useState(windowWidth);
   const { season: ambientSeason } =
     useSeasonPreference();
+  const heroColors = getHomeHeroColors(ambientSeason);
   // Keep foreground geometry stable while the selected season owns the canvas.
   const seasonalHomeVisual = useMemo(
     () => getSeasonalHomeVisual(HOME_FOREGROUND_UI_SEASON),
@@ -3649,7 +3648,6 @@ export default function LoggedInHome() {
             sectionOrigin={ambientContentY + ambientLowerY}
           />
         ) : null}
-        <LavenderScreenBackground testID="home-background-gradient" statusBarInset={0} />
         <ScrollView
           ref={homeScrollRef}
           keyboardShouldPersistTaps="handled"

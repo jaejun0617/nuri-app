@@ -10,6 +10,12 @@ import AppTabsNavigator, { type AppTabParamList } from '../src/navigation/AppTab
 import { createTheme } from '../src/app/theme/theme';
 
 const mockMainMounts = jest.fn();
+const mockCloseMore = jest.fn();
+const mockUiState = {
+  moreDrawerOpen: false,
+  openMoreDrawer: () => { mockUiState.moreDrawerOpen = true; },
+  closeMoreDrawer: () => { mockUiState.moreDrawerOpen = false; mockCloseMore(); },
+};
 
 function RootNavigator({ children }: React.PropsWithChildren) {
   const { state, descriptors, NavigationContent } = useNavigationBuilder(StackRouter, { children, initialRouteName: 'AppTabs' });
@@ -33,9 +39,10 @@ jest.mock('../src/screens/Guestbook/GuestbookScreen', () => 'Guestbook');
 jest.mock('../src/app/providers/AppFontPreferenceProvider', () => ({ FixedTypographyBoundary: ({ children }: React.PropsWithChildren) => children }));
 jest.mock('../src/store/authStore', () => ({ useAuthStore: (selector: (state: { isLoggedIn: boolean }) => unknown) => selector({ isLoggedIn: true }) }));
 jest.mock('../src/store/uiStore', () => ({
-  useUiStore: (selector: (state: { moreDrawerOpen: boolean; openMoreDrawer: () => void; closeMoreDrawer: () => void }) => unknown) =>
-    selector({ moreDrawerOpen: false, openMoreDrawer: jest.fn(), closeMoreDrawer: jest.fn() }),
-  openMoreDrawer: jest.fn(),
+  useUiStore: Object.assign((selector: (state: typeof mockUiState) => unknown) => selector(mockUiState), {
+    getState: () => mockUiState,
+  }),
+  openMoreDrawer: () => mockUiState.openMoreDrawer(),
 }));
 jest.mock('../src/navigation/TimelineStackNavigator', () => {
   const react = jest.requireActual('react') as typeof React;
@@ -68,6 +75,7 @@ describe('Home to Timeline tab re-entry uses the existing main route', () => {
   const ref = createNavigationContainerRef<AppTabParamList>();
   beforeEach(() => {
     jest.clearAllMocks();
+    mockUiState.moreDrawerOpen = false;
     jest.spyOn(AccessibilityInfo, 'isReduceMotionEnabled').mockResolvedValue(false);
   });
   afterEach(async () => {
@@ -88,6 +96,65 @@ describe('Home to Timeline tab re-entry uses the existing main route', () => {
   function timelineState() {
     return ref.getRootState().routes.find(route => route.name === 'TimelineTab')?.state;
   }
+
+  it.each(['홈', '타임라인', '커뮤니티', '편지함'])(
+    'closes a not-yet-mounted More when %s is tapped on the old root toolbar', async label => {
+      await mount();
+      await tab('전체메뉴');
+      expect(mockUiState.moreDrawerOpen).toBe(true);
+      await tab(label);
+      expect(mockUiState.moreDrawerOpen).toBe(false);
+      expect(mockCloseMore).toHaveBeenCalledTimes(1);
+      expect(ref.getCurrentRoute()?.name).toBe(
+        label === '홈' ? 'HomeTab' : label === '타임라인' ? 'TimelineMain' : label === '커뮤니티' ? 'CommunityTab' : 'GuestbookTab',
+      );
+    },
+  );
+
+  it('keeps only the latest rapid toolbar destination without remounting or clearing Timeline state', async () => {
+    await mount();
+    await tab('타임라인');
+    await act(async () => tree.root.findAllByProps({ testID: 'timeline-local-state' })[0].props.onPress());
+    const mainKey = timelineState()?.routes[0].key;
+    for (const label of ['커뮤니티', '편지함', '홈', '타임라인', '편지함', '커뮤니티', '홈', '타임라인']) {
+      await tab(label);
+    }
+    expect(ref.getCurrentRoute()?.name).toBe('TimelineMain');
+    expect(ref.getCurrentRoute()?.key).toBe(mainKey);
+    expect(mockMainMounts).toHaveBeenCalledTimes(1);
+    expect(tree.root.findAllByProps({ testID: 'timeline-local-state' })[0].findByType(Text).props.children).toBe('walk:620');
+  });
+
+  it('preserves the existing Back-to-Home tab policy and retained Timeline state', async () => {
+    await mount();
+    await tab('타임라인');
+    const mainKey = timelineState()?.routes[0].key;
+    await tab('커뮤니티');
+    await tab('편지함');
+    await act(async () => ref.goBack());
+    expect(ref.getCurrentRoute()?.name).toBe('HomeTab');
+    await tab('타임라인');
+    expect(ref.getCurrentRoute()?.key).toBe(mainKey);
+    expect(mockMainMounts).toHaveBeenCalledTimes(1);
+  });
+
+  it('suppresses the underlay fade while More is visible, then restores 400ms without changing the active tab', async () => {
+    await mount();
+    await act(async () => ref.navigate('GuestbookTab'));
+    const drawer = () => tree.root.find(node => (node.type as unknown) === 'MoreDrawer');
+    const tabOptions = () => tree.root.find(node =>
+      node.props.screenOptions?.tabBarHideOnKeyboard === true && typeof node.props.tabBar === 'function',
+    ).props.screenOptions;
+    expect(tabOptions()).toMatchObject({ animation: 'fade', transitionSpec: { config: { duration: 400 } } });
+    await act(async () => drawer().props.onVisibilityChange(true));
+    expect(tabOptions()).toMatchObject({ animation: 'fade', transitionSpec: { config: { duration: 0 } } });
+    await act(async () => ref.navigate('HomeTab'));
+    expect(ref.getCurrentRoute()?.name).toBe('HomeTab');
+    expect(tabOptions()).toMatchObject({ animation: 'fade', transitionSpec: { config: { duration: 0 } } });
+    await act(async () => drawer().props.onVisibilityChange(false));
+    expect(tabOptions()).toMatchObject({ animation: 'fade', transitionSpec: { config: { duration: 400 } } });
+    expect(ref.getCurrentRoute()?.name).toBe('HomeTab');
+  });
 
   it('opens TimelineMain after Monthly was the first nested route, rather than restoring Monthly', async () => {
     await mount();

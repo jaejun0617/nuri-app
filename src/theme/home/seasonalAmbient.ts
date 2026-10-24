@@ -113,13 +113,13 @@ export const HOME_FOREGROUND_UI_SEASON: SeasonKey = 'autumn';
 
 // Home-only palette; shared hubs and reading surfaces keep their current canvas.
 export const HOME_SEASONAL_BACKGROUND_GRADIENTS = {
-  spring: ['#FADDE4', '#F7C8D3', '#F4C1CF'],
-  summer: ['#BFDDE9', '#ADD7E3', '#ACD4D0'],
-  autumn: ['#E5D1C0', '#E2CEBC', '#DFCAB8'],
-  winter: ['#CDDCE6', '#BFD3E1', '#BCD0DE'],
+  spring: ['#FDEFF3', '#FDF3F6', '#FDEFF3'],
+  summer: ['#EAFBFD', '#F0FBFD', '#E9FAFC'],
+  autumn: ['#FEF2E9', '#FEF6EF', '#FEF2E8'],
+  winter: ['#EBF5FD', '#F1F8FE', '#EAF4FD'],
 } as const satisfies Record<SeasonKey, readonly [string, string, string]>;
 
-export const HOME_SEASONAL_BACKGROUND_LOCATIONS = [0, 0.45, 1] as const;
+export const HOME_SEASONAL_BACKGROUND_LOCATIONS = [0, 0.5, 1] as const;
 
 /** Home section titles only; existing action and material palettes stay unchanged. */
 export const HOME_SEASONAL_HEADING_COLORS = {

@@ -37,6 +37,7 @@ import React, {
 import {
   Alert,
   AppState,
+  FlatList,
   Keyboard,
   Modal,
   Platform,
@@ -49,6 +50,7 @@ import {
   useWindowDimensions,
   View,
   type LayoutChangeEvent,
+  type ListRenderItemInfo,
 } from 'react-native';
 import { KeyboardAvoidingView as KeyboardControllerAvoidingView } from 'react-native-keyboard-controller';
 import { useBoundedKeyboardScroll } from '../../hooks/useBoundedKeyboardScroll';
@@ -138,6 +140,7 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 type Props = {
   onRequestClose: () => void;
   onRequestNavigate?: (navigate: () => void) => void;
+  onRequestTabNavigate?: (navigate: () => void) => void;
 };
 
 type PasswordModalProps = {
@@ -1209,7 +1212,28 @@ const ProfileEditModal = memo(function ProfileEditModal({
   );
 });
 
-export default function MoreDrawerContent({ onRequestClose, onRequestNavigate }: Props) {
+type MenuSectionSpec = {
+  key: string;
+  title: string;
+  items: MenuItemSpec[];
+  quick?: boolean;
+  testID?: string;
+};
+
+function renderMenuSection({ item }: ListRenderItemInfo<MenuSectionSpec>) {
+  return <MoreMenuSection title={item.title} items={item.items} quick={item.quick} testID={item.testID} />;
+}
+
+const menuSectionKey = (item: MenuSectionSpec) => item.key;
+
+// Mount settings only on first use, then retain them for native dismiss animations.
+function LazySettingsModal({ visible, children }: React.PropsWithChildren<{ visible: boolean }>) {
+  const [opened, setOpened] = useState(visible);
+  if (visible && !opened) setOpened(true);
+  return visible || opened ? children : null;
+}
+
+export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, onRequestTabNavigate }: Props) {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -1233,12 +1257,15 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate }:
   const setPets = usePetStore(s => s.setPets);
   const moreDrawerScrollOffset = useUiStore(s => s.moreDrawerScrollOffset);
   const moreDrawerRestorePending = useUiStore(s => s.moreDrawerRestorePending);
-  const menuScrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(
+  const menuScrollRef = useRef<FlatList<MenuSectionSpec> | null>(
     null,
   );
   const currentMenuScrollOffsetRef = useRef(0);
   const [menuViewportHeight, setMenuViewportHeight] = useState(0);
   const [menuContentHeight, setMenuContentHeight] = useState(0);
+  const [restoreOnMount] = useState(moreDrawerRestorePending);
+  // A return starts with the complete bounded menu so its saved offset is measurable.
+  const [restoreFullMenu] = useState(moreDrawerRestorePending && moreDrawerScrollOffset > 0);
 
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -1286,7 +1313,8 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate }:
   }, []);
 
   useEffect(() => {
-    if (!moreDrawerRestorePending) return undefined;
+    // Saving an outgoing position must not consume it in the closing instance.
+    if (!restoreOnMount || !moreDrawerRestorePending) return undefined;
     if (moreDrawerScrollOffset > 0 && menuContentHeight <= menuViewportHeight) {
       return undefined;
     }
@@ -1294,9 +1322,8 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate }:
     const maxOffset = Math.max(0, menuContentHeight - menuViewportHeight);
     const targetOffset = Math.min(moreDrawerScrollOffset, maxOffset);
     const frame = requestAnimationFrame(() => {
-      menuScrollRef.current?.scrollTo({
-        x: 0,
-        y: targetOffset,
+      menuScrollRef.current?.scrollToOffset({
+        offset: targetOffset,
         animated: false,
       });
       currentMenuScrollOffsetRef.current = targetOffset;
@@ -1309,6 +1336,7 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate }:
     menuViewportHeight,
     moreDrawerRestorePending,
     moreDrawerScrollOffset,
+    restoreOnMount,
   ]);
 
   useFocusEffect(
@@ -1470,7 +1498,7 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate }:
   }, []);
 
   const closeAndNavigate = useCallback(
-    (navigate: () => void) => {
+    (navigate: () => void, tabDestination = false) => {
       const safeNavigate = () => {
         try {
           navigate();
@@ -1480,8 +1508,11 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate }:
         }
       };
       const returnOffset = currentMenuScrollOffsetRef.current;
-      if (onRequestNavigate) {
-        onRequestNavigate(safeNavigate);
+      const request = tabDestination
+        ? onRequestTabNavigate ?? onRequestNavigate
+        : onRequestNavigate;
+      if (request) {
+        request(safeNavigate);
       } else {
         // Non-animated hosts have no closing transition to await.
         onRequestClose();
@@ -1491,7 +1522,7 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate }:
       }
       preserveMoreDrawerReturnPosition(returnOffset);
     },
-    [onRequestClose, onRequestNavigate],
+    [onRequestClose, onRequestNavigate, onRequestTabNavigate],
   );
 
   const openPetManagement = useCallback(() => {
@@ -1528,6 +1559,7 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate }:
           params: { mainCategory: 'all', entrySource: 'more' },
         },
       }),
+      true,
     );
   }, [closeAndNavigate, navigation]);
 
@@ -1551,7 +1583,7 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate }:
     }
     closeAndNavigate(() => navigation.navigate('AppTabs', {
       screen: target === 'home' ? 'HomeTab' : target === 'community' ? 'CommunityTab' : 'GuestbookTab',
-    }));
+    }), true);
   }, [closeAndNavigate, navigation, openTimeline]);
 
   const openGuideList = useCallback(() => {
@@ -2308,6 +2340,17 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate }:
   const isGuideAdmin =
     profileSyncStatus === 'ready' &&
     (role === 'admin' || role === 'super_admin');
+  const menuSections = useMemo<MenuSectionSpec[]>(() => [
+    { key: 'quick', title: '빠른 이동', items: quickItems, quick: true },
+    { key: 'social', title: '소통과 활동', items: socialItems },
+    { key: 'info', title: '생활 정보', items: infoItems },
+    ...(isLoggedIn ? [
+      { key: 'settings', title: '앱 설정', items: settingItems, testID: 'more-settings-section' },
+      { key: 'policy', title: '이용 안내', items: policyItems },
+      { key: 'account', title: '계정', items: accountItems },
+    ] : []),
+    ...(isGuideAdmin ? [{ key: 'admin', title: '운영', items: adminItems }] : []),
+  ], [quickItems, socialItems, infoItems, isLoggedIn, settingItems, policyItems, accountItems, isGuideAdmin, adminItems]);
 
   return (
     <SafeAreaView
@@ -2320,9 +2363,15 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate }:
           onClose={onRequestClose}
         />
 
-        <ScrollView
+        <FlatList
           ref={menuScrollRef}
           testID="more-menu-scroll"
+          data={menuSections}
+          renderItem={renderMenuSection}
+          keyExtractor={menuSectionKey}
+          initialNumToRender={restoreFullMenu ? menuSections.length : 2}
+          maxToRenderPerBatch={1}
+          windowSize={3}
           style={[styles.scroll, { marginBottom: toolbarHeight }]}
           contentContainerStyle={styles.content}
           contentOffset={{ x: 0, y: moreDrawerScrollOffset }}
@@ -2340,7 +2389,7 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate }:
           }}
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
-        >
+          ListHeaderComponent={<View style={styles.menuHeader}>
           <MoreIdentityBand
             loggedIn={isLoggedIn}
             nickname={nickname}
@@ -2360,24 +2409,8 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate }:
           {isLoggedIn ? (
             <SeasonReviewControls season={season} onChange={setReviewSeason} />
           ) : null}
-          <MoreMenuSection title="빠른 이동" items={quickItems} quick />
-          <MoreMenuSection title="소통과 활동" items={socialItems} />
-          <MoreMenuSection title="생활 정보" items={infoItems} />
-          {isLoggedIn ? (
-            <>
-              <MoreMenuSection
-                testID="more-settings-section"
-                title="앱 설정"
-                items={settingItems}
-              />
-              <MoreMenuSection title="이용 안내" items={policyItems} />
-              <MoreMenuSection title="계정" items={accountItems} />
-            </>
-          ) : null}
-          {isGuideAdmin ? (
-            <MoreMenuSection title="운영" items={adminItems} />
-          ) : null}
-        </ScrollView>
+          </View>}
+        />
 
         <AppNavigationToolbar
           activeKey="more"
@@ -2387,6 +2420,7 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate }:
         />
       </BlurCaptureExclusion>
 
+      <LazySettingsModal visible={profileModalVisible}>
       <ProfileEditModal
         visible={profileModalVisible}
         bottomInset={Math.max(insets.bottom, 6)}
@@ -2399,7 +2433,9 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate }:
         onChangeNickname={setDraftNickname}
         onSubmit={onSubmitProfile}
       />
+      </LazySettingsModal>
 
+      <LazySettingsModal visible={themeModalVisible}>
       <ThemeSettingsModal
         visible={themeModalVisible}
         bottomInset={Math.max(insets.bottom, 6)}
@@ -2416,11 +2452,15 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate }:
           onSubmitTheme().catch(() => {});
         }}
       />
+      </LazySettingsModal>
+      <LazySettingsModal visible={fontSettingsModalVisible}>
       <AppFontSettingsModal
         visible={fontSettingsModalVisible}
         bottomInset={Math.max(insets.bottom, 6)}
         onClose={() => setFontSettingsModalVisible(false)}
       />
+      </LazySettingsModal>
+      <LazySettingsModal visible={notificationModalVisible}>
       <NotificationSettingsModal
         visible={notificationModalVisible}
         bottomInset={Math.max(insets.bottom, 6)}
@@ -2440,6 +2480,7 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate }:
           onOpenExactAlarmSettings().catch(() => {});
         }}
       />
+      </LazySettingsModal>
       <ConfirmDialog
         confirmRole="primary"
         cancelRole="neutral"
@@ -2692,6 +2733,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scroll: { flex: 1 },
+  menuHeader: { gap: MORE_MENU.sectionGap },
   content: {
     paddingHorizontal: MORE_MENU.contentPadding,
     paddingBottom: 18,

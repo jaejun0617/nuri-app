@@ -6,6 +6,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { supabase } from '../supabase/client';
+import { getCanonicalTitleIdentity } from './titleVaultV2';
 
 export type HomeTitleBadgeRow = {
   titleKey: string;
@@ -49,21 +50,6 @@ function getHomeTitleBadgeCacheKey(input: {
   petId: string;
 }): string {
   return `${HOME_TITLE_BADGE_CACHE_PREFIX}:${input.userId}:${input.petId}`;
-}
-
-function mapTitleBadgeRow(value: unknown): HomeTitleBadgeRow | null {
-  if (!isRecord(value)) return null;
-  const titleKey = toString(value.title_key);
-  const titleName = toString(value.title_name);
-  const earnedAt = toString(value.earned_at);
-  if (!titleKey || !titleName || !earnedAt) return null;
-
-  return {
-    titleKey,
-    titleName,
-    earnedAt,
-    petId: toNullableString(value.pet_id),
-  };
 }
 
 export function pickHomePetTitleBadgeIdentity(input: {
@@ -122,8 +108,10 @@ export async function loadCachedHomePetTitleBadgeIdentity(input: {
     }
 
     const titleName = toNullableString(parsed.title);
+    const titleKey = toNullableString(parsed.titleKey);
+    const canonical = titleKey ? getCanonicalTitleIdentity(titleKey) : null;
     return titleName
-      ? { titleName, titleKey: toNullableString(parsed.titleKey) }
+      ? canonical ?? { titleName, titleKey }
       : null;
   } catch {
     await AsyncStorage.removeItem(cacheKey);
@@ -167,21 +155,16 @@ export async function fetchHomePetTitleBadgeIdentity(
 ): Promise<HomeTitleBadgeIdentity | null> {
   if (!petId) return null;
 
-  const { data, error } = await supabase
-    .from('user_titles')
-    .select('title_key, title_name, earned_at, pet_id')
-    .eq('pet_id', petId)
-    .order('earned_at', { ascending: false })
-    .limit(10);
-
+  const { data, error } = await supabase.rpc('get_nuri_home_title_v2', { p_pet_id: petId });
   if (error) throw error;
-  if (!Array.isArray(data)) return null;
-
-  const titles = data
-    .map(mapTitleBadgeRow)
-    .filter((item): item is HomeTitleBadgeRow => item !== null);
-
-  return pickHomePetTitleBadgeIdentity({ titles, petId });
+  if (data === null) return null;
+  if (!isRecord(data) || typeof data.titleKey !== 'string' || typeof data.titleName !== 'string' ||
+    !data.titleKey || !data.titleName) throw new Error('TITLE_VAULT_RESPONSE_INVALID');
+  const canonical = getCanonicalTitleIdentity(data.titleKey);
+  if (!canonical || canonical.titleKey !== data.titleKey || canonical.titleName !== data.titleName) {
+    throw new Error('TITLE_VAULT_RESPONSE_INVALID');
+  }
+  return canonical;
 }
 export async function fetchHomePetTitleBadge(
   petId: string | null,

@@ -87,12 +87,17 @@ describe('PO uniform blue-gray canvas without spheres or starlight', () => {
   });
 
   it.each([
-    'screens/Records/MonthlyExpensesScreen.tsx',
     'screens/Pets/PetProfileEditDoneScreen.tsx',
     'screens/Weather/WeatherActivityRecordScreen.tsx',
   ])('%s uses the common default form background', file => {
     expect(read(file)).toContain('<SeasonalFormBackground />');
     expect(read(file)).not.toContain('<SeasonalFormBackground uniform');
+  });
+
+  it('keeps monthly expenses on its existing lavender canvas', () => {
+    expect(read('screens/Records/MonthlyExpensesScreen.tsx')).toContain(
+      '<LavenderScreenBackground testID="monthly-expenses-background-gradient"',
+    );
   });
 
   it('keeps the existing four-season CTA with neutral reflective-card material', () => {
@@ -106,29 +111,30 @@ describe('PO uniform blue-gray canvas without spheres or starlight', () => {
 
 describe('PO Home-only seasonal background palette', () => {
   it.each([
-    { season: 'spring', colors: ['#FADDE4', '#F7C8D3', '#F4C1CF'] },
-    { season: 'summer', colors: ['#BFDDE9', '#ADD7E3', '#ACD4D0'] },
-    { season: 'autumn', colors: ['#E5D1C0', '#E2CEBC', '#DFCAB8'] },
-    { season: 'winter', colors: ['#CDDCE6', '#BFD3E1', '#BCD0DE'] },
-  ] as const)('$season uses the stronger undecorated three-stop candidate', async ({ season, colors }) => {
+    { season: 'spring', colors: ['#FDEFF3', '#FDF3F6', '#FDEFF3'] },
+    { season: 'summer', colors: ['#EAFBFD', '#F0FBFD', '#E9FAFC'] },
+    { season: 'autumn', colors: ['#FEF2E9', '#FEF6EF', '#FEF2E8'] },
+    { season: 'winter', colors: ['#EBF5FD', '#F1F8FE', '#EAF4FD'] },
+  ] as const)('$season uses the approved subtle three-stop palette', async ({ season, colors }) => {
     await verifyGradientCanvas(
       <HomeAmbientBubbleCanvas season={season} heroHeight={800} backgroundMode="homePalette" showDecorations />,
       'home-ambient-bubble-canvas',
       colors,
-      [0, 0.45, 1],
+      [0, 0.5, 1],
     );
   });
 
   it('binds only Home to a fixed viewport palette with a matching top inset', () => {
     const source = read('screens/Main/components/LoggedInHome/LoggedInHome.tsx');
     expect(source).toContain('backgroundMode="homePalette"');
-    expect(source.includes('HOME_SEASONAL_BACKGROUND_GRADIENTS[ambientSeason][0]')).toBe(true);
-    expect(source.match(/backgroundColor: homeBackgroundColor/g)).toHaveLength(1);
-    expect(source.includes('style={[styles.scroll, styles.ambientBackgroundTransparent]}')).toBe(true);
+    expect(source).toContain('getHomeHeroColors(ambientSeason)');
+    expect(source.match(/backgroundColor: heroColors.statusBar/g)).toHaveLength(1);
+    expect(source).toContain("style={[styles.scroll, { backgroundColor: 'transparent' }]}");
     const homeRender = source.slice(source.indexOf('  // 10) render'));
     expect(homeRender.indexOf('<HomeAmbientBubbleCanvas')).toBeLessThan(homeRender.indexOf('<ScrollView'));
     expect(homeRender.match(/<HomeAmbientBubbleCanvas/g)).toHaveLength(1);
-    expect(source).toContain('backgroundImageVisible={false}');
+    expect(homeRender).not.toContain('<LavenderScreenBackground');
+    expect(homeRender).toContain('<HomeHeroPhotoBackground');
   });
 
   it('does not wash the new palette with the legacy Hero header overlay', async () => {

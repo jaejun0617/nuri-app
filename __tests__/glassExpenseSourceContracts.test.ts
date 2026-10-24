@@ -10,9 +10,11 @@ describe('glass form and expense integration contracts', () => {
     const more = source('src/screens/More/MoreDrawerContent.tsx');
     const identity = more.indexOf('<MoreIdentityBand');
     const expense = more.indexOf('<MoreMonthlyExpenseSummary');
-    const quick = more.indexOf('<MoreMenuSection title="빠른 이동"');
+    const headerEnd = more.indexOf('</View>}', expense);
     expect(expense).toBeGreaterThan(identity);
-    expect(expense).toBeLessThan(quick);
+    expect(expense).toBeLessThan(headerEnd);
+    expect(more).toContain('ListHeaderComponent={<View');
+    expect(more).toContain('data={menuSections}');
   });
   it('reuses reading background without spheres and retains compact shared glass material', () => {
     const shared = source('src/components/common/SeasonalFormSurface.tsx');

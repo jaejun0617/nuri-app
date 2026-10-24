@@ -51,7 +51,6 @@ import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer } from '../../store/uiStore';
 import {
-  ACHIEVEMENT_ART,
   ACTIVITY_ART,
   ACTIVITY_COLORS as C,
   getActivityLayout,
@@ -59,6 +58,8 @@ import {
   getChallengeProgress,
   getWalkActivityCount,
 } from './activityAchievementsPresentation';
+import { getTitleArtwork } from '../../services/activity/titleArtwork';
+import { TITLE_VAULT_CATEGORIES } from '../../services/activity/titleVaultV2';
 
 type Nav = NativeStackNavigationProp<
   RootStackParamList,
@@ -235,14 +236,12 @@ function Challenge({
       testID={`activity-challenge-${item.key}`}
       style={s.challenge}
       accessible
-      accessibilityLabel={`${item.name}, ${item.conditionLabel}, ${
-        progress.current
-      }/${progress.target}${item.domain === 'streak' ? '일' : ''}, 도전 중`}
+      accessibilityLabel={`${item.name}, ${item.conditionLabel}, ${item.progressLabel ?? `${progress.current}/${progress.target}${item.domain === 'streak' ? '일' : ''}`}, 도전 중`}
     >
       <View style={s.challengeArtwork}>
-        {ACHIEVEMENT_ART[item.key] ? (
+        {getTitleArtwork(item.key) ? (
           <Image
-            source={ACHIEVEMENT_ART[item.key]}
+            source={getTitleArtwork(item.key)}
             resizeMode="contain"
             style={s.challengeArt}
             accessible={false}
@@ -262,8 +261,7 @@ function Challenge({
         </View>
         <View style={[s.challengeProgress, stack && s.challengeProgressStack]}>
           <Copy kind="label" style={s.fraction}>
-            {fmt(progress.current)} / {fmt(progress.target)}
-            {item.domain === 'streak' ? '일' : ''}
+            {item.progressLabel ?? `${fmt(progress.current)} / ${fmt(progress.target)}${item.domain === 'streak' ? '일' : ''}`}
           </Copy>
           <View
             style={s.segments}
@@ -526,6 +524,7 @@ export default function PetActivityAchievementsScreen() {
       enabled: false,
     }).data ?? 0;
   const [tab, setTab] = useState<Tab>('summary');
+  const [vaultCategory, setVaultCategory] = useState('WK');
   const [viewPetId, setViewPetId] = useState<string | null>(selectedPetId);
   const [result, setResult] = useState<{
     owner: string;
@@ -575,10 +574,22 @@ export default function PetActivityAchievementsScreen() {
     dashboard?.petSummaries.find(p => p.petId === viewPetId) ??
     dashboard?.petSummaries[0] ??
     null;
-  const vault = useMemo(
+  const completeVault = useMemo(
     () => (dashboard ? getActivityVault(dashboard, pet) : null),
     [dashboard, pet],
   );
+  const hasCatalog = dashboard?.allAchievements.some(item => item.policyVersion === 2) ?? false;
+  const vaultCategories = useMemo(() => [
+    ...TITLE_VAULT_CATEGORIES.filter(category => dashboard?.allAchievements.some(item => item.categoryKey === category.key)),
+    ...(completeVault?.acquired.some(item => item.hidden) ? [{ key: 'X', label: '뜻밖의 선물' }] : []),
+    ...(completeVault?.acquired.some(item => item.categoryKey === 'LEGACY') ? [{ key: 'LEGACY', label: '기존 칭호' }] : []),
+  ], [completeVault, dashboard]);
+  const activeVaultCategory = vaultCategories.some(category => category.key === vaultCategory)
+    ? vaultCategory : vaultCategories[0]?.key;
+  const vault = useMemo(() => completeVault && hasCatalog ? {
+    acquired: completeVault.acquired.filter(item => item.categoryKey === activeVaultCategory),
+    challenges: completeVault.challenges.filter(item => item.categoryKey === activeVaultCategory),
+  } : completeVault, [completeVault, hasCatalog, activeVaultCategory]);
   titleScope.current = { ownerId, petId: pet?.petId ?? '' };
   const selectedTitleKey =
     selection?.ownerId === ownerId && selection?.petId === pet?.petId
@@ -886,6 +897,19 @@ export default function PetActivityAchievementsScreen() {
                   <Copy style={s.muted}>공통 칭호 함께 표시</Copy>
                 </View>
               </Glass>
+              {hasCatalog ? (
+                <ScrollView horizontal showsHorizontalScrollIndicator={false}
+                  contentContainerStyle={s.vaultCategories} testID="activity-title-categories">
+                  {vaultCategories.map(category => (
+                    <Pressable key={category.key} testID={`activity-title-category-${category.key}`}
+                      accessibilityRole="tab" accessibilityState={{ selected: activeVaultCategory === category.key }}
+                      onPress={() => setVaultCategory(category.key)}
+                      style={[s.vaultCategory, activeVaultCategory === category.key && s.vaultCategorySelected]}>
+                      <Copy kind="label" style={activeVaultCategory === category.key ? s.activeText : s.muted}>{category.label}</Copy>
+                    </Pressable>
+                  ))}
+                </ScrollView>
+              ) : null}
               <View style={s.section}>
                 <SectionHeading
                   title="함께 모은 칭호"
@@ -941,9 +965,9 @@ export default function PetActivityAchievementsScreen() {
                         });
                       }}
                     >
-                      {ACHIEVEMENT_ART[item.key] ? (
+                      {getTitleArtwork(item.key) ? (
                         <Image
-                          source={ACHIEVEMENT_ART[item.key]}
+                          source={getTitleArtwork(item.key)}
                           resizeMode="contain"
                           style={s.earnedArt}
                           accessible={false}
@@ -972,7 +996,7 @@ export default function PetActivityAchievementsScreen() {
                   ) : null}
                 </Glass>
               </View>
-              <View style={s.section}>
+              {activeVaultCategory === 'X' || activeVaultCategory === 'LEGACY' ? null : <View style={s.section}>
                 <SectionHeading
                   title="다음 칭호에 한 걸음"
                   detail={`도전 중 ${vault.challenges.length}개`}
@@ -986,10 +1010,10 @@ export default function PetActivityAchievementsScreen() {
                     />
                   ))}
                   {!vault.challenges.length ? (
-                    <Copy style={s.empty}>모든 칭호를 모았어요</Copy>
+                    <Copy style={s.empty}>{hasCatalog ? '이 분야의 칭호를 모두 모았어요' : '모든 칭호를 모았어요'}</Copy>
                   ) : null}
                 </Glass>
-              </View>
+              </View>}
               <Copy style={s.footer}>함께하는 하루가 새로운 칭호가 돼요</Copy>
             </>
           ) : null}
@@ -1100,7 +1124,7 @@ export default function PetActivityAchievementsScreen() {
           }}
         >
           <Image
-            source={ACHIEVEMENT_ART[activeTitlePrompt.key]}
+            source={getTitleArtwork(activeTitlePrompt.key)}
             style={s.confirmArtwork}
             resizeMode="contain"
             accessible={false}
@@ -1361,6 +1385,9 @@ const s = StyleSheet.create({
   selectionError: { color: '#9B4058', marginBottom: 10 },
   check: { width: 17, height: 17 },
   challengeList: { paddingHorizontal: 14 },
+  vaultCategories: { gap: 8, paddingVertical: 12 },
+  vaultCategory: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 8 },
+  vaultCategorySelected: { backgroundColor: C.tint },
   challenge: {
     flexDirection: 'row',
     alignItems: 'center',

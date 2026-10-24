@@ -1,12 +1,13 @@
 // 파일: src/components/MoreDrawer/MoreDrawer.tsx
 // 목적:
 // - "더보기"를 탭 이동이 아니라 오버레이(drawer)로 표시
-// - ✅ 오른쪽에서 슬라이드 + 배경 페이드
-// - 닫힘·unmount 후 이동하며 메뉴의 고정 표면만 움직이는 동안 임시 캐시한다.
+// - 하단 탭과 같은 곡선의 400ms 페이드만 사용하며 가로 슬라이드는 사용하지 않는다.
+// - 목적 화면 이동은 메뉴 콘텐츠의 unmount cleanup 이후에 실행한다.
 
 import React, {
+  memo,
   useEffect,
-  useMemo,
+  useLayoutEffect,
   useRef,
   useState,
   useCallback,
@@ -18,81 +19,61 @@ import {
   useWindowDimensions,
   View,
   BackHandler,
-  Easing,
 } from 'react-native';
 
 import MoreDrawerContent from '../../screens/More/MoreDrawerContent';
+import { TAB_FADE_TIMING } from '../../navigation/navigationTransitionPolicy';
+import { useNavigationMotion } from '../../navigation/useNavigationMotion';
 
 type Props = {
   open: boolean;
   onClose: () => void;
+  onVisibilityChange?: (visible: boolean) => void;
 };
 
-export default function MoreDrawer({ open, onClose }: Props) {
+function MoreDrawer({ open, onClose, onVisibilityChange }: Props) {
   const { width: drawerWidth } = useWindowDimensions();
-  // ---------------------------------------------------------
-  // 0) mount control (닫힐 때 애니메이션 끝나고 unmount)
-  // ---------------------------------------------------------
+  const reduceMotion = useNavigationMotion();
   const [mounted, setMounted] = useState(open);
-  const [moving, setMoving] = useState(open);
+  const opacity = useRef(new Animated.Value(open ? 1 : 0)).current;
   const openRef = useRef(open);
   openRef.current = open;
   const pendingNavigation = useRef<(() => void) | null>(null);
 
+  useLayoutEffect(() => {
+    onVisibilityChange?.(mounted);
+  }, [mounted, onVisibilityChange]);
+
   useEffect(() => {
     if (open) {
       pendingNavigation.current = null;
-      if (!mounted) {
-        setMoving(true);
-        setMounted(true);
-      }
+      setMounted(true);
     }
-  }, [mounted, open]);
-
-  // ---------------------------------------------------------
-  // 1) animation values
-  // ---------------------------------------------------------
-  const progress = useRef(new Animated.Value(open ? 1 : 0)).current;
-
-  const overlayOpacity = useMemo(
-    () =>
-      progress.interpolate({
-        inputRange: [0, 1],
-        outputRange: [0, 0.42],
-      }),
-    [progress],
-  );
-
-  const translateX = useMemo(
-    () =>
-      progress.interpolate({
-        inputRange: [0, 1],
-        outputRange: [drawerWidth, 0], // ✅ 현재 창의 오른쪽에서 들어옴
-      }),
-    [drawerWidth, progress],
-  );
+  }, [open]);
 
   useEffect(() => {
     if (!mounted) return;
+    if (reduceMotion) {
+      opacity.setValue(open ? 1 : 0);
+      if (!open) setMounted(false);
+      return;
+    }
+
     let cancelled = false;
-    setMoving(true);
-    const animation = open
-      ? Animated.spring(progress, {
-          toValue: 1, useNativeDriver: true, speed: 18, bounciness: 0, isInteraction: false,
-        })
-      : Animated.timing(progress, {
-          toValue: 0, duration: 180, easing: Easing.out(Easing.cubic), useNativeDriver: true, isInteraction: false,
-        });
+    const animation = Animated.timing(opacity, {
+      ...TAB_FADE_TIMING,
+      toValue: open ? 1 : 0,
+      useNativeDriver: true,
+      isInteraction: false,
+    });
     animation.start(({ finished }) => {
-      if (!finished || cancelled) return;
-      setMoving(false);
-      if (!openRef.current) setMounted(false);
+      if (finished && !cancelled && !openRef.current) setMounted(false);
     });
     return () => {
       cancelled = true;
       animation.stop();
     };
-  }, [mounted, open, progress]);
+  }, [mounted, open, reduceMotion, opacity]);
 
   // Let content cleanup commit before starting the destination transition.
   useEffect(() => {
@@ -111,6 +92,13 @@ export default function MoreDrawer({ open, onClose }: Props) {
   const requestNavigation = useCallback((navigate: () => void) => {
     if (!openRef.current || pendingNavigation.current) return;
     pendingNavigation.current = navigate;
+    onClose();
+  }, [onClose]);
+  const requestTabNavigation = useCallback((navigate: () => void) => {
+    if (!openRef.current || pendingNavigation.current) return;
+    // Replace the underlay while More is still opaque; only the drawer fades.
+    pendingNavigation.current = () => {};
+    navigate();
     onClose();
   }, [onClose]);
 
@@ -134,40 +122,35 @@ export default function MoreDrawer({ open, onClose }: Props) {
   if (!mounted) return null;
 
   return (
-    <View
+    <Animated.View
       testID="more-drawer-overlay"
       pointerEvents={open ? 'auto' : 'none'}
-      style={StyleSheet.absoluteFill}
+      style={[StyleSheet.absoluteFill, { opacity }]}
     >
       {/* overlay */}
-      <Pressable onPress={requestClose} style={StyleSheet.absoluteFill}>
-        <Animated.View
-          style={[
-            StyleSheet.absoluteFill,
-            { backgroundColor: '#000', opacity: overlayOpacity },
-          ]}
-        />
+      <Pressable testID="more-drawer-backdrop" onPress={requestClose} style={StyleSheet.absoluteFill}>
+        <View style={[StyleSheet.absoluteFill, styles.backdrop]} />
       </Pressable>
 
       {/* drawer */}
-      <Animated.View
-        testID="more-drawer-motion"
-        renderToHardwareTextureAndroid={moving}
-        style={[
-          styles.drawer,
-          {
-            width: drawerWidth,
-            transform: [{ translateX }],
-          },
-        ]}
+      <View
+        testID="more-drawer-panel"
+        style={[styles.drawer, { width: drawerWidth }]}
       >
-        <MoreDrawerContent onRequestClose={requestClose} onRequestNavigate={requestNavigation} />
-      </Animated.View>
-    </View>
+        <MoreDrawerContent
+          onRequestClose={requestClose}
+          onRequestNavigate={requestNavigation}
+          onRequestTabNavigate={requestTabNavigation}
+        />
+      </View>
+    </Animated.View>
   );
 }
 
+export default memo(MoreDrawer);
+
 const styles = StyleSheet.create({
+  backdrop: { backgroundColor: '#000', opacity: 0.42 },
   drawer: {
     position: 'absolute',
     right: 0,

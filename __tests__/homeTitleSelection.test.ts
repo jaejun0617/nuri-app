@@ -48,15 +48,15 @@ it('persists a source-derived earned choice across reloads without modifying XP 
     dashboard: data,
   });
   expect(selected).toEqual({
-    titleKey: 'pet_first_health_record',
-    titleName: '첫 건강 기록',
+    titleKey: 'HC01',
+    titleName: '작은 건강지킴이',
   });
   expect(await loadHomeTitleSelection({ userId: 'owner', petId: 'a' })).toEqual(
     selected,
   );
   expect(JSON.stringify(data)).toBe(before);
   expect(getTitleArtwork(selected.titleKey)).toBe(
-    require('../src/assets/activity/first-health.png'),
+    require('../src/assets/activity/titles-v2/hc01.png'),
   );
 });
 
@@ -85,7 +85,7 @@ it('allows an earned common title for an existing pet without changing its award
     achievementKey: 'common_first_hello_done',
     dashboard: data,
   });
-  expect(selected.titleName).toBe('첫 인사 완료');
+  expect(selected.titleName).toBe('반가운 인사친구');
   expect(JSON.stringify(data)).toBe(before);
 });
 

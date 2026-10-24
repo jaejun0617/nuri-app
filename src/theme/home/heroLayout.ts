@@ -1,5 +1,6 @@
 import type { SeasonKey } from '../seasonal/season';
 import { formatPetCopy } from '../../utils/petDisplayName';
+import { HOME_SEASONAL_BACKGROUND_GRADIENTS } from './seasonalAmbient';
 
 // PO reference: 852 x 1061 photo, one shallow ellipse with a 104 px sag.
 // The actual container width owns geometry; source-image dimensions never do.
@@ -15,8 +16,17 @@ export const HOME_HERO_ACCENT = {
 } as const;
 export type HomeHeroColors = Readonly<{ surface: string; statusBar: string; ink: string; muted: string; onPhoto: string }>;
 
-export function getHomeHeroColors(): HomeHeroColors {
-  return HOME_HERO_COLORS;
+function createHeroColors(season: SeasonKey): HomeHeroColors {
+  const top = HOME_SEASONAL_BACKGROUND_GRADIENTS[season][0];
+  return { ...HOME_HERO_COLORS, surface: top, statusBar: top };
+}
+const SEASONAL_HERO_COLORS: Record<SeasonKey, HomeHeroColors> = {
+  spring: createHeroColors('spring'), summer: createHeroColors('summer'),
+  autumn: createHeroColors('autumn'), winter: createHeroColors('winter'),
+};
+export function getHomeHeroColors(season?: SeasonKey): HomeHeroColors {
+  // Only the explicit Home caller opts into seasonal paint; shared defaults stay fixed.
+  return season ? SEASONAL_HERO_COLORS[season] : HOME_HERO_COLORS;
 }
 
 export function getHomeHeroPhotoGeometry(width: number) {

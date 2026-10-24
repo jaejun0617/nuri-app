@@ -67,10 +67,6 @@ it.each([
     'screens/Records/MonthlyExpensesScreen.tsx',
     'monthly-expenses-background-gradient',
   ],
-  [
-    'screens/Main/components/LoggedInHome/LoggedInHome.tsx',
-    'home-background-gradient',
-  ],
 ])('connects the shared canvas exactly once in %s', (file, id) => {
   const source = fs.readFileSync(path.join(__dirname, '../src', file), 'utf8');
   expect(

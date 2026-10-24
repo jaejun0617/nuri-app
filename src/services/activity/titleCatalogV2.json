@@ -1,0 +1,6059 @@
+{
+  "policyVersion": 2,
+  "entries": [
+    {
+      "id": "WK01",
+      "name": "꼬마 산책친구",
+      "conditionLabel": "산책 기록 1일",
+      "category": "WK",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "산책 기록",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "walk_days",
+          "target": 1,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "WK02",
+      "name": "새싹 산책가",
+      "conditionLabel": "산책 기록 3일",
+      "category": "WK",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "산책 기록",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "walk_days",
+          "target": 3,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "WK03",
+      "name": "반가운 발걸음",
+      "conditionLabel": "산책 기록 5일",
+      "category": "WK",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "산책 기록",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "walk_days",
+          "target": 5,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "WK04",
+      "name": "가벼운 산책지기",
+      "conditionLabel": "산책 기록 7일",
+      "category": "WK",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "산책 기록",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "walk_days",
+          "target": 7,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "WK05",
+      "name": "골목길 탐험가",
+      "conditionLabel": "산책 기록 10일",
+      "category": "WK",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "산책 기록",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "walk_days",
+          "target": 10,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "WK06",
+      "name": "발자국 수집가",
+      "conditionLabel": "산책 기록 14일",
+      "category": "WK",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "산책 기록",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "walk_days",
+          "target": 14,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "WK07",
+      "name": "우리 동네 길잡이",
+      "conditionLabel": "산책 기록 21일",
+      "category": "WK",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "산책 기록",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "walk_days",
+          "target": 21,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "WK08",
+      "name": "다정한 길동무",
+      "conditionLabel": "산책 기록 30일",
+      "category": "WK",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "산책 기록",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "walk_days",
+          "target": 30,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "WK09",
+      "name": "반짝 산책수집가",
+      "conditionLabel": "산책 기록 45일",
+      "category": "WK",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "산책 기록",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "walk_days",
+          "target": 45,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "WK10",
+      "name": "씩씩한 산책대장",
+      "conditionLabel": "산책 기록 60일",
+      "category": "WK",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "산책 기록",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "walk_days",
+          "target": 60,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "WK11",
+      "name": "오솔길 동반자",
+      "conditionLabel": "산책 기록 90일",
+      "category": "WK",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "산책 기록",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "walk_days",
+          "target": 90,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "WK12",
+      "name": "차곡차곡 산책지기",
+      "conditionLabel": "산책 기록 120일",
+      "category": "WK",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "산책 기록",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "walk_days",
+          "target": 120,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "WK13",
+      "name": "익숙한 길의 친구",
+      "conditionLabel": "산책 기록 180일",
+      "category": "WK",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "산책 기록",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "walk_days",
+          "target": 180,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "WK14",
+      "name": "계절 따라 산책가",
+      "conditionLabel": "산책 기록 270일",
+      "category": "WK",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "산책 기록",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "walk_days",
+          "target": 270,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "WK15",
+      "name": "오래 걷는 짝꿍",
+      "conditionLabel": "산책 기록 365일",
+      "category": "WK",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "산책 기록",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "walk_days",
+          "target": 365,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "WK16",
+      "name": "든든한 길동무",
+      "conditionLabel": "산책 기록 540일",
+      "category": "WK",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "산책 기록",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "walk_days",
+          "target": 540,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "WK17",
+      "name": "포근한 발자취지기",
+      "conditionLabel": "산책 기록 730일",
+      "category": "WK",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "산책 기록",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "walk_days",
+          "target": 730,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "WK18",
+      "name": "깊어진 산책친구",
+      "conditionLabel": "산책 기록 1,000일",
+      "category": "WK",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "산책 기록",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "walk_days",
+          "target": 1000,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "WK19",
+      "name": "한결같은 산책장인",
+      "conditionLabel": "산책 기록 1,500일",
+      "category": "WK",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "산책 기록",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "walk_days",
+          "target": 1500,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "WK20",
+      "name": "오래오래 산책동반자",
+      "conditionLabel": "산책 기록 2,000일",
+      "category": "WK",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "산책 기록",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "walk_days",
+          "target": 2000,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "GD01",
+      "name": "작은 길의 시작",
+      "conditionLabel": "누적 0.5km와 GPS 기록 1일",
+      "category": "GD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "GPS 평생 거리",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "gps_m",
+          "target": 500,
+          "unit": "m"
+        },
+        {
+          "metric": "gps_days",
+          "target": 1,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "GD02",
+      "name": "첫 길동무",
+      "conditionLabel": "누적 1km와 GPS 기록 1일",
+      "category": "GD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "GPS 평생 거리",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "gps_m",
+          "target": 1000,
+          "unit": "m"
+        },
+        {
+          "metric": "gps_days",
+          "target": 1,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "GD03",
+      "name": "반짝 이정표지기",
+      "conditionLabel": "누적 3km와 GPS 기록 2일",
+      "category": "GD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "GPS 평생 거리",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "gps_m",
+          "target": 3000,
+          "unit": "m"
+        },
+        {
+          "metric": "gps_days",
+          "target": 2,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "GD04",
+      "name": "골목지도 수집가",
+      "conditionLabel": "누적 5km와 GPS 기록 2일",
+      "category": "GD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "GPS 평생 거리",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "gps_m",
+          "target": 5000,
+          "unit": "m"
+        },
+        {
+          "metric": "gps_days",
+          "target": 2,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "GD05",
+      "name": "다정한 거리친구",
+      "conditionLabel": "누적 10km와 GPS 기록 3일",
+      "category": "GD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "GPS 평생 거리",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "gps_m",
+          "target": 10000,
+          "unit": "m"
+        },
+        {
+          "metric": "gps_days",
+          "target": 3,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "GD06",
+      "name": "조그만 길의 탐험가",
+      "conditionLabel": "누적 15km와 GPS 기록 3일",
+      "category": "GD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "GPS 평생 거리",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "gps_m",
+          "target": 15000,
+          "unit": "m"
+        },
+        {
+          "metric": "gps_days",
+          "target": 3,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "GD07",
+      "name": "우리 길 안내자",
+      "conditionLabel": "누적 20km와 GPS 기록 5일",
+      "category": "GD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "GPS 평생 거리",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "gps_m",
+          "target": 20000,
+          "unit": "m"
+        },
+        {
+          "metric": "gps_days",
+          "target": 5,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "GD08",
+      "name": "반짝 경로수집가",
+      "conditionLabel": "누적 30km와 GPS 기록 7일",
+      "category": "GD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "GPS 평생 거리",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "gps_m",
+          "target": 30000,
+          "unit": "m"
+        },
+        {
+          "metric": "gps_days",
+          "target": 7,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "GD09",
+      "name": "마음 잇는 길잡이",
+      "conditionLabel": "누적 50km와 GPS 기록 10일",
+      "category": "GD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "GPS 평생 거리",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "gps_m",
+          "target": 50000,
+          "unit": "m"
+        },
+        {
+          "metric": "gps_days",
+          "target": 10,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "GD10",
+      "name": "발걸음 보관자",
+      "conditionLabel": "누적 75km와 GPS 기록 12일",
+      "category": "GD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "GPS 평생 거리",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "gps_m",
+          "target": 75000,
+          "unit": "m"
+        },
+        {
+          "metric": "gps_days",
+          "target": 12,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "GD11",
+      "name": "백 킬로 동행친구",
+      "conditionLabel": "누적 100km와 GPS 기록 15일",
+      "category": "GD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "GPS 평생 거리",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "gps_m",
+          "target": 100000,
+          "unit": "m"
+        },
+        {
+          "metric": "gps_days",
+          "target": 15,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "GD12",
+      "name": "길 따라 추억지기",
+      "conditionLabel": "누적 150km와 GPS 기록 20일",
+      "category": "GD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "GPS 평생 거리",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "gps_m",
+          "target": 150000,
+          "unit": "m"
+        },
+        {
+          "metric": "gps_days",
+          "target": 20,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "GD13",
+      "name": "차곡차곡 거리장인",
+      "conditionLabel": "누적 250km와 GPS 기록 30일",
+      "category": "GD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "GPS 평생 거리",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "gps_m",
+          "target": 250000,
+          "unit": "m"
+        },
+        {
+          "metric": "gps_days",
+          "target": 30,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "GD14",
+      "name": "길 위의 든든한 친구",
+      "conditionLabel": "누적 500km와 GPS 기록 60일",
+      "category": "GD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "GPS 평생 거리",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "gps_m",
+          "target": 500000,
+          "unit": "m"
+        },
+        {
+          "metric": "gps_days",
+          "target": 60,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "GD15",
+      "name": "다정한 여정수집가",
+      "conditionLabel": "누적 750km와 GPS 기록 90일",
+      "category": "GD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "GPS 평생 거리",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "gps_m",
+          "target": 750000,
+          "unit": "m"
+        },
+        {
+          "metric": "gps_days",
+          "target": 90,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "GD16",
+      "name": "천 킬로의 짝꿍",
+      "conditionLabel": "누적 1,000km와 GPS 기록 120일",
+      "category": "GD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "GPS 평생 거리",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "gps_m",
+          "target": 1000000,
+          "unit": "m"
+        },
+        {
+          "metric": "gps_days",
+          "target": 120,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "GD17",
+      "name": "마음을 잇는 길동무",
+      "conditionLabel": "누적 1,500km와 GPS 기록 180일",
+      "category": "GD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "GPS 평생 거리",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "gps_m",
+          "target": 1500000,
+          "unit": "m"
+        },
+        {
+          "metric": "gps_days",
+          "target": 180,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "GD18",
+      "name": "포근한 여정지킴이",
+      "conditionLabel": "누적 2,000km와 GPS 기록 240일",
+      "category": "GD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "GPS 평생 거리",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "gps_m",
+          "target": 2000000,
+          "unit": "m"
+        },
+        {
+          "metric": "gps_days",
+          "target": 240,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "GD19",
+      "name": "오랜 길의 동반자",
+      "conditionLabel": "누적 3,000km와 GPS 기록 365일",
+      "category": "GD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "GPS 평생 거리",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "gps_m",
+          "target": 3000000,
+          "unit": "m"
+        },
+        {
+          "metric": "gps_days",
+          "target": 365,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "GD20",
+      "name": "오래오래 길의 장인",
+      "conditionLabel": "누적 5,000km와 GPS 기록 600일",
+      "category": "GD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "GPS 평생 거리",
+      "domain": "walk",
+      "requirements": [
+        {
+          "metric": "gps_m",
+          "target": 5000000,
+          "unit": "m"
+        },
+        {
+          "metric": "gps_days",
+          "target": 600,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "MR01",
+      "name": "첫 추억지기",
+      "conditionLabel": "타임라인 기록 1일",
+      "category": "MR",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "일상과 추억 기록",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "memory_days",
+          "target": 1,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "MR02",
+      "name": "작은 기록친구",
+      "conditionLabel": "타임라인 기록 3일",
+      "category": "MR",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "일상과 추억 기록",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "memory_days",
+          "target": 3,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "MR03",
+      "name": "반짝 추억수집가",
+      "conditionLabel": "타임라인 기록 5일",
+      "category": "MR",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "일상과 추억 기록",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "memory_days",
+          "target": 5,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "MR04",
+      "name": "하루 한 장 기록가",
+      "conditionLabel": "타임라인 기록 7일",
+      "category": "MR",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "일상과 추억 기록",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "memory_days",
+          "target": 7,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "MR05",
+      "name": "차곡차곡 기록지기",
+      "conditionLabel": "타임라인 기록 10일",
+      "category": "MR",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "일상과 추억 기록",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "memory_days",
+          "target": 10,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "MR06",
+      "name": "다정한 일기친구",
+      "conditionLabel": "타임라인 기록 14일",
+      "category": "MR",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "일상과 추억 기록",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "memory_days",
+          "target": 14,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "MR07",
+      "name": "추억의 책갈피",
+      "conditionLabel": "타임라인 기록 21일",
+      "category": "MR",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "일상과 추억 기록",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "memory_days",
+          "target": 21,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "MR08",
+      "name": "다정한 기록장인",
+      "conditionLabel": "타임라인 기록 30일",
+      "category": "MR",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "일상과 추억 기록",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "memory_days",
+          "target": 30,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "MR09",
+      "name": "우리 일상 편집자",
+      "conditionLabel": "타임라인 기록 45일",
+      "category": "MR",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "일상과 추억 기록",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "memory_days",
+          "target": 45,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "MR10",
+      "name": "포근한 페이지지기",
+      "conditionLabel": "타임라인 기록 60일",
+      "category": "MR",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "일상과 추억 기록",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "memory_days",
+          "target": 60,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "MR11",
+      "name": "기억을 잇는 친구",
+      "conditionLabel": "타임라인 기록 90일",
+      "category": "MR",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "일상과 추억 기록",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "memory_days",
+          "target": 90,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "MR12",
+      "name": "작은 책장지기",
+      "conditionLabel": "타임라인 기록 120일",
+      "category": "MR",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "일상과 추억 기록",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "memory_days",
+          "target": 120,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "MR13",
+      "name": "추억의 서재지기",
+      "conditionLabel": "타임라인 기록 180일",
+      "category": "MR",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "일상과 추억 기록",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "memory_days",
+          "target": 180,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "MR14",
+      "name": "차곡차곡 이야기꾼",
+      "conditionLabel": "타임라인 기록 270일",
+      "category": "MR",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "일상과 추억 기록",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "memory_days",
+          "target": 270,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "MR15",
+      "name": "오래 빛나는 기록가",
+      "conditionLabel": "타임라인 기록 365일",
+      "category": "MR",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "일상과 추억 기록",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "memory_days",
+          "target": 365,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "MR16",
+      "name": "마음의 책장수집가",
+      "conditionLabel": "타임라인 기록 540일",
+      "category": "MR",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "일상과 추억 기록",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "memory_days",
+          "target": 540,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "MR17",
+      "name": "한결같은 이야기지기",
+      "conditionLabel": "타임라인 기록 730일",
+      "category": "MR",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "일상과 추억 기록",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "memory_days",
+          "target": 730,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "MR18",
+      "name": "우리 기록의 길잡이",
+      "conditionLabel": "타임라인 기록 1,000일",
+      "category": "MR",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "일상과 추억 기록",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "memory_days",
+          "target": 1000,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "MR19",
+      "name": "깊어진 추억장인",
+      "conditionLabel": "타임라인 기록 1,500일",
+      "category": "MR",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "일상과 추억 기록",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "memory_days",
+          "target": 1500,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "MR20",
+      "name": "오래오래 이야기동반자",
+      "conditionLabel": "타임라인 기록 2,000일",
+      "category": "MR",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "일상과 추억 기록",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "memory_days",
+          "target": 2000,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "FD01",
+      "name": "첫 밥상기록가",
+      "conditionLabel": "식사 기록 1일",
+      "category": "FD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "식사 기록",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "meal_days",
+          "target": 1,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "FD02",
+      "name": "새싹 밥상지기",
+      "conditionLabel": "식사 기록 3일",
+      "category": "FD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "식사 기록",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "meal_days",
+          "target": 3,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "FD03",
+      "name": "작은 식사친구",
+      "conditionLabel": "식사 기록 5일",
+      "category": "FD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "식사 기록",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "meal_days",
+          "target": 5,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "FD04",
+      "name": "다정한 밥상메모",
+      "conditionLabel": "식사 기록 7일",
+      "category": "FD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "식사 기록",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "meal_days",
+          "target": 7,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "FD05",
+      "name": "밥상 관찰친구",
+      "conditionLabel": "식사 기록 10일",
+      "category": "FD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "식사 기록",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "meal_days",
+          "target": 10,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "FD06",
+      "name": "차곡차곡 식사지기",
+      "conditionLabel": "식사 기록 14일",
+      "category": "FD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "식사 기록",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "meal_days",
+          "target": 14,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "FD07",
+      "name": "우리 집 밥상친구",
+      "conditionLabel": "식사 기록 21일",
+      "category": "FD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "식사 기록",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "meal_days",
+          "target": 21,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "FD08",
+      "name": "포근한 식사기록가",
+      "conditionLabel": "식사 기록 30일",
+      "category": "FD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "식사 기록",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "meal_days",
+          "target": 30,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "FD09",
+      "name": "작은 식탁수집가",
+      "conditionLabel": "식사 기록 45일",
+      "category": "FD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "식사 기록",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "meal_days",
+          "target": 45,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "FD10",
+      "name": "든든한 밥상지킴이",
+      "conditionLabel": "식사 기록 60일",
+      "category": "FD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "식사 기록",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "meal_days",
+          "target": 60,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "FD11",
+      "name": "일상의 식사편집자",
+      "conditionLabel": "식사 기록 90일",
+      "category": "FD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "식사 기록",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "meal_days",
+          "target": 90,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "FD12",
+      "name": "계절 밥상기록가",
+      "conditionLabel": "식사 기록 120일",
+      "category": "FD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "식사 기록",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "meal_days",
+          "target": 120,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "FD13",
+      "name": "오래 쌓인 식사노트",
+      "conditionLabel": "식사 기록 180일",
+      "category": "FD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "식사 기록",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "meal_days",
+          "target": 180,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "FD14",
+      "name": "다정한 식탁지기",
+      "conditionLabel": "식사 기록 270일",
+      "category": "FD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "식사 기록",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "meal_days",
+          "target": 270,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "FD15",
+      "name": "한결같은 식사친구",
+      "conditionLabel": "식사 기록 365일",
+      "category": "FD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "식사 기록",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "meal_days",
+          "target": 365,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "FD16",
+      "name": "우리 밥상의 기록장인",
+      "conditionLabel": "식사 기록 540일",
+      "category": "FD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "식사 기록",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "meal_days",
+          "target": 540,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "FD17",
+      "name": "오랜 밥상동반자",
+      "conditionLabel": "식사 기록 730일",
+      "category": "FD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "식사 기록",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "meal_days",
+          "target": 730,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "FD18",
+      "name": "마음 담은 식사기록가",
+      "conditionLabel": "식사 기록 1,000일",
+      "category": "FD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "식사 기록",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "meal_days",
+          "target": 1000,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "FD19",
+      "name": "차곡차곡 밥상장인",
+      "conditionLabel": "식사 기록 1,500일",
+      "category": "FD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "식사 기록",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "meal_days",
+          "target": 1500,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "FD20",
+      "name": "오래오래 식탁친구",
+      "conditionLabel": "식사 기록 2,000일",
+      "category": "FD",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "식사 기록",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "meal_days",
+          "target": 2000,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "HC01",
+      "name": "작은 건강지킴이",
+      "conditionLabel": "건강 관찰 기록 1주",
+      "category": "HC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "건강 관찰",
+      "domain": "health",
+      "requirements": [
+        {
+          "metric": "health_weeks",
+          "target": 1,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "HC02",
+      "name": "반가운 안부친구",
+      "conditionLabel": "건강 관찰 기록 2주",
+      "category": "HC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "건강 관찰",
+      "domain": "health",
+      "requirements": [
+        {
+          "metric": "health_weeks",
+          "target": 2,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "HC03",
+      "name": "새싹 관찰지기",
+      "conditionLabel": "건강 관찰 기록 3주",
+      "category": "HC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "건강 관찰",
+      "domain": "health",
+      "requirements": [
+        {
+          "metric": "health_weeks",
+          "target": 3,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "HC04",
+      "name": "다정한 관찰노트",
+      "conditionLabel": "건강 관찰 기록 4주",
+      "category": "HC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "건강 관찰",
+      "domain": "health",
+      "requirements": [
+        {
+          "metric": "health_weeks",
+          "target": 4,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "HC05",
+      "name": "든든한 안부지기",
+      "conditionLabel": "건강 관찰 기록 6주",
+      "category": "HC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "건강 관찰",
+      "domain": "health",
+      "requirements": [
+        {
+          "metric": "health_weeks",
+          "target": 6,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "HC06",
+      "name": "작은 변화수집가",
+      "conditionLabel": "건강 관찰 기록 8주",
+      "category": "HC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "건강 관찰",
+      "domain": "health",
+      "requirements": [
+        {
+          "metric": "health_weeks",
+          "target": 8,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "HC07",
+      "name": "차곡차곡 건강기록가",
+      "conditionLabel": "건강 관찰 기록 10주",
+      "category": "HC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "건강 관찰",
+      "domain": "health",
+      "requirements": [
+        {
+          "metric": "health_weeks",
+          "target": 10,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "HC08",
+      "name": "우리 안부친구",
+      "conditionLabel": "건강 관찰 기록 12주",
+      "category": "HC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "건강 관찰",
+      "domain": "health",
+      "requirements": [
+        {
+          "metric": "health_weeks",
+          "target": 12,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "HC09",
+      "name": "포근한 관찰지기",
+      "conditionLabel": "건강 관찰 기록 16주",
+      "category": "HC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "건강 관찰",
+      "domain": "health",
+      "requirements": [
+        {
+          "metric": "health_weeks",
+          "target": 16,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "HC10",
+      "name": "세심한 안부친구",
+      "conditionLabel": "건강 관찰 기록 20주",
+      "category": "HC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "건강 관찰",
+      "domain": "health",
+      "requirements": [
+        {
+          "metric": "health_weeks",
+          "target": 20,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "HC11",
+      "name": "반년의 관찰친구",
+      "conditionLabel": "건강 관찰 기록 26주",
+      "category": "HC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "건강 관찰",
+      "domain": "health",
+      "requirements": [
+        {
+          "metric": "health_weeks",
+          "target": 26,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "HC12",
+      "name": "꾸준한 관찰수집가",
+      "conditionLabel": "건강 관찰 기록 39주",
+      "category": "HC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "건강 관찰",
+      "domain": "health",
+      "requirements": [
+        {
+          "metric": "health_weeks",
+          "target": 39,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "HC13",
+      "name": "한 해의 안부지기",
+      "conditionLabel": "건강 관찰 기록 52주",
+      "category": "HC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "건강 관찰",
+      "domain": "health",
+      "requirements": [
+        {
+          "metric": "health_weeks",
+          "target": 52,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "HC14",
+      "name": "다정한 건강편집자",
+      "conditionLabel": "건강 관찰 기록 78주",
+      "category": "HC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "건강 관찰",
+      "domain": "health",
+      "requirements": [
+        {
+          "metric": "health_weeks",
+          "target": 78,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "HC15",
+      "name": "오랜 관찰동반자",
+      "conditionLabel": "건강 관찰 기록 104주",
+      "category": "HC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "건강 관찰",
+      "domain": "health",
+      "requirements": [
+        {
+          "metric": "health_weeks",
+          "target": 104,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "HC16",
+      "name": "한결같은 안부친구",
+      "conditionLabel": "건강 관찰 기록 156주",
+      "category": "HC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "건강 관찰",
+      "domain": "health",
+      "requirements": [
+        {
+          "metric": "health_weeks",
+          "target": 156,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "HC17",
+      "name": "마음 담은 건강기록가",
+      "conditionLabel": "건강 관찰 기록 208주",
+      "category": "HC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "건강 관찰",
+      "domain": "health",
+      "requirements": [
+        {
+          "metric": "health_weeks",
+          "target": 208,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "HC18",
+      "name": "깊어진 관찰장인",
+      "conditionLabel": "건강 관찰 기록 260주",
+      "category": "HC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "건강 관찰",
+      "domain": "health",
+      "requirements": [
+        {
+          "metric": "health_weeks",
+          "target": 260,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "HC19",
+      "name": "우리 안부의 지킴이",
+      "conditionLabel": "건강 관찰 기록 390주",
+      "category": "HC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "건강 관찰",
+      "domain": "health",
+      "requirements": [
+        {
+          "metric": "health_weeks",
+          "target": 390,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "HC20",
+      "name": "오래오래 건강기록가",
+      "conditionLabel": "건강 관찰 기록 520주",
+      "category": "HC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "건강 관찰",
+      "domain": "health",
+      "requirements": [
+        {
+          "metric": "health_weeks",
+          "target": 520,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "LC01",
+      "name": "첫 손길기록가",
+      "conditionLabel": "생활 돌봄 기록 1개월",
+      "category": "LC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "생활 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "care_months",
+          "target": 1,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "LC02",
+      "name": "보송한 돌봄친구",
+      "conditionLabel": "생활 돌봄 기록 2개월",
+      "category": "LC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "생활 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "care_months",
+          "target": 2,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "LC03",
+      "name": "작은 손길지기",
+      "conditionLabel": "생활 돌봄 기록 3개월",
+      "category": "LC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "생활 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "care_months",
+          "target": 3,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "LC04",
+      "name": "다정한 돌봄메모",
+      "conditionLabel": "생활 돌봄 기록 4개월",
+      "category": "LC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "생활 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "care_months",
+          "target": 4,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "LC05",
+      "name": "포근한 정리친구",
+      "conditionLabel": "생활 돌봄 기록 5개월",
+      "category": "LC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "생활 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "care_months",
+          "target": 5,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "LC06",
+      "name": "차곡차곡 돌봄지기",
+      "conditionLabel": "생활 돌봄 기록 6개월",
+      "category": "LC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "생활 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "care_months",
+          "target": 6,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "LC07",
+      "name": "우리 집 손길친구",
+      "conditionLabel": "생활 돌봄 기록 8개월",
+      "category": "LC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "생활 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "care_months",
+          "target": 8,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "LC08",
+      "name": "보드라운 돌봄지기",
+      "conditionLabel": "생활 돌봄 기록 10개월",
+      "category": "LC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "생활 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "care_months",
+          "target": 10,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "LC09",
+      "name": "한 해의 손길기록가",
+      "conditionLabel": "생활 돌봄 기록 12개월",
+      "category": "LC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "생활 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "care_months",
+          "target": 12,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "LC10",
+      "name": "다정한 생활수집가",
+      "conditionLabel": "생활 돌봄 기록 15개월",
+      "category": "LC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "생활 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "care_months",
+          "target": 15,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "LC11",
+      "name": "든든한 손길친구",
+      "conditionLabel": "생활 돌봄 기록 18개월",
+      "category": "LC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "생활 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "care_months",
+          "target": 18,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "LC12",
+      "name": "두 해의 돌봄지기",
+      "conditionLabel": "생활 돌봄 기록 24개월",
+      "category": "LC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "생활 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "care_months",
+          "target": 24,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "LC13",
+      "name": "우리 생활의 도우미",
+      "conditionLabel": "생활 돌봄 기록 30개월",
+      "category": "LC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "생활 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "care_months",
+          "target": 30,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "LC14",
+      "name": "한결같은 손길지기",
+      "conditionLabel": "생활 돌봄 기록 36개월",
+      "category": "LC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "생활 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "care_months",
+          "target": 36,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "LC15",
+      "name": "포근한 돌봄편집자",
+      "conditionLabel": "생활 돌봄 기록 48개월",
+      "category": "LC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "생활 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "care_months",
+          "target": 48,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "LC16",
+      "name": "다섯 해의 생활친구",
+      "conditionLabel": "생활 돌봄 기록 60개월",
+      "category": "LC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "생활 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "care_months",
+          "target": 60,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "LC17",
+      "name": "오랜 손길의 동반자",
+      "conditionLabel": "생활 돌봄 기록 72개월",
+      "category": "LC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "생활 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "care_months",
+          "target": 72,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "LC18",
+      "name": "세심한 돌봄수집가",
+      "conditionLabel": "생활 돌봄 기록 84개월",
+      "category": "LC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "생활 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "care_months",
+          "target": 84,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "LC19",
+      "name": "우리 집 돌봄장인",
+      "conditionLabel": "생활 돌봄 기록 96개월",
+      "category": "LC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "생활 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "care_months",
+          "target": 96,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "LC20",
+      "name": "오래오래 손길지킴이",
+      "conditionLabel": "생활 돌봄 기록 120개월",
+      "category": "LC",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "생활 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "care_months",
+          "target": 120,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "RT01",
+      "name": "새싹 습관지기",
+      "conditionLabel": "임의의 연속 7일 구간에서 기록한 날 2일",
+      "category": "RT",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "꾸준함과 루틴",
+      "domain": "streak",
+      "requirements": [
+        {
+          "metric": "window7_days",
+          "target": 2,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "RT02",
+      "name": "차곡차곡 하루친구",
+      "conditionLabel": "임의의 연속 7일 구간에서 기록한 날 3일",
+      "category": "RT",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "꾸준함과 루틴",
+      "domain": "streak",
+      "requirements": [
+        {
+          "metric": "window7_days",
+          "target": 3,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "RT03",
+      "name": "부지런한 산책친구",
+      "conditionLabel": "임의의 연속 14일 구간에서 산책 기록 3일",
+      "category": "RT",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "꾸준함과 루틴",
+      "domain": "streak",
+      "requirements": [
+        {
+          "metric": "window14_walk_days",
+          "target": 3,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "RT04",
+      "name": "작은 일주일지킴이",
+      "conditionLabel": "기록한 주 1개",
+      "category": "RT",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "꾸준함과 루틴",
+      "domain": "streak",
+      "requirements": [
+        {
+          "metric": "record_weeks",
+          "target": 1,
+          "unit": "주"
+        }
+      ]
+    },
+    {
+      "id": "RT05",
+      "name": "한 달의 습관친구",
+      "conditionLabel": "루틴 월 1개월",
+      "category": "RT",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "꾸준함과 루틴",
+      "domain": "streak",
+      "requirements": [
+        {
+          "metric": "routine_months",
+          "target": 1,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "RT06",
+      "name": "두 달의 정성지기",
+      "conditionLabel": "루틴 월 2개월",
+      "category": "RT",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "꾸준함과 루틴",
+      "domain": "streak",
+      "requirements": [
+        {
+          "metric": "routine_months",
+          "target": 2,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "RT07",
+      "name": "세 달의 꾸준한 친구",
+      "conditionLabel": "루틴 월 3개월",
+      "category": "RT",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "꾸준함과 루틴",
+      "domain": "streak",
+      "requirements": [
+        {
+          "metric": "routine_months",
+          "target": 3,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "RT08",
+      "name": "차곡차곡 루틴수집가",
+      "conditionLabel": "루틴 월 4개월",
+      "category": "RT",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "꾸준함과 루틴",
+      "domain": "streak",
+      "requirements": [
+        {
+          "metric": "routine_months",
+          "target": 4,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "RT09",
+      "name": "반년의 습관지기",
+      "conditionLabel": "루틴 월 6개월",
+      "category": "RT",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "꾸준함과 루틴",
+      "domain": "streak",
+      "requirements": [
+        {
+          "metric": "routine_months",
+          "target": 6,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "RT10",
+      "name": "계절 잇는 루틴친구",
+      "conditionLabel": "루틴 월 9개월",
+      "category": "RT",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "꾸준함과 루틴",
+      "domain": "streak",
+      "requirements": [
+        {
+          "metric": "routine_months",
+          "target": 9,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "RT11",
+      "name": "일 년의 성실지기",
+      "conditionLabel": "루틴 월 12개월",
+      "category": "RT",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "꾸준함과 루틴",
+      "domain": "streak",
+      "requirements": [
+        {
+          "metric": "routine_months",
+          "target": 12,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "RT12",
+      "name": "다정한 루틴장인",
+      "conditionLabel": "루틴 월 18개월",
+      "category": "RT",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "꾸준함과 루틴",
+      "domain": "streak",
+      "requirements": [
+        {
+          "metric": "routine_months",
+          "target": 18,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "RT13",
+      "name": "두 해의 습관짝꿍",
+      "conditionLabel": "루틴 월 24개월",
+      "category": "RT",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "꾸준함과 루틴",
+      "domain": "streak",
+      "requirements": [
+        {
+          "metric": "routine_months",
+          "target": 24,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "RT14",
+      "name": "우리 일상의 지킴이",
+      "conditionLabel": "루틴 월 36개월",
+      "category": "RT",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "꾸준함과 루틴",
+      "domain": "streak",
+      "requirements": [
+        {
+          "metric": "routine_months",
+          "target": 36,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "RT15",
+      "name": "한결같은 루틴친구",
+      "conditionLabel": "루틴 월 48개월",
+      "category": "RT",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "꾸준함과 루틴",
+      "domain": "streak",
+      "requirements": [
+        {
+          "metric": "routine_months",
+          "target": 48,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "RT16",
+      "name": "다섯 해의 정성지기",
+      "conditionLabel": "루틴 월 60개월",
+      "category": "RT",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "꾸준함과 루틴",
+      "domain": "streak",
+      "requirements": [
+        {
+          "metric": "routine_months",
+          "target": 60,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "RT17",
+      "name": "오랜 습관의 동반자",
+      "conditionLabel": "루틴 월 84개월",
+      "category": "RT",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "꾸준함과 루틴",
+      "domain": "streak",
+      "requirements": [
+        {
+          "metric": "routine_months",
+          "target": 84,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "RT18",
+      "name": "열 해의 꾸준한 친구",
+      "conditionLabel": "루틴 월 120개월",
+      "category": "RT",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "꾸준함과 루틴",
+      "domain": "streak",
+      "requirements": [
+        {
+          "metric": "routine_months",
+          "target": 120,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "RT19",
+      "name": "열다섯 해의 마음지기",
+      "conditionLabel": "루틴 월 180개월",
+      "category": "RT",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "꾸준함과 루틴",
+      "domain": "streak",
+      "requirements": [
+        {
+          "metric": "routine_months",
+          "target": 180,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "RT20",
+      "name": "오래오래 루틴장인",
+      "conditionLabel": "루틴 월 240개월",
+      "category": "RT",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "꾸준함과 루틴",
+      "domain": "streak",
+      "requirements": [
+        {
+          "metric": "routine_months",
+          "target": 240,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "BL01",
+      "name": "첫 균형친구",
+      "conditionLabel": "균형 월 1개월",
+      "category": "BL",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "균형 있는 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "balanced_months",
+          "target": 1,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "BL02",
+      "name": "작은 돌봄길잡이",
+      "conditionLabel": "균형 월 2개월",
+      "category": "BL",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "균형 있는 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "balanced_months",
+          "target": 2,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "BL03",
+      "name": "다정한 생활지기",
+      "conditionLabel": "균형 월 3개월",
+      "category": "BL",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "균형 있는 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "balanced_months",
+          "target": 3,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "BL04",
+      "name": "고른 마음수집가",
+      "conditionLabel": "균형 월 4개월",
+      "category": "BL",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "균형 있는 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "balanced_months",
+          "target": 4,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "BL05",
+      "name": "포근한 돌봄친구",
+      "conditionLabel": "균형 월 5개월",
+      "category": "BL",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "균형 있는 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "balanced_months",
+          "target": 5,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "BL06",
+      "name": "반년의 균형지기",
+      "conditionLabel": "균형 월 6개월",
+      "category": "BL",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "균형 있는 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "balanced_months",
+          "target": 6,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "BL07",
+      "name": "우리 일상 조율사",
+      "conditionLabel": "균형 월 8개월",
+      "category": "BL",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "균형 있는 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "balanced_months",
+          "target": 8,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "BL08",
+      "name": "차곡차곡 생활장인",
+      "conditionLabel": "균형 월 10개월",
+      "category": "BL",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "균형 있는 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "balanced_months",
+          "target": 10,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "BL09",
+      "name": "한 해의 다정한 균형",
+      "conditionLabel": "균형 월 12개월",
+      "category": "BL",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "균형 있는 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "balanced_months",
+          "target": 12,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "BL10",
+      "name": "균형 잡는 생활친구",
+      "conditionLabel": "균형 월 15개월",
+      "category": "BL",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "균형 있는 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "balanced_months",
+          "target": 15,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "BL11",
+      "name": "든든한 일상지킴이",
+      "conditionLabel": "균형 월 18개월",
+      "category": "BL",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "균형 있는 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "balanced_months",
+          "target": 18,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "BL12",
+      "name": "두 해의 돌봄짝꿍",
+      "conditionLabel": "균형 월 24개월",
+      "category": "BL",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "균형 있는 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "balanced_months",
+          "target": 24,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "BL13",
+      "name": "마음 고루 담는 친구",
+      "conditionLabel": "균형 월 30개월",
+      "category": "BL",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "균형 있는 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "balanced_months",
+          "target": 30,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "BL14",
+      "name": "세 해의 균형장인",
+      "conditionLabel": "균형 월 36개월",
+      "category": "BL",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "균형 있는 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "balanced_months",
+          "target": 36,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "BL15",
+      "name": "포근한 생활편집자",
+      "conditionLabel": "균형 월 48개월",
+      "category": "BL",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "균형 있는 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "balanced_months",
+          "target": 48,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "BL16",
+      "name": "다섯 해의 돌봄길잡이",
+      "conditionLabel": "균형 월 60개월",
+      "category": "BL",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "균형 있는 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "balanced_months",
+          "target": 60,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "BL17",
+      "name": "오랜 균형의 동반자",
+      "conditionLabel": "균형 월 84개월",
+      "category": "BL",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "균형 있는 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "balanced_months",
+          "target": 84,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "BL18",
+      "name": "열 해의 생활친구",
+      "conditionLabel": "균형 월 120개월",
+      "category": "BL",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "균형 있는 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "balanced_months",
+          "target": 120,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "BL19",
+      "name": "열다섯 해의 돌봄지기",
+      "conditionLabel": "균형 월 180개월",
+      "category": "BL",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "균형 있는 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "balanced_months",
+          "target": 180,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "BL20",
+      "name": "오래오래 다정한 조율사",
+      "conditionLabel": "균형 월 240개월",
+      "category": "BL",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "균형 있는 돌봄",
+      "domain": "timeline_category",
+      "requirements": [
+        {
+          "metric": "balanced_months",
+          "target": 240,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "PH01",
+      "name": "첫 장면사진지기",
+      "conditionLabel": "사진이 있는 추억 기록 1일",
+      "category": "PH",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "사진과 추억 보관",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "photo_days",
+          "target": 1,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "PH02",
+      "name": "작은 사진친구",
+      "conditionLabel": "사진이 있는 추억 기록 2일",
+      "category": "PH",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "사진과 추억 보관",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "photo_days",
+          "target": 2,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "PH03",
+      "name": "반짝 장면수집가",
+      "conditionLabel": "사진이 있는 추억 기록 3일",
+      "category": "PH",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "사진과 추억 보관",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "photo_days",
+          "target": 3,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "PH04",
+      "name": "추억앨범 새싹",
+      "conditionLabel": "사진이 있는 추억 기록 5일",
+      "category": "PH",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "사진과 추억 보관",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "photo_days",
+          "target": 5,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "PH05",
+      "name": "우리 사진책친구",
+      "conditionLabel": "사진이 있는 추억 기록 7일",
+      "category": "PH",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "사진과 추억 보관",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "photo_days",
+          "target": 7,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "PH06",
+      "name": "다정한 앨범지기",
+      "conditionLabel": "사진이 있는 추억 기록 10일",
+      "category": "PH",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "사진과 추억 보관",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "photo_days",
+          "target": 10,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "PH07",
+      "name": "작은 장면의 기록가",
+      "conditionLabel": "사진이 있는 추억 기록 14일",
+      "category": "PH",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "사진과 추억 보관",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "photo_days",
+          "target": 14,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "PH08",
+      "name": "차곡차곡 사진수집가",
+      "conditionLabel": "사진이 있는 추억 기록 21일",
+      "category": "PH",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "사진과 추억 보관",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "photo_days",
+          "target": 21,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "PH09",
+      "name": "한 달의 사진친구",
+      "conditionLabel": "사진이 있는 추억 기록 30일",
+      "category": "PH",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "사진과 추억 보관",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "photo_days",
+          "target": 30,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "PH10",
+      "name": "포근한 앨범편집자",
+      "conditionLabel": "사진이 있는 추억 기록 45일",
+      "category": "PH",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "사진과 추억 보관",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "photo_days",
+          "target": 45,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "PH11",
+      "name": "우리 장면보관자",
+      "conditionLabel": "사진이 있는 추억 기록 60일",
+      "category": "PH",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "사진과 추억 보관",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "photo_days",
+          "target": 60,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "PH12",
+      "name": "계절 사진수집가",
+      "conditionLabel": "사진이 있는 추억 기록 90일",
+      "category": "PH",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "사진과 추억 보관",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "photo_days",
+          "target": 90,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "PH13",
+      "name": "반짝이는 사진책지기",
+      "conditionLabel": "사진이 있는 추억 기록 120일",
+      "category": "PH",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "사진과 추억 보관",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "photo_days",
+          "target": 120,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "PH14",
+      "name": "추억상자의 지킴이",
+      "conditionLabel": "사진이 있는 추억 기록 180일",
+      "category": "PH",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "사진과 추억 보관",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "photo_days",
+          "target": 180,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "PH15",
+      "name": "우리 사진의 길잡이",
+      "conditionLabel": "사진이 있는 추억 기록 240일",
+      "category": "PH",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "사진과 추억 보관",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "photo_days",
+          "target": 240,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "PH16",
+      "name": "한 해의 장면지기",
+      "conditionLabel": "사진이 있는 추억 기록 365일",
+      "category": "PH",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "사진과 추억 보관",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "photo_days",
+          "target": 365,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "PH17",
+      "name": "차곡차곡 앨범장인",
+      "conditionLabel": "사진이 있는 추억 기록 500일",
+      "category": "PH",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "사진과 추억 보관",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "photo_days",
+          "target": 500,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "PH18",
+      "name": "오랜 장면의 동반자",
+      "conditionLabel": "사진이 있는 추억 기록 730일",
+      "category": "PH",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "사진과 추억 보관",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "photo_days",
+          "target": 730,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "PH19",
+      "name": "한결같은 사진지기",
+      "conditionLabel": "사진이 있는 추억 기록 1,000일",
+      "category": "PH",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "사진과 추억 보관",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "photo_days",
+          "target": 1000,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "PH20",
+      "name": "오래오래 추억사진가",
+      "conditionLabel": "사진이 있는 추억 기록 1,500일",
+      "category": "PH",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "사진과 추억 보관",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "photo_days",
+          "target": 1500,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "SE01",
+      "name": "첫 계절기록가",
+      "conditionLabel": "기록한 계절 1개",
+      "category": "SE",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "계절의 기억",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_kinds",
+          "target": 1,
+          "unit": "종류"
+        }
+      ]
+    },
+    {
+      "id": "SE02",
+      "name": "두 계절의 친구",
+      "conditionLabel": "서로 다른 계절 종류 2개에 적격 기록",
+      "category": "SE",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "계절의 기억",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_kinds",
+          "target": 2,
+          "unit": "종류"
+        }
+      ]
+    },
+    {
+      "id": "SE03",
+      "name": "세 계절의 수집가",
+      "conditionLabel": "서로 다른 계절 종류 3개에 적격 기록",
+      "category": "SE",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "계절의 기억",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_kinds",
+          "target": 3,
+          "unit": "종류"
+        }
+      ]
+    },
+    {
+      "id": "SE04",
+      "name": "사계절 추억지기",
+      "conditionLabel": "봄, 여름, 가을, 겨울 모두 적격 기록과 실제 기록 기간 1년",
+      "category": "SE",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "계절의 기억",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_kinds",
+          "target": 4,
+          "unit": "종류"
+        },
+        {
+          "metric": "elapsed_months",
+          "target": 12,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "SE05",
+      "name": "계절 사이 길잡이",
+      "conditionLabel": "기록한 계절 5개와 실제 기록 기간 18개월",
+      "category": "SE",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "계절의 기억",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_count",
+          "target": 5,
+          "unit": "계절"
+        },
+        {
+          "metric": "elapsed_months",
+          "target": 18,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "SE06",
+      "name": "두 해의 계절친구",
+      "conditionLabel": "기록한 계절 6개와 실제 기록 기간 2년",
+      "category": "SE",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "계절의 기억",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_count",
+          "target": 6,
+          "unit": "계절"
+        },
+        {
+          "metric": "elapsed_months",
+          "target": 24,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "SE07",
+      "name": "세 해의 풍경지기",
+      "conditionLabel": "기록한 계절 8개와 실제 기록 기간 3년",
+      "category": "SE",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "계절의 기억",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_count",
+          "target": 8,
+          "unit": "계절"
+        },
+        {
+          "metric": "elapsed_months",
+          "target": 36,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "SE08",
+      "name": "네 해의 계절수집가",
+      "conditionLabel": "기록한 계절 10개와 실제 기록 기간 4년",
+      "category": "SE",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "계절의 기억",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_count",
+          "target": 10,
+          "unit": "계절"
+        },
+        {
+          "metric": "elapsed_months",
+          "target": 48,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "SE09",
+      "name": "다섯 해의 사계절친구",
+      "conditionLabel": "기록한 계절 12개와 실제 기록 기간 5년",
+      "category": "SE",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "계절의 기억",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_count",
+          "target": 12,
+          "unit": "계절"
+        },
+        {
+          "metric": "elapsed_months",
+          "target": 60,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "SE10",
+      "name": "여섯 해의 풍경지킴이",
+      "conditionLabel": "기록한 계절 14개와 실제 기록 기간 6년",
+      "category": "SE",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "계절의 기억",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_count",
+          "target": 14,
+          "unit": "계절"
+        },
+        {
+          "metric": "elapsed_months",
+          "target": 72,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "SE11",
+      "name": "일곱 해의 계절편집자",
+      "conditionLabel": "기록한 계절 16개와 실제 기록 기간 7년",
+      "category": "SE",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "계절의 기억",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_count",
+          "target": 16,
+          "unit": "계절"
+        },
+        {
+          "metric": "elapsed_months",
+          "target": 84,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "SE12",
+      "name": "여덟 해의 계절장인",
+      "conditionLabel": "기록한 계절 18개와 실제 기록 기간 8년",
+      "category": "SE",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "계절의 기억",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_count",
+          "target": 18,
+          "unit": "계절"
+        },
+        {
+          "metric": "elapsed_months",
+          "target": 96,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "SE13",
+      "name": "아홉 해의 풍경친구",
+      "conditionLabel": "기록한 계절 20개와 실제 기록 기간 9년",
+      "category": "SE",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "계절의 기억",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_count",
+          "target": 20,
+          "unit": "계절"
+        },
+        {
+          "metric": "elapsed_months",
+          "target": 108,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "SE14",
+      "name": "열 해의 계절동반자",
+      "conditionLabel": "기록한 계절 22개와 실제 기록 기간 10년",
+      "category": "SE",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "계절의 기억",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_count",
+          "target": 22,
+          "unit": "계절"
+        },
+        {
+          "metric": "elapsed_months",
+          "target": 120,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "SE15",
+      "name": "열한 해의 풍경수집가",
+      "conditionLabel": "기록한 계절 24개와 실제 기록 기간 11년",
+      "category": "SE",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "계절의 기억",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_count",
+          "target": 24,
+          "unit": "계절"
+        },
+        {
+          "metric": "elapsed_months",
+          "target": 132,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "SE16",
+      "name": "열두 해의 계절지기",
+      "conditionLabel": "기록한 계절 26개와 실제 기록 기간 12년",
+      "category": "SE",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "계절의 기억",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_count",
+          "target": 26,
+          "unit": "계절"
+        },
+        {
+          "metric": "elapsed_months",
+          "target": 144,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "SE17",
+      "name": "열세 해의 추억풍경가",
+      "conditionLabel": "기록한 계절 28개와 실제 기록 기간 13년",
+      "category": "SE",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "계절의 기억",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_count",
+          "target": 28,
+          "unit": "계절"
+        },
+        {
+          "metric": "elapsed_months",
+          "target": 156,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "SE18",
+      "name": "열네 해의 계절짝꿍",
+      "conditionLabel": "기록한 계절 30개와 실제 기록 기간 14년",
+      "category": "SE",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "계절의 기억",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_count",
+          "target": 30,
+          "unit": "계절"
+        },
+        {
+          "metric": "elapsed_months",
+          "target": 168,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "SE19",
+      "name": "열다섯 해의 사계절지기",
+      "conditionLabel": "기록한 계절 32개와 실제 기록 기간 15년",
+      "category": "SE",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "계절의 기억",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_count",
+          "target": 32,
+          "unit": "계절"
+        },
+        {
+          "metric": "elapsed_months",
+          "target": 180,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "SE20",
+      "name": "오래오래 계절장인",
+      "conditionLabel": "기록한 계절 40개와 실제 기록 기간 20년",
+      "category": "SE",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "계절의 기억",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_count",
+          "target": 40,
+          "unit": "계절"
+        },
+        {
+          "metric": "elapsed_months",
+          "target": 240,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "TM01",
+      "name": "첫 주 동행친구",
+      "conditionLabel": "실제 기록 기간 7일과 기록한 날 2일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_days",
+          "target": 7,
+          "unit": "일"
+        },
+        {
+          "metric": "active_days",
+          "target": 2,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM02",
+      "name": "두 주 마음짝꿍",
+      "conditionLabel": "실제 기록 기간 14일과 기록한 날 2일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_days",
+          "target": 14,
+          "unit": "일"
+        },
+        {
+          "metric": "active_days",
+          "target": 2,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM03",
+      "name": "우리 첫 달 지킴이",
+      "conditionLabel": "실제 기록 기간 1개월과 기록한 날 2일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 1,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 2,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM04",
+      "name": "두 달의 기록친구",
+      "conditionLabel": "실제 기록 기간 2개월과 기록한 날 3일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 2,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 3,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM05",
+      "name": "백일 앞의 추억지기",
+      "conditionLabel": "실제 기록 기간 3개월과 기록한 날 4일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 3,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 4,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM06",
+      "name": "반년의 다정한 동반자",
+      "conditionLabel": "실제 기록 기간 6개월과 기록한 날 6일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 6,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 6,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM07",
+      "name": "아홉 달의 기록짝꿍",
+      "conditionLabel": "실제 기록 기간 9개월과 기록한 날 8일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 9,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 8,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM08",
+      "name": "첫돌 추억친구",
+      "conditionLabel": "실제 기록 기간 1년과 기록한 날 12일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 12,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 12,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM09",
+      "name": "한돌 반의 이야기지기",
+      "conditionLabel": "실제 기록 기간 18개월과 기록한 날 16일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 18,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 16,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM10",
+      "name": "두돌 마음지킴이",
+      "conditionLabel": "실제 기록 기간 2년과 기록한 날 20일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 24,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 20,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM11",
+      "name": "세돌 추억수집가",
+      "conditionLabel": "실제 기록 기간 3년과 기록한 날 24일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 36,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 24,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM12",
+      "name": "네돌 우리기록가",
+      "conditionLabel": "실제 기록 기간 4년과 기록한 날 28일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 48,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 28,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM13",
+      "name": "다섯돌 동행지기",
+      "conditionLabel": "실제 기록 기간 5년과 기록한 날 32일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 60,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 32,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM14",
+      "name": "여섯돌 이야기친구",
+      "conditionLabel": "실제 기록 기간 6년과 기록한 날 36일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 72,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 36,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM15",
+      "name": "일곱돌 마음동반자",
+      "conditionLabel": "실제 기록 기간 7년과 기록한 날 40일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 84,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 40,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM16",
+      "name": "여덟돌 기억지킴이",
+      "conditionLabel": "실제 기록 기간 8년과 기록한 날 44일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 96,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 44,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM17",
+      "name": "아홉돌 추억장인",
+      "conditionLabel": "실제 기록 기간 9년과 기록한 날 48일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 108,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 48,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM18",
+      "name": "열돌 우리이야기꾼",
+      "conditionLabel": "실제 기록 기간 10년과 기록한 날 52일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 120,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 52,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM19",
+      "name": "열한돌 마음수집가",
+      "conditionLabel": "실제 기록 기간 11년과 기록한 날 56일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 132,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 56,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM20",
+      "name": "열두돌 다정한 길잡이",
+      "conditionLabel": "실제 기록 기간 12년과 기록한 날 60일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 144,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 60,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM21",
+      "name": "열세돌 기록동반자",
+      "conditionLabel": "실제 기록 기간 13년과 기록한 날 64일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 156,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 64,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM22",
+      "name": "열네돌 우리짝꿍",
+      "conditionLabel": "실제 기록 기간 14년과 기록한 날 68일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 168,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 68,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM23",
+      "name": "열다섯돌 다정한 가족",
+      "conditionLabel": "실제 기록 기간 15년과 기록한 날 72일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 180,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 72,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM24",
+      "name": "열여섯돌 추억지기",
+      "conditionLabel": "실제 기록 기간 16년과 기록한 날 76일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 192,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 76,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM25",
+      "name": "열일곱돌 이야기장인",
+      "conditionLabel": "실제 기록 기간 17년과 기록한 날 80일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 204,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 80,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM26",
+      "name": "열여덟돌 동행친구",
+      "conditionLabel": "실제 기록 기간 18년과 기록한 날 84일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 216,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 84,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM27",
+      "name": "열아홉돌 기억보관자",
+      "conditionLabel": "실제 기록 기간 19년과 기록한 날 88일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 228,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 88,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "TM28",
+      "name": "스무돌 우리동반자",
+      "conditionLabel": "실제 기록 기간 20년과 기록한 날 92일",
+      "category": "TM",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "함께 기록한 시간",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "elapsed_months",
+          "target": 240,
+          "unit": "개월"
+        },
+        {
+          "metric": "active_days",
+          "target": 92,
+          "unit": "일"
+        }
+      ]
+    },
+    {
+      "id": "CP01",
+      "name": "반가운 인사친구",
+      "conditionLabel": "적격 커뮤니티 글 1개",
+      "category": "CP",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "커뮤니티 글",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "post_days",
+          "target": 1,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CP02",
+      "name": "작은 소식전달자",
+      "conditionLabel": "적격 커뮤니티 글 2개",
+      "category": "CP",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "커뮤니티 글",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "post_days",
+          "target": 2,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CP03",
+      "name": "다정한 동네친구",
+      "conditionLabel": "적격 커뮤니티 글 3개",
+      "category": "CP",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "커뮤니티 글",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "post_days",
+          "target": 3,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CP04",
+      "name": "이야기 새싹지기",
+      "conditionLabel": "적격 커뮤니티 글 5개",
+      "category": "CP",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "커뮤니티 글",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "post_days",
+          "target": 5,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CP05",
+      "name": "우리 동네 소식요정",
+      "conditionLabel": "적격 글 7개와 글을 남긴 달 1개월",
+      "category": "CP",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "커뮤니티 글",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "post_days",
+          "target": 7,
+          "unit": "개"
+        },
+        {
+          "metric": "post_months",
+          "target": 1,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "CP06",
+      "name": "차곡차곡 소식지기",
+      "conditionLabel": "적격 글 10개와 글을 남긴 달 1개월",
+      "category": "CP",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "커뮤니티 글",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "post_days",
+          "target": 10,
+          "unit": "개"
+        },
+        {
+          "metric": "post_months",
+          "target": 1,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "CP07",
+      "name": "반짝 이야기수집가",
+      "conditionLabel": "적격 글 15개와 글을 남긴 달 1개월",
+      "category": "CP",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "커뮤니티 글",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "post_days",
+          "target": 15,
+          "unit": "개"
+        },
+        {
+          "metric": "post_months",
+          "target": 1,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "CP08",
+      "name": "정다운 이웃기록가",
+      "conditionLabel": "적격 글 20개와 글을 남긴 달 1개월",
+      "category": "CP",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "커뮤니티 글",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "post_days",
+          "target": 20,
+          "unit": "개"
+        },
+        {
+          "metric": "post_months",
+          "target": 1,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "CP09",
+      "name": "포근한 이야기꾼",
+      "conditionLabel": "적격 글 30개와 글을 남긴 달 1개월",
+      "category": "CP",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "커뮤니티 글",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "post_days",
+          "target": 30,
+          "unit": "개"
+        },
+        {
+          "metric": "post_months",
+          "target": 1,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "CP10",
+      "name": "우리 동네 이야기대장",
+      "conditionLabel": "적격 글 50개와 글을 남긴 달 2개월",
+      "category": "CP",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "커뮤니티 글",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "post_days",
+          "target": 50,
+          "unit": "개"
+        },
+        {
+          "metric": "post_months",
+          "target": 2,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "CP11",
+      "name": "소식을 잇는 길잡이",
+      "conditionLabel": "적격 글 75개와 글을 남긴 달 2개월",
+      "category": "CP",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "커뮤니티 글",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "post_days",
+          "target": 75,
+          "unit": "개"
+        },
+        {
+          "metric": "post_months",
+          "target": 2,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "CP12",
+      "name": "다정한 이웃편집자",
+      "conditionLabel": "적격 글 100개와 글을 남긴 달 3개월",
+      "category": "CP",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "커뮤니티 글",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "post_days",
+          "target": 100,
+          "unit": "개"
+        },
+        {
+          "metric": "post_months",
+          "target": 3,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "CP13",
+      "name": "우리 이야기 나눔지기",
+      "conditionLabel": "적격 글 150개와 글을 남긴 달 3개월",
+      "category": "CP",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "커뮤니티 글",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "post_days",
+          "target": 150,
+          "unit": "개"
+        },
+        {
+          "metric": "post_months",
+          "target": 3,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "CP14",
+      "name": "차곡차곡 동네기록가",
+      "conditionLabel": "적격 글 200개와 글을 남긴 달 4개월",
+      "category": "CP",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "커뮤니티 글",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "post_days",
+          "target": 200,
+          "unit": "개"
+        },
+        {
+          "metric": "post_months",
+          "target": 4,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "CP15",
+      "name": "계절 소식수집가",
+      "conditionLabel": "적격 글 260개와 글을 남긴 달 6개월",
+      "category": "CP",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "커뮤니티 글",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "post_days",
+          "target": 260,
+          "unit": "개"
+        },
+        {
+          "metric": "post_months",
+          "target": 6,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "CP16",
+      "name": "한결같은 이야기친구",
+      "conditionLabel": "적격 글 365개와 글을 남긴 달 9개월",
+      "category": "CP",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "커뮤니티 글",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "post_days",
+          "target": 365,
+          "unit": "개"
+        },
+        {
+          "metric": "post_months",
+          "target": 9,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "CP17",
+      "name": "오래 빛나는 동네지기",
+      "conditionLabel": "적격 글 500개와 글을 남긴 달 12개월",
+      "category": "CP",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "커뮤니티 글",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "post_days",
+          "target": 500,
+          "unit": "개"
+        },
+        {
+          "metric": "post_months",
+          "target": 12,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "CP18",
+      "name": "따뜻한 소식장인",
+      "conditionLabel": "적격 글 650개와 글을 남긴 달 18개월",
+      "category": "CP",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "커뮤니티 글",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "post_days",
+          "target": 650,
+          "unit": "개"
+        },
+        {
+          "metric": "post_months",
+          "target": 18,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "CP19",
+      "name": "마음을 잇는 이웃동반자",
+      "conditionLabel": "적격 글 800개와 글을 남긴 달 24개월",
+      "category": "CP",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "커뮤니티 글",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "post_days",
+          "target": 800,
+          "unit": "개"
+        },
+        {
+          "metric": "post_months",
+          "target": 24,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "CP20",
+      "name": "오래오래 이야기지킴이",
+      "conditionLabel": "적격 글 1,000개와 글을 남긴 달 36개월",
+      "category": "CP",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "커뮤니티 글",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "post_days",
+          "target": 1000,
+          "unit": "개"
+        },
+        {
+          "metric": "post_months",
+          "target": 36,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "CM01",
+      "name": "첫 답장친구",
+      "conditionLabel": "적격 댓글 1개",
+      "category": "CM",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "댓글과 응원",
+      "domain": "comment",
+      "requirements": [
+        {
+          "metric": "comments",
+          "target": 1,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CM02",
+      "name": "작은 응원지기",
+      "conditionLabel": "적격 댓글 3개",
+      "category": "CM",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "댓글과 응원",
+      "domain": "comment",
+      "requirements": [
+        {
+          "metric": "comments",
+          "target": 3,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CM03",
+      "name": "다정한 답장친구",
+      "conditionLabel": "적격 댓글 5개",
+      "category": "CM",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "댓글과 응원",
+      "domain": "comment",
+      "requirements": [
+        {
+          "metric": "comments",
+          "target": 5,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CM04",
+      "name": "마음 담은 인사친구",
+      "conditionLabel": "적격 댓글 7개",
+      "category": "CM",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "댓글과 응원",
+      "domain": "comment",
+      "requirements": [
+        {
+          "metric": "comments",
+          "target": 7,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CM05",
+      "name": "반가운 응원친구",
+      "conditionLabel": "적격 댓글 10개",
+      "category": "CM",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "댓글과 응원",
+      "domain": "comment",
+      "requirements": [
+        {
+          "metric": "comments",
+          "target": 10,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CM06",
+      "name": "포근한 답장지기",
+      "conditionLabel": "적격 댓글 15개",
+      "category": "CM",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "댓글과 응원",
+      "domain": "comment",
+      "requirements": [
+        {
+          "metric": "comments",
+          "target": 15,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CM07",
+      "name": "반짝 답장요정",
+      "conditionLabel": "적격 댓글 20개",
+      "category": "CM",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "댓글과 응원",
+      "domain": "comment",
+      "requirements": [
+        {
+          "metric": "comments",
+          "target": 20,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CM08",
+      "name": "응원을 잇는 친구",
+      "conditionLabel": "적격 댓글 30개",
+      "category": "CM",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "댓글과 응원",
+      "domain": "comment",
+      "requirements": [
+        {
+          "metric": "comments",
+          "target": 30,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CM09",
+      "name": "차곡차곡 마음전달자",
+      "conditionLabel": "적격 댓글 50개",
+      "category": "CM",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "댓글과 응원",
+      "domain": "comment",
+      "requirements": [
+        {
+          "metric": "comments",
+          "target": 50,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CM10",
+      "name": "따뜻한 응원대장",
+      "conditionLabel": "적격 댓글 75개",
+      "category": "CM",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "댓글과 응원",
+      "domain": "comment",
+      "requirements": [
+        {
+          "metric": "comments",
+          "target": 75,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CM11",
+      "name": "진심 담은 답장지기",
+      "conditionLabel": "적격 댓글 100개",
+      "category": "CM",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "댓글과 응원",
+      "domain": "comment",
+      "requirements": [
+        {
+          "metric": "comments",
+          "target": 100,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CM12",
+      "name": "우리 동네 응원친구",
+      "conditionLabel": "적격 댓글 150개",
+      "category": "CM",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "댓글과 응원",
+      "domain": "comment",
+      "requirements": [
+        {
+          "metric": "comments",
+          "target": 150,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CM13",
+      "name": "다정한 마음우체부",
+      "conditionLabel": "적격 댓글 250개",
+      "category": "CM",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "댓글과 응원",
+      "domain": "comment",
+      "requirements": [
+        {
+          "metric": "comments",
+          "target": 250,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CM14",
+      "name": "포근한 응원길잡이",
+      "conditionLabel": "적격 댓글 400개",
+      "category": "CM",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "댓글과 응원",
+      "domain": "comment",
+      "requirements": [
+        {
+          "metric": "comments",
+          "target": 400,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CM15",
+      "name": "차곡차곡 답장수집가",
+      "conditionLabel": "적격 댓글 600개",
+      "category": "CM",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "댓글과 응원",
+      "domain": "comment",
+      "requirements": [
+        {
+          "metric": "comments",
+          "target": 600,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CM16",
+      "name": "한결같은 응원지기",
+      "conditionLabel": "적격 댓글 900개",
+      "category": "CM",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "댓글과 응원",
+      "domain": "comment",
+      "requirements": [
+        {
+          "metric": "comments",
+          "target": 900,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CM17",
+      "name": "이웃마음 동반자",
+      "conditionLabel": "적격 댓글 1,200개",
+      "category": "CM",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "댓글과 응원",
+      "domain": "comment",
+      "requirements": [
+        {
+          "metric": "comments",
+          "target": 1200,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CM18",
+      "name": "오랜 답장의 기록가",
+      "conditionLabel": "적격 댓글 1,800개",
+      "category": "CM",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "댓글과 응원",
+      "domain": "comment",
+      "requirements": [
+        {
+          "metric": "comments",
+          "target": 1800,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CM19",
+      "name": "따뜻한 응원장인",
+      "conditionLabel": "적격 댓글 2,400개",
+      "category": "CM",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "댓글과 응원",
+      "domain": "comment",
+      "requirements": [
+        {
+          "metric": "comments",
+          "target": 2400,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "CM20",
+      "name": "오래오래 다정한 이웃",
+      "conditionLabel": "적격 댓글 3,000개",
+      "category": "CM",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "댓글과 응원",
+      "domain": "comment",
+      "requirements": [
+        {
+          "metric": "comments",
+          "target": 3000,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "LV01",
+      "name": "누리의 첫 동행자",
+      "conditionLabel": "계정 Lv.1 이상과 첫 적격 활동 1개",
+      "category": "LV",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "계정 통합 성장",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "level",
+          "target": 1,
+          "unit": "레벨"
+        },
+        {
+          "metric": "activity_count",
+          "target": 1,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "LV02",
+      "name": "작은 마음지기",
+      "conditionLabel": "계정 Lv.2 이상",
+      "category": "LV",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "계정 통합 성장",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "level",
+          "target": 2,
+          "unit": "레벨"
+        }
+      ]
+    },
+    {
+      "id": "LV03",
+      "name": "반짝 성장친구",
+      "conditionLabel": "계정 Lv.3 이상",
+      "category": "LV",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "계정 통합 성장",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "level",
+          "target": 3,
+          "unit": "레벨"
+        }
+      ]
+    },
+    {
+      "id": "LV04",
+      "name": "차곡차곡 활동지기",
+      "conditionLabel": "계정 Lv.4 이상",
+      "category": "LV",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "계정 통합 성장",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "level",
+          "target": 4,
+          "unit": "레벨"
+        }
+      ]
+    },
+    {
+      "id": "LV05",
+      "name": "다정한 성장지킴이",
+      "conditionLabel": "계정 Lv.5 이상",
+      "category": "LV",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "계정 통합 성장",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "level",
+          "target": 5,
+          "unit": "레벨"
+        }
+      ]
+    },
+    {
+      "id": "LV06",
+      "name": "우리 일상 길잡이",
+      "conditionLabel": "계정 Lv.7 이상",
+      "category": "LV",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "계정 통합 성장",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "level",
+          "target": 7,
+          "unit": "레벨"
+        }
+      ]
+    },
+    {
+      "id": "LV07",
+      "name": "든든한 동행친구",
+      "conditionLabel": "계정 Lv.10 이상",
+      "category": "LV",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "계정 통합 성장",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "level",
+          "target": 10,
+          "unit": "레벨"
+        }
+      ]
+    },
+    {
+      "id": "LV08",
+      "name": "포근한 기록수집가",
+      "conditionLabel": "계정 Lv.12 이상",
+      "category": "LV",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "계정 통합 성장",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "level",
+          "target": 12,
+          "unit": "레벨"
+        }
+      ]
+    },
+    {
+      "id": "LV09",
+      "name": "마음 키우는 기록가",
+      "conditionLabel": "계정 Lv.15 이상",
+      "category": "LV",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "계정 통합 성장",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "level",
+          "target": 15,
+          "unit": "레벨"
+        }
+      ]
+    },
+    {
+      "id": "LV10",
+      "name": "반짝이는 일상동반자",
+      "conditionLabel": "계정 Lv.18 이상",
+      "category": "LV",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "계정 통합 성장",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "level",
+          "target": 18,
+          "unit": "레벨"
+        }
+      ]
+    },
+    {
+      "id": "LV11",
+      "name": "다정한 활동장인",
+      "conditionLabel": "계정 Lv.20 이상",
+      "category": "LV",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "계정 통합 성장",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "level",
+          "target": 20,
+          "unit": "레벨"
+        }
+      ]
+    },
+    {
+      "id": "LV12",
+      "name": "우리 기억의 길잡이",
+      "conditionLabel": "계정 Lv.25 이상",
+      "category": "LV",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "계정 통합 성장",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "level",
+          "target": 25,
+          "unit": "레벨"
+        }
+      ]
+    },
+    {
+      "id": "LV13",
+      "name": "차곡차곡 성장장인",
+      "conditionLabel": "계정 Lv.30 이상",
+      "category": "LV",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "계정 통합 성장",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "level",
+          "target": 30,
+          "unit": "레벨"
+        }
+      ]
+    },
+    {
+      "id": "LV14",
+      "name": "포근한 추억동반자",
+      "conditionLabel": "계정 Lv.35 이상",
+      "category": "LV",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "계정 통합 성장",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "level",
+          "target": 35,
+          "unit": "레벨"
+        }
+      ]
+    },
+    {
+      "id": "LV15",
+      "name": "마음을 잇는 활동지기",
+      "conditionLabel": "계정 Lv.40 이상",
+      "category": "LV",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "계정 통합 성장",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "level",
+          "target": 40,
+          "unit": "레벨"
+        }
+      ]
+    },
+    {
+      "id": "LV16",
+      "name": "오랜 일상의 지킴이",
+      "conditionLabel": "계정 Lv.50 이상",
+      "category": "LV",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "계정 통합 성장",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "level",
+          "target": 50,
+          "unit": "레벨"
+        }
+      ]
+    },
+    {
+      "id": "LV17",
+      "name": "깊어진 동행짝꿍",
+      "conditionLabel": "계정 Lv.60 이상",
+      "category": "LV",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "계정 통합 성장",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "level",
+          "target": 60,
+          "unit": "레벨"
+        }
+      ]
+    },
+    {
+      "id": "LV18",
+      "name": "한결같은 마음장인",
+      "conditionLabel": "계정 Lv.70 이상",
+      "category": "LV",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "계정 통합 성장",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "level",
+          "target": 70,
+          "unit": "레벨"
+        }
+      ]
+    },
+    {
+      "id": "LV19",
+      "name": "누리의 다정한 동반자",
+      "conditionLabel": "계정 Lv.85 이상",
+      "category": "LV",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "계정 통합 성장",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "level",
+          "target": 85,
+          "unit": "레벨"
+        }
+      ]
+    },
+    {
+      "id": "LV20",
+      "name": "오래오래 누리친구",
+      "conditionLabel": "계정 Lv.100 이상",
+      "category": "LV",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "계정 통합 성장",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "level",
+          "target": 100,
+          "unit": "레벨"
+        }
+      ]
+    },
+    {
+      "id": "ME01",
+      "name": "무지개 편지지기",
+      "conditionLabel": "개인 추억 기록 1개",
+      "category": "ME",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "추억으로 함께하기",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "remembrance_count",
+          "target": 1,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "ME02",
+      "name": "작은 추억지기",
+      "conditionLabel": "개인 추억 기록 3개",
+      "category": "ME",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "추억으로 함께하기",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "remembrance_count",
+          "target": 3,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "ME03",
+      "name": "다정한 기억지기",
+      "conditionLabel": "개인 추억 기록 5개",
+      "category": "ME",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "추억으로 함께하기",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "remembrance_count",
+          "target": 5,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "ME04",
+      "name": "우리 이야기꾼",
+      "conditionLabel": "개인 추억 기록 10개",
+      "category": "ME",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "추억으로 함께하기",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "remembrance_count",
+          "target": 10,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "ME05",
+      "name": "포근한 기억장인",
+      "conditionLabel": "개인 추억 기록 20개",
+      "category": "ME",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "추억으로 함께하기",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "remembrance_count",
+          "target": 20,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "ME06",
+      "name": "마음속 사진사",
+      "conditionLabel": "서로 다른 추억 사진 1장",
+      "category": "ME",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "추억으로 함께하기",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "remembrance_photos",
+          "target": 1,
+          "unit": "장"
+        }
+      ]
+    },
+    {
+      "id": "ME07",
+      "name": "추억의 사진지기",
+      "conditionLabel": "서로 다른 추억 사진 3장",
+      "category": "ME",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "추억으로 함께하기",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "remembrance_photos",
+          "target": 3,
+          "unit": "장"
+        }
+      ]
+    },
+    {
+      "id": "ME08",
+      "name": "반짝 사진수집가",
+      "conditionLabel": "서로 다른 추억 사진 5장",
+      "category": "ME",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "추억으로 함께하기",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "remembrance_photos",
+          "target": 5,
+          "unit": "장"
+        }
+      ]
+    },
+    {
+      "id": "ME09",
+      "name": "우리 앨범지기",
+      "conditionLabel": "서로 다른 추억 사진 10장",
+      "category": "ME",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "추억으로 함께하기",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "remembrance_photos",
+          "target": 10,
+          "unit": "장"
+        }
+      ]
+    },
+    {
+      "id": "ME10",
+      "name": "소중한 장면지기",
+      "conditionLabel": "서로 다른 추억 사진 20장",
+      "category": "ME",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "추억으로 함께하기",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "remembrance_photos",
+          "target": 20,
+          "unit": "장"
+        }
+      ]
+    },
+    {
+      "id": "ME11",
+      "name": "첫 경험 길잡이",
+      "conditionLabel": "적격 정보 게시글 1개",
+      "category": "ME",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "추억으로 함께하기",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "info_post_days",
+          "target": 1,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "ME12",
+      "name": "다정한 길잡이",
+      "conditionLabel": "적격 정보 게시글 3개",
+      "category": "ME",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "추억으로 함께하기",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "info_post_days",
+          "target": 3,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "ME13",
+      "name": "추억을 잇는 이웃",
+      "conditionLabel": "적격 정보 게시글 5개",
+      "category": "ME",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "추억으로 함께하기",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "info_post_days",
+          "target": 5,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "ME14",
+      "name": "마음을 잇는 이야기꾼",
+      "conditionLabel": "적격 정보 게시글 10개",
+      "category": "ME",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "추억으로 함께하기",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "info_post_days",
+          "target": 10,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "ME15",
+      "name": "든든한 경험지기",
+      "conditionLabel": "적격 정보 게시글 20개",
+      "category": "ME",
+      "scope": "common",
+      "hidden": false,
+      "categoryLabel": "추억으로 함께하기",
+      "domain": "community",
+      "requirements": [
+        {
+          "metric": "info_post_days",
+          "target": 20,
+          "unit": "개"
+        }
+      ]
+    },
+    {
+      "id": "ME16",
+      "name": "마음속 책갈피",
+      "conditionLabel": "추억을 새로 기록한 월 2개",
+      "category": "ME",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "추억으로 함께하기",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "remembrance_months",
+          "target": 2,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "ME17",
+      "name": "계절을 품은 기억지기",
+      "conditionLabel": "추억을 새로 기록한 월 3개",
+      "category": "ME",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "추억으로 함께하기",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "remembrance_months",
+          "target": 3,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "ME18",
+      "name": "오래 빛나는 추억지기",
+      "conditionLabel": "추억을 새로 기록한 월 4개",
+      "category": "ME",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "추억으로 함께하기",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "remembrance_months",
+          "target": 4,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "ME19",
+      "name": "한결같은 마음지기",
+      "conditionLabel": "추억을 새로 기록한 월 6개",
+      "category": "ME",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "추억으로 함께하기",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "remembrance_months",
+          "target": 6,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "ME20",
+      "name": "오래오래 기억장인",
+      "conditionLabel": "추억을 새로 기록한 월 12개",
+      "category": "ME",
+      "scope": "pet",
+      "hidden": false,
+      "categoryLabel": "추억으로 함께하기",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "remembrance_months",
+          "target": 12,
+          "unit": "개월"
+        }
+      ]
+    },
+    {
+      "id": "X01",
+      "name": "복주머니 지킴이",
+      "conditionLabel": "설날 당일의 전후 3일을 포함한 7일 안에 적격 기록 1일",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "seollal_years",
+          "target": 1,
+          "unit": "년"
+        }
+      ]
+    },
+    {
+      "id": "X02",
+      "name": "달빛 소원지기",
+      "conditionLabel": "정월대보름 당일의 전후 3일을 포함한 7일 안에 적격 기록 1일",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "daeboreum_years",
+          "target": 1,
+          "unit": "년"
+        }
+      ]
+    },
+    {
+      "id": "X03",
+      "name": "한가위 추억지기",
+      "conditionLabel": "추석 당일의 전후 3일을 포함한 7일 안에 적격 기록 1일",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "chuseok_years",
+          "target": 1,
+          "unit": "년"
+        }
+      ]
+    },
+    {
+      "id": "X04",
+      "name": "새해 소망지기",
+      "conditionLabel": "1월 1일부터 7일까지 적격 기록 1일",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "newyear_years",
+          "target": 1,
+          "unit": "년"
+        }
+      ]
+    },
+    {
+      "id": "X05",
+      "name": "한 해 마무리지기",
+      "conditionLabel": "12월 25일부터 31일까지 적격 기록 1일",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "yearend_years",
+          "target": 1,
+          "unit": "년"
+        }
+      ]
+    },
+    {
+      "id": "X06",
+      "name": "겨울별 추억지기",
+      "conditionLabel": "12월 22일부터 28일까지 적격 기록 1일",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "winterstar_years",
+          "target": 1,
+          "unit": "년"
+        }
+      ]
+    },
+    {
+      "id": "X07",
+      "name": "고운말 기록지기",
+      "conditionLabel": "10월 6일부터 12일까지 일기 기록 1일",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "hangeul_years",
+          "target": 1,
+          "unit": "년"
+        }
+      ]
+    },
+    {
+      "id": "X08",
+      "name": "초록마음 지킴이",
+      "conditionLabel": "4월 2일부터 8일까지 적격 기록 1일",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "green_years",
+          "target": 1,
+          "unit": "년"
+        }
+      ]
+    },
+    {
+      "id": "X09",
+      "name": "세 번째 복주머니친구",
+      "conditionLabel": "서로 다른 3개 연도의 설날 기간에 적격 기록",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "seollal_years",
+          "target": 3,
+          "unit": "년"
+        }
+      ]
+    },
+    {
+      "id": "X10",
+      "name": "다섯 해의 복주머니장인",
+      "conditionLabel": "서로 다른 5개 연도의 설날 기간에 적격 기록",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "seollal_years",
+          "target": 5,
+          "unit": "년"
+        }
+      ]
+    },
+    {
+      "id": "X11",
+      "name": "열 해의 새해길잡이",
+      "conditionLabel": "서로 다른 10개 연도의 설날 기간에 적격 기록",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "seollal_years",
+          "target": 10,
+          "unit": "년"
+        }
+      ]
+    },
+    {
+      "id": "X12",
+      "name": "보름달 추억수집가",
+      "conditionLabel": "서로 다른 3개 연도의 추석 기간에 적격 기록",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "chuseok_years",
+          "target": 3,
+          "unit": "년"
+        }
+      ]
+    },
+    {
+      "id": "X13",
+      "name": "한가위 달빛지기",
+      "conditionLabel": "서로 다른 5개 연도의 추석 기간에 적격 기록",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "chuseok_years",
+          "target": 5,
+          "unit": "년"
+        }
+      ]
+    },
+    {
+      "id": "X14",
+      "name": "오래오래 한가위친구",
+      "conditionLabel": "서로 다른 10개 연도의 추석 기간에 적격 기록",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "chuseok_years",
+          "target": 10,
+          "unit": "년"
+        }
+      ]
+    },
+    {
+      "id": "X15",
+      "name": "생일편지 요정",
+      "conditionLabel": "프로필 생일 기념일 전후 7일 안에 적격 기록 1일",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "birthday_years",
+          "target": 1,
+          "unit": "년"
+        }
+      ]
+    },
+    {
+      "id": "X16",
+      "name": "첫 만남 편지지기",
+      "conditionLabel": "프로필 만난 날 기념일 전후 7일 안에 적격 기록 1일",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "adoption_years",
+          "target": 1,
+          "unit": "년"
+        }
+      ]
+    },
+    {
+      "id": "X17",
+      "name": "세 번째 생일친구",
+      "conditionLabel": "서로 다른 3개 연도의 생일 기념 기간에 적격 기록",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "birthday_years",
+          "target": 3,
+          "unit": "년"
+        }
+      ]
+    },
+    {
+      "id": "X18",
+      "name": "기념일 추억수집가",
+      "conditionLabel": "서로 다른 5개 연도의 만난 날 기념 기간에 적격 기록",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "adoption_years",
+          "target": 5,
+          "unit": "년"
+        }
+      ]
+    },
+    {
+      "id": "X19",
+      "name": "오랜 기념일 길잡이",
+      "conditionLabel": "서로 다른 10개 연도의 만난 날 기념 기간에 적격 기록",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "adoption_years",
+          "target": 10,
+          "unit": "년"
+        }
+      ]
+    },
+    {
+      "id": "X20",
+      "name": "다섯 번째 생일지기",
+      "conditionLabel": "서로 다른 5개 연도의 생일 기념 기간에 적격 기록",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "birthday_years",
+          "target": 5,
+          "unit": "년"
+        }
+      ]
+    },
+    {
+      "id": "X21",
+      "name": "첫돌 추억지킴이",
+      "conditionLabel": "첫 적격 기록의 1주년 전후 7일 안에 새 적격 기록 1일",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "first_anniversary",
+          "target": 1,
+          "unit": "회"
+        }
+      ]
+    },
+    {
+      "id": "X22",
+      "name": "다시 만난 기록친구",
+      "conditionLabel": "기록이 없는 날이 30일 이상 지난 뒤, 돌아온 날부터 14일 안에 적격 기록 3일",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "return_after_gap",
+          "target": 1,
+          "unit": "회"
+        }
+      ]
+    },
+    {
+      "id": "X23",
+      "name": "계절 잇는 편지요정",
+      "conditionLabel": "인접한 두 실제 계절에서 이전 계절 마지막 7일과 다음 계절 첫 7일에 각각 적격 기록 1일",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "season_edge",
+          "target": 1,
+          "unit": "회"
+        }
+      ]
+    },
+    {
+      "id": "X24",
+      "name": "작은 하루 기록대장",
+      "conditionLabel": "임의의 연속 7일 안에 서로 다른 3분야의 적격 기록과 서로 다른 기록 날짜 3일",
+      "category": "X",
+      "scope": "pet",
+      "hidden": true,
+      "categoryLabel": "뜻밖의 선물",
+      "domain": "timeline",
+      "requirements": [
+        {
+          "metric": "balanced_week",
+          "target": 1,
+          "unit": "회"
+        }
+      ]
+    }
+  ]
+}

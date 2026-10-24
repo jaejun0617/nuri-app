@@ -19,6 +19,8 @@ import type {
   ActivityDashboardData,
 } from '../src/services/activity/activityDashboard';
 import { LAVENDER_CANVAS } from '../src/theme/lavenderCanvas';
+import titleCatalog from '../src/services/activity/titleCatalogV2.json';
+import { parseTitleVaultV2 } from '../src/services/activity/titleVaultV2';
 import {
   loadHomeTitleSelection,
   saveHomeTitleSelection,
@@ -196,6 +198,29 @@ function achievement(
 }
 
 describe('activity and title presentation', () => {
+  it('shows approved category-specific goals without exposing unearned hidden titles', async () => {
+    const entries = titleCatalog.entries.filter(item => !item.hidden);
+    const rows = entries.flatMap(item => (item.scope === 'common' ? ['common'] : mockPets.map(p => p.id)).map(ownerId => ({
+      key: item.id, name: item.name, domain: item.domain, scope: item.scope, ownerId,
+      conditionLabel: item.conditionLabel, categoryKey: item.category, hidden: false,
+      achieved: item.id === 'WK01', earnedAt: item.id === 'WK01' ? '2026-10-01T00:00:00Z' : null,
+      currentValue: item.id === 'WK01' ? 1000 : 0, threshold: 1000, progressLabel: '0 / 3일', progressKnown: true, policyVersion: 2,
+    })));
+    const data = fixture();
+    data.allAchievements = parseTitleVaultV2({ policyVersion: 2, catalogCount: 332, rows }, mockPets);
+    for (const pet of data.petSummaries) pet.achievements = data.allAchievements.filter(item => item.ownerId === pet.petId);
+    data.commonSummary.achievements = data.allAchievements.filter(item => item.scope === 'common');
+    jest.mocked(loadActivityDashboard).mockResolvedValue(data);
+    const tree = await render();
+    await press(tree, 'activity-tab-vault');
+    expect(host(tree, 'activity-earned-WK01')).toBeDefined();
+    expect(text(tree)).not.toContain('activity-title-category-X');
+    await press(tree, 'activity-title-category-GD');
+    expect(text(tree)).toContain('GPS 평생 거리');
+    expect(text(tree)).not.toContain('activity-earned-WK01');
+    expect(text(tree)).toContain('작은 길의 시작');
+    await act(async () => tree.unmount());
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     mockOwner = 'owner';

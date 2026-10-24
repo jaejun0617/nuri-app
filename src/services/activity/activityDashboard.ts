@@ -20,6 +20,7 @@ import {
   type ActivityXpEventType,
 } from './progressPolicy';
 import { getUserLevelSummary, type UserLevelSummary } from './xpProgress';
+import { fetchTitleVaultV2 } from './titleVaultV2';
 
 export type DashboardPet = {
   id: string;
@@ -72,6 +73,13 @@ export type ActivityAchievement = {
   currentValue: number;
   threshold: number;
   achieved: boolean;
+  policyVersion?: 1 | 2;
+  categoryKey?: string;
+  categoryLabel?: string;
+  hidden?: boolean;
+  progressLabel?: string;
+  progressKnown?: boolean;
+  earnedAt?: string;
 };
 
 export type PetActivityDashboardSummary = {
@@ -86,6 +94,7 @@ export type PetActivityDashboardSummary = {
   streak: DailyStreakStatus | null;
   timelineCategoryCounts: TimelineCategoryCounts;
   achievements: ActivityAchievement[];
+  walkRecordCount?: number;
 };
 
 export type CommonActivityDashboardSummary = {
@@ -119,6 +128,7 @@ type ActivityDashboardBuildInput = {
   communityPostCount: number;
   commentCount: number;
   ledgerLimitReached?: boolean;
+  titleVault?: ActivityAchievement[];
 };
 
 type UserActivityLongSummary = {
@@ -471,7 +481,7 @@ export function buildActivityDashboard(
     const timelineCategoryCounts =
       input.timelineCountsByPetId[pet.id] ?? createEmptyTimelineCategoryCounts();
     const healthRecordCount = input.healthRecordCountsByPetId[pet.id] ?? health.eventCount;
-    const achievements = buildPetAchievements({
+    const achievements = input.titleVault?.filter(item => item.scope === 'pet' && item.ownerId === pet.id) ?? buildPetAchievements({
       petId: pet.id,
       petName: pet.name,
       walkCount: countRowsByEvent(petRows, ['walk_record', 'walk_timeline_post']).length,
@@ -496,6 +506,7 @@ export function buildActivityDashboard(
       streak,
       timelineCategoryCounts,
       achievements,
+      walkRecordCount: countRowsByEvent(petRows, ['walk_record', 'walk_timeline_post']).length,
     };
   });
 
@@ -512,7 +523,7 @@ export function buildActivityDashboard(
       xp: sumXp(commonCommentRows),
       commentCount: input.commentCount,
     },
-    achievements: buildCommonAchievements({
+    achievements: input.titleVault?.filter(item => item.scope === 'common') ?? buildCommonAchievements({
       communityPostCount: input.communityPostCount,
       commentCount: input.commentCount,
     }),
@@ -520,6 +531,9 @@ export function buildActivityDashboard(
 
   const policyTitleNames = new Set(TITLE_POLICIES.map(item => item.name));
   const representativeTitle =
+    input.titleVault?.filter(item => item.achieved).sort((a, b) =>
+      (b.earnedAt ?? '').localeCompare(a.earnedAt ?? '') || a.key.localeCompare(b.key),
+    )[0]?.name ??
     input.titles.find(title => policyTitleNames.has(title.titleName))?.titleName ??
     input.titles[0]?.titleName ??
     '첫 추억 기록 준비 중';
@@ -650,6 +664,7 @@ export async function loadActivityDashboard(
     petStreakPairs,
     petTimelineCountPairs,
     petHealthCountPairs,
+    titleVault,
   ] = await Promise.all([
     fetchUserActivityLongSummary().catch(() => null),
     fetchUserActivityTitles(),
@@ -663,6 +678,7 @@ export async function loadActivityDashboard(
     Promise.all(
       pets.map(async pet => [pet.id, await fetchHealthRecordCountByPet(pet.id)] as const),
     ),
+    fetchTitleVaultV2(pets),
   ]);
 
   const fallbackSummary = longSummary ?? {
@@ -682,5 +698,6 @@ export async function loadActivityDashboard(
     communityPostCount: fallbackSummary.communityPostCount,
     commentCount: fallbackSummary.commentCount,
     ledgerLimitReached: ledgerRows.length >= MAX_LEDGER_ROWS,
+    titleVault,
   });
 }

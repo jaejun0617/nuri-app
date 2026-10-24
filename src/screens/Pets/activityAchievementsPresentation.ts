@@ -71,7 +71,7 @@ export function getActivityVault(
         ...item,
         // Historical acquisition is unchanged; an unfinished streak shows today's run.
         currentValue:
-          item.domain === 'streak'
+          item.domain === 'streak' && item.policyVersion !== 2
             ? pet?.streak?.currentStreak ?? 0
             : item.currentValue,
       })),
@@ -90,7 +90,7 @@ export function getChallengeProgress(item: ActivityAchievement) {
 export function getWalkActivityCount(pet: PetActivityDashboardSummary) {
   // The legacy walk XP metric also contains streak bonuses; this input counts walks only.
   return (
-    pet.achievements.find(item => item.key === 'pet_first_walk_friend')
+    pet.walkRecordCount ?? pet.achievements.find(item => item.key === 'pet_first_walk_friend')
       ?.currentValue ?? pet.walk.eventCount
   );
 }

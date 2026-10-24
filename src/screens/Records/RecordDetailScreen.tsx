@@ -26,6 +26,7 @@ import {
   type LayoutChangeEvent,
   Modal,
   Pressable,
+  Switch,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   TouchableOpacity,
@@ -94,6 +95,9 @@ import { usePetStore } from '../../store/petStore';
 import { useRecordStore } from '../../store/recordStore';
 import { openMoreDrawer } from '../../store/uiStore';
 import { styles } from './RecordDetailScreen.styles';
+import { manageRemembranceRecord } from '../../services/activity/titleVaultV2';
+import { useAuthStore } from '../../store/authStore';
+import { appQueryClient } from '../../services/query/appQueryClient';
 
 type TimelineNav = CompositeNavigationProp<
   NativeStackNavigationProp<TimelineStackParamList, 'RecordDetail'>,
@@ -740,6 +744,7 @@ export default function RecordDetailScreen() {
   const route = useRoute<Route>();
   const petId = route.params?.petId?.trim() || null;
   const memoryId = route.params?.memoryId?.trim() || null;
+  const titleOwnerId = useAuthStore(state => state.session?.user.id ?? null);
 
   const record = useRecordStore(s => s.selectRecordById(memoryId));
   const removeOneLocal = useRecordStore(s => s.removeOneLocal);
@@ -846,6 +851,58 @@ export default function RecordDetailScreen() {
   }, [walkScope, isWalkRecord, memoryId, resolvedPetId, upsertOneLocal, removeOneLocal, navigation]);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
+  const [remembrance, setRemembrance] = useState<{
+    owner: string; memory: string; included: boolean | null; error: boolean;
+  } | null>(null);
+  const [remembranceRetry, setRemembranceRetry] = useState(0);
+  const [savingRemembrance, setSavingRemembrance] = useState(false);
+  const remembranceWrite = useRef(false);
+  const remembranceReads = useRef(0);
+  const remembranceScope = useRef({ owner: titleOwnerId, memory: memoryId, mounted: true });
+  remembranceScope.current.owner = titleOwnerId;
+  remembranceScope.current.memory = memoryId;
+  useEffect(() => {
+    const scope = remembranceScope.current;
+    scope.mounted = true;
+    return () => { scope.mounted = false; };
+  }, []);
+  useEffect(() => {
+    setSavingRemembrance(false);
+  }, [titleOwnerId, memoryId]);
+  useEffect(() => {
+    if (!actionMenuVisible || !memoryId || !titleOwnerId) return;
+    let cancelled = false;
+    const request = ++remembranceReads.current;
+    setRemembrance({ owner: titleOwnerId, memory: memoryId, included: null, error: false });
+    manageRemembranceRecord(memoryId, null).then(included => {
+      if (!cancelled && request === remembranceReads.current) setRemembrance({ owner: titleOwnerId, memory: memoryId, included, error: false });
+    }).catch(() => {
+      if (!cancelled && request === remembranceReads.current) setRemembrance({ owner: titleOwnerId, memory: memoryId, included: null, error: true });
+    });
+    return () => { cancelled = true; };
+  }, [actionMenuVisible, memoryId, titleOwnerId, remembranceRetry]);
+  const currentRemembrance = remembrance?.owner === titleOwnerId && remembrance?.memory === memoryId ? remembrance : null;
+  const changeRemembrance = async (included: boolean) => {
+    if (!memoryId || !titleOwnerId || currentRemembrance?.included === null || !currentRemembrance || remembranceWrite.current || deleting) return;
+    const owner = titleOwnerId, memory = memoryId;
+    const current = () => remembranceScope.current.mounted && remembranceScope.current.owner === owner &&
+      remembranceScope.current.memory === memory && useAuthStore.getState().session?.user.id === owner;
+    remembranceWrite.current = true;
+    remembranceReads.current++;
+    setSavingRemembrance(true);
+    try {
+      const canonical = await manageRemembranceRecord(memory, included);
+      if (current()) {
+        setRemembrance({ owner, memory, included: canonical, error: false });
+        appQueryClient.setQueryData<number>(['walk', owner, 'activity-revision'], value => (value ?? 0) + 1);
+      }
+    } catch {
+      if (current()) setRemembrance({ owner, memory, included: null, error: true });
+    } finally {
+      remembranceWrite.current = false;
+      if (current()) setSavingRemembrance(false);
+    }
+  };
   const openActionMenu = useCallback(() => {
     setActionMenuVisible(true);
   }, []);
@@ -1294,8 +1351,20 @@ export default function RecordDetailScreen() {
           <View accessibilityViewIsModal style={[styles.actionSheet,{maxWidth:600,paddingBottom:insets.bottom+20,borderBottomLeftRadius:0,borderBottomRightRadius:0}]}>
             <View style={{alignSelf:'center',width:40,height:4,borderRadius:2,backgroundColor:'#CBC5DF',marginBottom:18}}/>
             <AppText preset="unifiedTitle" style={{color:C.ink,marginBottom:12}}>이 기록 관리</AppText>
-            <TouchableOpacity accessibilityRole="button" accessibilityLabel="기록 수정하기" style={styles.sheetActionRow} onPress={onPressEdit} disabled={deleting}><TimelineArtwork name="edit" size={24}/><AppText style={styles.sheetActionText}>기록 수정하기</AppText><Feather name="chevron-right" size={18} color={C.muted}/></TouchableOpacity>
-            <TouchableOpacity accessibilityRole="button" accessibilityLabel="기록 삭제하기" style={styles.sheetActionRow} onPress={onPressDelete} disabled={deleting}><TimelineArtwork name="delete" size={24}/><AppText style={styles.sheetActionDeleteText}>기록 삭제하기</AppText><Feather name="chevron-right" size={18} color={C.muted}/></TouchableOpacity>
+            <View style={styles.sheetActionRow} testID="memory-remembrance-control">
+              <Feather name="heart" size={24} color={C.primary}/>
+              <AppText style={styles.sheetActionText}>추억으로 함께하기</AppText>
+              {currentRemembrance?.error ? (
+                <Pressable accessibilityRole="button" accessibilityLabel="추억 활동 다시 확인" style={{ minWidth: 48, minHeight: 48, justifyContent: 'center' }}
+                  onPress={() => setRemembranceRetry(value => value + 1)}><Feather name="refresh-cw" size={20} color={C.primary}/></Pressable>
+              ) : currentRemembrance?.included !== null && currentRemembrance ? (
+                <Switch testID="memory-remembrance-switch" accessibilityLabel="추억 기록에 포함"
+                  value={currentRemembrance.included} disabled={savingRemembrance || deleting} style={{ minWidth: 52, minHeight: 48 }}
+                  onValueChange={changeRemembrance} trackColor={{ false: C.border, true: C.primary }}/>
+              ) : <ActivityIndicator accessibilityLabel="추억 활동 확인 중" size="small"/>}
+            </View>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="기록 수정하기" style={styles.sheetActionRow} onPress={onPressEdit} disabled={deleting || savingRemembrance}><TimelineArtwork name="edit" size={24}/><AppText style={styles.sheetActionText}>기록 수정하기</AppText><Feather name="chevron-right" size={18} color={C.muted}/></TouchableOpacity>
+            <TouchableOpacity accessibilityRole="button" accessibilityLabel="기록 삭제하기" style={styles.sheetActionRow} onPress={onPressDelete} disabled={deleting || savingRemembrance}><TimelineArtwork name="delete" size={24}/><AppText style={styles.sheetActionDeleteText}>기록 삭제하기</AppText><Feather name="chevron-right" size={18} color={C.muted}/></TouchableOpacity>
             <CtaButton role="neutral" style={{marginTop:16}} onPress={closeActionMenu}><CtaText>닫기</CtaText></CtaButton>
           </View>
         </View>

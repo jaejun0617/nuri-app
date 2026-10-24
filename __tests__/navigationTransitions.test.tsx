@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { parse } from '@babel/parser';
 import { CommonActions, StackRouter } from '@react-navigation/routers';
+import { TAB_FADE_TIMING, tabTransitionOptions } from '../src/navigation/navigationTransitionPolicy';
 
 jest.mock('@react-navigation/native-stack', () => ({
   createNativeStackNavigator: () => ({
@@ -86,6 +87,21 @@ describe('actual native navigator transition configuration', () => {
         : navigator.props.screenOptions;
     return { ...defaults, ...screen.props.options };
   };
+  test('root toolbar tabs share the 400ms fade configuration with More', () => {
+    const result = tabTransitionOptions(false);
+    expect(result.animation).toBe('fade');
+    expect(result.transitionSpec).toEqual({ animation: 'timing', config: TAB_FADE_TIMING });
+    expect(TAB_FADE_TIMING.duration).toBe(400);
+  });
+  test('root toolbar still respects reduced motion', () => {
+    expect(tabTransitionOptions(true)).toEqual({ animation: 'none' });
+  });
+  test('More-covered tabs switch at zero duration without changing native scene mode', () => {
+    expect(tabTransitionOptions(false, true)).toMatchObject({
+      animation: 'fade', transitionSpec: { animation: 'timing', config: { duration: 0 } },
+    });
+    expect(tabTransitionOptions(true, true)).toEqual({ animation: 'none' });
+  });
   test.each([
     'PetManagement',
     'PetProfileEdit',

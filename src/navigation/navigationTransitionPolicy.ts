@@ -67,14 +67,27 @@ const timelineRoutes: Record<keyof TimelineStackParamList, TransitionKind> = {
   MonthlyExpenses: 'detail',
 };
 
+export const TAB_FADE_TIMING = {
+  duration: 400,
+  easing: Easing.inOut(Easing.ease),
+};
+
 const tabFade: BottomTabNavigationOptions = {
   animation: 'fade',
   transitionSpec: {
     animation: 'timing',
-    config: { duration: 220, easing: Easing.inOut(Easing.ease) },
+    config: TAB_FADE_TIMING,
   },
 };
 const noTabMotion: BottomTabNavigationOptions = { animation: 'none' };
+// Keep the native scene mode stable while More owns the visible fade.
+const coveredTabFade: BottomTabNavigationOptions = {
+  animation: 'fade',
+  transitionSpec: {
+    animation: 'timing',
+    config: { ...TAB_FADE_TIMING, duration: 0 },
+  },
+};
 const preserved: NativeStackNavigationOptions = {};
 const detailSlide: NativeStackNavigationOptions = {
   animation: 'slide_from_right',
@@ -103,8 +116,8 @@ export function timelineTransitionOptions(
     : preserved;
 }
 
-export function tabTransitionOptions(reduceMotion: boolean) {
-  return reduceMotion ? noTabMotion : tabFade;
+export function tabTransitionOptions(reduceMotion: boolean, coveredByMore = false) {
+  return reduceMotion ? noTabMotion : coveredByMore ? coveredTabFade : tabFade;
 }
 
 export function isRootTabBarVisible(

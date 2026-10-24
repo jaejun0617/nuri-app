@@ -110,7 +110,7 @@ describe('home title badge policy', () => {
     await saveCachedHomePetTitleBadge({userId:'u',petId:'p',title:'산책 새싹',titleKey:'walk_sprout',now:1000});
     expect(AsyncStorage.setItem).toHaveBeenLastCalledWith('@nuri/home-title-badge/v1:u:p',JSON.stringify({savedAt:1000,title:'산책 새싹',titleKey:'walk_sprout'}));
     (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(JSON.stringify({savedAt:1000,title:'산책 새싹',titleKey:'walk_sprout'}));
-    await expect(loadCachedHomePetTitleBadgeIdentity({userId:'u',petId:'p',now:2000})).resolves.toEqual({titleName:'산책 새싹',titleKey:'walk_sprout'});
+    await expect(loadCachedHomePetTitleBadgeIdentity({userId:'u',petId:'p',now:2000})).resolves.toEqual({titleName:'새싹 산책가',titleKey:'WK02'});
   });
   it('explicitly maps every current server title policy while preserving all 11 original IDs', () => {
     expect(TITLE_POLICIES).toHaveLength(11);

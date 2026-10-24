@@ -41,7 +41,7 @@ describe('approved open Home Hero information', () => {
     expect(StyleSheet.flatten(node('home-hero-pet-selector').props.style)).toMatchObject({ alignSelf: 'stretch', justifyContent: 'center' });
     expect(StyleSheet.flatten(node('home-hero-profile-edit').props.style)).toMatchObject({ borderWidth: 0, width: 54, minHeight: 51 });
     expect(JSON.stringify(renderer.toJSON())).not.toContain('medal-outline');
-    expect(node('home-hero-title-art').props.source).toBe(require('../src/assets/activity/walk-sprout.png'));
+    expect(node('home-hero-title-art').props.source).toBe(require('../src/assets/activity/titles-v2/wk02.png'));
     expect(JSON.stringify(renderer.toJSON())).not.toContain('HomeFloatingWidgetSurface');
     node('home-hero-pet-selector').props.onPress();
     node('home-hero-profile-info').props.onPress();
@@ -53,7 +53,7 @@ describe('approved open Home Hero information', () => {
 
   it('uses the exact vault artwork by stable ID and never gives an unknown title a fake sprout', async () => {
     await render();
-    expect(node('home-hero-title-art').props.source).toBe(require('../src/assets/activity/walk-sprout.png'));
+    expect(node('home-hero-title-art').props.source).toBe(require('../src/assets/activity/titles-v2/wk02.png'));
     await act(async () => renderer.update(<HomeHeroInfoPanel containerWidth={426} petTheme={buildPetThemePalette('#7D5CE4')} profilePetName="누리" titleBadge="서버의 새 칭호" titleBadgeKey="unknown_future" togetherDays={8} hasMultiplePets={false} onPressPetSelect={select} onPressProfileInfo={info} onPressPetProfileEdit={edit} />));
     expect(renderer.root.findAllByProps({testID:'home-hero-title-art'})).toHaveLength(0);
     expect(JSON.stringify(renderer.toJSON())).toContain('서버의 새 칭호');

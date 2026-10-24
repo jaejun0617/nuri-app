@@ -26,7 +26,9 @@ import { useTheme } from 'styled-components/native';
 import NuriIcon, { type NuriIconName } from '../icons/NuriIcon';
 
 import AppText from '../../app/ui/AppText';
-import { getHomeHeroColors, HOME_HERO_COLORS, HOME_HERO_ACCENT, HOME_HERO_TOOLBAR_RADIUS } from '../../theme/home/heroLayout';
+import { HOME_HERO_COLORS, HOME_HERO_ACCENT, HOME_HERO_TOOLBAR_RADIUS } from '../../theme/home/heroLayout';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
+import { HOME_SEASONAL_BACKGROUND_GRADIENTS } from '../../theme/home/seasonalAmbient';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { ScreenEntrySource } from '../../navigation/entry';
 import { useAuthStore } from '../../store/authStore';
@@ -61,7 +63,7 @@ export default function AppNavigationToolbar({
   const theme = useTheme();
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
   const homeHero = homeHeroRequested && isLoggedIn;
-  const heroColors = getHomeHeroColors();
+  const homeBackground = HOME_SEASONAL_BACKGROUND_GRADIENTS[useEffectiveSeason()][2];
 
 
   const bottomInset = useMemo(
@@ -150,7 +152,7 @@ export default function AppNavigationToolbar({
         styles.wrap,
         { backgroundColor: theme.colors.background },
         { paddingBottom: bottomInset },
-        homeHero ? { backgroundColor: heroColors.surface, borderTopLeftRadius: HOME_HERO_TOOLBAR_RADIUS, borderTopRightRadius: HOME_HERO_TOOLBAR_RADIUS } : null,
+        homeHero ? { backgroundColor: homeBackground, borderTopLeftRadius: HOME_HERO_TOOLBAR_RADIUS, borderTopRightRadius: HOME_HERO_TOOLBAR_RADIUS } : null,
       ]}
     >
       <View
@@ -160,7 +162,7 @@ export default function AppNavigationToolbar({
             backgroundColor: theme.colors.background,
             borderTopColor: theme.colors.border,
           },
-          homeHero ? { backgroundColor: heroColors.surface, borderTopColor: 'transparent', borderTopLeftRadius: HOME_HERO_TOOLBAR_RADIUS, borderTopRightRadius: HOME_HERO_TOOLBAR_RADIUS } : null,
+          homeHero ? { backgroundColor: homeBackground, borderTopColor: 'transparent', borderTopLeftRadius: HOME_HERO_TOOLBAR_RADIUS, borderTopRightRadius: HOME_HERO_TOOLBAR_RADIUS } : null,
         ]}
       >
         {tabs.map(tab => {
