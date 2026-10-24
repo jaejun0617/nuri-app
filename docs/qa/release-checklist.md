@@ -1,5 +1,11 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-10-24 Home-Only Canvas And Approved332Title Integration
+
+- [Integration record](nuri-title-catalog-v2-integration-2026-10-24.md) owns332unique artwork/rules, private server awarding, original15-table/function preservation and current native checks. Only Home uses the new seasonal palette; all-screen paint was withdrawn. Existing400ms navigation fixes remain.
+- Source9ab4f72 was built and replacement-installed once with the existing approved signer. Embedded JS/332assets and Metro-OFF Home/actual vault execution passed; user identity/settings/selection and original181dirty/31unrelated image outputs were preserved. This bundled-development Debug install is not canonical Final RC or Store proof. Final Metro ON is explicit PO policy.
+- SQL354PASS; Full4285PASS/33existingFAIL; type PASS/lint0errors19existingwarnings. Native16categories/332dimension checks are not an all-state/large-font physical matrix or332individual GPU alpha screenshots. Future official2028+lunar dates require annual updates; unverifiable old anniversary participation is not invented. Existing security findings/Walk quantitative and deletion-durability obligations remain unchanged. STORE HOLD; no automatic next task.
+
 ## 2026-10-21 Walk Native Delete-Recovery Candidate
 
 - [Native/client recovery](../domains/산책-위치기반-기능/nuri-walk-native-final-delete-recovery.md) integrates the applied server watch without altering its SQL/RPC contract. Durable encrypted V2 identity/capability/binding precede destructive calls; exact FINAL precedes erasure; nativeDone precedes server ACK and verified local removal. Restorable grace/explicit cancel only release the captured command attempt, never confirm deletion.

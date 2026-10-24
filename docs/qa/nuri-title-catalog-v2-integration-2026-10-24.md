@@ -4,7 +4,7 @@
 
 Master implements in the existing approved checkout. Latest PO explicitly approved all332 acquisition rules and server awarding, not only artwork. Latest background scope is main Home only; the previous all-screen candidate was withdrawn. Preserve the prior400ms navigation fixes. After exact-source build/install and verification, the approved branch may be committed/pushed; reopen Metro and wait for the next design. This is not a Store release approval.
 
-Current state: SOURCE AND REMOTE VERIFIED; installation is pending. Three v2 migrations are applied to the linked database. No new APK/install/commit/push yet. The external Home-only evidence folder owns detailed receipts and failures. Do not read planned actions as completed evidence.
+Current state: IMPLEMENTATION, REMOTE AND INSTALLATION VERIFIED within the boundaries below. Three v2 migrations are applied. Exact source9ab4f729226facf55950d890bca4a77185d7d963 was committed, built once and replacement-installed once. Standalone execution passed with Metro OFF; Metro was then reopened and the device reconnected to the development source. Documentation closeout and normal branch push are the final delivery step; the external push receipt owns remote acceptance, not this pre-push sentence.
 
 ## Source Of Truth
 
@@ -34,10 +34,16 @@ Current state: SOURCE AND REMOTE VERIFIED; installation is pending. Three v2 mig
 - Current-source Metro on SM-S937N/Android17: ordinary15categories plus earned-hidden category16,332native Image.getSize checks at384px, representative title confirmation/save and Home reflection PASS. The exact original local title preference was restored. Public artwork crop is retained; full private screens are not saved. Native dimension checks are not332individual GPU/alpha screenshots. Home-only season and standalone-install receipts remain separate gates.
 - Home4seasons: all3sampled status-bar pixels match each exact top color, Home gradient3stops match, selected pet unchanged, original autumn override restored. RecordDetail remembrance status reads successfully without a toggle/write; Timeline filters/first-row bounds survive return. The first immediate Back was consumed by the closing Android Modal; the corrected observation waits for native dismissal before stack Back. Preserve both receipts instead of calling the first attempt a product regression or a PASS.
 
-## Pending Gates
+## Installation And Delivery
 
-1. Stop Metro; selective source commit; approved signed bundled-development APK build/install-r once; standalone verification and data preservation. This is not clean Final RC/Store; do not hide unrelated image output or weaken Release guards.
-2. Documentation closeout, normal approved-branch push/remote HEAD check, then Metro ON and next-design wait.
+- One APK build and one `install-r`; no uninstall, data clear, second APK or install retry. Build78seconds,560tasks/60executed/500up-to-date. Source/runtime and previous protected Release artifacts remained unchanged during the build. Canonical Release guards were not modified.
+- APK SHA256: `4eeac7daab903c22f529e967f670f2c79bbee152f7e117b4f5741e5beda95a83`. Approved signing SHA256: `08efb41ea4729792ce9fc3d242be9704e84a8ea3eadcbbcf1c8426884db689d3`. Embedded JS, all332title images, all3v2 RPC names and real ranking RPC are present; preview overrides are absent. This is a bundled-development Debug APK, not Store/Final RC.
+- Metro OFF/listener0/reverse8081absent: cold restart eventually displayed Home and the real v2 vault; public artwork crop matches the Metro rendering. An early1.5second Home probe was not ready; there was no second restart and no cold-start latency PASS claim. Original pet selection, UID10402, first-install date, permissions, display/font/network/navigation settings were preserved.
+- Final Metro ON at127.0.0.1:8081, owned USB reverse8081, explicit native localhost bundler setting, development runtime with332registered artworks, Home visible and Walk service OFF. The original title display preference and autumn season selection were restored. Other screen paint is preserved; Timeline's sampled status pixels remainFFFFFF.
+- Selective source commit382paths excludes all31unrelated image-room files. Original Desktop checkout remains181dirty with the same status/content hashes. Host21GiB and device134Gfree: no user data, build cache or unrelated document was removed. Preserve incremental outputs under the current PO cache policy.
+- Final documentation-only commit and normal push use `codex/walk-marker-recovery-20261020`. Exact accepted HEAD is stored in external `push-receipt.json`; no main/tag/merge/Store deployment or automatic next task. Release checklist keeps STORE HOLD and existing Walk/privacy obligations.
+
+External evidence: `/Users/shinjaejun/.codex/nuri-seasonal-canvas-20261023-VDyXkt/`, with current native/remote/SQL receipts in `home-only-20261024/`. Build/install receipts are in the parent; all-screen historical receipts are not current Home-only evidence.
 
 ## Remaining Operational Boundaries
 
