@@ -523,9 +523,9 @@ export default function PetActivityAchievementsScreen() {
       queryFn: () => 0,
       enabled: false,
     }).data ?? 0;
-  const [tab, setTab] = useState<Tab>('summary');
-  const [vaultCategory, setVaultCategory] = useState('WK');
-  const [viewPetId, setViewPetId] = useState<string | null>(selectedPetId);
+  const [tab, setTab] = useState<Tab>(route.params?.focusTitleId ? 'vault' : route.params?.initialTab ?? 'summary');
+  const [vaultCategory, setVaultCategory] = useState(route.params?.focusTitleId?.replace(/\d+$/,'') ?? 'WK');
+  const [viewPetId, setViewPetId] = useState<string | null>(route.params?.focusPetId ?? selectedPetId);
   const [result, setResult] = useState<{
     owner: string;
     data: ActivityDashboardData;
@@ -555,6 +555,12 @@ export default function PetActivityAchievementsScreen() {
   const titleScope = useRef({ ownerId, petId: '' });
   const requests = useRef(0);
   const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
+  const focusedTitle = useRef<React.ComponentRef<typeof View>>(null);
+  const titleFocusConsumed=useRef<string|null>(null);
+  useEffect(()=>{
+    if(route.params?.focusTitleId){setTab('vault');setVaultCategory(route.params.focusTitleId.replace(/\d+$/,''));setViewPetId(route.params.focusPetId ?? selectedPetId);titleFocusConsumed.current=null;}
+    else if(route.params?.initialTab)setTab(route.params.initialTab);
+  },[route.params?.focusTitleId,route.params?.focusPetId,route.params?.initialTab,selectedPetId]);
   const offsets = useRef<Record<Tab, number>>({ summary: 0, vault: 0 });
   const dashboard = result?.owner === ownerId ? result.data : null;
   const inputs = useMemo(
@@ -931,6 +937,12 @@ export default function PetActivityAchievementsScreen() {
                   {vault.acquired.map(item => (
                     <Pressable
                       key={`${item.scope}:${item.ownerId}:${item.key}`}
+                      ref={item.key===route.params?.focusTitleId ? focusedTitle : undefined}
+                      onLayout={item.key===route.params?.focusTitleId ? ()=>{
+                        if(titleFocusConsumed.current===item.key)return;
+                        const container=scroll.current?.getInnerViewRef();
+                        if(container)focusedTitle.current?.measureLayout(container,(_x,y)=>{scroll.current?.scrollTo({y:Math.max(0,y-20),animated:false});titleFocusConsumed.current=item.key;},()=>{});
+                      }:undefined}
                       testID={`activity-earned-${item.key}`}
                       style={[
                         s.earnedCell,

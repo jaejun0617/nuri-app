@@ -4,7 +4,6 @@ import Renderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
 import AppNavigationToolbar, { type ActiveTabKey } from '../src/components/navigation/AppNavigationToolbar';
-import { HOME_SEASONAL_BACKGROUND_GRADIENTS } from '../src/theme/home/seasonalAmbient';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 
 let mockSeason: SeasonKey = 'autumn';
@@ -19,23 +18,24 @@ jest.mock('react-native-safe-area-context', () => jest.requireActual('react-nati
 
 const seasons: SeasonKey[] = ['autumn', 'winter', 'spring', 'summer'];
 const tabs: ActiveTabKey[] = ['home', 'timeline', 'community', 'guestbook', 'more'];
-describe('Home-only toolbar paint', () => {
-  it.each(seasons.flatMap(season => tabs.map(tab => ({ season, tab }))))('$season affects only the logged-in Home toolbar, not $tab', async ({ season, tab }) => {
+describe('White toolbar paint independently of season', () => {
+  it.each(seasons.flatMap(season => tabs.map(tab => ({ season, tab }))))('$season keeps the $tab toolbar white', async ({ season, tab }) => {
     mockSeason = season;
     mockLoggedIn = true;
     let tree!: Renderer.ReactTestRenderer;
     await act(async () => { tree = Renderer.create(<ThemeProvider theme={createTheme('light')}><AppNavigationToolbar activeKey={tab} homeHero={tab === 'home'} /></ThemeProvider>); });
     const views = tree.root.findAllByType(View);
-    const background = tab === 'home' ? HOME_SEASONAL_BACKGROUND_GRADIENTS[season][2] : '#F1F5F8';
+    const background = '#FFFFFF';
     expect(StyleSheet.flatten(views[0].props.style).backgroundColor).toBe(background);
     expect(StyleSheet.flatten(views[1].props.style).backgroundColor).toBe(background);
+    for(const view of views.slice(0,2))expect(StyleSheet.flatten(view.props.style)).toMatchObject({borderTopLeftRadius:24,borderTopRightRadius:24});
     await act(async () => tree.unmount());
   });
-  it('keeps guest navigation on its original product canvas', async () => {
+  it('also keeps guest navigation white', async () => {
     mockLoggedIn = false;
     let tree!: Renderer.ReactTestRenderer;
     await act(async () => { tree = Renderer.create(<ThemeProvider theme={createTheme('light')}><AppNavigationToolbar activeKey="home" homeHero /></ThemeProvider>); });
-    expect(StyleSheet.flatten(tree.root.findAllByType(View)[0].props.style).backgroundColor).toBe('#F1F5F8');
+    expect(StyleSheet.flatten(tree.root.findAllByType(View)[0].props.style).backgroundColor).toBe('#FFFFFF');
     await act(async () => tree.unmount());
   });
 });

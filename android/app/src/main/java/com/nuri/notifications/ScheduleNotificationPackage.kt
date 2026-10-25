@@ -11,7 +11,7 @@ class ScheduleNotificationPackage : ReactPackage {
   override fun createNativeModules(
     reactContext: ReactApplicationContext,
   ): List<NativeModule> {
-    return listOf(ScheduleNotificationModule(reactContext))
+    return listOf(ScheduleNotificationModule(reactContext), NuriPushModule(reactContext))
   }
 
   @Suppress("DEPRECATION")

@@ -1,7 +1,8 @@
 import React from 'react';
 import { FlatList, StyleSheet, type FlatListProps } from 'react-native';
 import TestRenderer from 'react-test-renderer';
-import { ThemeProvider } from 'styled-components/native';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components/native';
+import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
 
 import { createTheme } from '../src/app/theme/theme';
 import type { SeasonKey } from '../src/theme/seasonal/season';
@@ -15,6 +16,11 @@ import {
 } from '../src/store/uiStore';
 
 type MockProps = React.PropsWithChildren<Record<string, unknown>>;
+
+function ThemeProvider({children,theme}:React.ComponentProps<typeof StyledThemeProvider>){
+ const [client]=React.useState(()=>new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}}));
+ return <QueryClientProvider client={client}><StyledThemeProvider theme={theme}>{children}</StyledThemeProvider></QueryClientProvider>;
+}
 
 const CONFIRM_DIALOG_HOST = 'ConfirmDialogMock';
 const mockNavigation = {

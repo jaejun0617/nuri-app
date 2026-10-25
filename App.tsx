@@ -49,6 +49,9 @@ import {
 import { useAuthStore } from './src/store/authStore';
 import { useCommunityStore } from './src/store/communityStore';
 import { usePetStore } from './src/store/petStore';
+import {consumeInitialNotificationTap,observeNativePush,type NotificationTap} from './src/services/notifications/nativePush';
+import {syncPushNotificationDevice} from './src/services/notifications/pushTokenLifecycle';
+import {appQueryClient} from './src/services/query/appQueryClient';
 
 enableScreens(true);
 initMonitoring();
@@ -67,6 +70,34 @@ function App() {
   const petBooted = usePetStore(state => state.booted);
   const sessionUserId = useAuthStore(state => state.session?.user.id ?? null);
   const pets = usePetStore(state => state.pets);
+  const [notificationTap,setNotificationTap]=useState<NotificationTap|null>(null);
+  const lastNotificationTap=useRef<{key:string;at:number}|null>(null);
+  const queueNotificationTap=useCallback((tap:NotificationTap)=>{
+    const key=`${tap.recipientUserId}:${tap.source}:${tap.id}`,now=Date.now();
+    if(lastNotificationTap.current?.key===key&&now-lastNotificationTap.current.at<1000)return;
+    lastNotificationTap.current={key,at:now};setNotificationTap(tap);
+  },[]);
+  const notificationOwnerRef=useRef(sessionUserId);
+  useEffect(()=>{
+    if(notificationOwnerRef.current&&notificationOwnerRef.current!==sessionUserId)setNotificationTap(null);
+    notificationOwnerRef.current=sessionUserId;
+  },[sessionUserId]);
+  useEffect(()=>{
+    let active=true;
+    const unsubscribe=observeNativePush(tap=>{consumeInitialNotificationTap().catch(()=>{});queueNotificationTap(tap);},()=>{
+      const owner=useAuthStore.getState().session?.user.id;
+      if(owner)appQueryClient.invalidateQueries({queryKey:['notifications-v3',owner]}).catch(()=>{});
+      syncPushNotificationDevice().catch(()=>{});
+    });
+    consumeInitialNotificationTap().then(tap=>{if(active&&tap)queueNotificationTap(tap);}).catch(()=>{});
+    return()=>{active=false;unsubscribe();};
+  },[queueNotificationTap]);
+  useEffect(()=>{
+    if(!navigationReady||!authBooted||!petBooted||!notificationTap||!sessionUserId)return;
+    setNotificationTap(null);
+    if(notificationTap.recipientUserId!==sessionUserId)return;
+    navigationRef.current.navigate('NotificationDetail',{id:notificationTap.id,source:notificationTap.source});
+  },[authBooted,navigationReady,notificationTap,petBooted,sessionUserId]);
 
   const persistCommunityRouteState = useCallback(() => {
     if (!navigationRef.current.isReady()) return;

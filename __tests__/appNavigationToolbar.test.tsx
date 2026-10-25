@@ -128,7 +128,7 @@ it('does not apply the signed-in Hero surface to guest Home', async () => {
   let renderer!: TestRenderer.ReactTestRenderer;
   await act(async () => { renderer = TestRenderer.create(<ThemeProvider theme={createTheme('light')}><AppNavigationToolbar activeKey="home" homeHero /></ThemeProvider>); });
   const wrap = renderer.root.findAllByType(View)[0];
-  expect(StyleSheet.flatten(wrap.props.style).borderTopLeftRadius).toBeUndefined();
+  expect(StyleSheet.flatten(wrap.props.style).borderTopLeftRadius).toBe(24);
   await act(async () => renderer.unmount());
 });
 

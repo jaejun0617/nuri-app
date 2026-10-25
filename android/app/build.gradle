@@ -130,6 +130,9 @@ if (project.findProperty("nuriSecurityQa") == "true") {
 
 dependencies {
   implementation("com.facebook.react:react-android")
+  // Same pinned BOM as the existing RN Firebase app/Crashlytics integration.
+  implementation(platform("com.google.firebase:firebase-bom:34.8.0"))
+  implementation("com.google.firebase:firebase-messaging")
   // Match react-native-blur's pinned capture engine for local foreground exclusion.
   implementation("com.github.qmdeve.qmblurview:core:v1.3.0")
   implementation("com.google.android.gms:play-services-location:21.3.0")

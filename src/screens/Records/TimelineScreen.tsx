@@ -436,7 +436,7 @@ export default function TimelineScreen() {
 
   const [sortMode, setSortMode] = useState<TimelineSortMode>('recent');
   const [ymFilter, setYmFilter] = useState<string | null>(() =>
-    isHomeTotalSummaryEntry ? route?.params?.ymFilter ?? null : null,
+    isHomeTotalSummaryEntry || route.params?.notificationEntryId ? route?.params?.ymFilter ?? null : null,
   );
   const [ymModalOpen, setYmModalOpen] = useState(false);
   const [mainCategory, setMainCategory] = useState<MainCategory>(() =>
@@ -486,7 +486,14 @@ export default function TimelineScreen() {
   }, [isHomeTotalSummaryEntry, petId]);
 
   useEffect(() => {
-    if (!mainCategoryFromParams || isHomeTotalSummaryEntry) return;
+    if (!route.params?.notificationEntryId) return;
+    setYmFilter(route.params.notificationPeriod ? null : route.params.ymFilter ?? null);
+    setMainCategory('all');
+    setOtherSubCategory(null);
+  }, [route.params?.notificationEntryId, route.params?.notificationPeriod, route.params?.ymFilter]);
+
+  useEffect(() => {
+    if (!mainCategoryFromParams || isHomeTotalSummaryEntry || route.params?.notificationEntryId) return;
     setMainCategory(mainCategoryFromParams);
     setOtherModalOpen(false);
 
@@ -501,6 +508,7 @@ export default function TimelineScreen() {
     mainCategoryFromParams,
     otherSubCategoryFromParams,
     petId,
+    route.params?.notificationEntryId,
   ]);
 
   const timelineView = useMemo(() => {
@@ -511,6 +519,7 @@ export default function TimelineScreen() {
       recordsById: recordsSnapshot,
       filters: {
         ymFilter,
+        dateRange: isHomeTotalSummaryEntry ? undefined : route.params?.notificationPeriod,
         mainCategory,
         otherSubCategory,
         query: '',
@@ -525,6 +534,8 @@ export default function TimelineScreen() {
     sortMode,
     ymFilter,
     timelineEntityVersion,
+    route.params?.notificationPeriod,
+    isHomeTotalSummaryEntry,
   ]);
   const availableYmList = timelineView.availableMonthKeys;
   const filteredIds = timelineView.filteredIds;
@@ -1045,6 +1056,7 @@ export default function TimelineScreen() {
   const jumpToYm = useCallback(
     (ym: string | null) => {
       markExplicitMonthSelection();
+      navigation.setParams({notificationPeriod:undefined,notificationEntryId:undefined});
       setYmModalOpen(false);
 
       if (!ym) {
@@ -1056,7 +1068,7 @@ export default function TimelineScreen() {
       setYmFilter(ym);
       setPendingJumpYm(ym);
     },
-    [markExplicitMonthSelection],
+    [markExplicitMonthSelection,navigation],
   );
 
   const onPressMainCategory = useCallback((key: MainCategory) => {

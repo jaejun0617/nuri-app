@@ -464,7 +464,7 @@ export default function CommunityCreateScreen() {
   }, [navigation, renderHeaderLeft, renderHeaderRight]);
   return (
     <SafeAreaView
-      style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      style={[styles.screen, { backgroundColor: '#FFFFFF' }]}
       edges={['left', 'right']}
     >
       <View
@@ -494,7 +494,7 @@ export default function CommunityCreateScreen() {
         </KeyboardAwareScrollView>
         <KeyboardStickyView>
           <Animated.View
-            style={[toolbarInset, { backgroundColor: theme.colors.background }]}
+            style={[toolbarInset, { backgroundColor: '#FFFFFF' }]}
           >
             <View
               onLayout={event =>

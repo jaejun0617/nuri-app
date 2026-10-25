@@ -1801,7 +1801,7 @@ export default function CommunityDiscussionContent({
   if ((detailStatus === 'idle' || detailStatus === 'loading') && !post) {
     return (
       <View
-        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+        style={[styles.screen, { backgroundColor: '#FFFFFF' }]}
       >
         <View style={styles.centerState}>
           <ActivityIndicator size="small" color={theme.colors.textSecondary} />
@@ -1813,7 +1813,7 @@ export default function CommunityDiscussionContent({
   if (detailStatus === 'not_found') {
     return (
       <View
-        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+        style={[styles.screen, { backgroundColor: '#FFFFFF' }]}
       >
         <StateMessage
           actionRole="neutral"
@@ -1829,7 +1829,7 @@ export default function CommunityDiscussionContent({
   if (detailStatus === 'deleted') {
     return (
       <View
-        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+        style={[styles.screen, { backgroundColor: '#FFFFFF' }]}
       >
         <StateMessage
           actionRole="neutral"
@@ -1845,7 +1845,7 @@ export default function CommunityDiscussionContent({
   if (detailStatus === 'moderated') {
     return (
       <View
-        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+        style={[styles.screen, { backgroundColor: '#FFFFFF' }]}
       >
         <StateMessage
           actionRole="neutral"
@@ -1861,7 +1861,7 @@ export default function CommunityDiscussionContent({
   if (detailStatus === 'error' && !post) {
     return (
       <View
-        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+        style={[styles.screen, { backgroundColor: '#FFFFFF' }]}
       >
         <StateMessage
           title="게시글을 불러오지 못했어요"
@@ -1884,7 +1884,7 @@ export default function CommunityDiscussionContent({
       style={[
         styles.screen,
         {
-          backgroundColor: theme.colors.background,
+          backgroundColor: '#FFFFFF',
           paddingBottom: closedBottomInset,
         },
       ]}

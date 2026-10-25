@@ -20,6 +20,7 @@ export type TimelineFilterInput = {
   otherSubCategory: MemoryOtherSubCategory | null;
   query: string;
   sortMode: TimelineSortMode;
+  dateRange?: { startDate: string; endDate: string };
 };
 
 type TimelineRecordMeta = {
@@ -168,6 +169,11 @@ export function timelineRecordMatchesFilters(
   filters: Omit<TimelineFilterInput, 'sortMode'>,
 ) {
   const meta = getTimelineRecordMeta(record);
+
+  if (filters.dateRange) {
+    const ymd = getTimelineRecordYmd(record);
+    if (ymd < filters.dateRange.startDate || ymd >= filters.dateRange.endDate) return false;
+  }
 
   if (filters.ymFilter && meta.monthKey !== filters.ymFilter) {
     return false;

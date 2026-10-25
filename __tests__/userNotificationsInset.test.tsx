@@ -6,7 +6,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { createTheme } from '../src/app/theme/theme';
 import UserNotificationsScreen from '../src/screens/Notifications/UserNotificationsScreen';
-import { fetchUserNotifications } from '../src/services/notifications/userNotifications';
 
 const mockNavigation = {
   canGoBack: jest.fn(() => true),
@@ -25,22 +24,27 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: jest.fn(),
 }));
 
-jest.mock('../src/services/notifications/userNotifications', () => ({
-  dismissAllUserNotifications: jest.fn(() => Promise.resolve(0)),
-  dismissUserNotification: jest.fn(() => Promise.resolve()),
-  fetchUserNotifications: jest.fn(() => Promise.resolve([])),
-  markUserNotificationRead: jest.fn(() => Promise.resolve()),
+jest.mock('../src/hooks/useNotificationInbox', () => ({
+  useNotificationInbox: () => ({
+    list: {
+      data: { pages: [{ items: [], timeZone: 'Asia/Seoul' }] },
+      isSuccess: false,
+      isRefetching: false,
+      isFetchingNextPage: false,
+      refetch: jest.fn(),
+    },
+    unread: { data: 0, refetch: jest.fn() },
+    markAll: jest.fn(),
+  }),
 }));
 
-const mockedFetchUserNotifications =
-  fetchUserNotifications as jest.MockedFunction<typeof fetchUserNotifications>;
-const mockedUseSafeAreaInsets =
-  useSafeAreaInsets as jest.MockedFunction<typeof useSafeAreaInsets>;
+const mockedUseSafeAreaInsets = useSafeAreaInsets as jest.MockedFunction<
+  typeof useSafeAreaInsets
+>;
 
 describe('UserNotifications screen inset layout', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedFetchUserNotifications.mockResolvedValue([]);
     mockedUseSafeAreaInsets.mockReturnValue({
       top: 24,
       bottom: 24,
@@ -64,7 +68,7 @@ describe('UserNotifications screen inset layout', () => {
 
     const rootView = renderer.root.findAllByType(View)[0];
     const rootStyle = StyleSheet.flatten(rootView.props.style);
-    expect(rootStyle.paddingTop).toBe(28);
+    expect(rootStyle.paddingTop).toBe(24);
     expect(rootStyle.paddingBottom).toBeUndefined();
     expect(rootStyle.paddingLeft).toBeUndefined();
     expect(rootStyle.paddingRight).toBeUndefined();
@@ -73,7 +77,7 @@ describe('UserNotifications screen inset layout', () => {
     const listContentStyle = StyleSheet.flatten(
       list.props.contentContainerStyle,
     );
-    expect(listContentStyle.paddingBottom).toBe(42);
+    expect(listContentStyle.paddingBottom).toBe(56);
 
     await act(async () => {
       renderer.unmount();

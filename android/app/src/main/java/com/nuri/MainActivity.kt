@@ -13,6 +13,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.swmansion.rnscreens.fragment.restoration.RNScreensFragmentFactory
 import com.nuri.notifications.ScheduleNotificationTapStore
+import com.nuri.notifications.NuriPushModule
 import com.nuri.walk.WalkVisibility
 
 class MainActivity : ReactActivity() {
@@ -34,6 +35,7 @@ class MainActivity : ReactActivity() {
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
+    NuriPushModule.capture(this, intent)
     // Capture a notification tap before React Native is ready. JS consumes it
     // once after navigation, auth, and pet bootstrap have completed.
     val tap = ScheduleNotificationTapStore.captureIntent(intent)
@@ -49,6 +51,7 @@ class MainActivity : ReactActivity() {
   }
 
   override fun onNewIntent(intent: Intent) {
+    NuriPushModule.capture(this, intent)
     val tap = ScheduleNotificationTapStore.captureIntent(intent)
     if (tap != null) ScheduleNotificationTapStore.clearIntentTapExtras(intent)
     super.onNewIntent(intent)
@@ -62,11 +65,13 @@ class MainActivity : ReactActivity() {
 
   override fun onResume() {
     super.onResume()
+    NuriPushModule.foreground = true
     WalkVisibility.resumed = true
     applySystemBarStyle()
   }
 
   override fun onPause() {
+    NuriPushModule.foreground = false
     WalkVisibility.resumed = false
     super.onPause()
   }

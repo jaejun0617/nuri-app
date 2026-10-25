@@ -343,7 +343,7 @@ describe('community seasonal list candidate', () => {
     const root = renderer.root.findByType(CommunityListScreen).children[0];
     if (typeof root === 'string') throw new Error('screen root must be a view');
     expect(StyleSheet.flatten(root.props.style)).toMatchObject({
-      backgroundColor: '#F1F5F8',
+      backgroundColor: '#FFFFFF',
       paddingTop: 24,
       paddingBottom: 80,
     });
@@ -442,7 +442,7 @@ describe('community seasonal list candidate', () => {
       })[0];
       expect(StyleSheet.flatten(root.props.style)).toMatchObject({
         paddingTop: top,
-        backgroundColor: '#F1F5F8',
+        backgroundColor: '#FFFFFF',
       });
       expect(StyleSheet.flatten(header.props.style)).toMatchObject({
         top: 0,
@@ -1213,7 +1213,7 @@ describe('community header opt-in composition', () => {
     if (typeof root === 'string') throw new Error('header root must be a view');
     expect(StyleSheet.flatten(root.props.style)).toMatchObject({
       paddingTop: 24,
-      backgroundColor: theme.colors.background,
+      backgroundColor: '#FFFFFF',
     });
     expect(
       StyleSheet.flatten(renderer.root.findByType(Text).props.style).color,

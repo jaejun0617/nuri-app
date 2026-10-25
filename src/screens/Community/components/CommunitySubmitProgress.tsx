@@ -53,7 +53,7 @@ export default function CommunitySubmitProgress({ color }: { color: string }) {
   return (
     <View
       testID="community-submit-progress"
-      style={[styles.overlay, { backgroundColor: theme.colors.background }]}
+      style={[styles.overlay, { backgroundColor: '#FFFFFF' }]}
       accessible
       accessibilityRole="progressbar"
       accessibilityLabel="게시글을 올리고 있어요"

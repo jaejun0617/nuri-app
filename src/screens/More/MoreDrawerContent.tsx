@@ -119,7 +119,8 @@ import {
   type ScheduleNotificationPermissionStatus,
   type ScheduleNotificationSettings,
 } from '../../services/schedules/notifications';
-import { fetchUserNotificationUnreadCount } from '../../services/notifications/userNotifications';
+import {useNotificationUnreadCount} from '../../hooks/useNotificationInbox';
+import NotificationPreferenceControls from '../../components/common/NotificationPreferenceControls';
 import {
   fetchPushNotificationLifecycleState,
   setPushNotificationOptIn,
@@ -888,13 +889,14 @@ export const NotificationSettingsModal = memo(
                   ]}
                 >
                   {pushProviderStatus === 'provider_unavailable'
-                    ? '현재 앱은 실제 push provider를 열지 않아 서버에는 provider 미연결 상태로 기록됩니다.'
+                    ? '아직 서버의 푸시 발송 연결이 준비되지 않았어요. 앱 알림함은 이용할 수 있어요.'
                     : pushProviderStatus === 'registered'
-                    ? '이 기기의 알림 token lifecycle이 서버에 기록되어 있어요.'
-                    : '로그아웃 또는 수신 거부 시 이 기기 token은 폐기 상태로 정리됩니다.'}
+                    ? '이 기기가 서버에 등록되어 있어요. 아래 수신 설정과 Android 권한이 함께 적용돼요.'
+                    : '로그아웃하거나 수신을 끄면 이 기기의 푸시 연결을 해제해요.'}
                 </AppText>
               </View>
 
+              <NotificationPreferenceControls />
               <View
                 style={[
                   styles.notificationStatusBox,
@@ -1286,8 +1288,8 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, o
     useState<PushTokenLifecycleState['providerStatus']>('unknown');
   const [notificationPermissionStatus, setNotificationPermissionStatus] =
     useState<ScheduleNotificationPermissionStatus>('unsupported');
-  const [userNotificationUnreadCount, setUserNotificationUnreadCount] =
-    useState(0);
+  const notificationUnread = useNotificationUnreadCount();
+  const userNotificationUnreadCount = notificationUnread.data ?? 0;
   const [logoutConfirmVisible, setLogoutConfirmVisible] = useState(false);
   const [deleteAcknowledgementVisible, setDeleteAcknowledgementVisible] =
     useState(false);
@@ -1706,28 +1708,6 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, o
 
     return () => subscription.remove();
   }, [notificationModalVisible, refreshNotificationSettings]);
-
-  useEffect(() => {
-    if (!isLoggedIn) {
-      setUserNotificationUnreadCount(0);
-      return;
-    }
-
-    let cancelled = false;
-    fetchUserNotificationUnreadCount()
-      .then(count => {
-        if (cancelled) return;
-        setUserNotificationUnreadCount(count);
-      })
-      .catch(() => {
-        if (cancelled) return;
-        setUserNotificationUnreadCount(0);
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isLoggedIn]);
 
   const closeNotificationModal = useCallback(() => {
     if (notificationSettingsLoading) return;

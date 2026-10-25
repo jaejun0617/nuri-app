@@ -284,7 +284,7 @@ export default function CommunityEditScreen() {
   if (!post || detailStatus === 'idle' || detailStatus === 'loading') {
     return (
       <SafeAreaView
-        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+        style={[styles.screen, { backgroundColor: '#FFFFFF' }]}
       >
         <View
           style={[
@@ -303,7 +303,7 @@ export default function CommunityEditScreen() {
   if (!isMyPost) {
     return (
       <SafeAreaView
-        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+        style={[styles.screen, { backgroundColor: '#FFFFFF' }]}
       >
         <View
           style={[
@@ -340,7 +340,7 @@ export default function CommunityEditScreen() {
 
   return (
     <SafeAreaView
-      style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      style={[styles.screen, { backgroundColor: '#FFFFFF' }]}
       edges={keyboardVisible ? ['left', 'right'] : ['left', 'right', 'bottom']}
     >
       <KeyboardAwareScrollView

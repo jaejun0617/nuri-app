@@ -41,7 +41,7 @@ export default function CommunityStackHeader({
           paddingTop: headerTopInset,
           backgroundColor:
             StyleSheet.flatten(options.headerStyle)?.backgroundColor ??
-            theme.colors.background,
+            '#FFFFFF',
         },
       ]}
     >

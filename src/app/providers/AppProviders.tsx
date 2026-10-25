@@ -70,6 +70,7 @@ import {
 } from '../../services/query/appQueryClient';
 
 import { useAuthStore } from '../../store/authStore';
+import { observeNotificationChanges } from '../../services/notifications/notificationSync';
 import { resolveSelectedPetId, usePetStore, type Pet } from '../../store/petStore';
 import { useCommunityStore } from '../../store/communityStore';
 import { useRecordStore } from '../../store/recordStore';
@@ -85,6 +86,8 @@ const USER_SCOPED_FETCH_TIMEOUT_MS = 6_000;
 const ACCOUNT_DELETION_GATE_TIMEOUT_MS = 2_500;
 
 export default function AppProviders({ children }: Props) {
+  const notificationOwner = useAuthStore(s => s.session?.user.id ?? null);
+  useEffect(() => notificationOwner ? observeNotificationChanges(notificationOwner) : undefined, [notificationOwner]);
   useEffect(() => {
     // Empty journals are local-only; pending watches use scoped proof recovery,
     // including a bounded owner-ready retry, never Auth reads or GPS collection.

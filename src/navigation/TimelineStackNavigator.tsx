@@ -31,6 +31,8 @@ export type TimelineStackParamList = {
         mainCategory?: 'all' | 'walk' | 'meal' | 'health' | 'diary' | 'other';
         otherSubCategory?: MemoryOtherSubCategory;
         ymFilter?: string | null;
+        notificationPeriod?: { startDate: string; endDate: string };
+        notificationEntryId?: string;
         entrySource?: ScreenEntrySource;
         entryRequestId?: number;
         entryGeneration?: number;

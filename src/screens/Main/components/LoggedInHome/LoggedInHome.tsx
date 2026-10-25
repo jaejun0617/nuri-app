@@ -210,9 +210,9 @@ import {
 import { getBrandedErrorMeta } from '../../../../services/app/errors';
 import {
   fetchUserNotifications,
-  markUserNotificationRead,
   type UserNotificationItem,
 } from '../../../../services/notifications/userNotifications';
+import { useNotificationUnreadCount } from '../../../../hooks/useNotificationInbox';
 import {
   countHomeVisibleUnreadNotifications,
   dismissHomeNotification,
@@ -2371,6 +2371,8 @@ export default function LoggedInHome() {
   // 1) auth
   // ---------------------------------------------------------
   const sessionUserId = useAuthStore(s => s.session?.user.id ?? null);
+  const notificationUnread = useNotificationUnreadCount();
+  const refetchNotificationUnread = notificationUnread.refetch;
 
   // ---------------------------------------------------------
   // 1.5) notifications
@@ -2399,6 +2401,7 @@ export default function LoggedInHome() {
   const [homeNotificationError, setHomeNotificationError] = useState<
     string | null
   >(null);
+  useEffect(()=>{setHomeNotificationItems([]);setHomeNotificationUnreadCount(0);setNotificationModalVisible(false);},[sessionUserId]);
 
   const refreshHomeNotificationUnreadCount = useCallback(async () => {
     if (!sessionUserId) {
@@ -2411,6 +2414,7 @@ export default function LoggedInHome() {
         fetchUserNotifications(30),
         loadHomeNotificationDismissedKeys(sessionUserId),
       ]);
+      if(useAuthStore.getState().session?.user.id!==sessionUserId)return;
       setHomeNotificationUnreadCount(
         countHomeVisibleUnreadNotifications(items, dismissedKeys),
       );
@@ -2433,22 +2437,24 @@ export default function LoggedInHome() {
         loadHomeNotificationDismissedKeys(sessionUserId),
       ]);
       const visibleItems = filterHomeVisibleNotifications(items, dismissedKeys);
+      if(useAuthStore.getState().session?.user.id!==sessionUserId)return;
       setHomeNotificationItems(visibleItems);
       setHomeNotificationUnreadCount(
         countHomeVisibleUnreadNotifications(items, dismissedKeys),
       );
     } catch (error) {
       const meta = getBrandedErrorMeta(error, 'generic');
-      setHomeNotificationError(meta.message);
+      if(useAuthStore.getState().session?.user.id===sessionUserId)setHomeNotificationError(meta.message);
     } finally {
-      setHomeNotificationLoading(false);
+      if(useAuthStore.getState().session?.user.id===sessionUserId)setHomeNotificationLoading(false);
     }
   }, [sessionUserId]);
 
   useEffect(() => {
     if (!isScreenFocused) return;
+    refetchNotificationUnread().catch(()=>{});
     refreshHomeNotificationUnreadCount().catch(() => {});
-  }, [isScreenFocused, refreshHomeNotificationUnreadCount]);
+  }, [isScreenFocused, refreshHomeNotificationUnreadCount,refetchNotificationUnread]);
 
   const openHomeNotifications = useCallback(() => {
     setExpandedHomeNotificationKeys(new Set());
@@ -2488,42 +2494,8 @@ export default function LoggedInHome() {
 
   const onPressHomeNotificationItem = useCallback(
     async (item: UserNotificationItem) => {
-      if (item.actionTarget?.kind === 'community_comment') {
-        closeHomeNotifications();
-        navigation.navigate('CommunityDetail', {
-          postId: item.actionTarget.postId,
-          commentId: item.actionTarget.commentId,
-        });
-      }
-
-      if (item.readAt) return;
-      const optimisticReadAt = new Date().toISOString();
-      setHomeNotificationItems(prev =>
-        prev.map(current =>
-          current.id === item.id && current.source === item.source
-            ? { ...current, readAt: optimisticReadAt }
-            : current,
-        ),
-      );
-      setHomeNotificationUnreadCount(current => Math.max(0, current - 1));
-
-      try {
-        await markUserNotificationRead({
-          id: item.id,
-          source: item.source,
-        });
-      } catch (error) {
-        const meta = getBrandedErrorMeta(error, 'generic');
-        setHomeNotificationError(meta.message);
-        setHomeNotificationItems(prev =>
-          prev.map(current =>
-            current.id === item.id && current.source === item.source
-              ? { ...current, readAt: null }
-              : current,
-          ),
-        );
-        setHomeNotificationUnreadCount(current => current + 1);
-      }
+      closeHomeNotifications();
+      navigation.navigate('NotificationDetail', { id: item.id, source: item.source });
     },
     [closeHomeNotifications, navigation],
   );
@@ -3456,7 +3428,7 @@ export default function LoggedInHome() {
       season={ambientSeason}
       petName={profilePetName}
       onPressNotifications={openHomeNotifications}
-      notificationUnreadCount={homeNotificationUnreadCount}
+      notificationUnreadCount={notificationUnread.data ?? 0}
     />
   );
   const activeAlarmNotice = (

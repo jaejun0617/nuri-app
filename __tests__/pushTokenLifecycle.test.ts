@@ -1,5 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+jest.mock('../src/store/authStore', () => ({
+  useAuthStore: {
+    getState: () => ({
+      session: { user: { id: '11111111-1111-4111-8111-111111111111' } },
+    }),
+  },
+}));
+
 jest.mock('../src/services/supabase/client', () => ({
   supabase: {
     rpc: jest.fn(),
@@ -9,7 +17,10 @@ jest.mock('../src/services/supabase/client', () => ({
 
 const { supabase } = jest.requireMock('../src/services/supabase/client') as {
   supabase: {
-    rpc: jest.Mock<Promise<{ data: unknown; error: null }>, [string, Record<string, unknown>]>;
+    rpc: jest.Mock<
+      Promise<{ data: unknown; error: null }>,
+      [string, Record<string, unknown>]
+    >;
     from: jest.Mock;
   };
 };
@@ -17,12 +28,16 @@ const { supabase } = jest.requireMock('../src/services/supabase/client') as {
 const mockMaybeSingle = jest.fn<Promise<{ data: unknown; error: null }>, []>();
 const mockEqSecond = jest.fn(() => ({ maybeSingle: mockMaybeSingle }));
 const mockEqFirst = jest.fn(() => ({ eq: mockEqSecond }));
-const mockSelect = jest.fn(() => ({ eq: mockEqFirst, maybeSingle: mockMaybeSingle }));
+const mockSelect = jest.fn(() => ({
+  eq: mockEqFirst,
+  maybeSingle: mockMaybeSingle,
+}));
 
 import {
   fetchPushNotificationLifecycleState,
   revokeCurrentDevicePushToken,
   setPushNotificationOptIn,
+  getNotificationDeviceInstallId,
 } from '../src/services/notifications/pushTokenLifecycle';
 
 describe('push token lifecycle policy', () => {
@@ -33,20 +48,48 @@ describe('push token lifecycle policy', () => {
     mockMaybeSingle.mockResolvedValue({ data: null, error: null });
   });
 
+  it('기기 연결 해제는 계정의 수신 동의를 끄지 않는다', async () => {
+    mockMaybeSingle
+      .mockResolvedValueOnce({ data: { push_opt_in: true }, error: null })
+      .mockResolvedValueOnce({
+        data: { token_status: 'revoked' },
+        error: null,
+      });
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(
+      'device-install-id',
+    );
+    await expect(fetchPushNotificationLifecycleState()).resolves.toEqual({
+      pushOptIn: true,
+      providerStatus: 'revoked',
+    });
+  });
+  it('동시 초기화는 하나의 설치 식별자를 공유한다', async () => {
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(null);
+    const [a, b] = await Promise.all([
+      getNotificationDeviceInstallId(),
+      getNotificationDeviceInstallId(),
+    ]);
+    expect(a).toBe(b);
+    expect(AsyncStorage.setItem).toHaveBeenCalledTimes(1);
+  });
+
   it('opt-in은 실제 push provider token 없이 disabled provider 상태로만 저장한다', async () => {
     (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(null);
 
     const result = await setPushNotificationOptIn(true);
 
-    expect(result).toEqual({ pushOptIn: true, providerStatus: 'provider_unavailable' });
-    expect(supabase.rpc).toHaveBeenNthCalledWith(1, 'set_user_notification_opt_in_v1', {
-      p_push_opt_in: true,
-      p_categories: {
-        service: true,
-        community: true,
-        schedule: true,
-      },
+    expect(result).toEqual({
+      pushOptIn: true,
+      providerStatus: 'provider_unavailable',
     });
+    expect(supabase.rpc).toHaveBeenNthCalledWith(
+      1,
+      'set_user_notification_opt_in_v1',
+      {
+        p_push_opt_in: true,
+        p_categories: {},
+      },
+    );
     expect(supabase.rpc).toHaveBeenNthCalledWith(
       2,
       'upsert_user_push_token_v1',
@@ -60,34 +103,42 @@ describe('push token lifecycle policy', () => {
   });
 
   it('opt-out은 현재 기기 token을 user_opt_out 사유로 revoke한다', async () => {
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce('device-install-id');
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(
+      'device-install-id',
+    );
 
     const result = await setPushNotificationOptIn(false);
 
     expect(result).toEqual({ pushOptIn: false, providerStatus: 'revoked' });
-    expect(supabase.rpc).toHaveBeenNthCalledWith(1, 'set_user_notification_opt_in_v1', {
-      p_push_opt_in: false,
-      p_categories: {
-        service: false,
-        community: false,
-        schedule: false,
+    expect(supabase.rpc).toHaveBeenNthCalledWith(
+      1,
+      'set_user_notification_opt_in_v1',
+      {
+        p_push_opt_in: false,
+        p_categories: {},
       },
-    });
-    expect(supabase.rpc).toHaveBeenNthCalledWith(2, 'revoke_user_push_token_v1', {
-      p_device_id: 'device-install-id',
-      p_provider: 'disabled',
-      p_reason: 'user_opt_out',
-    });
+    );
+    expect(supabase.rpc).toHaveBeenNthCalledWith(
+      2,
+      'revoke_user_push_token_v1',
+      {
+        p_device_id: 'device-install-id',
+        p_provider: null,
+        p_reason: 'user_opt_out',
+      },
+    );
   });
 
   it('logout/account deletion revoke는 device scoped RPC만 호출하고 token 원문을 다루지 않는다', async () => {
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce('device-install-id');
+    (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(
+      'device-install-id',
+    );
 
     await expect(revokeCurrentDevicePushToken('user_logout')).resolves.toBe(1);
 
     expect(supabase.rpc).toHaveBeenCalledWith('revoke_user_push_token_v1', {
       p_device_id: 'device-install-id',
-      p_provider: 'disabled',
+      p_provider: null,
       p_reason: 'user_logout',
     });
   });
@@ -95,13 +146,18 @@ describe('push token lifecycle policy', () => {
   it('cache에 device id가 없으면 revoke RPC를 호출하지 않는다', async () => {
     (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(null);
 
-    await expect(revokeCurrentDevicePushToken('account_deleted')).resolves.toBe(0);
+    await expect(revokeCurrentDevicePushToken('account_deleted')).resolves.toBe(
+      0,
+    );
 
     expect(supabase.rpc).not.toHaveBeenCalled();
   });
 
   it('opt-in preference가 꺼져 있으면 revoked 상태로 표시한다', async () => {
-    mockMaybeSingle.mockResolvedValueOnce({ data: { push_opt_in: false }, error: null });
+    mockMaybeSingle.mockResolvedValueOnce({
+      data: { push_opt_in: false },
+      error: null,
+    });
 
     await expect(fetchPushNotificationLifecycleState()).resolves.toEqual({
       pushOptIn: false,

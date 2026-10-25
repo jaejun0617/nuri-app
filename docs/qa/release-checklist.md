@@ -1,5 +1,11 @@
 # V1.0 Remaining Task/Risk Closeout
 
+## 2026-10-25 Notification V3 And Unified White Toolbar Delivery
+
+- [Delivery record](nuri-notifications-delivery-2026-10-25.md) owns reference-derived3screens/7assets, owner-only inbox/read/dismiss/preferences,5remote migrations/2Edges/3cron and AndroidFCM candidate. All toolbars are white with24dp upper corners; Community stays white and Home-only seasons/400ms remain.
+- Final bundled-development Debug APK SHA `fc9930468784b5b69fc95499ee66381181560aea486f6ddd571a8da7e7695dc9` was replacement-installed with the approved signer. Metro-OFF cold start/real empty/settings/return and installed hash·UID·permissions preservation were checked. It is not FinalRC/Store evidence. Final Metro OFF supersedes the prior title-task ON policy for this delivery.
+- Full4300PASS/33existingFAIL, type PASS, lint0errors20existingwarnings, SQL34/transport17PASS. Provider configured=false: Edge FCM/token/worker secrets and matching Vault worker secret are missing. Actual OS push lifecycle, multi-device/auth/account-switch/large-font matrix and independent fixedQA identity remain unverified. Existing Walk quantitative/deletion Native durability, security findings and STORE HOLD remain. Approved selective commit/push is followed only by the read-only overall audit.
+
 ## 2026-10-24 Home-Only Canvas And Approved332Title Integration
 
 - [Integration record](nuri-title-catalog-v2-integration-2026-10-24.md) owns332unique artwork/rules, private server awarding, original15-table/function preservation and current native checks. Only Home uses the new seasonal palette; all-screen paint was withdrawn. Existing400ms navigation fixes remain.

@@ -64,6 +64,7 @@ import RecordCreateScreen from '../screens/Records/RecordCreateScreen';
 import WalkHistoryScreen from '../screens/Records/WalkHistoryScreen';
 import WalkProductScreen from '../screens/Walk/WalkProductScreen';
 import UserNotificationsScreen from '../screens/Notifications/UserNotificationsScreen';
+import NotificationDetailScreen from '../screens/Notifications/NotificationDetailScreen';
 import NuriRankingScreen from '../screens/Ranking/NuriRankingScreen';
 import PolicyCenterScreen from '../screens/Policy/PolicyCenterScreen';
 import PolicyDetailScreen from '../screens/Policy/PolicyDetailScreen';
@@ -144,7 +145,7 @@ export type RootStackParamList = {
   // Pet
   PetCreate: { from?: 'auto' | 'cta' | 'header_plus' } | undefined;
   PetManagement: { entrySource?: ScreenEntrySource } | undefined;
-  PetActivityAchievements: { entrySource?: ScreenEntrySource } | undefined;
+  PetActivityAchievements: { entrySource?: ScreenEntrySource; focusTitleId?: string; focusPetId?: string|null; initialTab?: 'summary'|'vault' } | undefined;
   PetProfileEdit: { petId: string; entrySource?: ScreenEntrySource };
   PetProfileEditDone: { petId: string; petName: string };
   HealthReport:
@@ -251,6 +252,7 @@ export type RootStackParamList = {
   CommunityEdit: { postId: string };
   CommunityBlockedUsers: { entrySource?: ScreenEntrySource } | undefined;
   UserNotifications: { entrySource?: ScreenEntrySource } | undefined;
+  NotificationDetail: { id: string; source: 'user'|'announcement' };
   NuriRanking: { entrySource?: ScreenEntrySource } | undefined;
   PolicyCenter: { entrySource?: ScreenEntrySource } | undefined;
   PolicyDetail: {
@@ -568,6 +570,7 @@ export default function RootNavigator() {
         component={UserNotificationsScreen}
         options={{ headerShown: false }}
       />
+      <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} options={{headerShown:false}}/>
       <Stack.Screen
         name="NuriRanking"
         component={NuriRankingScreen}

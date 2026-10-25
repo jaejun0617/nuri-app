@@ -1,13 +1,19 @@
 import React from 'react';
 import { Platform, ScrollView } from 'react-native';
 import TestRenderer from 'react-test-renderer';
-import { ThemeProvider } from 'styled-components/native';
+import { ThemeProvider as StyledThemeProvider } from 'styled-components/native';
+import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
 
 import { createTheme } from '../src/app/theme/theme';
 import {
   getNotificationSettingsMaxHeight,
   NotificationSettingsModal,
 } from '../src/screens/More/MoreDrawerContent';
+
+function ThemeProvider({children,theme}:React.ComponentProps<typeof StyledThemeProvider>){
+ const [client]=React.useState(()=>new QueryClient({defaultOptions:{queries:{retry:false,gcTime:0}}}));
+ return <QueryClientProvider client={client}><StyledThemeProvider theme={theme}>{children}</StyledThemeProvider></QueryClientProvider>;
+}
 
 describe('schedule notification settings modal', () => {
   it('keeps the settings content bounded and hides Android-only status on iOS', () => {

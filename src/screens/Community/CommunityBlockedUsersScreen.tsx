@@ -167,7 +167,7 @@ export default function CommunityBlockedUsersScreen() {
     return (
       <SafeAreaView
         edges={['bottom']}
-        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+        style={[styles.screen, { backgroundColor: '#FFFFFF' }]}
       >
         <View style={styles.centerState}>
           <ActivityIndicator size="small" color={theme.colors.brand} />
@@ -180,7 +180,7 @@ export default function CommunityBlockedUsersScreen() {
     return (
       <SafeAreaView
         edges={['bottom']}
-        style={[styles.screen, { backgroundColor: theme.colors.background }]}
+        style={[styles.screen, { backgroundColor: '#FFFFFF' }]}
       >
         <View style={styles.centerState}>
           <AppText
@@ -213,7 +213,7 @@ export default function CommunityBlockedUsersScreen() {
   return (
     <SafeAreaView
       edges={['bottom']}
-      style={[styles.screen, { backgroundColor: theme.colors.background }]}
+      style={[styles.screen, { backgroundColor: '#FFFFFF' }]}
     >
       <FlatList
         data={items}

@@ -40,13 +40,11 @@ describe('CTA source safety guards', () => {
     for (const label of ['뒤로', '취소'])
       expect(edit.find(n => n.includes(label))).toContain('role="neutral"');
   });
-  it('keeps notification cleanup separate from final delete', () => {
-    expect(
-      elements(
-        'src/screens/Notifications/UserNotificationsScreen.tsx',
-        'CtaButton',
-      ).find(n => n.includes('전체삭제')),
-    ).toContain('role="cleanup"');
+  it('the redesigned inbox marks read without invoking notification deletion', () => {
+    const source=read('src/screens/Notifications/UserNotificationsScreen.tsx');
+    expect(source).toContain('await markAll()');
+    expect(source).not.toContain('dismissAllUserNotifications');
+    expect(source).toContain('모두 읽음');
   });
   it('maps discarded draft in cancel slot and preserved record draft to neutral', () => {
     expect(

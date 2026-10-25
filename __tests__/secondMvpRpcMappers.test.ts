@@ -308,7 +308,7 @@ describe('V1.1 second MVP RPC mappers', () => {
   it('알림 목록과 읽음 처리를 read path 모델로 정규화한다', async () => {
     supabase.rpc
       .mockResolvedValueOnce({
-        data: [
+        data: { items: [
           {
             notification_id: '11111111-1111-1111-1111-111111111111',
             notification_source: 'user',
@@ -320,7 +320,7 @@ describe('V1.1 second MVP RPC mappers', () => {
             target_post_id: '22222222-2222-4222-8222-222222222222',
             target_comment_id: '33333333-3333-4333-8333-333333333333',
           },
-        ],
+        ], unreadCount:1,hasMore:false,timeZone:'Asia/Seoul' },
         error: null,
       })
       .mockResolvedValueOnce({ data: 1, error: null })
@@ -337,6 +337,10 @@ describe('V1.1 second MVP RPC mappers', () => {
         type: 'event',
         readAt: null,
         createdAt: '2026-07-01T00:00:00.000Z',
+        availableAt: '2026-07-01T00:00:00.000Z',
+        category: 'news',
+        eventType: '',
+        payload: {},
         actionTarget: {
           kind: 'community_comment',
           postId: '22222222-2222-4222-8222-222222222222',
@@ -344,8 +348,9 @@ describe('V1.1 second MVP RPC mappers', () => {
         },
       },
     ]);
-    expect(supabase.rpc).toHaveBeenNthCalledWith(1, 'get_user_notifications_v2', {
+    expect(supabase.rpc).toHaveBeenNthCalledWith(1, 'get_user_notifications_v3', {
       p_limit: 50,
+      p_cursor_at:null,p_cursor_id:null,p_cursor_source:null,
     });
     await expect(fetchUserNotificationUnreadCount()).resolves.toBe(1);
     await expect(

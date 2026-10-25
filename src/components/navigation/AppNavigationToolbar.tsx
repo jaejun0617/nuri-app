@@ -22,16 +22,12 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useTheme } from 'styled-components/native';
 import NuriIcon, { type NuriIconName } from '../icons/NuriIcon';
 
 import AppText from '../../app/ui/AppText';
 import { HOME_HERO_COLORS, HOME_HERO_ACCENT, HOME_HERO_TOOLBAR_RADIUS } from '../../theme/home/heroLayout';
-import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
-import { HOME_SEASONAL_BACKGROUND_GRADIENTS } from '../../theme/home/seasonalAmbient';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { ScreenEntrySource } from '../../navigation/entry';
-import { useAuthStore } from '../../store/authStore';
 
 import { openMoreDrawer } from '../../store/uiStore';
 
@@ -51,7 +47,6 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 export default function AppNavigationToolbar({
   activeKey,
-  homeHero: homeHeroRequested = false,
   onBeforeNavigate,
   onPressMore,
   onPressActiveHome,
@@ -60,11 +55,6 @@ export default function AppNavigationToolbar({
 }: Props) {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
-  const theme = useTheme();
-  const isLoggedIn = useAuthStore(s => s.isLoggedIn);
-  const homeHero = homeHeroRequested && isLoggedIn;
-  const homeBackground = HOME_SEASONAL_BACKGROUND_GRADIENTS[useEffectiveSeason()][2];
-
 
   const bottomInset = useMemo(
     () =>
@@ -150,19 +140,16 @@ export default function AppNavigationToolbar({
       onLayout={onLayout}
       style={[
         styles.wrap,
-        { backgroundColor: theme.colors.background },
+        { backgroundColor: '#FFFFFF' },
         { paddingBottom: bottomInset },
-        homeHero ? { backgroundColor: homeBackground, borderTopLeftRadius: HOME_HERO_TOOLBAR_RADIUS, borderTopRightRadius: HOME_HERO_TOOLBAR_RADIUS } : null,
       ]}
     >
       <View
         style={[
           styles.bar,
           {
-            backgroundColor: theme.colors.background,
-            borderTopColor: theme.colors.border,
+            backgroundColor: '#FFFFFF',
           },
-          homeHero ? { backgroundColor: homeBackground, borderTopColor: 'transparent', borderTopLeftRadius: HOME_HERO_TOOLBAR_RADIUS, borderTopRightRadius: HOME_HERO_TOOLBAR_RADIUS } : null,
         ]}
       >
         {tabs.map(tab => {
@@ -212,10 +199,15 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingTop: 0,
+    borderTopLeftRadius: HOME_HERO_TOOLBAR_RADIUS,
+    borderTopRightRadius: HOME_HERO_TOOLBAR_RADIUS,
   },
   bar: {
     minHeight: 48,
     borderTopWidth: 1,
+    borderTopColor: '#ECEAF1',
+    borderTopLeftRadius: HOME_HERO_TOOLBAR_RADIUS,
+    borderTopRightRadius: HOME_HERO_TOOLBAR_RADIUS,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
