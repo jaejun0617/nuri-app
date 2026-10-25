@@ -120,13 +120,13 @@ import {
   getRecentEmptyDataState,
 } from './HomeEditorialStates';
 import { HomeAmbientBubbleCanvas } from './HomeAmbientBubbleCanvas';
-import { HomeHeroPhotoBackground } from './HomeHeroPhotoBackground';
+import { HomeHeroPhotoBackground, type HomeHeroPhotoStatus } from './HomeHeroPhotoBackground';
 import { useHomePetSwitchTransition } from './useHomePetSwitchTransition';
 import {
   HomeHeroContentSheet,
   HomeHeroInfoPanel,
 } from './HomeHeroInfoPanel';
-import { getHomeHeroColors, getHomeHeroMinimumHeight, getHomeHeroSeasonCopy } from '../../../../theme/home/heroLayout';
+import { HOME_HERO_COLORS, getHomeHeroColors, getHomeHeroMinimumHeight, getHomeHeroSeasonCopy } from '../../../../theme/home/heroLayout';
 import { HomeSectionDecorations } from './HomeSectionDecorations';
 import { HomePetSelectionSheet } from './HomePetSelectionSheet';
 import { HomePetSheetHeader } from './HomePetSheetHeader';
@@ -1080,12 +1080,15 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
   petName,
   onPressNotifications,
   notificationUnreadCount,
+  photoReady,
 }: {
   season: SeasonalHomeVisual['season'] | null;
   petName: string;
   onPressNotifications: () => void;
   notificationUnreadCount: number;
+  photoReady: boolean;
 }) {
+  const foreground = photoReady ? '#FFFFFF' : HOME_HERO_COLORS.ink;
   const isAutumn = season === 'autumn';
   const isWinter = season === 'winter';
   const isSpring = season === 'spring';
@@ -1102,7 +1105,7 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
     ]}>
       <View style={styles.brandContentStack}>
         <View style={styles.brandLockup}>
-          <AppText style={styles.brandWordmark}>
+          <AppText style={[styles.brandWordmark, { color: foreground }]}>
             NURI
           </AppText>
           <NuriSemanticIcon
@@ -1110,7 +1113,7 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
             preserveOriginal
             name="heart"
             size={18}
-            color={styles.brandWordmark.color}
+            color={foreground}
             style={styles.brandPaw}
           />
         </View>
@@ -1119,7 +1122,7 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
           preset="unifiedLabel"
           styleOverridesPreset
           numberOfLines={2}
-          style={styles.heroSeasonCopy}
+          style={[styles.heroSeasonCopy, { color: foreground }]}
         >
           {getHomeHeroSeasonCopy(petName, season ?? 'autumn')}
         </AppText>
@@ -1137,7 +1140,7 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
             testID="home-notification-icon"
             name="bell"
             size={26}
-            color="#FFFFFF"
+            color={foreground}
             colorMode="theme"
             variant="outline"
           />
@@ -2646,6 +2649,11 @@ export default function LoggedInHome() {
     [selectedPet?.avatarUrl],
   );
   const petSwitchTransition = useHomePetSwitchTransition(activePetId, isScreenFocused, selectedAvatarUri);
+  const [heroPhotoStatus, setHeroPhotoStatus] = useState<HomeHeroPhotoStatus>({ uri: null, status: 'missing' });
+  const handleHeroPhotoStatusChange = useCallback((next: HomeHeroPhotoStatus) => {
+    setHeroPhotoStatus(previous => previous.uri === next.uri && previous.status === next.status ? previous : next);
+  }, []);
+  const heroPhotoReady = !!selectedAvatarUri && heroPhotoStatus.uri === selectedAvatarUri && heroPhotoStatus.status === 'ready';
   const [deferredHomeDataReady, setDeferredHomeDataReady] = useState(false);
 
   // ---------------------------------------------------------
@@ -3429,6 +3437,7 @@ export default function LoggedInHome() {
       petName={profilePetName}
       onPressNotifications={openHomeNotifications}
       notificationUnreadCount={notificationUnread.data ?? 0}
+      photoReady={heroPhotoReady}
     />
   );
   const activeAlarmNotice = (
@@ -3653,7 +3662,7 @@ export default function LoggedInHome() {
           >
             <View style={{ position: 'relative' }}>
               <Animated.View testID="home-hero-photo-transition" style={petSwitchTransition.photoStyle}>
-                <HomeHeroPhotoBackground uri={selectedAvatarUri} frameWidth={heroFrameWidth} colors={heroColors} onPhotoSettled={petSwitchTransition.onPhotoSettled} />
+                <HomeHeroPhotoBackground uri={selectedAvatarUri} frameWidth={heroFrameWidth} colors={heroColors} onPhotoSettled={petSwitchTransition.onPhotoSettled} onPhotoStatusChange={handleHeroPhotoStatusChange} />
               </Animated.View>
               <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
                 {homeHeader}

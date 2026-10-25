@@ -405,11 +405,13 @@ describe('seasonal Home ambient material', () => {
       'season: ambientSeason',
     );
     expect(homeSource).toContain('season={ambientSeason}');
-    expect(homeSource).toContain('ambientSeason={ambientSeason}');
+    expect(homeSource).toContain('const heroColors = getHomeHeroColors(ambientSeason)');
+    expect(homeSource).toContain('headingSeason={ambientSeason}');
     expect(homeSource).toContain(
       'getSeasonalHomeVisual(HOME_FOREGROUND_UI_SEASON)',
     );
-    expect(homeSource).toContain('backgroundImageVisible={false}');
+    expect(homeSource).toContain('backgroundMode="homePalette"');
+    expect(homeSource).not.toContain('<SeasonalHomeAutumnStage');
     expect(homeSource).toContain(
       'hideSeasonalBackgroundImage={ambientBubbleCanvasEnabled}',
     );

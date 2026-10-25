@@ -147,6 +147,41 @@ describe('seasonal splash presentation and boot preservation', () => {
     expect(SPLASH_TAGLINE).not.toBe('함께한 순간을, 오래도록');
   });
 
+  it('keeps the native pre-JS launch canvas white like every approved seasonal splash', () => {
+    const resource = fs.readFileSync(
+      path.join(process.cwd(), 'android/app/src/main/res/values/colors.xml'),
+      'utf8',
+    );
+    expect(resource).toMatch(
+      /<color\s+name="nuri_splash_background">\s*#FFFFFF\s*<\/color>/,
+    );
+    for (const season of ['autumn', 'winter', 'spring', 'summer'] as const) {
+      expect(getSeasonalSplashVisual(season).backgroundColor).toBe('#FFFFFF');
+    }
+    for (const directory of ['values', 'values-v31', 'values-v35']) {
+      const theme = fs.readFileSync(
+        path.join(process.cwd(), `android/app/src/main/res/${directory}/styles.xml`),
+        'utf8',
+      );
+      expect(theme).toContain(
+        '<item name="android:windowBackground">@color/nuri_splash_background</item>',
+      );
+      if (directory !== 'values') {
+        expect(theme).toContain(
+          '<item name="android:windowSplashScreenBackground">@color/nuri_splash_background</item>',
+        );
+      }
+    }
+    const android15Theme = fs.readFileSync(
+      path.join(process.cwd(), 'android/app/src/main/res/values-v35/styles.xml'),
+      'utf8',
+    );
+    expect(android15Theme).not.toContain('windowOptOutEdgeToEdgeEnforcement');
+    expect(android15Theme).toContain(
+      '<item name="android:windowLightStatusBar">true</item>',
+    );
+  });
+
   it('retains the minimum two-second hold and exactly one guest reset', async () => {
     await render();
     await act(async () => {

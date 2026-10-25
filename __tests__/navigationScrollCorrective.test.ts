@@ -41,8 +41,8 @@ describe('nested entry and edit action contracts', () => {
     const edit = source('screens/Records/RecordEditScreen.tsx');
     expect(edit).toContain('useContext(ToolbarHeightContext)');
     expect(edit).toMatch(/toolbarHeight \?\? insets.bottom\) \+/);
-    expect(edit).toContain('수정하기');
-    expect(edit).toContain('취소하기');
+    expect(edit).toContain('변경사항 저장');
+    expect(edit).toMatch(/style=\{styles.backBtn\}[\s\S]*?onPress=\{safeGoBack\}[\s\S]*?disabled=\{saving\}/);
     expect(edit).not.toMatch(/>\s*(저장|취소)\s*</);
     expect(edit).toContain('styleOverridesPreset');
   });

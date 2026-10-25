@@ -350,6 +350,8 @@ export default function RootNavigator() {
         headerTitle: '',
         headerBackTitle: '',
         headerShadowVisible: false,
+        // Native screens also own system-bar traits after a push or auth return.
+        statusBarStyle: 'dark',
         ...rootTransitionOptions(route.name, reduceMotion),
       })}
     >

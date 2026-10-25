@@ -1,3 +1,4 @@
 <resources>
-    <color name="nuri_splash_background">#F4B9B4</color>
+    <!-- Match the approved seasonal splash canvas before React Native paints. -->
+    <color name="nuri_splash_background">#FFFFFF</color>
 </resources>

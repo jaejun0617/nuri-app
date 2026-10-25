@@ -12,6 +12,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, {
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -263,8 +264,8 @@ export default function PetProfileEditScreen() {
   const pets = usePetStore(s => s.pets);
   const setPets = usePetStore(s => s.setPets);
   const upsertPet = usePetStore(s => s.upsertPet);
-  const invalidatePetAvatar = usePetStore(s => s.invalidatePetAvatar);
   const sessionUserId = useAuthStore(s => s.session?.user?.id ?? null);
+  const hydratedDraftRef = useRef<{ userId: string; petId: string } | null>(null);
 
   const pet = useMemo(
     () => pets.find(item => item.id === petId) ?? null,
@@ -369,8 +370,12 @@ export default function PetProfileEditScreen() {
     };
   }, [isFocused, navigation, petId]);
 
-  useEffect(() => {
-    if (!pet) return;
+  useLayoutEffect(() => {
+    if (!pet || !sessionUserId) return;
+    const hydrated = hydratedDraftRef.current;
+    if (hydrated?.userId === sessionUserId && hydrated.petId === pet.id) return;
+    // A cache refresh must not replace the user's draft or a selected local photo.
+    hydratedDraftRef.current = { userId: sessionUserId, petId: pet.id };
 
     setName(pet.name ?? '');
     setRepresentativeSpecies(
@@ -400,7 +405,7 @@ export default function PetProfileEditScreen() {
     setImageUri(pet.avatarUrl?.trim() || null);
     setImageType(null);
     setThemeColor(pet.themeColor ?? null);
-  }, [pet]);
+  }, [pet, sessionUserId]);
 
   useEffect(() => {
     let mounted = true;
@@ -606,7 +611,6 @@ export default function PetProfileEditScreen() {
       if (!userId) throw new Error('로그인 정보가 없습니다.');
 
       let nextAvatarPath = pet.avatarPath ?? null;
-      let avatarPathChanged = false;
       if (imageUri && imageUri !== pet.avatarUrl) {
         const { path } = await uploadPetAvatar({
           userId,
@@ -615,7 +619,6 @@ export default function PetProfileEditScreen() {
           mimeType: imageType,
         });
         nextAvatarPath = path;
-        avatarPathChanged = path !== (pet.avatarPath ?? null);
       }
 
       const speciesSelection = buildPetSpeciesSelection(
@@ -632,9 +635,9 @@ export default function PetProfileEditScreen() {
         petId: pet.id,
         name: trimmedName,
         species: taxonomyChanged ? speciesSelection.species : pet.species,
-        speciesKey: taxonomyChanged
-          ? speciesSelection.speciesKey
-          : pet.speciesKey,
+        // The displayed key can be derived from legacy metadata. Do not backfill
+        // the stored taxonomy during an unrelated photo or profile edit.
+        ...(taxonomyChanged ? { speciesKey: speciesSelection.speciesKey } : {}),
         speciesDetailKey: taxonomyChanged
           ? speciesSelection.speciesDetailKey
           : pet.speciesDetailKey,
@@ -664,10 +667,8 @@ export default function PetProfileEditScreen() {
         setNameChangeCount(nextCount);
       }
 
-      if (avatarPathChanged) {
-        invalidatePetAvatar(pet.id, { userId });
-      }
-
+      // Uploads use immutable timestamped paths; replace the snapshot atomically
+      // instead of exposing an empty avatar between the successful write and read.
       const refreshedPets = await fetchMyPets();
       setPets(refreshedPets, { userId });
 
@@ -688,7 +689,6 @@ export default function PetProfileEditScreen() {
     hobbiesText,
     imageType,
     imageUri,
-    invalidatePetAvatar,
     isNameChanged,
     likesText,
     displayDeathDate,

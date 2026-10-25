@@ -2,7 +2,7 @@
 // 목적:
 // - "더보기"를 탭 이동이 아니라 오버레이(drawer)로 표시
 // - 하단 탭과 같은 곡선의 400ms 페이드만 사용하며 가로 슬라이드는 사용하지 않는다.
-// - 목적 화면 이동은 메뉴 콘텐츠의 unmount cleanup 이후에 실행한다.
+// - 메뉴에서 연 상세 화면은 native stack이 덮는다. 먼저 메뉴를 지워 홈을 노출하지 않는다.
 
 import React, {
   memo,
@@ -20,6 +20,7 @@ import {
   View,
   BackHandler,
 } from 'react-native';
+import { useIsFocused } from '@react-navigation/native';
 
 import MoreDrawerContent from '../../screens/More/MoreDrawerContent';
 import { TAB_FADE_TIMING } from '../../navigation/navigationTransitionPolicy';
@@ -34,11 +35,12 @@ type Props = {
 function MoreDrawer({ open, onClose, onVisibilityChange }: Props) {
   const { width: drawerWidth } = useWindowDimensions();
   const reduceMotion = useNavigationMotion();
+  const focused = useIsFocused();
   const [mounted, setMounted] = useState(open);
   const opacity = useRef(new Animated.Value(open ? 1 : 0)).current;
   const openRef = useRef(open);
   openRef.current = open;
-  const pendingNavigation = useRef<(() => void) | null>(null);
+  const navigationRequested = useRef(false);
 
   useLayoutEffect(() => {
     onVisibilityChange?.(mounted);
@@ -46,7 +48,7 @@ function MoreDrawer({ open, onClose, onVisibilityChange }: Props) {
 
   useEffect(() => {
     if (open) {
-      pendingNavigation.current = null;
+      navigationRequested.current = false;
       setMounted(true);
     }
   }, [open]);
@@ -75,46 +77,53 @@ function MoreDrawer({ open, onClose, onVisibilityChange }: Props) {
     };
   }, [mounted, open, reduceMotion, opacity]);
 
-  // Let content cleanup commit before starting the destination transition.
+  // The menu is the native destination's return surface, not a closing overlay.
+  // Release only the per-gesture latch on focus loss; the stack owns visibility.
   useEffect(() => {
-    if (mounted || open) return;
-    const navigate = pendingNavigation.current;
-    pendingNavigation.current = null;
-    navigate?.();
-  }, [mounted, open]);
-
-  useEffect(() => () => { pendingNavigation.current = null; }, []);
+    if (!focused) navigationRequested.current = false;
+  }, [focused]);
 
   const requestClose = useCallback(() => {
-    pendingNavigation.current = null;
+    navigationRequested.current = false;
     onClose();
   }, [onClose]);
-  const requestNavigation = useCallback((navigate: () => void) => {
-    if (!openRef.current || pendingNavigation.current) return;
-    pendingNavigation.current = navigate;
-    onClose();
-  }, [onClose]);
-  const requestTabNavigation = useCallback((navigate: () => void) => {
-    if (!openRef.current || pendingNavigation.current) return;
+  const requestNavigation = useCallback((navigate: () => boolean) => {
+    if (!focused || !openRef.current || navigationRequested.current) return;
+    navigationRequested.current = true;
+    try {
+      if (!navigate()) navigationRequested.current = false;
+    } catch (error) {
+      navigationRequested.current = false;
+      throw error;
+    }
+  }, [focused]);
+  const requestTabNavigation = useCallback((navigate: () => boolean) => {
+    if (!focused || !openRef.current || navigationRequested.current) return;
     // Replace the underlay while More is still opaque; only the drawer fades.
-    pendingNavigation.current = () => {};
-    navigate();
-    onClose();
-  }, [onClose]);
+    navigationRequested.current = true;
+    try {
+      if (navigate()) onClose();
+      else navigationRequested.current = false;
+    } catch (error) {
+      navigationRequested.current = false;
+      throw error;
+    }
+  }, [focused, onClose]);
 
   // ---------------------------------------------------------
   // 3) Android back handler
   // ---------------------------------------------------------
   useEffect(() => {
-    if (!mounted) return;
+    if (!mounted || !focused) return;
 
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (navigationRequested.current) return false;
       requestClose();
       return true;
     });
 
     return () => sub.remove();
-  }, [mounted, requestClose]);
+  }, [mounted, focused, requestClose]);
 
   // ---------------------------------------------------------
   // 4) render
@@ -124,7 +133,9 @@ function MoreDrawer({ open, onClose, onVisibilityChange }: Props) {
   return (
     <Animated.View
       testID="more-drawer-overlay"
-      pointerEvents={open ? 'auto' : 'none'}
+      pointerEvents={open && focused ? 'auto' : 'none'}
+      accessibilityElementsHidden={!focused}
+      importantForAccessibility={focused ? 'auto' : 'no-hide-descendants'}
       style={[StyleSheet.absoluteFill, { opacity }]}
     >
       {/* overlay */}

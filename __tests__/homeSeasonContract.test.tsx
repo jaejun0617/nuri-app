@@ -157,8 +157,9 @@ describe('approved Home season contract', () => {
     expect(header).not.toContain('styles.petSwitcherRow');
     expect(header).not.toContain('onPressAddPet');
     expect(header).not.toContain('PetChipButton');
-    expect(header).toContain('style={styles.brandWordmark}');
-    expect(header).toContain('color={styles.brandWordmark.color}');
+    expect(header).toContain('style={[styles.brandWordmark, { color: foreground }]}');
+    expect(header).toContain("const foreground = photoReady ? '#FFFFFF' : HOME_HERO_COLORS.ink");
+    expect(header).toContain('color={foreground}');
     expect(header).not.toContain('const brandColor = SEASON_CTA');
     expect(header).not.toContain('headerPalette?.copy');
     expect(source).toContain(

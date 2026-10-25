@@ -115,13 +115,16 @@ describe('Home section rhythm and material', () => {
   });
   afterEach(() => jest.restoreAllMocks());
 
-  it('aligns the compact white wordmark and bare notification in one centered header row', () => {
+  it('aligns the compact wordmark and keeps foreground contrast tied to actual photo readiness', () => {
     expect(homeStyles.brandWordmark).toMatchObject({
-      fontSize: 28, lineHeight: 34, color: '#FFFFFF', letterSpacing: 0,
+      fontSize: 26, lineHeight: 32, color: '#FFFFFF', letterSpacing: 0,
     });
     const header = source.slice(source.indexOf('const HomeHeaderSection'), source.indexOf('const HeroProfileAccordion'));
-    expect(header).toContain('style={styles.brandWordmark}');
-    expect(header).toMatch(/preserveOriginal\s+name="heart"\s+size=\{18\}\s+color=\{styles\.brandWordmark\.color\}/);
+    expect(header).toContain("const foreground = photoReady ? '#FFFFFF' : HOME_HERO_COLORS.ink");
+    expect(header).toContain('style={[styles.brandWordmark, { color: foreground }]}');
+    expect(header).toMatch(/preserveOriginal\s+name="heart"\s+size=\{18\}\s+color=\{foreground\}/);
+    expect(source).toContain('photoReady={heroPhotoReady}');
+    expect(source).toContain('onPhotoStatusChange={handleHeroPhotoStatusChange}');
     expect(homeStyles.header).toMatchObject({ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' });
     expect(homeStyles.brandContentStack).toMatchObject({ flex: 1, minWidth: 0, alignItems: 'flex-start' });
     expect(homeStyles.notificationAnchor).toMatchObject({ flexShrink: 0 });
@@ -129,7 +132,7 @@ describe('Home section rhythm and material', () => {
     expect(homeStyles.notificationAnchor).not.toHaveProperty('top');
   });
 
-  it('removes notification glass while preserving the white icon, target and badge', () => {
+  it('removes notification glass while preserving the contrast-aware icon, target and badge', () => {
     const header = source.slice(
       source.indexOf('const HomeHeaderSection'),
       source.indexOf('const HeroProfileAccordion'),
@@ -151,7 +154,7 @@ describe('Home section rhythm and material', () => {
     expect(header).toContain('onPress={onPressNotifications}');
     expect(header).toContain('accessibilityLabel={notificationAccessibilityLabel}');
     expect(header).toContain('accessibilityRole="button"');
-    expect(header).toMatch(/<NuriIcon\s+testID="home-notification-icon"\s+name="bell"\s+size=\{26\}\s+color="#FFFFFF"\s+colorMode="theme"\s+variant="outline"/);
+    expect(header).toMatch(/<NuriIcon\s+testID="home-notification-icon"\s+name="bell"\s+size=\{26\}\s+color=\{foreground\}\s+colorMode="theme"\s+variant="outline"/);
     expect(header).toContain('notificationUnreadCount > 0');
     expect(header).toContain('styles.headerNotificationBadge');
   });
@@ -271,13 +274,15 @@ describe('Home section rhythm and material', () => {
     await act(async () => renderer.unmount());
   });
 
-  it('keeps neutral profile actions and user-colored identity on the seasonal lower panel', () => {
+  it('keeps the approved fixed identity palette above the transparent seasonal lower panel', () => {
     const panel = fs.readFileSync(path.join(__dirname, '../src/screens/Main/components/LoggedInHome/HomeHeroInfoPanel.tsx'), 'utf8');
-    expect(panel).toContain('HOME_SEASONAL_BACKGROUND_GRADIENTS[season]');
+    expect(panel).toContain("sheetBody: { width: '100%', paddingHorizontal: 16, backgroundColor: 'transparent' }");
     expect(panel).not.toContain('HomeFrostedGlass');
     expect(homeStyles.brandWordmark.color).toBe('#FFFFFF');
-    expect(panel).toContain('color={petTheme.primary}');
-    expect(panel).toContain('color: petTheme.primary');
+    expect(panel).not.toContain('color={petTheme.primary}');
+    expect(panel).not.toContain('color: petTheme.primary');
+    expect(panel).toContain('color: colors.ink');
+    expect(panel).toContain('color={HOME_HERO_ACCENT.primary}');
     expect(panel).toContain('onPress={onPressProfileInfo}');
     expect(panel).toContain('name="chevron-right"');
     expect(panel).toContain('name="chevron-down"');

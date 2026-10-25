@@ -18,8 +18,8 @@ import com.nuri.walk.WalkVisibility
 
 class MainActivity : ReactActivity() {
   private fun applySystemBarStyle() {
-    // Keep the native launch surface branded until React Native draws the
-    // date-resolved seasonal image; normal screens paint their own surfaces.
+    // Match the white seasonal splash canvas before React Native's first frame.
+    // Normal screens remain responsible for their own surfaces and insets.
     window.setBackgroundDrawableResource(R.color.nuri_splash_background)
     window.statusBarColor = Color.TRANSPARENT
     window.navigationBarColor = Color.WHITE

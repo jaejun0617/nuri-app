@@ -9,6 +9,11 @@ const mockTabNavigate = jest.fn();
 const mockVisibility = jest.fn();
 const mockOrder: string[] = [];
 let mockReduceMotion = false;
+let mockFocused = true;
+jest.mock('@react-navigation/native', () => ({
+  ...jest.requireActual('@react-navigation/native'),
+  useIsFocused: () => mockFocused,
+}));
 jest.mock('../src/navigation/useNavigationMotion', () => ({
   useNavigationMotion: () => mockReduceMotion,
 }));
@@ -16,18 +21,20 @@ jest.mock('../src/screens/More/MoreDrawerContent', () => {
   const react = jest.requireActual('react') as typeof React;
   const { Pressable } = jest.requireActual('react-native') as typeof import('react-native');
   return function Content({ onRequestNavigate, onRequestTabNavigate }: {
-    onRequestNavigate: (navigate: () => void) => void;
-    onRequestTabNavigate: (navigate: () => void) => void;
+    onRequestNavigate: (navigate: () => boolean) => void;
+    onRequestTabNavigate: (navigate: () => boolean) => void;
   }) {
     react.useEffect(() => () => { mockOrder.push('unmount'); }, []);
     return react.createElement(react.Fragment, null,
       react.createElement(Pressable, { testID: 'request-child', onPress: () => onRequestNavigate(() => {
       mockOrder.push('navigate');
       mockNavigate();
+      return true;
     }) }),
       react.createElement(Pressable, { testID: 'request-tab', onPress: () => onRequestTabNavigate(() => {
         mockOrder.push('tab');
         mockTabNavigate();
+        return true;
       }) }),
     );
   };
@@ -67,6 +74,7 @@ describe('More shares the root tab fade without sliding', () => {
     mockOrder.length = 0;
     finishes.length = 0;
     mockReduceMotion = false;
+    mockFocused = true;
     jest.spyOn(Animated, 'spring').mockImplementation(() => animation());
     jest.spyOn(Animated, 'timing').mockImplementation(() => animation());
     jest.spyOn(BackHandler, 'addEventListener').mockImplementation((_event, listener) => {
@@ -110,19 +118,15 @@ describe('More shares the root tab fade without sliding', () => {
     expect(tree!.root.findAllByProps({ testID: 'request-child' })).not.toHaveLength(0);
   });
 
-  it('waits for fade-out AND content cleanup before one destination', async () => {
+  it('dispatches one destination above the still-opaque return menu', async () => {
     await mount();
     await complete();
     await request(2);
-    expect(Animated.timing).toHaveBeenLastCalledWith(expect.anything(), {
-      ...TAB_FADE_TIMING, duration: 400, toValue: 0, useNativeDriver: true, isInteraction: false,
-    });
-    expect(mockNavigate).not.toHaveBeenCalled();
-    expect(mockOrder).toEqual([]);
-    await complete();
-    expect(mockOrder).toEqual(['unmount', 'navigate']);
+    expect(Animated.timing).toHaveBeenCalledTimes(1);
+    expect(mockOrder).toEqual(['navigate']);
     expect(mockNavigate).toHaveBeenCalledTimes(1);
-    expect(tree?.toJSON()).toBeNull();
+    expect(mockVisibility).toHaveBeenLastCalledWith(true);
+    expect(tree!.root.findByProps({ testID: 'more-drawer-panel' })).toBeDefined();
   });
 
   it('replaces the underlying tab before fading out and reports visibility until cleanup', async () => {
@@ -144,14 +148,13 @@ describe('More shares the root tab fade without sliding', () => {
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it('consumes Back during fade-out and cancels pending navigation', async () => {
+  it('does not steal a destination Back after its synchronous dispatch', async () => {
     await mount();
     await complete();
     await request();
-    await act(async () => { expect(back?.({ type: 'hardwareBackPress', timeStamp: 0 })).toBe(true); });
-    await complete();
-    expect(mockNavigate).not.toHaveBeenCalled();
-    expect(tree?.toJSON()).toBeNull();
+    await act(async () => { expect(back?.({ type: 'hardwareBackPress', timeStamp: 0 })).toBe(false); });
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockOrder).toEqual(['navigate']);
   });
 
   it('accepts a tab tap during opening and ignores the interrupted opening completion', async () => {
@@ -169,7 +172,7 @@ describe('More shares the root tab fade without sliding', () => {
   it('ignores stale fade completion when reopened', async () => {
     await mount();
     await complete();
-    await request();
+    await act(async () => setOpen(false));
     const oldClose = finishes[finishes.length - 1];
     await act(async () => setOpen(true));
     await act(async () => oldClose(true));
@@ -178,15 +181,15 @@ describe('More shares the root tab fade without sliding', () => {
     expect(tree!.root.findAllByProps({ testID: 'request-child' })).not.toHaveLength(0);
   });
 
-  it('discards pending navigation when the host unmounts', async () => {
+  it('never repeats a dispatched destination after the host unmounts', async () => {
     await mount();
     await complete();
     await request();
-    const oldClose = finishes[finishes.length - 1];
+    const oldOpen = finishes[finishes.length - 1];
     await act(async () => tree?.unmount());
     tree = undefined;
-    await act(async () => oldClose(true));
-    expect(mockNavigate).not.toHaveBeenCalled();
+    await act(async () => oldOpen(true));
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
   });
 
   it('closes through the backdrop without navigating', async () => {
@@ -206,20 +209,40 @@ describe('More shares the root tab fade without sliding', () => {
     await mount();
     expect(Animated.timing).not.toHaveBeenCalled();
     await request();
-    expect(mockOrder).toEqual(['unmount', 'navigate']);
-    expect(tree?.toJSON()).toBeNull();
+    expect(mockOrder).toEqual(['navigate']);
+    expect(tree!.root.findByProps({ testID: 'more-drawer-panel' })).toBeDefined();
   });
 
   it('finishes closing safely if reduced motion is enabled mid-fade', async () => {
     await mount();
     await complete();
-    await request();
+    await act(async () => setOpen(false));
     const oldClose = finishes[finishes.length - 1];
     mockReduceMotion = true;
     await act(async () => tree?.update(<Harness revision={1} />));
-    expect(mockOrder).toEqual(['unmount', 'navigate']);
+    expect(mockOrder).toEqual(['unmount']);
     await act(async () => oldClose(true));
-    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).not.toHaveBeenCalled();
     expect(tree?.toJSON()).toBeNull();
+  });
+
+  it('keeps return context but disables hidden menu input and releases its gesture latch', async () => {
+    await mount();
+    await complete();
+    await request(2);
+    mockFocused = false;
+    await act(async () => tree?.update(<Harness revision={1} />));
+    const overlay = tree!.root.findByProps({ testID: 'more-drawer-overlay' });
+    expect(overlay.props.pointerEvents).toBe('none');
+    expect(overlay.props.importantForAccessibility).toBe('no-hide-descendants');
+    await request();
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    mockFocused = true;
+    await act(async () => tree?.update(<Harness revision={2} />));
+    expect(overlay.props.pointerEvents).toBe('auto');
+    expect(Animated.timing).toHaveBeenCalledTimes(1);
+    await request();
+    expect(mockNavigate).toHaveBeenCalledTimes(2);
+    expect(mockOrder).toEqual(['navigate', 'navigate']);
   });
 });

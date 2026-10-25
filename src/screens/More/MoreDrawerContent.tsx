@@ -140,8 +140,8 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 type Props = {
   onRequestClose: () => void;
-  onRequestNavigate?: (navigate: () => void) => void;
-  onRequestTabNavigate?: (navigate: () => void) => void;
+  onRequestNavigate?: (navigate: () => boolean) => void;
+  onRequestTabNavigate?: (navigate: () => boolean) => void;
 };
 
 type PasswordModalProps = {
@@ -1504,9 +1504,11 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, o
       const safeNavigate = () => {
         try {
           navigate();
+          return true;
         } catch (error) {
           const { title, message } = getBrandedErrorMeta(error, 'generic');
           showToast({ tone: 'error', title, message, durationMs: 2800 });
+          return false;
         }
       };
       const returnOffset = currentMenuScrollOffsetRef.current;

@@ -354,6 +354,9 @@ describe('NURI custom icon candidate', () => {
       'src/components/weather/WeatherGuideHomeCard.tsx',
       'src/services/guides/presentation.ts',
       'src/app/ui/SectionHeaderAction.tsx',
+      // Approved Activity and Ranking references use neutral original glyphs.
+      'src/screens/Pets/PetActivityAchievementsScreen.tsx',
+      'src/screens/Ranking/NuriRankingScreen.tsx',
     ]);
     const walk = (directory: string): string[] =>
       fs
@@ -387,7 +390,7 @@ describe('NURI custom icon candidate', () => {
   });
 
   it.each(PET_THEME_OPTIONS)(
-    'keeps navigation neutral when pet theme is %s without changing inactive tabs',
+    'keeps the fixed lavender navigation palette independent of pet theme %s',
     async color => {
       mockColor = color;
       const renderer = await render(
@@ -404,7 +407,7 @@ describe('NURI custom icon candidate', () => {
         'menu',
       ]);
       expect(icons[0].props).toMatchObject({
-        color: createTheme('light').colors.textPrimary,
+        color: '#7D5CE4',
         colorMode: 'theme',
         variant: 'glass',
         size: 18,
@@ -413,12 +416,12 @@ describe('NURI custom icon candidate', () => {
         renderer.root.findAllByType(LinearGradient)[0].props.colors,
       ).toEqual([
         '#FFFFFF',
-        createTheme('light').colors.textPrimary,
-        createTheme('light').colors.textPrimary,
+        '#7D5CE4',
+        '#7D5CE4',
       ]);
       for (const icon of icons.slice(1))
         expect(icon.props).toMatchObject({
-          color: createTheme('light').colors.textMuted,
+          color: '#8D88AA',
           variant: 'outline',
           size: 18,
         });
@@ -445,7 +448,7 @@ describe('NURI custom icon candidate', () => {
     },
   );
 
-  it('uses the global brand color for guests and preserves selected-tab accessibility', async () => {
+  it('uses the same lavender for guests and preserves selected-tab accessibility', async () => {
     mockLoggedIn = false;
     const theme = createTheme('light');
     const renderer = await render(
@@ -453,7 +456,7 @@ describe('NURI custom icon candidate', () => {
         <AppNavigationToolbar activeKey="community" />
       </ThemeProvider>,
     );
-    expect(navigationIcons(renderer)[2].props.color).toBe(theme.colors.brand);
+    expect(navigationIcons(renderer)[2].props.color).toBe('#7D5CE4');
     expect(
       renderer.root.findAllByType(TouchableOpacity)[2].props.accessibilityState,
     ).toEqual({ selected: true });

@@ -13,15 +13,14 @@ import {
 } from 'react-native';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
-import CtaButton from '../src/app/ui/CtaButton';
+import CtaButton from '../src/components/records/TimelineButton';
+import TimelineDeleteDialog from '../src/components/records/TimelineDeleteDialog';
 import OptimizedImage from '../src/components/images/OptimizedImage';
-import Feather from 'react-native-vector-icons/Feather';
 import { styles } from '../src/screens/Records/RecordDetailScreen.styles';
 import RecordDetailScreen from '../src/screens/Records/RecordDetailScreen';
 import type { MemoryRecord } from '../src/services/supabase/memories';
-import { SEASON_CTA } from '../src/app/theme/ctaPalette';
-import { lightColors, PRODUCT_CANVAS_COLOR } from '../src/app/theme/tokens/colors';
-import { HOME_FLOATING_WIDGET_MATERIAL } from '../src/components/home/HomeWidgetMaterial';
+import { lightColors } from '../src/app/theme/tokens/colors';
+import { TIMELINE_DESIGN as C, TIMELINE_TYPE as T } from '../src/theme/timelineDesign';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 import { ToolbarHeightContext } from '../src/components/navigation/ToolbarHeightContext';
 import { deleteMemoryWithFile } from '../src/services/supabase/memories';
@@ -124,6 +123,7 @@ jest.mock('../src/hooks/useSignedMemoryImage', () => ({
 }));
 jest.mock('../src/components/images/OptimizedImage', () => 'OptimizedImage');
 
+const mountedTrees: TestRenderer.ReactTestRenderer[] = [];
 async function render() {
   let tree!: TestRenderer.ReactTestRenderer;
   await TestRenderer.act(async () => {
@@ -135,6 +135,7 @@ async function render() {
       </ThemeProvider>,
     );
   });
+  mountedTrees.push(tree);
   return tree;
 }
 function text(tree: TestRenderer.ReactTestRenderer) {
@@ -145,7 +146,12 @@ function text(tree: TestRenderer.ReactTestRenderer) {
     .join(' ');
 }
 describe('memory detail rendered contract', () => {
-  afterEach(() => appQueryClient.clear());
+  afterEach(async () => {
+    await TestRenderer.act(async () => {
+      mountedTrees.splice(0).forEach(tree => tree.unmount());
+    });
+    appQueryClient.clear();
+  });
   beforeEach(() => {
     jest.clearAllMocks();
     mockTitleOwner = 'owner';
@@ -285,7 +291,7 @@ describe('memory detail rendered contract', () => {
     });
     TestRenderer.act(() => tree.unmount());
   });
-  it('uses shared reflective glass without opaque card backing and shrinks only the pet avatar', async () => {
+  it('keeps the approved unframed story, transparent related rows and larger identity avatar', async () => {
     const tree = await render();
     const main = tree.root.findAll(
       node => node.type === View && node.props.testID === 'memory-detail-post-glass',
@@ -295,24 +301,15 @@ describe('memory detail rendered contract', () => {
     );
     expect(main).toHaveLength(1);
     expect(related).toHaveLength(5);
-    for (const frame of [...main, ...related]) {
-      expect(StyleSheet.flatten(frame.props.style)).toMatchObject({
-        backgroundColor: 'transparent',
-        borderRadius: 8,
-        marginTop: 0,
-      });
-      const fill = frame.findAll(
-        node => node.type === View && node.props.testID === 'home-reflective-fill',
-      )[0];
-      expect(StyleSheet.flatten(fill.props.style)).toMatchObject(
-        HOME_FLOATING_WIDGET_MATERIAL,
-      );
-    }
-    expect(StyleSheet.flatten(main[0].props.style).padding).toBe(12);
+    expect(StyleSheet.flatten(main[0].props.style)).toMatchObject({ padding: 0, marginHorizontal: 16, backgroundColor: 'transparent' });
+    for (const frame of related) expect(StyleSheet.flatten(frame.props.style)).toMatchObject({
+      backgroundColor: 'transparent', borderRadius: 8, marginTop: 0, padding: 6,
+    });
+    expect(main[0].findAll(node => node.props.testID === 'home-reflective-fill')).toHaveLength(0);
     expect(styles.postCard.backgroundColor).not.toBe('#FFFFFF');
-    expect(styles.postAvatar).toMatchObject({ width: 36, height: 36, borderRadius: 18 });
+    expect(styles.postAvatar).toMatchObject({ width: 48, height: 48, borderRadius: 24 });
     expect(styles.relatedThumb).toMatchObject({ width: 72, height: 80 });
-    expect(styles.headerLink.backgroundColor).toBe(PRODUCT_CANVAS_COLOR);
+    expect(styles.headerLink.backgroundColor).toBe('transparent');
     TestRenderer.act(() => tree.unmount());
   });
   it('shows each historical date as well as time instead of implying every record is from the same day', async () => {
@@ -338,12 +335,14 @@ describe('memory detail rendered contract', () => {
     expect(text(tree)).toContain('오전 12:01');
     TestRenderer.act(() => tree.unmount());
   });
-  it('keeps small metadata readable using the existing neutral secondary foreground', () => {
-    for (const style of [styles.postMetaLine, styles.relatedSectionCount, styles.relatedTime, styles.postTagsText, styles.tagText]) {
-      expect(StyleSheet.flatten(style)?.color).toBe(lightColors.textSecondary);
+  it('uses fixed timeline metadata colors while keeping the historical row hierarchy', () => {
+    for (const style of [styles.postMetaLine, styles.relatedSectionCount, styles.postTagsText]) {
+      expect(StyleSheet.flatten(style)?.color).toBe('#716A9C');
     }
-    expect(styles.postContentText.fontSize).toBe(13);
-    expect(styles.tagText.fontSize).toBe(11);
+    expect(styles.relatedTime.color).toBe(lightColors.textSecondary);
+    expect(styles.tagText.color).toBe('#7D4DFA');
+    expect(styles.postContentText.fontSize).toBe(T.body.fontSize);
+    expect(styles.tagText.fontSize).toBe(T.meta.fontSize);
     expect(styles.relatedTitle.fontSize).toBe(12);
   });
   it('fits original image proportions without crop and opens a dismissible overlay', async () => {
@@ -379,7 +378,8 @@ describe('memory detail rendered contract', () => {
     const close = tree.root
       .findAllByType(TouchableOpacity)
       .find(node => node.props.accessibilityLabel === '확대 사진 닫기')!;
-    const closeIcon = close.findByType(Feather);
+    const closeIcon = close.findAll(node => node.props.family === 'feather' && node.props.name === 'x')[0];
+    expect(closeIcon).toBeDefined();
     expect(closeIcon.props).toMatchObject({
       name: 'x',
       color: '#FFFFFF',
@@ -421,12 +421,14 @@ describe('memory detail rendered contract', () => {
     TestRenderer.act(() => tree.unmount());
   });
   it.each(['autumn', 'winter', 'spring', 'summer'] as SeasonKey[])(
-    'renders the no-photo state and five historical previews with %s accents',
+    'renders a text-first no-photo story and fixed-palette related action in %s',
     async season => {
       mockSeason = season;
       const tree = await render();
       expect(text(tree)).toContain('추억 상세');
-      expect(text(tree)).toContain('사진 없이 남긴 소중한 기록이에요');
+      expect(tree.root.findAllByType(FlatList).filter(node => node.props.horizontal)).toHaveLength(0);
+      expect(text(tree)).toContain(mockRecord.title);
+      expect(text(tree)).toContain(mockRecord.content);
       expect(text(tree)).toContain('5개 표시');
       expect(
         tree.root
@@ -439,11 +441,13 @@ describe('memory detail rendered contract', () => {
           node => node.props.accessibilityLabel === '다른 추억 5개 더보기',
         )!;
       expect(more.props.role).toBe('primary');
-      const button = more.findAllByType(View).find(
-        node => node.props.accessibilityRole === 'button',
-      )!;
-      expect(StyleSheet.flatten(button.props.style).backgroundColor).toBe(SEASON_CTA[season].primary);
-      expect(more.findByType(Feather).props).toMatchObject({
+      const button = more.findAllByType(View).find(node => node.props.accessibilityLabel === '다른 추억 5개 더보기');
+      expect(button).toBeDefined();
+      expect(StyleSheet.flatten(button?.props.style).backgroundColor).toBe(C.primary);
+      const moreIcon = more.findAll(node => node.props.family === 'feather' && node.props.name === 'chevron-right')[0];
+      expect(moreIcon).toBeDefined();
+      expect(moreIcon.props).toMatchObject({
+        family: 'feather',
         name: 'chevron-right',
         color: '#FFFFFF',
       });
@@ -508,27 +512,17 @@ describe('memory detail rendered contract', () => {
     const menu = tree.root
       .findAllByType(Modal)
       .find(node => node.props.visible)!;
-    expect(menu.findAllByType(CtaButton).map(node => node.props.role)).toEqual([
-      'primary',
-      'destructiveConfirm',
-    ]);
-    expect(
-      menu.findAll(
-        node => node.props.name === 'edit-2' || node.props.name === 'trash-2',
-      ),
-    ).toHaveLength(0);
-    expect(text(tree)).toContain('수정하기');
-    expect(text(tree)).toContain('삭제하기');
-    TestRenderer.act(() => menu.findAllByType(CtaButton)[1].props.onPress());
+    const edit = menu.findAllByType(TouchableOpacity).find(node => node.props.accessibilityLabel === '기록 수정하기');
+    const remove = menu.findAllByType(TouchableOpacity).find(node => node.props.accessibilityLabel === '기록 삭제하기');
+    expect(edit).toBeDefined();
+    expect(remove).toBeDefined();
+    expect(menu.findAllByType(CtaButton).map(node => node.props.role)).toEqual(['neutral']);
+    if (!remove) throw new Error('Delete management action missing');
+    TestRenderer.act(() => remove.props.onPress());
     expect(mockStore.removeOneLocal).not.toHaveBeenCalled();
-    const confirmation = tree.root
-      .findAllByType(Modal)
-      .find(node => node.props.visible)!;
-    expect(
-      confirmation
-        .findAllByType(CtaButton)
-        .some(node => node.props.role === 'destructiveConfirm'),
-    ).toBe(true);
+    const confirmation = tree.root.findByType(TimelineDeleteDialog);
+    expect(confirmation.props.visible).toBe(true);
+    expect(confirmation.findAllByType(CtaButton).find(node => node.props.testID === 'timeline-delete-confirm')?.props.role).toBe('destructiveConfirm');
     TestRenderer.act(() => tree.unmount());
   });
   it('foreground after interrupted Walk delete unlocks UI and reconciles canonical deletion without applying old completion', async () => {
@@ -540,14 +534,15 @@ describe('memory detail rendered contract', () => {
     jest.mocked(deleteMemoryWithFile).mockReturnValueOnce(new Promise<void>(resolve => { finish = resolve; }));
     jest.mocked(walkRecordRepository.get).mockResolvedValue({ recordState: 'RECORD_DELETED', memory: null } as WalkRecordView);
     const tree = await render();
-    TestRenderer.act(() => tree.root.findAllByProps({ title: '정말 삭제할까요?' })[0].props.onConfirm());
-    expect(tree.root.findAllByProps({ title: '정말 삭제할까요?' })[0].props.confirmLoading).toBe(true);
+    const dialog = () => tree.root.findByType(TimelineDeleteDialog);
+    TestRenderer.act(() => dialog().props.onConfirm());
+    expect(dialog().props.loading).toBe(true);
     await TestRenderer.act(async () => {
       oldCurrent = false;
       mockWalkScope = { ownerId: 'owner', petId: 'pet', generation: 'foreground', current: () => true };
       tree.update(<ThemeProvider theme={createTheme('light')}><ToolbarHeightContext.Provider value={72}><RecordDetailScreen /></ToolbarHeightContext.Provider></ThemeProvider>);
     });
-    expect(tree.root.findAllByProps({ title: '정말 삭제할까요?' })[0].props.confirmLoading).toBe(false);
+    expect(dialog().props.loading).toBe(false);
     expect(walkRecordRepository.get).toHaveBeenCalledWith('session', 'pet');
     expect(mockStore.removeOneLocal).toHaveBeenCalledTimes(1);
     await TestRenderer.act(async () => finish());

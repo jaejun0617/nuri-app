@@ -37,8 +37,12 @@ describe('CTA source safety guards', () => {
       'src/screens/Records/RecordEditScreen.tsx',
       'CtaButton',
     );
-    for (const label of ['뒤로', '취소'])
-      expect(edit.find(n => n.includes(label))).toContain('role="neutral"');
+    expect(edit.find(n => n.includes('뒤로'))).toContain('role="neutral"');
+    const editSource = read('src/screens/Records/RecordEditScreen.tsx');
+    const headerBack = elements('src/screens/Records/RecordEditScreen.tsx', 'TouchableOpacity').find(n => n.includes('styles.backBtn'));
+    expect(headerBack).toContain('onPress={safeGoBack}');
+    expect(headerBack).toContain('disabled={saving}');
+    expect(editSource).toContain('변경사항 저장');
   });
   it('the redesigned inbox marks read without invoking notification deletion', () => {
     const source=read('src/screens/Notifications/UserNotificationsScreen.tsx');
@@ -75,7 +79,6 @@ describe('CTA source safety guards', () => {
   it('all active final custom delete dialogs declare the destructive role', () => {
     for (const file of [
       'src/screens/Schedules/ScheduleDetailScreen.tsx',
-      'src/screens/Records/RecordDetailScreen.tsx',
       'src/screens/Community/CommunityDiscussionContent.tsx',
       'src/screens/More/MoreDrawerContent.tsx',
     ]) {
@@ -89,6 +92,10 @@ describe('CTA source safety guards', () => {
         expect(n).toContain('confirmRole="destructiveConfirm"'),
       );
     }
+    expect(read('src/screens/Records/RecordDetailScreen.tsx')).toContain('<TimelineDeleteDialog');
+    const recordDelete = elements('src/components/records/TimelineDeleteDialog.tsx', 'TimelineButton');
+    expect(recordDelete.find(n => n.includes('timeline-delete-confirm'))).toContain('role="destructiveConfirm"');
+    expect(recordDelete.find(n => n.includes('timeline-delete-cancel'))).toContain('role="neutral"');
     expect(
       elements(
         'src/components/pets/PetDeleteConfirmDialog.tsx',

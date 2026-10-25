@@ -96,6 +96,13 @@ describe('actual native navigator transition configuration', () => {
   test('root toolbar still respects reduced motion', () => {
     expect(tabTransitionOptions(true)).toEqual({ animation: 'none' });
   });
+  test.each(['Splash', 'AppTabs', 'UserNotifications', 'RecordCreate'])(
+    '%s retains dark system icons on the approved light surfaces',
+    async name => {
+      await mount(<RootNavigator />);
+      expect(options(name).statusBarStyle).toBe('dark');
+    },
+  );
   test('More-covered tabs switch at zero duration without changing native scene mode', () => {
     expect(tabTransitionOptions(false, true)).toMatchObject({
       animation: 'fade', transitionSpec: { animation: 'timing', config: { duration: 0 } },

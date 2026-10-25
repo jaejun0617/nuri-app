@@ -28,6 +28,44 @@ describe('fixed full-bleed Home photo frame', () => {
     expect(frame().backgroundColor).toBe('transparent');
   });
 
+  it('never paints an opaque dark header band on missing, loading, error or retry surfaces', async () => {
+    const shade = () => renderer.root.findByProps({ testID: 'home-hero-photo-top-shade' });
+    const shadeStyle = () => StyleSheet.flatten(shade().props.style);
+    await render(null);
+    expect(shadeStyle()).toMatchObject({ height: 112, opacity: 0 });
+    await act(async () => renderer.update(<HomeHeroPhotoBackground uri={uri} frameWidth={412} />));
+    expect(shadeStyle()).toMatchObject({ height: 112, opacity: 0 });
+    await act(async () => image().props.onLoad());
+    expect(shadeStyle()).toMatchObject({ height: 112, opacity: 1 });
+    expect(shade().props.colors).toEqual(['rgba(0,0,0,0.18)', 'rgba(0,0,0,0)']);
+    await act(async () => image().props.onError());
+    expect(shadeStyle()).toMatchObject({ height: 112, opacity: 0 });
+    await act(async () => renderer.root.findByProps({ accessibilityLabel: '프로필 사진 다시 불러오기' }).props.onPress());
+    expect(shadeStyle()).toMatchObject({ height: 112, opacity: 0 });
+  });
+
+  it('reports current contrast state and re-enters loading even when returning to a previously ready URI', async () => {
+    const state = jest.fn();
+    await act(async () => {
+      renderer = Renderer.create(<HomeHeroPhotoBackground uri={uri} frameWidth={412} onPhotoStatusChange={state} />);
+    });
+    expect(state).toHaveBeenLastCalledWith({ uri, status: 'loading' });
+    const old = image().props;
+    await act(async () => old.onLoad());
+    expect(state).toHaveBeenLastCalledWith({ uri, status: 'ready' });
+    await act(async () => renderer.update(<HomeHeroPhotoBackground uri="https://example.test/pet-b.jpg" frameWidth={412} onPhotoStatusChange={state} />));
+    await act(async () => renderer.update(<HomeHeroPhotoBackground uri={uri} frameWidth={412} onPhotoStatusChange={state} />));
+    expect(StyleSheet.flatten(image().props.style).opacity).toBe(0);
+    expect(state).toHaveBeenLastCalledWith({ uri, status: 'loading' });
+    const count = state.mock.calls.length;
+    await act(async () => { old.onLoad(); old.onError(); });
+    expect(state).toHaveBeenCalledTimes(count);
+    await act(async () => image().props.onError());
+    expect(state).toHaveBeenLastCalledWith({ uri, status: 'error' });
+    await act(async () => renderer.update(<HomeHeroPhotoBackground uri={null} frameWidth={412} onPhotoStatusChange={state} />));
+    expect(state).toHaveBeenLastCalledWith({ uri: null, status: 'missing' });
+  });
+
   it('keeps the static ellipse on the Android hardware layer during a photo transition', async () => {
     await render();
     expect(renderer.root.findByProps({ testID: 'home-hero-photo-mask' }).props.androidRenderingMode).toBe('hardware');

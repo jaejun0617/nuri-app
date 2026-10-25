@@ -29,7 +29,11 @@ export async function handleNotificationDevice(request) {
       return jsonReply({ code: 'AUTH_REQUIRED' }, 401);
     const input = await boundedJson(request),
       secret = Deno.env.get('NURI_PUSH_TOKEN_KEY');
+    const cohort = await client.rpc('notification_push_qa_allowed_v3', {
+      p_user: identity.data.user.id,
+    });
     const configured = Boolean(
+      !cohort.error && cohort.data === true &&
       secret && Deno.env.get('NURI_FCM_SERVICE_ACCOUNT'),
     );
     if (input.action === 'status') return jsonReply({ configured });

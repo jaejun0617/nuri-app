@@ -1,4 +1,4 @@
-import React, { memo, useRef, useState } from 'react';
+import React, { memo, useLayoutEffect, useRef, useState } from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, View } from 'react-native';
 import MaskedView from '@react-native-masked-view/masked-view';
 import LinearGradient from 'react-native-linear-gradient';
@@ -11,24 +11,33 @@ type MaskProps = React.ComponentProps<typeof View> & {
   androidRenderingMode?: 'software' | 'hardware';
 };
 const PhotoMask = MaskedView as unknown as React.ComponentType<MaskProps>;
-type PhotoState = { uri: string | null; status: 'loading' | 'ready' | 'error' };
+export type HomeHeroPhotoStatus = {
+  uri: string | null;
+  status: 'missing' | 'loading' | 'ready' | 'error';
+};
+type PhotoRequest = { uri: string | null; attempt: number };
+type PhotoState = { request: PhotoRequest; status: 'loading' | 'ready' | 'error' };
 
 /** One native image and one fixed frame, including missing/loading/error/retry. */
 export const HomeHeroPhotoBackground = memo(function HeroPhotoBackground({
-  uri, frameWidth, colors = HOME_HERO_COLORS, onPhotoSettled,
-}: { uri: string | null; frameWidth: number; colors?: HomeHeroColors; onPhotoSettled?: (uri: string | null) => void }) {
+  uri, frameWidth, colors = HOME_HERO_COLORS, onPhotoSettled, onPhotoStatusChange,
+}: { uri: string | null; frameWidth: number; colors?: HomeHeroColors; onPhotoSettled?: (uri: string | null) => void; onPhotoStatusChange?: (state: HomeHeroPhotoStatus) => void }) {
   const geometry = getHomeHeroPhotoGeometry(frameWidth);
-  const [imageState, setImageState] = useState<PhotoState>({ uri, status: 'loading' });
   const [attempt, setAttempt] = useState(0);
-  const currentRequest = useRef({ uri, attempt });
+  const currentRequest = useRef<PhotoRequest>({ uri, attempt });
+  const [imageState, setImageState] = useState<PhotoState>({ request: currentRequest.current, status: 'loading' });
   if (currentRequest.current.uri !== uri || currentRequest.current.attempt !== attempt) {
     currentRequest.current = { uri, attempt };
   }
   const request = currentRequest.current;
-  const status = imageState.uri === uri ? imageState.status : 'loading';
+  const status = imageState.request === request ? imageState.status : 'loading';
+  useLayoutEffect(() => {
+    // Header contrast follows the same committed image state, including retries.
+    onPhotoStatusChange?.({ uri, status: uri ? status : 'missing' });
+  }, [onPhotoStatusChange, status, uri]);
   const settle = (next: PhotoState['status']) => {
     if (currentRequest.current === request) {
-      setImageState({ uri, status: next });
+      setImageState({ request, status: next });
       if (next !== 'loading') onPhotoSettled?.(uri);
     }
   };
@@ -94,13 +103,11 @@ export const HomeHeroPhotoBackground = memo(function HeroPhotoBackground({
         ) : null}
         <LinearGradient
           testID="home-hero-photo-top-shade"
-          colors={uri && status === 'ready'
-            ? ['rgba(0,0,0,0.18)', 'rgba(0,0,0,0)']
-            : ['rgba(24,19,33,0.78)', 'rgba(24,19,33,0.78)', 'rgba(24,19,33,0)']}
-          locations={uri && status === 'ready' ? [0, 1] : [0, 0.75, 1]}
+          colors={['rgba(0,0,0,0.18)', 'rgba(0,0,0,0)']}
+          locations={[0, 1]}
           pointerEvents="none"
           accessible={false}
-          style={[styles.shade, { height: uri && status === 'ready' ? 112 : 160 }]}
+          style={[styles.shade, { opacity: uri && status === 'ready' ? 1 : 0 }]}
         />
       </PhotoMask>
     </View>

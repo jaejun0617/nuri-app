@@ -25,6 +25,8 @@ verify_jwt = false
 
 [functions.notification-device-v3]
 verify_jwt = true
+entrypoint = "./functions/notification-device-v3/index.js"
 
 [functions.notification-worker-v3]
 verify_jwt = false
+entrypoint = "./functions/notification-worker-v3/index.js"

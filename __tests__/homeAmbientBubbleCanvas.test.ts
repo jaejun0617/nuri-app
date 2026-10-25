@@ -1,5 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { parse } from '@babel/parser';
+import traverse from '@babel/traverse';
 
 import React from 'react';
 import * as ReactNative from 'react-native';
@@ -361,9 +363,18 @@ describe('Home glossy bubble atmosphere', () => {
     expect(ReactNative.StyleSheet.flatten(lower.props.style).top).toBe(812);
     expect(canvasSource).not.toContain('onLayout=');
     expect(canvasSource).not.toContain('useState');
-    expect(homeSource.indexOf('<HomeAmbientBubbleCanvas')).toBeLessThan(
-      homeSource.indexOf('<SeasonalHomeAutumnStage'),
-    );
+    const starts = new Map<string, number>();
+    traverse(parse(homeSource, { sourceType: 'module', plugins: ['typescript', 'jsx'] }), {
+      JSXOpeningElement({ node }) {
+        if (node.name.type === 'JSXIdentifier' && typeof node.start === 'number' && !starts.has(node.name.name)) {
+          starts.set(node.name.name, node.start);
+        }
+      },
+    });
+    const canvasStart = starts.get('HomeAmbientBubbleCanvas');
+    const photoStart = starts.get('HomeHeroPhotoBackground');
+    if (canvasStart === undefined || photoStart === undefined) throw Error('HOME_CANVAS_OR_PHOTO_JSX_MISSING');
+    expect(canvasStart).toBeLessThan(photoStart);
     expect(homeSource).toContain('heroHeight={seasonalHeroViewportHeight}');
     await ReactTestRenderer.act(async () => renderer?.unmount());
   });

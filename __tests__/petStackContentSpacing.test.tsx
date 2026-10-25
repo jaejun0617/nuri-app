@@ -21,7 +21,7 @@ const mockNavigation = {
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
   useNavigation: () => mockNavigation,
-  useRoute: () => ({ params: { entrySource: 'more' } }),
+    useRoute: () => ({ params: { entrySource: 'more', initialTab: 'vault' } }),
   useFocusEffect: (callback: () => void | (() => void)) => {
     const ReactRuntime = jest.requireActual('react') as typeof React;
     ReactRuntime.useEffect(callback, [callback]);
@@ -105,7 +105,13 @@ describe('pet stack content-end spacing', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
-    jest.mocked(loadActivityDashboard).mockResolvedValue(dashboard);
+    jest.mocked(loadActivityDashboard).mockResolvedValue({
+      ...dashboard,
+      petSummaries: dashboard.petSummaries.map(pet => ({
+        ...pet,
+        achievements: dashboard.allAchievements.filter(item => item.ownerId === pet.petId),
+      })),
+    });
     usePetStore.setState({
       pets: [
         { id: 'pet-1', name: '누리' },
@@ -139,7 +145,7 @@ describe('pet stack content-end spacing', () => {
     );
     expect(contentScroll).toBeDefined();
     expect(StyleSheet.flatten(contentScroll?.props.contentContainerStyle)).toEqual(
-      expect.objectContaining({ paddingBottom: 42 }),
+      expect.objectContaining({ paddingBottom: 38 }),
     );
     expect(
       renderer.root.findAll(node => node.props.children === '루틴 새싹'),
@@ -158,8 +164,10 @@ describe('pet stack content-end spacing', () => {
 
     const list = renderer.root.findByType(FlatList);
     expect(StyleSheet.flatten(list.props.contentContainerStyle)).toEqual(
-      expect.objectContaining({ paddingBottom: 42 }),
+      expect.objectContaining({ paddingBottom: 24 }),
     );
+    const safeRoot = renderer.root.findByProps({ testID: 'pet-management-screen' });
+    expect(StyleSheet.flatten(safeRoot.props.style).paddingBottom).toBe(18);
     expect(renderer.root.findAll(node => node.props.children === '누리')).not.toHaveLength(0);
     expect(renderer.root.findAll(node => node.props.children === 'KakaoPet')).not.toHaveLength(0);
     expect(
