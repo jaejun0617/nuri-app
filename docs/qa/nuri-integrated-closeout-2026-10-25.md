@@ -2,6 +2,42 @@
 
 상태: IN_PROGRESS. 전체 동결 아님. Master 단독 수행.
 
+## 최신 피드백 및 실제 소비 증거
+
+- 피드백 후보 `dc009e10c7f76e6230025e34912e304b8436e48bfe1a34af120dc0f244ee897e`, 앱 입력 `a28380341b8b69abf24a563128a511fa508b925b66b7e4f8b729b10bbabc04f4`를 동일 서명으로 두 기기에 설치했다. Metro OFF, UID·기존 데이터 보존이다. `delivery-notification-feedback/installation.json`이 설치 기준을 소유한다. 내부 bundled Debug이며 Store RC 또는 release 성능 검증이 아니다.
+- `quick-feedback-physical.png`: 회보라 X와 CTA 문구/화살표 묶음 중앙을 확인했다. 버튼109..969px와 content393..685px의 중심은 모두539px이다. `settings-feedback-emulator-top.png`: X 보정과 subtitle 아래 간격을 확인했다. subtitle bottom738px/받을 알림 top770px, density2.625에서12.19dp다. 물리 기기의 전체 설정 검수로 확대하지 않는다.
+- Google QA에서 운영 동의를 OFF/ON해 두 service 컨트롤의 동시 표시, community ON 보존과 원격 저장을 확인했다. 최종 category boolean은 기존 service/schedule/community ON으로 복구했다. 6.106678초/29 encoded VFR frames 녹화는 실제 동작 관찰이며60fps나 모든 compositor frame의 부드러움 증명이 아니다. 정확한 기록은 `toggle-feedback-frame-review.json`이다.
+- 원격 `20261025095926_notification_preference_realtime`은 기존 owner RLS를 유지한 채 preferences 테이블을 기존 Realtime publication에 추가한다. 호스트 SQL45/45 PASS이며 실제 외부 변경의 live 전파 검증과는 구분한다. 같은 기기의 MutationCache 갱신을 두 기기 동기화 증거로 쓰지 않는다.
+- Google QA의 OS 앱 권한을 거부 상태에서 허용으로 바꾼 후 실제 등록1개를 확인했다. 이 권한은 QA 임시 상태이며 최종 복원 여부를 별도 기록한다. exact alarm 권한은 변경하지 않았다.
+- 전경 transport `66defd77-0a6b-468f-98b7-bb1a5af4038e`: FCM accepted, OS banner 없음, 최근3개에서 선택 후 상세/서버 read_at과 unread12→11을 확인했다. Realtime 갱신과 native 수신 callback을 독립 계측하지 않았으므로 native callback receipt PASS로 확대하지 않는다.
+- 백그라운드 transport `288b2963-8a11-4d2c-a60c-f621ddbe4dd2`: 실제 launcher resumed 상태에서 FCM accepted→OS 알림 표시→해당 알림 탭→상세→서버 read_at→Home unread11 복귀를 확인했다. cron이 먼저 처리해 수동 worker는 claimed0이었다. `emulator-background-native-display.json`과 `emulator-background-consumed-ui.json`이 증거다.
+- 위 두 항목은 QA 전용 transport/소비 증거다. 실제 업무 원본 이벤트 E2E, recent-removal/cold/force-stop/계정 전환/동일 계정 다중 기기 PASS가 아니다. 기존 다른11개 알림은 읽음·삭제하지 않았다.
+- 추가 로컬 보정: 미리보기의 cached 데이터/오류를 빈 화면과 구분하고 query 실행 시 owner 경계를 확인한다. 채널 요약 행은 비상호작용 View이며 Native 일정 채널 조회에서 앱 전체 권한과 채널 차단을 분리한다. 이 보정은 위 설치본 이후 소스이므로 다음 후보 설치·권한 거부 상태 재검증 전에는 설치 완료로 쓰지 않는다. 최신 관련5 suites36/36 PASS다.
+
+## 추가 승인: 알림 설정·Home 빠른 알림
+
+- 기존1~6과 NAV-01을 대체하지 않는 같은 통합 배치다. PO 추가 원문 `5285248c-ea1e-4979-b6c8-f0529d68b7dc/붙여넣은 텍스트.txt`와4개 시안을 기준으로 설정 시트·Home 최근3개 팝업·배지를 구현한다. 원래7~9는 시작하지 않는다.
+- 새 Home 팝업은 기존 Root native stack의 transparentModal이다. 팝업 인스턴스만 동일한 알림함/상세로 replace해 Home Back을 보존하며 More를 경유하지 않는다. RN Android Dialog의 iOS 전용 onDismiss에 기대거나 종료 시간을 추측하지 않는다. 실제 전환·Back·연속 탭 녹화는 새 후보에서 확인한다.
+- 서버 최근3개 전용 조회와 기존 전체 unread query/cache를 공유한다. 이전 Home의30개 조회·로컬 숨김·독립 unread·항상 mount된 구 팝업 경로는 제거한다. 모두 읽음은 기존 서버 확정 범위 RPC이며 목록을 삭제하지 않는다.
+- 토글은 손잡이 이동과 색상 교차 전환을 같은200ms native animation으로 처리한다. 즉시 임시 표시하고 저장 실패 시 확정 값으로 복귀한다. 중복 탭·변경 중 다른 요청·계정 경계·동작 줄이기를 처리한다. 기기에서 부드러움을 확인했다는 의미는 아니다.
+- 기존 이미지와 같은 픽셀이 없는12개 자산은 최신 시안에서 직접 추출했다. 외부 `notification-art-review/published-manifest.json`이 원본 경로·추출 좌표·출력 SHA를 소유한다. 새로 생성하거나 이모지로 대체하지 않았다.
+- 원격 `20261025091403_notification_granular_preferences`: 기존 private preferences 함수만 보정했다. 운영(service)은 다른 category의 master가 아니며 legacy master-OFF는 명시 변경 전 유효OFF를 보존한다. 행 잠금과 category patch로 응답 역전/다른 category 덮기를 막는다. QA rollback-only 원격 호출에서 serviceOFF/communityON 유지 확인. 일반 사용자 발송 gate·원본 데이터·RLS 변경 없음.
+- 호스트 SQL39/39, JVM 실제 반복 정책47checks PASS. 서버 전후 advisor 종류·건수는 동일하다. 기존 `public.v_my_pets_with_days` definer view 지적은 이번 함수와 무관하며 별도 보안 마감 항목으로 보존한다. [조치 기준](https://supabase.com/docs/guides/database/database-linter?lint=0010_security_definer_view).
+- 일정 재ON은 기존 native 예약 엔진으로 현재 소유자의 최신 미완료·미삭제·알림ON 일정만 복구한다. 지난 회차는 전달하지 않고 기존 Calendar 반복 정책의 다음 회차·간격·종료일을 사용한다. 재조회 중 삭제/수정·계정 변경·generation 무효화와 현재 울리는 알람 보존을 검사한다. 서버 일정 이벤트는 기존처럼 inbox-only이며 FCM과 이중 예약하지 않는다. 실제 기기 예약·설정 동기화 수락은 아직 남는다.
+
+## 중간 전달·진단 경계
+
+- 추가 PO 피드백: Home/설정의 X는 source-color 브랜드 glyph가 color prop을 무시해 하늘색 하이라이트로 보였다. 두 화면의 제어 아이콘만 기존 Feather 원본으로 연결해 회보라색을 적용한다. CTA 문구/18sp chevron은 하나의 중앙 정렬 content group과 동일20dp line box로 맞춘다. 설정 intro 아래30+22dp 중복 공백은12+0dp로 줄이고 섹션 상단은18dp로 정리한다. 폰트 family나 Home 사진/계절 surface는 바꾸지 않는다.
+- 후보 APK `57ac3dd68570c2d7c838118dd1c8917dbf84cd06adfaf727d96c196f5d89df68`을 두 기기에 같은 서명/UID/권한 보존·Metro OFF로 설치했다. 물리 기기의 실제0목록과 에뮬레이터 실제11미읽음/최근3행 팝업을 확인했다. 둘 다 목록 열기만 했으며 기존 읽음·알림 삭제0이다. `quick-physical-installed.png`/`quick-emulator-installed.png`는 PO 피드백 전 후보다. 원본 pixel size1080×2340/2400이며 시안과 다른 실제 데이터임을 구분한다. X/간격 보정 이후 새 후보 검증은 별도다.
+- category 추가 보정 원격 `20261025094515_notification_event_preference_key`: pet birthday/together는anniversary, memorial은memorial만 확인하도록 lease/send/finalize의 설정 키 해석을 통일했다. 종전 record 토글까지 요구하던 조건을 제거하고 QA cohort/권한/원본 접근/만료/읽음/재시도 gate는 유지했다. 호스트 SQL44/44는 각 ON+recordOFF, 각 OFF+recordON, 전송 중 OFF와 empty QA cohort를 포함한다. source event의 실제 단말 E2E는 아직 아니다.
+- 새 pending 토글은 MutationCache의 임시 값에서 파생해 운영 동의/누리 소식의 두 컨트롤이 함께 움직인다. 서버 cache를 임의의 성공 값으로 덮지 않고 실패 시 같은 확정 값으로 복구한다. 저장 중 닫기 이후 server cache 유지·계정 전환 후 늦은 응답 거부를 실제 hook 검사로 분리한다.
+- 아직 남은 목적지 수락: 현재 전체 목록·OS·빠른 팝업은 기존 NotificationDetail에서 typed target을 해석한다. 최신 요청의 댓글·일정 등 직접 목적지 진입과 성공 후 읽음 전체 계약은 공통 resolver/실제 E2E 단계에서 추가로 닫아야 하며 완료로 보고하지 않는다.
+
+- 중간 전달 SHA `7dde694bba265792e569c5110a983d916820b466`의 [원격 CI40176352673](https://github.com/jaejun0617/nuri-app/actions/runs/40176352673)는 source/타입/lint/foundation/전체/diff 후속 단계 모두 PASS다. 최신 추가 리디자인은 아직 이 SHA에 포함되지 않았으므로 최종 CI 수락과 구분한다.
+- 현재 새 UI의 Full319 suites4,382/4,382 PASS 이후 일정 최신 버전 재조회·2개 추가 검사를 별도 실행한다. 최종 소스의 타입·lint·설치 증거는 후속 영수증으로 연결한다.
+- 에뮬레이터 Google QA의 native getToken null은 실제 OS 알림 권한 거부와 대응했다. 원격 ES256 요청은 handler200을 확인했으므로 verify_jwt를 끄지 않았다. 실제 권한 허용 후 등록·다중 인스턴스 검증은 남는다.
+- Metro/inspector 진단 중2026-10-25 17:28:35 KST 에뮬레이터 Hermes SIGSEGV를 관찰했다. `emulator-diagnostic-crash.json`을 보존하며 원인은 UNKNOWN이다. 이 구간에 Debug가 Metro 개발 번들을 다시 요청했으므로 bundled-only 수락에 재사용하지 않는다. Metro는 종료했고 새 후보의 Metro OFF 재실행·재발 여부를 별도 확인한다.
+
 ## 범위와 기준점
 
 - 이번 범위는 1 검사, 2 외부 설정, 3 인증, 4 인앱 알림, 5 OS 푸시, 6 기록 통합, NAV-01이다. 원래 7 산책 장애, 8 정확도, 9 전체 화면 회귀는 시작하지 않는다.

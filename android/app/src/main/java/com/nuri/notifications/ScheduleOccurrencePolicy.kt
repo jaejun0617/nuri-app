@@ -13,6 +13,8 @@ internal data class ScheduleAlarmRegistration(
   val title: String,
   val body: String,
   val note: String = "",
+  val repeatInterval: Int = 1,
+  val repeatUntilMillis: Long = 0L,
 ) {
   fun matchesStop(alarmToken: String): Boolean = registrationToken == alarmToken
 
@@ -39,7 +41,10 @@ internal object ScheduleOccurrencePolicy {
     offsetMillis: Long,
     repeatRule: String,
     now: Long,
+    repeatInterval: Int = 1,
+    repeatUntilMillis: Long = 0L,
   ): Long? {
+    if (repeatInterval <= 0) return null
     val field = when (repeatRule) {
       "daily" -> Calendar.DAY_OF_YEAR
       "weekly" -> Calendar.WEEK_OF_YEAR
@@ -50,7 +55,10 @@ internal object ScheduleOccurrencePolicy {
     val calendar = Calendar.getInstance().apply { timeInMillis = occurrenceAtMillis }
     // Always advance a stopped/fired event at least once, even before its start time.
     do {
-      calendar.add(field, 1)
+      val previous = calendar.timeInMillis
+      calendar.add(field, repeatInterval)
+      if (calendar.timeInMillis <= previous) return null
+      if (repeatUntilMillis > 0 && calendar.timeInMillis > repeatUntilMillis) return null
     } while (calendar.timeInMillis - offsetMillis <= now)
     return calendar.timeInMillis
   }

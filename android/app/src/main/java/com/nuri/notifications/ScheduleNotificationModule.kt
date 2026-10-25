@@ -89,6 +89,9 @@ class ScheduleNotificationModule(
       occurrenceAtMillis = payload.getSafeDouble("occurrenceAtMillis").toLong(),
       repeatRule = payload.getSafeString("repeatRule").ifBlank { "none" },
       note = ScheduleAlarmPresentation.notificationNote(payload.getSafeString("note")),
+      repeatInterval = if (payload.hasKey("repeatInterval")) payload.getSafeDouble("repeatInterval").toInt() else 1,
+      repeatUntilMillis = payload.getSafeDouble("repeatUntilMillis").toLong(),
+      restoreFuture = payload.hasKey("restoreFuture") && !payload.isNull("restoreFuture") && payload.getBoolean("restoreFuture"),
     )
     promise.resolve(
       Arguments.createMap().apply {

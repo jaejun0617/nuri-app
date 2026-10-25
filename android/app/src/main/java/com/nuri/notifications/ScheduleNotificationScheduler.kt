@@ -116,8 +116,19 @@ object ScheduleNotificationScheduler {
     repeatRule: String,
     occurrenceAtMillis: Long = 0L,
     note: String = "",
+    repeatInterval: Int = 1,
+    repeatUntilMillis: Long = 0L,
+    restoreFuture: Boolean = false,
   ): ScheduleResult {
     synchronized(registryLock) {
+      // Re-enabling uses the existing recurrence policy, never a missed alarm burst.
+      val offset = occurrenceAtMillis - fireAtMillis
+      val restoredOccurrence = if (restoreFuture && fireAtMillis <= System.currentTimeMillis()) {
+        if (occurrenceAtMillis <= 0L || offset < 0L) return ScheduleResult("unsupported", "unknown", "invalid-occurrence-payload")
+        ScheduleOccurrencePolicy.nextOccurrence(
+          occurrenceAtMillis, offset, repeatRule, System.currentTimeMillis(), repeatInterval, repeatUntilMillis,
+        ) ?: return ScheduleResult("skipped-past", "not-applicable")
+      } else occurrenceAtMillis
       ScheduleAlarmRingingService.cancel(context, alarmId)
       // The registry replacement and PendingIntent creation must share the
       // same lock. Creating the new PendingIntent before cancelling the old
@@ -130,10 +141,12 @@ object ScheduleNotificationScheduler {
         petId = petId,
         title = title,
         body = body,
-        fireAtMillis = fireAtMillis,
+        fireAtMillis = if (restoredOccurrence != occurrenceAtMillis) restoredOccurrence - offset else fireAtMillis,
         repeatRule = repeatRule,
-        occurrenceAtMillis = occurrenceAtMillis,
+        occurrenceAtMillis = restoredOccurrence,
         note = note,
+        repeatInterval = repeatInterval,
+        repeatUntilMillis = repeatUntilMillis,
       )
     }
   }
@@ -149,6 +162,8 @@ object ScheduleNotificationScheduler {
     repeatRule: String,
     occurrenceAtMillis: Long,
     note: String,
+    repeatInterval: Int = 1,
+    repeatUntilMillis: Long = 0L,
   ): ScheduleResult {
     if (alarmId.isBlank() || scheduleId.isBlank()) {
       return ScheduleResult("unsupported", "unknown", "invalid-alarm-payload")
@@ -156,6 +171,8 @@ object ScheduleNotificationScheduler {
     val occurrence = occurrenceAtMillis.takeIf { it >= fireAtMillis && it > 0 }
       ?: ScheduleOccurrencePolicy.legacyOccurrenceAt(alarmId, scheduleId, fireAtMillis)
       ?: return ScheduleResult("unsupported", "unknown", "invalid-occurrence-payload")
+    if (repeatInterval <= 0) return ScheduleResult("unsupported", "unknown", "invalid-repeat-interval")
+    if (repeatUntilMillis > 0 && occurrence > repeatUntilMillis) return ScheduleResult("skipped-past", "not-applicable")
     if (occurrence <= stoppedOccurrences(context).optLong(scheduleId, 0L)) {
       return ScheduleResult("skipped-past", "not-applicable", "occurrence-stopped")
     }
@@ -210,7 +227,7 @@ object ScheduleNotificationScheduler {
     val registry = alarmRegistry(context).toMutableMap()
     registry[alarmId] = RegisteredAlarm(
       scheduleId, fireAtMillis, registrationToken, exact, occurrence, repeatRule, petId, title, body,
-      note,
+      note, repeatInterval, repeatUntilMillis,
     )
     val scheduled = scheduledIds(context).toMutableSet().apply { add(alarmId) }
     if (!persistStateLocked(context, scheduled, registry, postedRegistry(context))) {
@@ -308,10 +325,12 @@ object ScheduleNotificationScheduler {
     val offset = registration.occurrenceAtMillis - registration.fireAtMillis
     val next = ScheduleOccurrencePolicy.nextOccurrence(
       registration.occurrenceAtMillis, offset, registration.repeatRule, System.currentTimeMillis(),
+      registration.repeatInterval, registration.repeatUntilMillis,
     ) ?: return
     val result = scheduleLocked(
       context, alarmId, registration.scheduleId, registration.petId, registration.title,
       registration.body, next - offset, registration.repeatRule, next, registration.note,
+      registration.repeatInterval, registration.repeatUntilMillis,
     )
     if (result.status != "scheduled") {
       Log.w("NuriScheduleAlarm", "Next occurrence not scheduled: ${result.status}/${result.errorCode}")
@@ -614,7 +633,8 @@ object ScheduleNotificationScheduler {
   }
 
   private fun channelStatus(context: Context): String {
-    if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) return "blocked"
+    // App permission is reported separately; it must not masquerade as a
+    // disabled channel. scheduleLocked still checks both before delivery.
     if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return "not-required"
     val channel = context.getSystemService(NotificationManager::class.java)
       .getNotificationChannel(CHANNEL_ID)
@@ -672,6 +692,8 @@ object ScheduleNotificationScheduler {
         title = value.optString("title"),
         body = value.optString("body"),
         note = value.optString("note"),
+        repeatInterval = value.optInt("repeatInterval", 1),
+        repeatUntilMillis = value.optLong("repeatUntilMillis", 0L),
       )
     }.toMap()
   }
@@ -693,7 +715,9 @@ object ScheduleNotificationScheduler {
         .put("petId", value.petId)
         .put("title", value.title)
         .put("body", value.body)
-        .put("note", value.note))
+        .put("note", value.note)
+        .put("repeatInterval", value.repeatInterval)
+        .put("repeatUntilMillis", value.repeatUntilMillis))
     }
     return json
   }

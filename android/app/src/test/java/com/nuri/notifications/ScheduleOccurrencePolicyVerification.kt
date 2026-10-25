@@ -56,6 +56,12 @@ object ScheduleOccurrencePolicyVerification {
       verify(ScheduleOccurrencePolicy.nextOccurrence(event, 0, "weekly", event) == event + 7 * 86400000L)
       verify(ScheduleOccurrencePolicy.nextOccurrence(event, 300000L, "daily", event + 2 * 86400000L) == event + 3 * 86400000L)
       verify(ScheduleOccurrencePolicy.nextOccurrence(event, 0, "none", event) == null)
+      verify(ScheduleOccurrencePolicy.nextOccurrence(event, 0, "daily", event, 2) == event + 2 * 86400000L)
+      verify(ScheduleOccurrencePolicy.nextOccurrence(event, 0, "weekly", event, 2) == event + 14 * 86400000L)
+      verify(ScheduleOccurrencePolicy.nextOccurrence(event, 0, "daily", event, 0) == null)
+      verify(ScheduleOccurrencePolicy.nextOccurrence(event, 0, "daily", event, 1, event + 86400000L) == event + 86400000L)
+      verify(ScheduleOccurrencePolicy.nextOccurrence(event, 0, "daily", event, 1, event + 86399999L) == null)
+      verify(ScheduleOccurrencePolicy.nextOccurrence(event, 600000L, "daily", event + 2 * 86400000L, 1, event + 2 * 86400000L) == null)
 
       val state = ScheduleAlarmState()
       val active = ScheduleAlarmOccurrence("a::5::0", "a", "pet", "five", 1, "QA", "QA", event)

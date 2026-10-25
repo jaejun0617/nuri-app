@@ -4,10 +4,12 @@ import { appQueryClient } from '../query/appQueryClient';
 import { useAuthStore } from '../../store/authStore';
 import { syncPushNotificationDevice } from './pushTokenLifecycle';
 import { clearNativePushOwner } from './nativePush';
+import { syncAccountScheduleNotificationPreference } from '../schedules/preferenceSync';
 
 /** One account-scoped invalidation owner; Realtime is not an OS push channel. */
 export function observeNotificationChanges(userId: string): () => void {
   syncPushNotificationDevice().catch(() => {});
+  syncAccountScheduleNotificationPreference(userId).catch(() => {});
   let active = true;
   let timer: ReturnType<typeof setTimeout> | undefined;
   const invalidate = () => {
@@ -46,6 +48,14 @@ export function observeNotificationChanges(userId: string): () => void {
     )
     .on(
       'postgres_changes',
+      { event: '*', schema: 'public', table: 'user_notification_preferences', filter: `user_id=eq.${userId}` },
+      () => {
+        invalidate();
+        syncAccountScheduleNotificationPreference(userId).catch(() => {});
+      },
+    )
+    .on(
+      'postgres_changes',
       { event: '*', schema: 'public', table: 'announcements' },
       invalidate,
     )
@@ -54,6 +64,7 @@ export function observeNotificationChanges(userId: string): () => void {
     if (state === 'active') {
       invalidate();
       syncPushNotificationDevice().catch(() => {});
+      syncAccountScheduleNotificationPreference(userId).catch(() => {});
     }
   });
   return () => {

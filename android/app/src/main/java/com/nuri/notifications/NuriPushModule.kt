@@ -55,6 +55,21 @@ class NuriPushModule(private val context: ReactApplicationContext) : ReactContex
       NuriPushService.categories.forEach { putBoolean(it, Build.VERSION.SDK_INT < Build.VERSION_CODES.O || manager.getNotificationChannel("nuri_$it")?.importance != NotificationManager.IMPORTANCE_NONE) }
     })
   }
+  @ReactMethod fun getChannelStatusDetails(promise: Promise) {
+    val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    promise.resolve(Arguments.createMap().apply {
+      putBoolean("appEnabled", NotificationManagerCompat.from(context).areNotificationsEnabled())
+      NuriPushService.categories.forEach { category ->
+        val channel = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) manager.getNotificationChannel("nuri_$category") else null
+        putString(category, when {
+          Build.VERSION.SDK_INT < Build.VERSION_CODES.O -> "not-required"
+          channel == null -> "missing"
+          channel.importance == NotificationManager.IMPORTANCE_NONE -> "blocked"
+          else -> "ready"
+        })
+      }
+    })
+  }
   companion object {
     const val PREFS = "nuri.push.v3"
     @Volatile var foreground = false

@@ -100,6 +100,9 @@ type AndroidScheduleNotificationPayload = {
   fireAtMillis: number;
   occurrenceAtMillis: number;
   repeatRule: ScheduleRepeatRule;
+  repeatInterval?: number;
+  repeatUntilMillis?: number;
+  restoreFuture?: boolean;
 };
 
 type AndroidScheduleNotificationsModule = {
@@ -123,7 +126,7 @@ export type SchedulableSchedule = Pick<
   | 'repeatRule'
   | 'reminderMinutes'
   | 'completedAt'
->;
+> & Partial<Pick<PetSchedule, 'repeatInterval' | 'repeatUntil'>>;
 
 type NativeScheduleResult = {
   status: ScheduleNotificationSyncStatus;
@@ -267,14 +270,16 @@ function buildAlarmId(
   return `${scheduleId}::${reminderMinutes}::${index}`;
 }
 
-function buildNotificationFireEntries(schedule: SchedulableSchedule) {
+function buildNotificationFireEntries(schedule: SchedulableSchedule, restoreFuture = false) {
   return [...new Set(schedule.reminderMinutes ?? [])]
     .filter(value => Number.isFinite(value) && value >= 0)
     .sort((left, right) => left - right)
     .map((reminderMinutes, index) => ({
       alarmId: buildAlarmId(schedule.id, reminderMinutes, index),
       reminderMinutes,
-      fireDate: buildNotificationFireDate(schedule, reminderMinutes),
+      fireDate: restoreFuture
+        ? new Date(schedule.startsAt).getTime() - reminderMinutes * 60_000
+        : buildNotificationFireDate(schedule, reminderMinutes),
     }))
     .filter(
       (
@@ -283,7 +288,7 @@ function buildNotificationFireEntries(schedule: SchedulableSchedule) {
         alarmId: string;
         reminderMinutes: number;
         fireDate: number;
-      } => entry.fireDate !== null,
+      } => entry.fireDate !== null && Number.isFinite(entry.fireDate),
     );
 }
 
@@ -624,6 +629,7 @@ export async function requestScheduleNotificationPermission(): Promise<ScheduleN
 export async function upsertScheduleNotification(
   schedule: SchedulableSchedule,
   lifecycleContext?: ScheduleNotificationLifecycleContext,
+  restoreFuture = false,
 ): Promise<ScheduleNotificationSyncResult> {
   // A DB write can outlive logout/session replacement. Reject the late
   // side-effect before it can cancel or schedule a native alarm from the old
@@ -647,6 +653,13 @@ export async function upsertScheduleNotification(
       delivery: 'not-applicable',
     });
   }
+
+  const repeatInterval = schedule.repeatInterval ?? 1;
+  const repeatUntilMillis = schedule.repeatUntil
+    ? new Date(/^\d{4}-\d{2}-\d{2}$/.test(schedule.repeatUntil) ? `${schedule.repeatUntil}T23:59:59.999+09:00` : schedule.repeatUntil).getTime()
+    : 0;
+  if (!Number.isSafeInteger(repeatInterval) || repeatInterval <= 0 || repeatInterval > 2_147_483_647 || !Number.isFinite(repeatUntilMillis))
+    return createSyncResult('unsupported', { errorCode: 'invalid-repeat-payload' });
 
   const permissionStatus = await checkScheduleNotificationPermission();
   if (!isCurrentScheduleOperation(schedule.id, operation)) {
@@ -693,7 +706,7 @@ export async function upsertScheduleNotification(
     });
   }
 
-  const fireEntries = buildNotificationFireEntries(schedule);
+  const fireEntries = buildNotificationFireEntries(schedule, restoreFuture && Platform.OS === 'android');
   if (fireEntries.length === 0) {
     return createSyncResult('skipped-past', {
       permission: permissionStatus,
@@ -743,6 +756,9 @@ export async function upsertScheduleNotification(
             fireAtMillis: entry.fireDate,
             occurrenceAtMillis: new Date(schedule.startsAt).getTime(),
             repeatRule: schedule.repeatRule,
+            repeatInterval,
+            repeatUntilMillis,
+            restoreFuture,
           }),
           settings.delivery,
         );

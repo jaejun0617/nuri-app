@@ -253,6 +253,22 @@ export async function fetchSchedulesByPet(input: {
   return rows.map(mapRow);
 }
 
+/** Explicit owner scope and paging avoid silently losing alarms at the API row cap. */
+export async function fetchNotificationSchedules(userId: string): Promise<PetSchedule[]> {
+  const result: PetSchedule[] = [];
+  const pageSize = 500;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabase.from('pet_schedules').select(SCHEDULE_COLUMNS)
+      .eq('user_id', userId).is('completed_at', null).neq('sync_status', 'deleted')
+      .or(`repeat_rule.neq.none,starts_at.gt.${new Date().toISOString()}`)
+      .order('id', { ascending: true }).range(offset, offset + pageSize - 1);
+    if (error) throw error;
+    const rows = toPetSchedulesRows(data);
+    result.push(...rows.map(mapRow));
+    if (rows.length < pageSize) return result;
+  }
+}
+
 export async function fetchScheduleById(scheduleId: string): Promise<PetSchedule> {
   const { data, error } = await supabase
     .from('pet_schedules')

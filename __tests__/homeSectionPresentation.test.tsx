@@ -155,8 +155,10 @@ describe('Home section rhythm and material', () => {
     expect(header).toContain('accessibilityLabel={notificationAccessibilityLabel}');
     expect(header).toContain('accessibilityRole="button"');
     expect(header).toMatch(/<NuriIcon\s+testID="home-notification-icon"\s+name="bell"\s+size=\{26\}\s+color=\{foreground\}\s+colorMode="theme"\s+variant="outline"/);
-    expect(header).toContain('notificationUnreadCount > 0');
-    expect(header).toContain('styles.headerNotificationBadge');
+    expect(header).toContain('<HomeNotificationBadge count={notificationUnreadCount} />');
+    const openInbox = source.slice(source.indexOf('const openHomeNotifications'), source.indexOf('const closeHomeNotifications'));
+    expect(openInbox).toContain("navigation.navigate('HomeQuickNotifications')");
+    expect(openInbox).not.toContain('setNotificationModalVisible(true)');
   });
 
   it('renders the existing notification glyph in white without its original palette', async () => {

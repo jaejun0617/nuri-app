@@ -65,6 +65,7 @@ import WalkHistoryScreen from '../screens/Records/WalkHistoryScreen';
 import WalkProductScreen from '../screens/Walk/WalkProductScreen';
 import UserNotificationsScreen from '../screens/Notifications/UserNotificationsScreen';
 import NotificationDetailScreen from '../screens/Notifications/NotificationDetailScreen';
+import HomeQuickNotificationsScreen from '../screens/Notifications/HomeQuickNotificationsScreen';
 import NuriRankingScreen from '../screens/Ranking/NuriRankingScreen';
 import PolicyCenterScreen from '../screens/Policy/PolicyCenterScreen';
 import PolicyDetailScreen from '../screens/Policy/PolicyDetailScreen';
@@ -253,6 +254,7 @@ export type RootStackParamList = {
   CommunityBlockedUsers: { entrySource?: ScreenEntrySource } | undefined;
   UserNotifications: { entrySource?: ScreenEntrySource } | undefined;
   NotificationDetail: { id: string; source: 'user'|'announcement' };
+  HomeQuickNotifications: undefined;
   NuriRanking: { entrySource?: ScreenEntrySource } | undefined;
   PolicyCenter: { entrySource?: ScreenEntrySource } | undefined;
   PolicyDetail: {
@@ -567,6 +569,11 @@ export default function RootNavigator() {
       />
       <Stack.Screen name="WalkHistory" component={WalkHistoryScreen} options={{ headerShown: false }} />
       <Stack.Screen name="WalkProduct" component={WalkProductScreen} options={{ headerShown: false }} />
+      <Stack.Screen
+        name="HomeQuickNotifications"
+        component={HomeQuickNotificationsScreen}
+        options={{ headerShown: false, presentation: 'transparentModal', animation: 'fade', contentStyle: { backgroundColor: 'transparent' } }}
+      />
       <Stack.Screen
         name="UserNotifications"
         component={UserNotificationsScreen}

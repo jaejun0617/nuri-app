@@ -6,6 +6,7 @@ type NativePush = {
   clearOwner: (expectedOwner: string | null) => Promise<boolean>;
   consumeInitialTap: () => Promise<unknown>;
   getChannelStates: () => Promise<unknown>;
+  getChannelStatusDetails?: () => Promise<unknown>;
 };
 function bridge(): NativePush | null {
   const raw: unknown = NativeModules.NuriPushNotifications;
@@ -95,6 +96,15 @@ export async function readNativePushChannelStates(): Promise<Record<
     activity: value.activity,
     record: value.record,
   };
+}
+export type PushChannelStatus = 'missing' | 'blocked' | 'ready' | 'not-required';
+export type PushChannelDetails = { appEnabled: boolean; channels: Record<'news' | 'community' | 'activity' | 'record', PushChannelStatus> };
+export async function readNativePushChannelDetails(): Promise<PushChannelDetails | null> {
+  const value: unknown = await bridge()?.getChannelStatusDetails?.();
+  if (!value || typeof value !== 'object' || !('appEnabled' in value) || typeof value.appEnabled !== 'boolean') return null;
+  const valid = (raw: unknown): raw is PushChannelStatus => raw === 'missing' || raw === 'blocked' || raw === 'ready' || raw === 'not-required';
+  if (!('news' in value) || !valid(value.news) || !('community' in value) || !valid(value.community) || !('activity' in value) || !valid(value.activity) || !('record' in value) || !valid(value.record)) return null;
+  return { appEnabled: value.appEnabled, channels: { news: value.news, community: value.community, activity: value.activity, record: value.record } };
 }
 export function observeNativePush(
   onTap: (tap: NotificationTap) => void,

@@ -32,8 +32,6 @@ describe('schedule notification settings modal', () => {
               visible
               bottomInset={0}
               enabled
-              pushOptIn={false}
-              pushProviderStatus="unknown"
               permissionStatus="granted"
               settings={{
                 enabled: true,
@@ -46,11 +44,8 @@ describe('schedule notification settings modal', () => {
                 canOpenExactAlarmSettings: false,
               }}
               loading={false}
-              accentColor="#8B5CF6"
               onClose={jest.fn()}
-              onToggleEnabled={jest.fn()}
-              onTogglePushOptIn={jest.fn()}
-              onRequestPermission={jest.fn()}
+              onRefreshSettings={jest.fn().mockResolvedValue(undefined)}
               onOpenSystemSettings={jest.fn()}
               onOpenExactAlarmSettings={jest.fn()}
             />
@@ -88,5 +83,28 @@ describe('schedule notification settings modal', () => {
 
     expect(maxHeight).toBeLessThanOrEqual(430 - 24 - 150);
     expect(maxHeight).toBeLessThan(280);
+  });
+
+  it('renders channel status as a non-interactive text row without an arrow', async () => {
+    const originalPlatform = Platform.OS;
+    Object.defineProperty(Platform, 'OS', { configurable: true, value: 'android' });
+    let renderer!: TestRenderer.ReactTestRenderer;
+    try {
+      await TestRenderer.act(async () => {
+        renderer = TestRenderer.create(<ThemeProvider theme={createTheme('light')}><NotificationSettingsModal
+          visible bottomInset={0} enabled permissionStatus="granted" loading={false}
+          settings={{ enabled: true, platform: 'android', nativeSupported: true, permission: 'granted', exactAlarm: 'granted', channel: 'ready', delivery: 'exact', canOpenExactAlarmSettings: true }}
+          onClose={jest.fn()} onRefreshSettings={jest.fn().mockResolvedValue(undefined)} onOpenSystemSettings={jest.fn()} onOpenExactAlarmSettings={jest.fn()}
+        /></ThemeProvider>);
+      });
+      const rows = renderer.root.findAll(node => typeof node.type === 'string' && node.props.testID === 'notification-settings-channels');
+      expect(rows).toHaveLength(1);
+      expect(rows[0].props.accessibilityRole).toBe('text');
+      expect(rows[0].props.onPress).toBeUndefined();
+      expect(rows[0].findAll(node => node.props.name === 'chevron-right')).toHaveLength(0);
+    } finally {
+      if (renderer) await TestRenderer.act(async () => renderer.unmount());
+      Object.defineProperty(Platform, 'OS', { configurable: true, value: originalPlatform });
+    }
   });
 });
