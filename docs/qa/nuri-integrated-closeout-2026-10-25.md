@@ -2,6 +2,15 @@
 
 상태: IN_PROGRESS. 전체 동결 아님. Master 단독 수행.
 
+## 2026-10-28 실제 실패 안내 수락과 최초 shell 준비
+
+- c5313379e84bf65838eb157e89d2cbf1049df12d/[CI40699213322](https://github.com/jaejun0617/nuri-app/actions/runs/40699213322)의 필수 후속 전체 PASS를 확인했다. runtime cc821f9c23c67d4ae13eca3daebc2c91b75dd4a3c4f59fdadd32b75aacf1fb11·APK0675ae25e91e48166c0b6bf588a218468d2dc2da103e0bd323a72e3462ace4ae를 두 인스턴스에 보존 설치/Metro OFF로 확인했다. `delivery-boot-shell-replacement`와 `boot-shell-acceptance.json`이 영수증을 소유한다.
+- 실제 offline 수락: Google 에뮬레이터의0b9c0dce 알림은 실패 시 정확한 ‘알림을 불러오지 못했어요’/재시도와 read_at NULL을 유지했다. 네트워크를 켜자마자 한 첫 재시도는 아직 연결 준비 전이어서 수락하지 않았다. 실제 VALIDATED network 복구 뒤 정상 UI 재시도→해당 QA 댓글→14:15:28.871868Z 읽음→시스템 Back1회 같은 Home을 확인했다. 앞선97개 수집 프레임 영상은 오류 상태까지만 증명하며 후속 성공은 UI/서버 증거다. network1/1 원복이다.
+- 시작 수락은 PARTIAL이다. normal 물리204개 수집 프레임에서 기존 OS icon→artwork→같은 아이 Home의 공백을 관찰하지 않았다. emulator78개에서는 frame53/14.997878초에 빈 바탕, frame54/15.835911초에 Home 기본 UI가 남았다. 표본 간격은 실제 전체 compositor 지속시간 보장이 아니다. UI dump 실패는 유지된 PID20014/복구한 hash 영상·후속 Home과 구분했다.
+- 별도 physical cold66e1bcdb의 실제 OS→해당 댓글/읽음14:06:39.812062Z→Back1회 Home을 확인했다.294개 수집 프레임에서 icon_preferred 테마만으로는 icon 생략이 해결되지 않았다. 최초 전송3fcb8c03은 전경 조건이므로 cold OS 시험 NOT_RUN으로 분리했다. 전달 전용 행을 업무 이벤트 E2E에 합산하지 않는다.
+- 최소 다음 후보는 설치된 native stack의 preload로 최초 ordinary AppTabs 하나만 준비하고 실제 양수 layout의 route key가 일치한 뒤 기존 replace를 실행한다. guest/auth·알림/댓글 복구의 atomic Back·2초 브랜드 최소 시간·400ms·현재 선택은 보존한다. 모든 화면 영구 mount·고정 준비 지연·가림막은 없다. 실제 layout은 화면 기본 구조 준비 신호이며 데이터/이미지 전체 완료나 접근 권한 증명이 아니다.
+- 알림 PendingIntent에는 Android33+의 공식 ActivityOptions splash icon 선호만 추가한다. 계정·원본·채널·TTL·중복·background launch 권한은 바꾸지 않는다. 최초 환영 안내는 preload 중 열지 않도록 기존 load effect를 Home focus 범위로 옮겼다. 숨긴 Home 회귀1FAIL→정상 focus 뒤 조회/명시 확인 수락과, 설치된 StackRouter의 preload key 재사용을 검사했다. 최초 준비 회귀2FAIL/20PASS를 보존하며 최종6suites83/83·전체339suites4567/4567·타입/대상lint0오류/0경고 PASS다(`boot-preload-final-*`). 새 native 컴파일/동일 SHA CI·보존 설치/실제 시작 수락은 아직 남는다. 전체 항목 완료 기준은2/7=28.6%, OS10/13=76.9%, 기록 도메인 전체0/4이며 전체 미동결·원래7~9 미착수·STORE HOLD다.
+
 ## 2026-10-28 시작 연결의 두 번째 경계 분리
 
 - 5bb2b38f718c3f74f6b7135fa2205ea11f6e08c8/[CI40695529169](https://github.com/jaejun0617/nuri-app/actions/runs/40695529169) 필수 후속 전체 PASS, runtime9365e5fd95d2f3d6857191e3440ee59e29c8d25d63c3e0016ff004defd7a8ac8·APK3ba9adbd45b761d86f9869ee369f2a1210f2dfe1e88756f276e054f1cfdbdf20을 두 인스턴스에 동일 서명·UID·최초 설치·권한·데이터 보존/Metro OFF로 설치했다. native 컴파일 포함 BUILD SUCCESSFUL이며 이번 신규 package의 override 인자명 경고2개는 다음 후보에서 원래 interface 이름과 맞춘다. 기존 시스템바/React delegate deprecation과 구분한다.

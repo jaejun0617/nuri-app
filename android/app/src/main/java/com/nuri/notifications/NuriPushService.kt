@@ -1,11 +1,13 @@
 package com.nuri.notifications
 
+import android.app.ActivityOptions
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.window.SplashScreen
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.google.firebase.messaging.FirebaseMessagingService
@@ -39,7 +41,12 @@ class NuriPushService : FirebaseMessagingService() {
     channels(this)
     val intent = Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
       .putExtra("nuri_push_tap", true).putExtra("recipientUserId", owner).putExtra("notificationId", id).putExtra("notificationSource", source)
-    val pending = PendingIntent.getActivity(this, (source + id).hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE)
+    // Notification launches may otherwise request a solid-color starting window.
+    // This changes only the cold-start style, not warm routing or background privileges.
+    val launchOptions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+      ActivityOptions.makeBasic().setSplashScreenStyle(SplashScreen.SPLASH_SCREEN_STYLE_ICON).toBundle()
+    } else null
+    val pending = PendingIntent.getActivity(this, (source + id).hashCode(), intent, PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE, launchOptions)
     val notification = NotificationCompat.Builder(this, "nuri_$category")
       .setSmallIcon(com.nuri.R.mipmap.ic_launcher)
       .setContentTitle(data["title"]?.take(150) ?: "누리 알림")

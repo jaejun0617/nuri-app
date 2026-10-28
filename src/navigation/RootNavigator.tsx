@@ -13,7 +13,7 @@
 // - route name이나 param 타입을 바꾸면 여러 화면과 툴바, More 메뉴, 탭 복귀 흐름이 함께 깨질 수 있다.
 // - 숨겨진 헤더 정책과 reset 진입 흐름을 함부로 바꾸면 앱 첫 진입 UX가 흔들린다.
 
-import React from 'react';
+import React, { useState } from 'react';
 import type { NavigatorScreenParams } from '@react-navigation/native';
 import TimelineStackNavigator, { type TimelineStackParamList } from './TimelineStackNavigator';
 import type { NotificationOpenReceipt, NotificationStartup } from '../services/notifications/openNotification';
@@ -352,6 +352,7 @@ const FixedCommunityBlockedUsersScreen = () => (
 
 export default function RootNavigator({ notificationStartup }: { notificationStartup?: NotificationStartup }) {
   const reduceMotion = useNavigationMotion();
+  const [appTabsLayoutKey, setAppTabsLayoutKey] = useState<string | null>(null);
   return (
     <Stack.Navigator
       initialRouteName="Splash"
@@ -373,15 +374,16 @@ export default function RootNavigator({ notificationStartup }: { notificationSta
         name="Splash"
         options={{ headerShown: false }}
       >
-        {() => <HomeScreen notificationStartup={notificationStartup} />}
+        {() => <HomeScreen notificationStartup={notificationStartup} appTabsLayoutKey={appTabsLayoutKey} />}
       </Stack.Screen>
 
       {/* ✅ 앱 본 화면: 공통 하단 탭 */}
       <Stack.Screen
         name="AppTabs"
-        component={AppTabsNavigator}
         options={{ headerShown: false }}
-      />
+      >
+        {({ route }) => <AppTabsNavigator onPrepared={() => setAppTabsLayoutKey(route.key)} />}
+      </Stack.Screen>
 
       {/* Auth */}
       <Stack.Screen

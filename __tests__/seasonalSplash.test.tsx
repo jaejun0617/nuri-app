@@ -29,7 +29,10 @@ const mockPets = {
   pets: [] as { id: string; name: string }[],
   errorMessage: null,
 };
-const mockNavigation = { reset: jest.fn(), replace: jest.fn(), isFocused: () => true };
+const mockNavigation = {
+  reset: jest.fn(), replace: jest.fn(), preload: jest.fn(), isFocused: () => true,
+  getState: () => ({ preloadedRoutes: [{ key: 'prepared-shell', name: 'AppTabs' }] }),
+};
 const mockRestore = jest.fn();
 const mockCommunity = { restoreListSnapshot: mockRestore };
 const mockLoad = jest.fn<Promise<CommunityRouteStateSnapshot | null>, []>();
@@ -265,9 +268,27 @@ describe('seasonal splash presentation and boot preservation', () => {
     await act(async () => jest.advanceTimersByTime(1999));
     expect(mockNavigation.replace).not.toHaveBeenCalled();
     await act(async () => jest.advanceTimersByTime(1));
+    expect(mockNavigation.preload).toHaveBeenCalledWith('AppTabs', undefined);
+    expect(mockNavigation.replace).not.toHaveBeenCalled();
+    await act(async () => renderer.update(<HomeScreen appTabsLayoutKey="prepared-shell" />));
+    await act(async () => jest.advanceTimersByTime(1));
     expect(mockNavigation.replace).toHaveBeenCalledWith('AppTabs', undefined);
     expect(mockNavigation.reset).not.toHaveBeenCalled();
     await act(async () => jest.advanceTimersByTime(3000));
+    expect(mockNavigation.replace).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not accept layout from an unrelated or removed shell route', async () => {
+    mockAuth.isLoggedIn = true;
+    mockAuth.session = { user: { id: 'fixture' } };
+    mockAuth.profile.nickname = 'fixture';
+    mockPets.pets = [{ id: 'pet', name: 'fixture' }];
+    await act(async () => { renderer = TestRenderer.create(<HomeScreen appTabsLayoutKey="old-shell" />); });
+    await act(async () => jest.advanceTimersByTime(5000));
+    expect(mockNavigation.preload).toHaveBeenCalledTimes(1);
+    expect(mockNavigation.replace).not.toHaveBeenCalled();
+    await act(async () => renderer.update(<HomeScreen appTabsLayoutKey="prepared-shell" />));
+    await act(async () => jest.advanceTimersByTime(1));
     expect(mockNavigation.replace).toHaveBeenCalledTimes(1);
   });
 
@@ -281,6 +302,7 @@ describe('seasonal splash presentation and boot preservation', () => {
     await act(async () => { renderer = TestRenderer.create(<HomeScreen notificationStartup={pending} />); });
     await act(async () => jest.advanceTimersByTime(2500));
     expect(mockNavigation.reset).not.toHaveBeenCalled();
+    expect(mockNavigation.preload).not.toHaveBeenCalled();
     const destination = { name: 'ScheduleDetail' as const, params: { petId: 'pet', scheduleId: 'schedule', notificationOpen: { id: 'notice', source: 'user' as const, ownerId: 'fixture', requestId: 'request' } } };
     await act(async () => renderer.update(<HomeScreen notificationStartup={{ ...pending, pending: false, destination }} />));
     await act(async () => jest.advanceTimersByTime(1));
@@ -290,6 +312,7 @@ describe('seasonal splash presentation and boot preservation', () => {
     ] });
     expect(consumed).toHaveBeenCalledTimes(1);
     expect(mockNavigation.replace).not.toHaveBeenCalled();
+    expect(mockNavigation.preload).not.toHaveBeenCalled();
   });
 
   it('does not bypass a guest auth gate even if a push destination was resolved', async () => {

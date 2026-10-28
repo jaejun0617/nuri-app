@@ -14,7 +14,6 @@
 
 import React, {
   useCallback,
-  useEffect,
   useMemo,
   useRef,
   useState,
@@ -65,7 +64,7 @@ export default function MainScreen() {
   );
   const petTheme = NEUTRAL_UI_PALETTE;
 
-  useEffect(() => {
+  useFocusEffect(useCallback(() => {
     let cancelled = false;
 
     if (!isLoggedIn || !userId || petLoading || petsCount === 0) {
@@ -87,7 +86,7 @@ export default function MainScreen() {
     return () => {
       cancelled = true;
     };
-  }, [isLoggedIn, petLoading, petsCount, userId]);
+  }, [isLoggedIn, petLoading, petsCount, userId]));
 
   const closeFirstPetWelcome = useCallback(async () => {
     if (!userId || !firstPetWelcome || welcomeDismissInFlightRef.current)

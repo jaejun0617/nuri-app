@@ -4,16 +4,25 @@ import { AccessibilityInfo } from 'react-native';
 import fs from 'node:fs';
 import path from 'node:path';
 import { parse } from '@babel/parser';
-import { CommonActions, StackRouter } from '@react-navigation/routers';
+import { CommonActions, StackActions, StackRouter } from '@react-navigation/routers';
 import { TAB_FADE_TIMING, tabTransitionOptions } from '../src/navigation/navigationTransitionPolicy';
 
-jest.mock('@react-navigation/native-stack', () => ({
-  createNativeStackNavigator: () => ({
-    Navigator: 'NativeNavigator',
-    Screen: 'NativeScreen',
-    Group: 'NativeGroup',
-  }),
-}));
+jest.mock('@react-navigation/native-stack', () => {
+  const runtime: typeof React = jest.requireActual('react');
+  return {
+    createNativeStackNavigator: () => ({
+      Navigator: 'NativeNavigator',
+      Screen: (props: {
+        name: string;
+        children?: React.ReactNode | ((input: { route: { name: string; key: string } }) => React.ReactNode);
+      }) => runtime.createElement('NativeScreen', { ...props, children: undefined },
+        typeof props.children === 'function'
+          ? props.children({ route: { name: props.name, key: `test-${props.name}` } })
+          : props.children),
+      Group: 'NativeGroup',
+    }),
+  };
+});
 jest.mock('../src/navigation/AppTabsNavigator', () => 'AppTabs');
 jest.mock('../src/navigation/CommunityStackHeader', () => 'CommunityHeader');
 jest.mock('../src/services/securityQa/config', () => ({
@@ -87,6 +96,14 @@ describe('actual native navigator transition configuration', () => {
         : navigator.props.screenOptions;
     return { ...defaults, ...screen.props.options };
   };
+  test('links the prepared shell route key to the existing Splash instance', async () => {
+    await mount(<RootNavigator />);
+    const splash = () => tree.root.find(n => Object.prototype.hasOwnProperty.call(n.props, 'appTabsLayoutKey'));
+    expect(splash().props.appTabsLayoutKey).toBeNull();
+    const shell = tree.root.find(n => (n.type as unknown) === 'AppTabs');
+    await act(async () => shell.props.onPrepared());
+    expect(splash().props.appTabsLayoutKey).toBe('test-AppTabs');
+  });
   test('root toolbar tabs share the 400ms fade configuration with More', () => {
     const result = tabTransitionOptions(false);
     expect(result.animation).toBe('fade');
@@ -180,6 +197,23 @@ describe('actual native navigator transition configuration', () => {
 });
 
 describe('installed StackRouter action serialization', () => {
+  test('initial replacement consumes the actual preloaded route without remounting its identity', () => {
+    const bootRouter = StackRouter({ initialRouteName: 'Splash' });
+    const bootOptions = { routeNames: ['Splash', 'AppTabs'], routeParamList: {}, routeGetIdList: {} };
+    const initial = bootRouter.getInitialState(bootOptions);
+    const preloadResult = bootRouter.getStateForAction(initial, CommonActions.preload('AppTabs'), bootOptions);
+    if (!preloadResult) throw Error('Installed router did not accept preload');
+    const prepared = bootRouter.getRehydratedState(preloadResult, bootOptions);
+    expect(prepared.routes[prepared.index].name).toBe('Splash');
+    expect(prepared.preloadedRoutes).toHaveLength(1);
+    const key = prepared.preloadedRoutes[0].key;
+    const replaceResult = bootRouter.getStateForAction(prepared, StackActions.replace('AppTabs'), bootOptions);
+    if (!replaceResult) throw Error('Installed router did not accept replacement');
+    const opened = bootRouter.getRehydratedState(replaceResult, bootOptions);
+    expect(opened.routes.map(route => route.name)).toEqual(['AppTabs']);
+    expect(opened.routes[0].key).toBe(key);
+    expect(opened.preloadedRoutes).toHaveLength(0);
+  });
   const router = StackRouter({ initialRouteName: 'AppTabs' });
   const config = {
     routeNames: ['AppTabs', 'PetManagement', 'PetProfileEdit'],
