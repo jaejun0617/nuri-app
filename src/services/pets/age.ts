@@ -1,4 +1,21 @@
-import { safeYmd } from '../../utils/date';
+import { getKstDateParts, safeYmd } from '../../utils/date';
+
+/** Calendar age for the saved-profile receipt; existing Korean-age labels stay unchanged. */
+export function formatPetCalendarAgeLabel(birthDate: string | null | undefined, now = new Date()): string | null {
+  const normalized = safeYmd(birthDate);
+  const today = getKstDateParts(now);
+  if (!normalized || !today) return null;
+  const [year, month, day] = normalized.split('-').map(Number);
+  const birth = new Date(Date.UTC(year, month - 1, day));
+  if (birth.getUTCFullYear() !== year || birth.getUTCMonth() + 1 !== month || birth.getUTCDate() !== day) return null;
+  if (birth.getTime() > Date.UTC(today.year, today.month - 1, today.day)) return null;
+  let months = (today.year - year) * 12 + today.month - month;
+  const anniversaryDay = Math.min(day, new Date(Date.UTC(today.year, today.month, 0)).getUTCDate());
+  if (today.day < anniversaryDay) months -= 1;
+  if (months < 12) return `생후 ${months}개월`;
+  const remainder = months % 12;
+  return `${Math.floor(months / 12)}살${remainder ? ` ${remainder}개월` : ''}`;
+}
 
 export type PetAgeSnapshot = {
   ageInMonths: number | null;

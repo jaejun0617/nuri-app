@@ -87,7 +87,6 @@ describe('PO uniform blue-gray canvas without spheres or starlight', () => {
   });
 
   it.each([
-    'screens/Pets/PetProfileEditDoneScreen.tsx',
     'screens/Weather/WeatherActivityRecordScreen.tsx',
   ])('%s uses the common default form background', file => {
     expect(read(file)).toContain('<SeasonalFormBackground />');

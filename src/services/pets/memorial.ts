@@ -37,11 +37,10 @@ export function getPetMemorialChoice(
 
 export function formatMemorialPetName(
   name: string | null | undefined,
-  deathDate: string | null | undefined,
+  _deathDate: string | null | undefined,
 ): string {
-  const safeName = (name ?? '').trim() || '반려동물';
-  if (!isMemorialPet(deathDate)) return safeName;
-  return `🌈 ${safeName} 🌈`;
+  // Memorial state never decorates the saved name; dates and memorial features remain intact.
+  return (name ?? '').trim() || '반려동물';
 }
 
 export function buildPetTimeMessage(input: {

@@ -148,7 +148,11 @@ export type RootStackParamList = {
   PetManagement: { entrySource?: ScreenEntrySource } | undefined;
   PetActivityAchievements: { entrySource?: ScreenEntrySource; focusTitleId?: string; focusPetId?: string|null; initialTab?: 'summary'|'vault' } | undefined;
   PetProfileEdit: { petId: string; entrySource?: ScreenEntrySource };
-  PetProfileEditDone: { petId: string; petName: string };
+  PetProfileEditDone: {
+    petId: string;
+    petName: string;
+    savedProfile: import('../screens/Pets/profileCompletionPresentation').ProfileCompletionReceipt;
+  };
   HealthReport:
     | {
         petId?: string;
@@ -432,7 +436,7 @@ export default function RootNavigator() {
       <Stack.Screen
         name="PetProfileEditDone"
         component={PetProfileEditDoneScreen}
-        options={{ headerShown: false }}
+        options={{ headerShown: false, gestureEnabled: false }}
       />
       <Stack.Screen
         name="HealthReport"

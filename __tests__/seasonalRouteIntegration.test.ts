@@ -18,8 +18,9 @@ describe('seasonal route ownership', () => {
       expect(source).not.toContain('style={styles.backgroundImage}');
       expect(source).not.toContain('style={styles.readabilityVeil}');
     } else if (file === 'screens/Pets/PetProfileEditDoneScreen.tsx') {
-      expect(source).toContain('<SeasonalFormBackground />');
-      expect(read('components/common/SeasonalFormSurface.tsx')).toContain('useEffectiveSeason()');
+      // Latest PO profile-completion reference explicitly owns this lavender surface.
+      expect(source).toContain("colors={['#FCFAFF', '#F7F2FF', '#FCFAFF']}");
+      expect(source).not.toContain('useEffectiveSeason');
     } else {
       expect(source).toContain('useEffectiveSeason()');
     }

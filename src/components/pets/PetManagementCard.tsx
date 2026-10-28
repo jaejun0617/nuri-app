@@ -4,7 +4,6 @@ import {
   Modal,
   Pressable,
   StyleSheet,
-  Text as NativeText,
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -265,13 +264,6 @@ function PetManagementCard({
             </AppText>
             {pet.deathDate ? (
               <View style={styles.memorial}>
-                <NativeText
-                  accessible={false}
-                  accessibilityElementsHidden
-                  style={styles.memorialEmoji}
-                >
-                  🌈
-                </NativeText>
                 <AppText preset="bodySm" style={styles.memorialText}>
                   추모
                 </AppText>
@@ -473,12 +465,6 @@ const styles = StyleSheet.create({
   name: { ...type.name, color: colors.ink, flexShrink: 1 },
   memorial: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   memorialText: { ...type.label, color: colors.muted },
-  memorialEmoji: {
-    fontFamily: 'sans-serif',
-    fontSize: type.label.fontSize,
-    lineHeight: type.label.lineHeight,
-    includeFontPadding: false,
-  },
   meta: { ...type.meta, color: colors.muted },
   birthday: {
     flexDirection: 'row',

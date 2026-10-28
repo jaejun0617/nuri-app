@@ -27,12 +27,9 @@ describe('glass form and expense integration contracts', () => {
       'Schedules/ScheduleCreateScreen',
       'Schedules/ScheduleEditScreen',
       'Records/RecordEditScreen',
-      'Pets/PetProfileEditDoneScreen',
     ]) {
       expect(source(`src/screens/${screen}.tsx`)).toContain(
-        screen === 'Pets/PetProfileEditDoneScreen'
-          ? '<SeasonalFormBackground />'
-          : '<SeasonalFormBackground uniform />',
+        '<SeasonalFormBackground uniform />',
       );
       expect(source(`src/screens/${screen}.tsx`)).toContain(
         '<SeasonalFormPanel',

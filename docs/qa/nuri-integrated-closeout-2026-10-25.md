@@ -2,6 +2,19 @@
 
 상태: IN_PROGRESS. 전체 동결 아님. Master 단독 수행.
 
+PO 중간 요약: [2026-10-25 20:15 KST 중간보고서](../reports/nuri-integrated-closeout-interim-2026-10-25.md). 아래 초기 단계의 이전 후보·검사 수치는 이력이며 최신 기준점은 바로 다음 3fabc74 절이다.
+
+## 3fabc74 설치·CI 및 저장공간 복구 후 재개점
+
+- 소스 `3fabc74973d295c419c77e9f3caaa6373b3cee0d`를 현재 브랜치에 정상 push했다. [원격 CI40186282381](https://github.com/jaejun0617/nuri-app/actions/runs/40186282381)는 source/secret·타입·lint·critical·전체·diff와 후속 단계 모두 PASS다. 최신 로컬 전체320 suites4,392/4,392·타입·대상 lint13파일0errors/0warnings다. 최초 raw icon provider guard1실패는 allowlist를 완화하지 않고 기존 adapter의 preserveOriginal 경로로 해결했다.
+- APK `2dca8446739eed6fcc0807fd0ef08c08445048074b7bb8f6d2b72668567a3c9c`, 앱 입력 `1b8da5cded8fdacb981ee04ef731cec98a2dd59bccd12115a22b41b14f65daae`를 두 기기에 같은 서명·UID/최초 설치/데이터 보존으로 설치했다. `delivery-notification-controls-committed/installation.json`, Metro OFF, 내부 bundled Debug다. Store RC·release 성능 또는 전체 배치 동결이 아니다.
+- 실제 물리 설정의 X·subtitle→받을 알림 간격34px/density2.8125≈12.09dp와 에뮬레이터32px/density2.625≈12.19dp를 확인했다. `settings-controls-physical-final.png`, `settings-controls-emulator-final.png`가 소유한다. 물리 기기의 PO 변경 수신 설정을 임의로 baseline으로 덮지 않았다.
+- 에뮬레이터의 임시 OS 앱 알림 허용을 원래 거부 상태로 복원했다. 복귀 때 UI dump가 일시 실패해 actual permission과 Home을 재확인한 뒤 시트를 재진입했다. 앱 알림은 차단됨, 각 채널은 사용 가능, 정확 알림은 권한 필요이며 채널 행 clickable=false다. 원격 Google QA의 service/schedule/community ON은 그대로다. OS 권한 OFF를 계정 동의 OFF나 채널 OFF로 오인하지 않는다. 이는 설정 표시 검증이며 거부 상태 FCM 발송 matrix PASS가 아니다.
+- 실제 업무 원본 부분 E2E: Google QA 일정 `f0c3aa86-211e-47e5-9269-7d271ebed6fb`를 앱 UI에서 생성·목록/상세 조회·시각 수정했다. 미래 native inexact registry1개를 확인했고 실제 시각 도래 후 서버 scheduler가 `schedule.reminder` 알림 `0953428d-9e93-4d73-a63d-5ab6e400ac5a`를 만들었다. FCM delivery0은 Native 단일 OS 경로 계약에 맞다. 빠른 팝업→알림 상세→정확한 일정 CTA와 read_at을 확인했다. 직접 row→target 계약은 아직 미완료다.
+- 해당 일정만 앱에서 완료·삭제했고 원격 row0/native own alarm0을 확인했다. 다른 기록·일정·11개 미읽음은 보존했다. 로컬 알림 표시 자체는 관찰하지 못해 PASS로 쓰지 않는다. `schedule-business-source-partial.json`, `schedule-source-cleanup.json`이 근거이며 반복·응답 유실·실패 복구 전체 수락이 아니다.
+- PO 저장공간 추가 요청으로 idle Gradle build-cache 및 이전 mint dependency build/.cxx9경로만 정리했다. 실제 Data 여유 약11→35GiB, 회수23.956GiB(25.7GB). 소스/dirty/dependency 원본/현재 APK 보존, current incremental·SDK·개인자료·QA 증거 삭제0이다. 외부 `nuri-storage-cleanup-20261025-Oqi03K/REPORT.md`를 참조한다. 저장공간 복구는 제품 수락 완료가 아니다.
+- 다음1순위는 기존1~6/NAV의 직접 target·인증/계정 경계·설정/OS 상태·기록 실패 복구 미마감이다. 원래7~9는 아직 시작하지 않는다. 최신 증거를 이전 전체 수락으로 확대하지 않는다.
+
 ## 최신 피드백 및 실제 소비 증거
 
 - 피드백 후보 `dc009e10c7f76e6230025e34912e304b8436e48bfe1a34af120dc0f244ee897e`, 앱 입력 `a28380341b8b69abf24a563128a511fa508b925b66b7e4f8b729b10bbabc04f4`를 동일 서명으로 두 기기에 설치했다. Metro OFF, UID·기존 데이터 보존이다. `delivery-notification-feedback/installation.json`이 설치 기준을 소유한다. 내부 bundled Debug이며 Store RC 또는 release 성능 검증이 아니다.
@@ -52,11 +65,11 @@
 | 기존 로컬 33개 실패의 개별 재현·분류 | PASS | `baseline-failures.json`, `baseline-targeted.json` |
 | 최신 승인 디자인에 뒤처진 기대값 보정 | PASS | 제품 디자인을 역변경하지 않고 8개 검사 파일의 기대값·fixture·renderer 정리 보정 |
 | OAuth CI Google·Kakao 원인 보정 | PASS | 고정 테스트 project URL·publishable 형식을 격리. provider·redirect·S256 및 외부 origin/plain 거부 유지 |
-| 전체 Jest | PASS | 최종 사진 보정 후보315 suites, 4,347/4,347. `full-profile-final.json`. 처음 남은2개는 JSX 타입을 태그로 오인한 텍스트 검사와 종전 흰 Header 고정 기대값이었다. AST 태그/대비 역할로 보정했다. 실제 QA에서 찾은 species_key 쓰기 보정도 포함한다 |
+| 전체 Jest | PASS | 최신3fabc74 후보320 suites, 4,392/4,392. `full-notification-feedback-corrective.json`. 이전315/4,347은 사진 보정 단계 기준점이다 |
 | critical foundation | PASS | 12 suites, 127/127 |
-| TypeScript | PASS | 최종 사진 보정 후보의 `tsc --noEmit` 종료0 |
-| 변경 파일 lint | PASS | 전체 src 및 CI 범위604파일 오류0/기존 경고27. `lint-hero-checkpoint.json` |
-| 최종 SHA의 원격 CI와 후속 단계 | NOT_RUN | 최종 선별 커밋·push 이후 확인 |
+| TypeScript | PASS | 현재3fabc74의 로컬 및 실제 CI 단계 통과 |
+| 변경 파일 lint | PASS | 최신 대상13파일 오류0/경고0. 실제 CI lint 단계도 PASS. 이전 전체604파일의 기존 경고27과 구분한다 |
+| 현재 SHA의 원격 CI와 후속 단계 | PASS | 3fabc74, run40186282381 전체 후속 단계 성공. 앞으로 제품 코드가 바뀌면 해당 최종 SHA 재검증 필요 |
 
 로컬 33개와 CI 2개를 35개 제품 결함으로 합산하지 않는다. OAuth CI 원인은 운영 주소와 CI 주소의 혼용이며 운영 설정 강제 주입으로 해결하지 않았다.
 
@@ -90,12 +103,12 @@
 
 | OS 필수 시나리오 | 상태 |
 |---|---|
-| 앱 권한 허용 | 단말 표시 확인, 나머지 연결 진행 |
-| 앱 권한 거부 | NOT_RUN |
+| 앱 권한 허용 | PASS: QA background transport의 표시·탭·읽음 연결. 모든 업무 이벤트의 E2E는 아님 |
+| 앱 권한 거부 | 전달 matrix NOT_RUN. 설정 표시·계정 동의/채널 분리와 원래 거부 상태 복원만 확인 |
 | 앱 카테고리 OFF | NOT_RUN |
 | Android 채널 OFF | NOT_RUN |
-| 전경 | NOT_RUN |
-| 백그라운드 | 표시 PASS, 탭·읽음 진행 |
+| 전경 | 부분 관찰: FCM 접수·OS 배너 없음·인앱 읽음. native callback receipt 독립 증거 미확보 |
+| 백그라운드 | PASS: Google QA transport의 실제 OS 표시→탭→상세→서버 읽음. 실제 업무 원본 E2E와 구분 |
 | 최근 앱 제거·프로세스 미실행 | NOT_RUN |
 | 설정 강제 종료·직접 재실행 복구 | NOT_RUN |
 | 네트워크 단절·TTL | NOT_RUN |
@@ -159,7 +172,7 @@
 |---|---|
 | 해결 | 로컬 실패 보정, 실제 QA 범위 제한·비밀 설정·worker 인증 연결, NAV 재현과 최소 수정, 설치 후보의 5회 왕복 |
 | 진행 | 1~6과 NAV-01의 실제 수락 원장 채우기 |
-| 잔여 | 원격 CI, 인증 상태별·계정 경계, 업무 이벤트 E2E, OS 전체 상태, 기록 CRUD·실패 복구, 공통 NAV 경로 |
+| 잔여 | 인증 상태별·계정 경계, 직접 목적지와 업무 이벤트 E2E, OS 전체 상태·동일 계정 다중 기기, 기록 CRUD·실패 복구, 공통 NAV 경로와 최종 운영 상태. 현재3fabc74의 CI는 완료 |
 | 잔여 해결 계획 | 같은 QA 계정·후보를 사용해 실제 결과와 source/server/device 증적을 연결하고 실패만 최소 수정·재검사 |
 
 ## 다음 작업 및 우선순위

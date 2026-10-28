@@ -11,6 +11,7 @@ import { fetchMyPets, updatePet } from '../src/services/supabase/pets';
 import { uploadPetAvatar } from '../src/services/supabase/storagePets';
 import { pickPhotoAssets } from '../src/services/media/photoPicker';
 import { recommendPetThemeColor } from '../src/services/pets/themePalette';
+import { captureSavedPetProfile } from '../src/screens/Pets/profileCompletionPresentation';
 
 const mockNavigation = { replace: jest.fn(), goBack: jest.fn(), reset: jest.fn() };
 let mockPetId = 'qa-pet-a';
@@ -107,7 +108,10 @@ describe('profile photo draft and confirmed snapshot handoff', () => {
     });
     expect(photo().props.imageUri).toBe(localUri);
     expect(usePetStore.getState().pets[0].avatarUrl).toBe('https://example.test/new.jpg');
-    expect(mockNavigation.replace).toHaveBeenCalledWith('PetProfileEditDone', { petId: pet.id, petName: pet.name });
+    expect(mockNavigation.replace).toHaveBeenCalledWith('PetProfileEditDone', {
+      petId: pet.id, petName: pet.name,
+      savedProfile: { ownerId: mockUserId, savedPet: captureSavedPetProfile(usePetStore.getState().pets[0]) },
+    });
   });
   it('hydrates a genuinely different pet instead of carrying the previous local draft across identities', async () => {
     await mount();
@@ -138,5 +142,42 @@ describe('profile photo draft and confirmed snapshot handoff', () => {
     } finally {
       alert.mockRestore();
     }
+  });
+  it('latches same-frame save taps until the confirmed server read finishes', async () => {
+    let resolvePets: ((pets: Pet[]) => void) | undefined;
+    jest.mocked(fetchMyPets).mockImplementationOnce(() => new Promise(resolve => { resolvePets = resolve; }));
+    await mount();
+    if (!tree) throw Error('PROFILE_NOT_MOUNTED');
+    const press = tree.root.findByType(CtaButton).props.onPress;
+    let first: Promise<void> | undefined;
+    await act(async () => { first = press(); await press(); });
+    expect(updatePet).toHaveBeenCalledTimes(1);
+    expect(mockNavigation.replace).not.toHaveBeenCalled();
+    await act(async () => { resolvePets?.([pet]); await first; });
+    expect(mockNavigation.replace).toHaveBeenCalledTimes(1);
+  });
+  it('does not publish a late read after the account changes', async () => {
+    let resolvePets: ((pets: Pet[]) => void) | undefined;
+    jest.mocked(fetchMyPets).mockImplementationOnce(() => new Promise(resolve => { resolvePets = resolve; }));
+    await mount();
+    if (!tree) throw Error('PROFILE_NOT_MOUNTED');
+    let save: Promise<void> | undefined;
+    await act(async () => { save = tree?.root.findByType(CtaButton).props.onPress(); await Promise.resolve(); });
+    mockUserId = 'different-owner';
+    await act(async () => { tree?.update(<PetProfileEditScreen />); });
+    await act(async () => { resolvePets?.([{ ...pet, name: 'Late result' }]); await save; });
+    expect(mockNavigation.replace).not.toHaveBeenCalled();
+    expect(usePetStore.getState().pets[0].name).toBe(pet.name);
+  });
+  it('does not claim success if the confirmed read no longer contains the saved pet', async () => {
+    const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
+    jest.mocked(fetchMyPets).mockResolvedValueOnce([{ id: 'different-pet', name: 'Other pet' }]);
+    try {
+      await mount();
+      await act(async () => { await tree?.root.findByType(CtaButton).props.onPress(); });
+      expect(mockNavigation.replace).not.toHaveBeenCalled();
+      expect(usePetStore.getState().pets[0].id).toBe(pet.id);
+      expect(alert).toHaveBeenCalledTimes(1);
+    } finally { alert.mockRestore(); }
   });
 });

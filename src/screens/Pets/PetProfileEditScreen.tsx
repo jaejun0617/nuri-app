@@ -83,6 +83,7 @@ import { supabase } from '../../services/supabase/client';
 import { fetchMyPets, updatePet } from '../../services/supabase/pets';
 import { uploadPetAvatar } from '../../services/supabase/storagePets';
 import { useAuthStore } from '../../store/authStore';
+import { captureSavedPetProfile } from './profileCompletionPresentation';
 import { usePetStore } from '../../store/petStore';
 import { openMoreDrawer, showToast } from '../../store/uiStore';
 import { getSeasonalProfileEditVisual } from '../../theme/seasonal/profileEdit';
@@ -265,6 +266,16 @@ export default function PetProfileEditScreen() {
   const setPets = usePetStore(s => s.setPets);
   const upsertPet = usePetStore(s => s.upsertPet);
   const sessionUserId = useAuthStore(s => s.session?.user?.id ?? null);
+  const submittingRef = useRef(false);
+  const mountedRef = useRef(true);
+  const scopeRef = useRef({ userId: sessionUserId, petId });
+  if (scopeRef.current.userId !== sessionUserId || scopeRef.current.petId !== petId) {
+    scopeRef.current = { userId: sessionUserId, petId };
+  }
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => { mountedRef.current = false; };
+  }, []);
   const hydratedDraftRef = useRef<{ userId: string; petId: string } | null>(null);
 
   const pet = useMemo(
@@ -589,7 +600,9 @@ export default function PetProfileEditScreen() {
   );
 
   const onSubmit = useCallback(async () => {
-    if (!pet) return;
+    if (!pet || !sessionUserId || submittingRef.current) return;
+    const currentScope = scopeRef.current;
+    const isCurrent = () => mountedRef.current && scopeRef.current === currentScope;
     if (!trimmedName) {
       Alert.alert('이름을 입력해 주세요.');
       return;
@@ -603,12 +616,14 @@ export default function PetProfileEditScreen() {
       return;
     }
 
+    submittingRef.current = true;
     try {
       setSaving(true);
 
       const userRes = await supabase.auth.getUser();
       const userId = userRes.data.user?.id ?? null;
       if (!userId) throw new Error('로그인 정보가 없습니다.');
+      if (userId !== currentScope.userId || !isCurrent()) return;
 
       let nextAvatarPath = pet.avatarPath ?? null;
       if (imageUri && imageUri !== pet.avatarUrl) {
@@ -620,6 +635,7 @@ export default function PetProfileEditScreen() {
         });
         nextAvatarPath = path;
       }
+      if (!isCurrent()) return;
 
       const speciesSelection = buildPetSpeciesSelection(
         representativeSpecies,
@@ -662,25 +678,34 @@ export default function PetProfileEditScreen() {
         avatarPath: nextAvatarPath,
       });
 
+      if (!isCurrent()) return;
+
       if (isNameChanged) {
         const nextCount = await incrementNameChangeCount(pet.id);
+        if (!isCurrent()) return;
         setNameChangeCount(nextCount);
       }
 
       // Uploads use immutable timestamped paths; replace the snapshot atomically
       // instead of exposing an empty avatar between the successful write and read.
       const refreshedPets = await fetchMyPets();
+      if (!isCurrent()) return;
+      const savedPet = refreshedPets.find(item => item.id === currentScope.petId);
+      if (!savedPet) throw new Error('저장된 아이 프로필을 확인하지 못했어요. 다시 확인해 주세요.');
       setPets(refreshedPets, { userId });
 
       navigation.replace('PetProfileEditDone', {
         petId: pet.id,
-        petName: trimmedName,
+        petName: savedPet.name,
+        savedProfile: { ownerId: userId, savedPet: captureSavedPetProfile(savedPet) },
       });
     } catch (error) {
+      if (!isCurrent()) return;
       const { title, message } = getBrandedErrorMeta(error, 'pet-update');
       Alert.alert(title, message);
     } finally {
-      setSaving(false);
+      submittingRef.current = false;
+      if (mountedRef.current) setSaving(false);
     }
   }, [
     adoptionDate,
@@ -699,6 +724,7 @@ export default function PetProfileEditScreen() {
     remainingNameChanges,
     representativeSpecies,
     selectedThemeColor,
+    sessionUserId,
     setPets,
     speciesDetailKey,
     tags,

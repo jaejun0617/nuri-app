@@ -389,13 +389,18 @@ export async function updatePet(input: {
       : {}),
   };
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('pets')
     .update(payload)
     .eq('id', input.petId)
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .select('id')
+    .single();
 
   if (error) throw error;
+  if (!isRecord(data) || data.id !== input.petId) {
+    throw new Error('저장된 아이 프로필을 확인하지 못했어요.');
+  }
 }
 
 export async function updatePetDefaultMealAmount(input: {

@@ -3,7 +3,7 @@ import type { Pet } from '../../store/petStore';
 const STORY_FIELD_MIN_HEIGHT = 58;
 const STORY_FIELD_MAX_HEIGHT = 108;
 
-function formatWeightKg(weightKg: number | null | undefined): string | null {
+export function formatWeightKg(weightKg: number | null | undefined): string | null {
   if (
     typeof weightKg !== 'number' ||
     !Number.isFinite(weightKg) ||
@@ -15,7 +15,7 @@ function formatWeightKg(weightKg: number | null | undefined): string | null {
   return `${Number(weightKg.toFixed(2))}kg`;
 }
 
-function formatSex(gender: Pet['gender']): string | null {
+export function formatPetSex(gender: Pet['gender']): string | null {
   if (gender === 'male') return '남아';
   if (gender === 'female') return '여아';
   return null;
@@ -31,7 +31,7 @@ export function buildProfileEditMetadata(input: {
     input.speciesLabel?.trim() || null,
     input.ageLabel?.trim() || null,
     formatWeightKg(input.weightKg),
-    formatSex(input.gender),
+    formatPetSex(input.gender),
   ].filter((part): part is string => Boolean(part));
 
   return parts.length > 0 ? parts.join(' · ') : null;
