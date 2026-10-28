@@ -1467,12 +1467,12 @@ export default function TimelineScreen() {
           onOpenMonth={onOpenMonth}
           onPressCategory={onPressMainCategory}
         />
-        {notificationPeriod || notificationOwnerScope ? (
+        {notificationPeriod ? (
           <View style={styles.notificationPeriod} testID="timeline-notification-period">
             <AppText preset="unifiedMeta" style={styles.notificationPeriodText}>
-              {notificationOwnerScope ? '모든 아이 · ' : ''}{notificationPeriod ? `${formatYmdToDots(notificationPeriod.startDate)} ~ ${formatYmdToDots(addDaysToYmd(notificationPeriod.endDate, -1))} 기록` : '전체 기록'}
+              {formatYmdToDots(notificationPeriod.startDate)} ~ {formatYmdToDots(addDaysToYmd(notificationPeriod.endDate, -1))} 기록
             </AppText>
-            {notificationPeriod ? <TouchableOpacity
+            <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel="전체 기록 보기"
               onPress={showAllNotificationRecords}
@@ -1481,7 +1481,7 @@ export default function TimelineScreen() {
             >
               <AppText preset="unifiedMeta" style={styles.notificationPeriodActionText}>전체 기록 보기</AppText>
               <Feather name="chevron-right" size={16} color="#7045CB" />
-            </TouchableOpacity> : null}
+            </TouchableOpacity>
           </View>
         ) : null}
       </TimelineSeasonalHeader>
