@@ -138,12 +138,20 @@ export function dedupeTimelineRecords(items: ReadonlyArray<MemoryRecord>) {
 
 export function buildTimelineCategoryCounts(
   items: ReadonlyArray<MemoryRecord>,
+  dateRange?: TimelineFilterInput['dateRange'],
 ): TimelineCategoryCounts {
   const counts = createEmptyTimelineCategoryCounts();
   const uniqueItems = dedupeTimelineRecords(items);
 
   for (const item of uniqueItems) {
     if (isHealthMemoryRecord(item)) continue;
+    if (dateRange && !timelineRecordMatchesFilters(item, {
+      dateRange,
+      ymFilter: null,
+      mainCategory: 'all',
+      otherSubCategory: null,
+      query: '',
+    })) continue;
 
     const mainCategory = getTimelineRecordMeta(item).mainCategory;
     counts.all += 1;
@@ -255,7 +263,7 @@ export function buildTimelineView(input:
     .map(id => recordsById[id])
     .filter((item): item is MemoryRecord => Boolean(item))
     .filter(item => !isHealthMemoryRecord(item));
-  const categoryCounts = buildTimelineCategoryCounts(baseItems);
+  const categoryCounts = buildTimelineCategoryCounts(baseItems, input.filters.dateRange);
   const filteredItems = filteredIds
     .map(id => recordsById[id])
     .filter((item): item is MemoryRecord => Boolean(item));

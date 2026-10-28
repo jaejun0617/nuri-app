@@ -9,6 +9,25 @@ const TEXT = '#0B1220';
 
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: LAVENDER_CANVAS.base },
+  notificationPeriod: {
+    marginHorizontal: 18,
+    paddingVertical: 8,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: '#E5DDF4',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    columnGap: 12,
+  },
+  notificationPeriodText: { color: '#77728D', flexShrink: 1 },
+  notificationPeriodAction: {
+    minHeight: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
+  },
+  notificationPeriodActionText: { color: '#7045CB', fontWeight: '700' },
   guestGateWrap: {
     flex: 1,
     paddingHorizontal: 18,

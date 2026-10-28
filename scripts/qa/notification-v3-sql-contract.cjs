@@ -59,6 +59,7 @@ async function main() {
     '20261025091403_notification_granular_preferences.sql',
     '20261025094515_notification_event_preference_key.sql',
     '20261025095926_notification_preference_realtime.sql',
+    '20261028031925_notification_memorial_birthday.sql',
   ]) {
     try {
       await db.exec(
@@ -380,6 +381,60 @@ async function main() {
         .count,
       undefined,
     );
+  });
+  const birthdayNow = '2026-10-28T00:01:00Z';
+  const prepareBirthdays = async () => {
+    const memorialPet = crypto.randomUUID();
+    const otherOwnerPet = crypto.randomUUID();
+    await db.exec("update notification_private.runtime_v3 set activated_at='2026-01-01'");
+    await db.query("update public.pets set birth_date='2020-10-28', adoption_date=null where id=$1", [pet]);
+    await db.query("insert into public.pets(id,user_id,name,birth_date,adoption_date,death_date) values($1,$2,'Remembered','2012-10-28','2020-10-28','2026-02-22'),($3,$4,'Other owner','2019-10-28',null,null)", [memorialPet, a, otherOwnerPet, b]);
+    return memorialPet;
+  };
+  await test('scheduler creates living and memorial pet birthdays for the owner without a selected-pet input', async () => {
+    const memorialPet = await prepareBirthdays();
+    await db.query('select notification_private.scheduler_user_v3($1,$2)', [a, birthdayNow]);
+    const rows = (await db.query("select pet_id,event_type,target from public.user_notifications order by pet_id")).rows;
+    assert.equal(rows.length, 2);
+    assert.deepEqual(new Set(rows.map(row => row.pet_id)), new Set([pet, memorialPet]));
+    assert.ok(rows.every(row => row.event_type === 'pet.birthday' && row.target.kind === 'pet_anniversary' && row.target.petId === row.pet_id));
+    assert.equal((await one('select count(*)::int n from public.user_notifications where user_id=$1', [b])).n, 0);
+  });
+  await test('birthday replay is deduplicated per pet and year and does not change stored preferences', async () => {
+    await prepareBirthdays();
+    await db.query("select public.manage_user_notification_preferences_v3('{\"anniversary\":true,\"record\":false}')");
+    const before = await one('select to_jsonb(p) p from public.user_notification_preferences p where user_id=$1', [a]);
+    await db.query('select notification_private.scheduler_user_v3($1,$2)', [a, birthdayNow]);
+    await db.query('select notification_private.scheduler_user_v3($1,$2)', [a, '2026-10-28T03:00:00Z']);
+    assert.equal(await count(), 2);
+    assert.deepEqual(await one('select to_jsonb(p) p from public.user_notification_preferences p where user_id=$1', [a]), before);
+  });
+  await test('birthday push remains suppressed when anniversary is OFF even for a memorial pet', async () => {
+    await prepareBirthdays();
+    await db.query("select public.manage_user_notification_preferences_v3('{\"anniversary\":false,\"record\":true}')");
+    await db.query('select notification_private.scheduler_user_v3($1,$2)', [a, birthdayNow]);
+    assert.equal(await count(), 2);
+    assert.deepEqual((await one('select public.claim_notification_deliveries_v3(10) q')).q, []);
+    assert.equal((await one("select count(*)::int n from notification_private.delivery_v3 where state='suppressed'")).n, 2);
+  });
+  for (const [name, now] of [['before local 09:00', '2026-10-27T23:59:59Z'], ['after the one-day recovery window', '2026-10-29T00:00:00Z']]) {
+    await test(`birthday scheduler emits no catch-up ${name}`, async () => {
+      await prepareBirthdays();
+      await db.query('select notification_private.scheduler_user_v3($1,$2)', [a, now]);
+      assert.equal(await count(), 0);
+    });
+  }
+  await test('the birthday correction does not enable memorial pets together anniversaries or bypass memorial consent', async () => {
+    await prepareBirthdays();
+    await db.query("update public.pets set birth_date=null, death_date='2025-10-28' where user_id=$1", [a]);
+    await db.query("select public.manage_user_notification_preferences_v3('{\"anniversary\":true,\"memorial\":false}')");
+    await db.query('select notification_private.scheduler_user_v3($1,$2)', [a, birthdayNow]);
+    assert.equal(await count(), 0);
+  });
+  await test('birthday correction keeps scheduler execution private', async () => {
+    for (const role of ['anon', 'authenticated']) {
+      assert.equal((await one("select has_function_privilege($1,'notification_private.scheduler_user_v3(uuid,timestamptz)','execute') allowed", [role])).allowed, false);
+    }
   });
   await test('draft publication is absent; edits do not fan out; explicit reissue becomes unread again', async () => {
     await db.exec("select set_config('test.is_admin','true',true)");

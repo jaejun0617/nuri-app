@@ -48,6 +48,7 @@ const rootRoutes: Record<keyof RootStackParamList, TransitionKind> = {
   CommunityEdit: 'detail',
   CommunityBlockedUsers: 'detail',
   UserNotifications: 'detail',
+  NotificationTimeline: 'detail',
   NotificationDetail: 'detail',
   HomeQuickNotifications: 'preserve',
   NuriRanking: 'detail',

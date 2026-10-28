@@ -29,7 +29,7 @@ const mockPets = {
   pets: [] as { id: string; name: string }[],
   errorMessage: null,
 };
-const mockNavigation = { reset: jest.fn() };
+const mockNavigation = { reset: jest.fn(), isFocused: () => true };
 const mockRestore = jest.fn();
 const mockCommunity = { restoreListSnapshot: mockRestore };
 const mockLoad = jest.fn<Promise<CommunityRouteStateSnapshot | null>, []>();
@@ -215,6 +215,37 @@ describe('seasonal splash presentation and boot preservation', () => {
       jest.advanceTimersByTime(1);
     });
     expect(mockNavigation.reset).toHaveBeenCalledTimes(1);
+  });
+
+  it('holds the existing splash for a pending push then makes one destination-first boot decision', async () => {
+    mockAuth.isLoggedIn = true;
+    mockAuth.session = { user: { id: 'fixture' } };
+    mockAuth.profile.nickname = 'fixture';
+    mockPets.pets = [{ id: 'pet', name: 'fixture' }];
+    const consumed = jest.fn();
+    const pending = { initialChecked: true, pending: true, destination: null, onConsumed: consumed };
+    await act(async () => { renderer = TestRenderer.create(<HomeScreen notificationStartup={pending} />); });
+    await act(async () => jest.advanceTimersByTime(2500));
+    expect(mockNavigation.reset).not.toHaveBeenCalled();
+    const destination = { name: 'ScheduleDetail' as const, params: { petId: 'pet', scheduleId: 'schedule', notificationOpen: { id: 'notice', source: 'user' as const, ownerId: 'fixture', requestId: 'request' } } };
+    await act(async () => renderer.update(<HomeScreen notificationStartup={{ ...pending, pending: false, destination }} />));
+    await act(async () => jest.advanceTimersByTime(1));
+    expect(mockNavigation.reset).toHaveBeenCalledTimes(1);
+    expect(mockNavigation.reset).toHaveBeenCalledWith({ index: 1, routes: [
+      { name: 'AppTabs', params: { screen: 'HomeTab' } }, destination,
+    ] });
+    expect(consumed).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not bypass a guest auth gate even if a push destination was resolved', async () => {
+    const consumed = jest.fn();
+    await act(async () => { renderer = TestRenderer.create(<HomeScreen notificationStartup={{
+      initialChecked: true, pending: false, onConsumed: consumed,
+      destination: { name: 'NotificationDetail', params: { id: 'notice', source: 'user', notificationOpen: { id: 'notice', source: 'user', ownerId: 'other', requestId: 'request' } } },
+    }} />); });
+    await act(async () => jest.advanceTimersByTime(2000));
+    expect(mockNavigation.reset).toHaveBeenCalledWith({ index: 0, routes: [{ name: 'SignIn', params: undefined }] });
+    expect(consumed).not.toHaveBeenCalled();
   });
 
   it('cleans up pending navigation on unmount', async () => {

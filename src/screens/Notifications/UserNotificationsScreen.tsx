@@ -16,6 +16,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppText from '../../app/ui/AppText';
 import { useNotificationInbox } from '../../hooks/useNotificationInbox';
+import { useOpenNotification } from '../../hooks/useOpenNotification';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
@@ -39,6 +40,7 @@ export default function UserNotificationsScreen() {
   const route = useRoute<RootScreenRoute<'UserNotifications'>>();
   const insets = useSafeAreaInsets();
   const { list, unread, markAll, dismiss } = useNotificationInbox();
+  const { open: openNotification, opening } = useOpenNotification();
   const [now, setNow] = useState(() => new Date());
   const [marking, setMarking] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -195,13 +197,8 @@ export default function UserNotificationsScreen() {
               now={now}
               timeZone={timeZone}
               onManage={manage}
-              disabled={deleting || marking}
-              onPress={notification =>
-                navigation.navigate('NotificationDetail', {
-                  id: notification.id,
-                  source: notification.source,
-                })
-              }
+              disabled={deleting || marking || opening}
+              onPress={notification => { openNotification({ id: notification.id, source: notification.source }).catch(() => {}); }}
             />
           )}
           refreshing={list.isRefetching && !list.isFetchingNextPage}

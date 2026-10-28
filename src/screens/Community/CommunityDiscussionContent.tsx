@@ -1,4 +1,5 @@
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
+import { useNotificationDestinationRead } from '../../hooks/useNotificationDestinationRead';
 import type { CtaRole } from '../../app/theme/ctaPalette';
 import React, {
   useCallback,
@@ -1268,6 +1269,10 @@ export default function CommunityDiscussionContent({
         });
     });
   };
+
+  useNotificationDestinationRead(route.params.notificationOpen,
+    Boolean(post && detailStatus === 'ready' && (mode === 'post' ||
+      (commentsStatus === 'ready' && notificationTargetComment && highlightedCommentId === notificationCommentId))));
 
   const listHeader = useMemo(() => {
     if (!post) return null;

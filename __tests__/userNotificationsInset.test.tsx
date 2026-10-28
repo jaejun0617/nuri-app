@@ -42,6 +42,8 @@ const mockedUseSafeAreaInsets = useSafeAreaInsets as jest.MockedFunction<
   typeof useSafeAreaInsets
 >;
 
+jest.mock('../src/hooks/useOpenNotification', () => ({ useOpenNotification: () => ({ open: jest.fn(), opening: false }) }));
+
 describe('UserNotifications screen inset layout', () => {
   beforeEach(() => {
     jest.clearAllMocks();

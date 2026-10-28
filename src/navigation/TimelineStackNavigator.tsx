@@ -18,6 +18,7 @@ import type { ScreenEntrySource } from './entry';
 import type { ScheduleDetailReturnContext } from './scheduleReturn';
 import { timelineTransitionOptions } from './navigationTransitionPolicy';
 import { useNavigationMotion } from './useNavigationMotion';
+import type { NotificationOpenReceipt } from '../services/notifications/openNotification';
 
 export type TimelineStackParamList = {
   MonthlyExpenses: {
@@ -27,6 +28,7 @@ export type TimelineStackParamList = {
   } | undefined;
   TimelineMain:
     | {
+        notificationOpen?: NotificationOpenReceipt;
         petId?: string;
         mainCategory?: 'all' | 'walk' | 'meal' | 'health' | 'diary' | 'other';
         otherSubCategory?: MemoryOtherSubCategory;
@@ -40,6 +42,7 @@ export type TimelineStackParamList = {
     | undefined;
   TimelineEntryGate: HomeTotalSummaryEntryRequest;
   RecordDetail: {
+    notificationOpen?: NotificationOpenReceipt;
     petId: string;
     memoryId: string;
     entrySource?: ScreenEntrySource;

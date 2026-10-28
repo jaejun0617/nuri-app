@@ -8,6 +8,8 @@ import UserNotificationsScreen from '../src/screens/Notifications/UserNotificati
 const mockDismiss = jest.fn(async () => {}),
   mockMarkAll = jest.fn(async () => {}),
   mockNavigate = jest.fn();
+const mockOpen = jest.fn().mockResolvedValue(undefined);
+jest.mock('../src/hooks/useOpenNotification', () => ({ useOpenNotification: () => ({ open: mockOpen, opening: false }) }));
 const mockItem = {
   id: '22222222-2222-4222-8222-222222222222',
   source: 'user',
@@ -102,7 +104,7 @@ describe('notification management preserves deletion without altering the refere
     )[0];
     act(() => row.props.onPress());
     expect(mockDismiss).not.toHaveBeenCalled();
-    expect(mockNavigate).toHaveBeenCalledWith('NotificationDetail', {
+    expect(mockOpen).toHaveBeenCalledWith({
       id: mockItem.id,
       source: 'user',
     });

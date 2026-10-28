@@ -8,6 +8,7 @@ import LinearGradient from 'react-native-linear-gradient';
 import AppText from '../../app/ui/AppText';
 import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 import { useNotificationPreview } from '../../hooks/useNotificationInbox';
+import { useOpenNotification } from '../../hooks/useOpenNotification';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { notificationRelativeTime } from '../../services/notifications/notificationPresentation';
 import type { NotificationCategory, UserNotificationItem } from '../../services/notifications/userNotifications';
@@ -22,6 +23,7 @@ export default function HomeQuickNotificationsScreen() {
   const { height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const { list, unread, markAll, userId } = useNotificationPreview();
+  const { open: openNotification, opening } = useOpenNotification('replace');
   const [marking, setMarking] = useState(false);
   const [now, setNow] = useState(() => new Date());
   const moving = useRef(false);
@@ -49,8 +51,7 @@ export default function HomeQuickNotificationsScreen() {
   };
   const openItem = (item: UserNotificationItem) => {
     if (moving.current || userId !== initialOwner.current) return;
-    moving.current = true;
-    navigation.replace('NotificationDetail', { id: item.id, source: item.source });
+    openNotification({ id: item.id, source: item.source }).catch(() => {});
   };
   const readAll = async () => {
     if (markingRef.current || !count) return;
@@ -97,7 +98,7 @@ export default function HomeQuickNotificationsScreen() {
           ) : items.map((item, index) => {
             const category = item.category ?? 'news';
             return (
-              <Pressable testID="home-quick-notification-row" key={`${item.source}:${item.id}`} accessibilityRole="button" accessibilityLabel={`${labels[category]}, ${item.title}${item.readAt ? '' : ', 읽지 않음'}`} onPress={() => openItem(item)} style={[styles.row, index < items.length - 1 && styles.rowDivider]}>
+              <Pressable testID="home-quick-notification-row" key={`${item.source}:${item.id}`} accessibilityRole="button" accessibilityLabel={`${labels[category]}, ${item.title}${item.readAt ? '' : ', 읽지 않음'}`} disabled={opening} accessibilityState={{ busy: opening }} onPress={() => openItem(item)} style={[styles.row, index < items.length - 1 && styles.rowDivider]}>
                 <Image source={notificationArt[category]} style={styles.icon} resizeMode="contain" />
                 <View style={styles.rowText}>
                   <AppText preset="caption" style={styles.meta} numberOfLines={1}>
@@ -148,7 +149,7 @@ const styles = StyleSheet.create({
   helper: { color: C.muted, fontSize: 13, lineHeight: 20 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, paddingVertical: 14, minHeight: 86 },
   rowDivider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.divider },
-  icon: { width: 48, height: 48, flexShrink: 0 },
+  icon: { width: 48, height: 48, borderRadius: 16, flexShrink: 0 },
   rowText: { flex: 1, minWidth: 0, gap: 4 },
   meta: { color: C.muted, fontSize: 11, lineHeight: 16 },
   rowTitle: { color: C.ink, fontSize: 14, lineHeight: 20, fontWeight: '700' },

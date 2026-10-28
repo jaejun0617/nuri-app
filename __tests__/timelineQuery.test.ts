@@ -21,6 +21,21 @@ function buildRecord(
 }
 
 describe('timeline query', () => {
+  it('회고 기간은 종료일 미포함이며 배지와 행이 같은 범위를 사용하고 해제하면 전체 기록을 복원한다', () => {
+    const items = ['2026-10-18', '2026-10-19', '2026-10-25', '2026-10-26'].map((date, index) => buildRecord({
+      id: `${index}`, petId: 'pet-1', title: date, category: index % 2 ? 'diary' : 'walk',
+      occurredAt: date, createdAt: `${date}T00:00:00Z`,
+    }));
+    const filters = { ymFilter: null, mainCategory: 'all' as const, otherSubCategory: null, query: '', sortMode: 'recent' as const };
+    const period = { startDate: '2026-10-19', endDate: '2026-10-26' };
+    const scoped = buildTimelineView({ items, filters: { ...filters, dateRange: period } });
+    expect(scoped.filteredIds).toEqual(['1', '2']);
+    expect(scoped.categoryCounts).toEqual({ all: 2, walk: 1, diary: 1, meal: 0, health: 0, other: 0 });
+    expect(buildTimelineCategoryCounts(items, period)).toEqual(scoped.categoryCounts);
+    const full = buildTimelineView({ items, filters });
+    expect(full.filteredIds).toHaveLength(4);
+    expect(full.categoryCounts.all).toBe(4);
+  });
   it('날짜 기준 정렬은 occurredAt 우선, createdAt/id로 안정 정렬한다', () => {
     const items = [
       buildRecord({

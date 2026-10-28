@@ -26,6 +26,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import type { NotificationStartup } from '../../services/notifications/openNotification';
 import * as S from './HomeScreen.styles';
 import { getBootSplashHoldMs, resolveBootRoute } from '../../services/app/boot';
 import {
@@ -44,7 +45,7 @@ import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Splash'>;
 
-export default function HomeScreen() {
+export default function HomeScreen({ notificationStartup }: { notificationStartup?: NotificationStartup }) {
   const navigation = useNavigation<Nav>();
 
   const authBooted = useAuthStore(s => s.booted);
@@ -162,13 +163,27 @@ export default function HomeScreen() {
     if (movedRef.current) return;
     if (!authBooted || !petBooted) return;
     if (!communityRouteSnapshotChecked) return;
+    if (nextRoute.name === 'AppTabs' && notificationStartup && (!notificationStartup.initialChecked || notificationStartup.pending)) return;
 
     const elapsed = Date.now() - startedAtRef.current;
     const wait = Math.max(0, splashHoldMs - elapsed);
 
     const t = setTimeout(() => {
       if (movedRef.current) return;
+      if (!navigation.isFocused()) return;
       movedRef.current = true;
+
+      if (nextRoute.name === 'AppTabs' && notificationStartup?.destination) {
+        const destination = notificationStartup.destination;
+        // One boot decision owns the visible destination. The preserved Home
+        // back route is not briefly presented before the notification screen.
+        navigation.reset({ index: 1, routes: [
+          { name: 'AppTabs', params: { screen: 'HomeTab' } },
+          { name: destination.name, params: destination.params },
+        ] });
+        notificationStartup.onConsumed();
+        return;
+      }
 
       if (nextRoute.name === 'AppTabs' && communityRouteSnapshot) {
         if (communityRouteSnapshot.route.name !== 'list') {
@@ -213,6 +228,7 @@ export default function HomeScreen() {
     communityRouteSnapshot,
     communityRouteSnapshotChecked,
     navigation,
+    notificationStartup,
     nextRoute,
     petBooted,
     splashHoldMs,

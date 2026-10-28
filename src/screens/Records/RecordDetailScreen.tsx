@@ -1,4 +1,5 @@
 import TimelineArtwork from '../../components/records/TimelineArtwork';
+import { useNotificationDestinationRead } from '../../hooks/useNotificationDestinationRead';
 import { LavenderScreenBackground } from '../../components/common/LavenderScreenBackground';
 import { TIMELINE_DESIGN as C } from '../../theme/timelineDesign';
 import CtaButton, { CtaIcon, CtaText } from '../../components/records/TimelineButton';
@@ -777,6 +778,8 @@ export default function RecordDetailScreen() {
     null,
   );
   const [hydrateAttempt, setHydrateAttempt] = useState(0);
+  useNotificationDestinationRead(route.params.notificationOpen,
+    Boolean(record?.id === memoryId && record?.petId === petId && !hydratingMissingRecord && !hydrateErrorMessage));
 
   const isRecordMissingError = useCallback((error: unknown) => {
     if (!error || typeof error !== 'object') return false;

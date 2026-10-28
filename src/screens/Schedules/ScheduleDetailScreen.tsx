@@ -1,4 +1,5 @@
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
+import { useNotificationDestinationRead } from '../../hooks/useNotificationDestinationRead';
 import { shouldStackCtaPair } from '../../app/theme/ctaPalette';
 // 파일: src/screens/Schedules/ScheduleDetailScreen.tsx
 // 역할:
@@ -302,6 +303,9 @@ export default function ScheduleDetailScreen() {
       };
     }, [draftScope, schedule]),
   );
+
+  useNotificationDestinationRead(route.params.notificationOpen,
+    Boolean(schedule?.id === scheduleId && !loading && !loadError));
 
   const scheduleContext = schedule
     ? {

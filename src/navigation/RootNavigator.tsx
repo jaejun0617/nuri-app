@@ -15,6 +15,8 @@
 
 import React from 'react';
 import type { NavigatorScreenParams } from '@react-navigation/native';
+import TimelineStackNavigator, { type TimelineStackParamList } from './TimelineStackNavigator';
+import type { NotificationOpenReceipt, NotificationStartup } from '../services/notifications/openNotification';
 import { isSecurityQaEnabled } from '../services/securityQa/config';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import type { NativeStackHeaderProps } from '@react-navigation/native-stack';
@@ -146,7 +148,7 @@ export type RootStackParamList = {
   // Pet
   PetCreate: { from?: 'auto' | 'cta' | 'header_plus' } | undefined;
   PetManagement: { entrySource?: ScreenEntrySource } | undefined;
-  PetActivityAchievements: { entrySource?: ScreenEntrySource; focusTitleId?: string; focusPetId?: string|null; initialTab?: 'summary'|'vault' } | undefined;
+  PetActivityAchievements: { entrySource?: ScreenEntrySource; focusTitleId?: string; focusPetId?: string|null; initialTab?: 'summary'|'vault'; notificationOpen?: NotificationOpenReceipt } | undefined;
   PetProfileEdit: { petId: string; entrySource?: ScreenEntrySource };
   PetProfileEditDone: {
     petId: string;
@@ -180,6 +182,7 @@ export type RootStackParamList = {
       }
     | undefined;
   ScheduleDetail: {
+    notificationOpen?: NotificationOpenReceipt;
     petId?: string;
     scheduleId: string;
     entrySource?: ScreenEntrySource;
@@ -240,6 +243,7 @@ export type RootStackParamList = {
   AnimalHospitalAdmin: { entrySource?: ScreenEntrySource } | undefined;
   CommunityList: { entrySource?: ScreenEntrySource } | undefined;
   CommunityDetail: {
+    notificationOpen?: NotificationOpenReceipt;
     postId: string;
     commentId?: string;
     discussionSessionId?: string;
@@ -247,6 +251,7 @@ export type RootStackParamList = {
     restoredFromRouteSnapshot?: true;
   };
   CommunityComments: {
+    notificationOpen?: NotificationOpenReceipt;
     postId: string;
     commentId?: string;
     discussionSessionId?: string;
@@ -257,7 +262,8 @@ export type RootStackParamList = {
   CommunityEdit: { postId: string };
   CommunityBlockedUsers: { entrySource?: ScreenEntrySource } | undefined;
   UserNotifications: { entrySource?: ScreenEntrySource } | undefined;
-  NotificationDetail: { id: string; source: 'user'|'announcement' };
+  NotificationDetail: { id: string; source: 'user'|'announcement'; notificationOpen?: NotificationOpenReceipt };
+  NotificationTimeline: NavigatorScreenParams<TimelineStackParamList> & { notificationOpen: NotificationOpenReceipt };
   HomeQuickNotifications: undefined;
   NuriRanking: { entrySource?: ScreenEntrySource } | undefined;
   PolicyCenter: { entrySource?: ScreenEntrySource } | undefined;
@@ -343,7 +349,7 @@ const FixedCommunityBlockedUsersScreen = () => (
   </FixedTypographyBoundary>
 );
 
-export default function RootNavigator() {
+export default function RootNavigator({ notificationStartup }: { notificationStartup?: NotificationStartup }) {
   const reduceMotion = useNavigationMotion();
   return (
     <Stack.Navigator
@@ -364,9 +370,10 @@ export default function RootNavigator() {
       {/* Splash (탭 없음) */}
       <Stack.Screen
         name="Splash"
-        component={HomeScreen}
         options={{ headerShown: false }}
-      />
+      >
+        {() => <HomeScreen notificationStartup={notificationStartup} />}
+      </Stack.Screen>
 
       {/* ✅ 앱 본 화면: 공통 하단 탭 */}
       <Stack.Screen
@@ -583,6 +590,7 @@ export default function RootNavigator() {
         component={UserNotificationsScreen}
         options={{ headerShown: false }}
       />
+      <Stack.Screen name="NotificationTimeline" component={TimelineStackNavigator} options={{ headerShown: false }} />
       <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} options={{headerShown:false}}/>
       <Stack.Screen
         name="NuriRanking"

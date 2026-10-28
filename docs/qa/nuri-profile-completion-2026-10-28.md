@@ -3,7 +3,7 @@
 ## 범위와 현재 판정
 
 - Master 단독. PO가 중단 작업 재개·프로필 시안·실제 사진 합성·이름 무지개 제거·최초 후보 대비 총3sp 축소를 승인했다. 이 디자인 이후에도 통합1~6/NAV를 계속하며 원래7~9와 Store는 시작하지 않는다.
-- 현재 구현 및 Metro 미리보기 단계다. 실제 저장 이후 bundled APK 수락은 NOT_RUN이며 전체 동결이 아니다. 원본181변경·별도31이미지·사용자 데이터와 선택을 보존한다.
+- 5d88493의 bundled Debug632332f7을 같은 서명·UID·데이터 보존/Metro OFF로 실기기에 설치했다. 실제 확정 사진/변경 없는 저장/Android Back→Home을 확인했고 동일 SHA CI40622609366 전체4415/critical127 PASS다. 전체 통합 동결이 아니며 원본181변경·별도31이미지·사용자 데이터와 선택을 보존한다.
 - 외부 증적: `/Users/shinjaejun/.codex/nuri-profile-completion-20261028-urmnPT`.
 
 ## 시안·추출·최종 값
@@ -46,12 +46,12 @@ native 이미지 마스크 후보는 실기기에서 중앙 사진을 표시하�
 | 실제 사진 합성 | PASS, 미리보기 | SM-S937N Android17, 실제 사진2개/같은 중앙·원형, 저장 E2E 아님 |
 | 가로/세로/정사각형 | PASS, 시각 미리보기 | 두 색 QA bitmap의 route 주입만, 서버/store 쓰기0, 고정 외곽 |
 | 다른 아이 | PASS, 미리보기 | 선택을 바꾸지 않은 다른 실제 아이 receipt, preview-other-verified.png |
-| 저장→완료→Home | NOT_RUN | Metro OFF 최종 설치본에서 수행 예정 |
+| 저장→완료→Home | PASS, 범위 한정 | Metro OFF 동일 서명 설치본, 변경 없는 실제 저장/같은 중앙·원형 사진/Android Back. 원격 확정 값 보존은 actual-save-canonical-values-verified.json |
 | 작은 화면/큰 글자/키보드 | NOT_RUN | 이번 화면에 필요한 범위만, 원래9 전체 회귀 아님 |
-| 최종 빌드/설치/Git/CI | NOT_RUN | 전달 영수증 이후 갱신 |
+| 프로필 후보 빌드/설치/Git/CI | PASS |5d88493/632332f7 및 CI40622609366. 이후 미커밋 알림 수정 설치와 구분 |
 
 시행착오와 test harness hoisting/중복 host/기본 dimension/event 인자 보정은 외부 결과에 보존한다. 미리보기의 UI dump1회 경합은 도구 실행 오류이며 제품 오류로 분류하지 않았다. 다른 아이 검증은 직렬 재확인 증거만 사용한다.
 
 ## 다음 작업 및 우선순위
 
-동일 서명 bundled 설치/실제 저장·Home·입력 검증을 먼저 닫고, [통합 단일 원장](nuri-integrated-closeout-2026-10-25.md)의 직접 알림 target/정상 목적지 후 읽음/Back부터 계속한다. 인증·OS/다중 기기·기록 CRUD/실패의 필수 미검증이 남으면 전체 동결하지 않는다.
+작은 화면/큰 글자/입력 수락은 잔여로 보존한다. [통합 단일 원장](nuri-integrated-closeout-2026-10-25.md)의 직접 알림 target/정상 목적지 후 읽음/Back을 계속한다. 인증·OS/다중 기기·기록 CRUD/실패의 필수 미검증이 남으면 전체 동결하지 않는다.

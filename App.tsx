@@ -12,11 +12,12 @@
 // - Provider 순서와 NavigationContainer 등록 순서를 바꾸면 제스처, safe area, 전역 상태, 모니터링이 함께 깨질 수 있다.
 // - 부팅 시점 코드이므로 무거운 로직을 직접 넣지 말고 하위 provider/service로 내려야 한다.
 
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StatusBar } from 'react-native';
 import {
   createNavigationContainerRef,
   NavigationContainer,
+  StackActions,
 } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { enableScreens } from 'react-native-screens';
@@ -52,6 +53,10 @@ import { usePetStore } from './src/store/petStore';
 import {consumeInitialNotificationTap,observeNativePush,type NotificationTap} from './src/services/notifications/nativePush';
 import {syncPushNotificationDevice} from './src/services/notifications/pushTokenLifecycle';
 import {appQueryClient} from './src/services/query/appQueryClient';
+import { fetchNotificationDetail } from './src/services/notifications/userNotifications';
+import { createNotificationOpenReceipt, NOTIFICATION_LOOKUP_TIMEOUT_MS, resolveNotificationDestination, type NotificationDestination } from './src/services/notifications/openNotification';
+import { resolveBootRoute, withTimeout } from './src/services/app/boot';
+import { showToast } from './src/store/uiStore';
 
 enableScreens(true);
 initMonitoring();
@@ -70,7 +75,25 @@ function App() {
   const petBooted = usePetStore(state => state.booted);
   const sessionUserId = useAuthStore(state => state.session?.user.id ?? null);
   const pets = usePetStore(state => state.pets);
+  const petErrorMessage = usePetStore(state => state.errorMessage);
+  const bootRouteName = useAuthStore(state => resolveBootRoute({
+    isLoggedIn: state.isLoggedIn, nickname: state.profile.nickname,
+    profileSyncStatus: state.profileSyncStatus, petsCount: pets.length, petErrorMessage,
+    passwordRecoveryFlow: state.passwordRecoveryFlow, accountDeletionGate: state.accountDeletionGate,
+  }).name);
   const [notificationTap,setNotificationTap]=useState<NotificationTap|null>(null);
+  const [initialNotificationChecked, setInitialNotificationChecked] = useState(false);
+  const [startupDestination, setStartupDestination] = useState<{ tap: NotificationTap; destination: NotificationDestination } | null>(null);
+  const consumeStartupNotification = useCallback(() => {
+    setNotificationTap(current => current === startupDestination?.tap ? null : current);
+    setStartupDestination(null);
+  }, [startupDestination]);
+  const notificationStartup = useMemo(() => ({
+    initialChecked: initialNotificationChecked,
+    pending: Boolean(notificationTap && notificationTap.recipientUserId === sessionUserId && startupDestination?.tap !== notificationTap),
+    destination: startupDestination?.tap === notificationTap ? startupDestination?.destination ?? null : null,
+    onConsumed: consumeStartupNotification,
+  }), [consumeStartupNotification, initialNotificationChecked, notificationTap, sessionUserId, startupDestination]);
   const lastNotificationTap=useRef<{key:string;at:number}|null>(null);
   const queueNotificationTap=useCallback((tap:NotificationTap)=>{
     const key=`${tap.recipientUserId}:${tap.source}:${tap.id}`,now=Date.now();
@@ -89,15 +112,44 @@ function App() {
       if(owner)appQueryClient.invalidateQueries({queryKey:['notifications-v3',owner]}).catch(()=>{});
       syncPushNotificationDevice().catch(()=>{});
     });
-    consumeInitialNotificationTap().then(tap=>{if(active&&tap)queueNotificationTap(tap);}).catch(()=>{});
+    withTimeout(consumeInitialNotificationTap(), NOTIFICATION_LOOKUP_TIMEOUT_MS, 'initial notification').then(tap=>{if(active&&tap)queueNotificationTap(tap);}).catch(()=>{}).finally(() => { if (active) setInitialNotificationChecked(true); });
     return()=>{active=false;unsubscribe();};
   },[queueNotificationTap]);
   useEffect(()=>{
     if(!navigationReady||!authBooted||!petBooted||!notificationTap||!sessionUserId)return;
-    setNotificationTap(null);
-    if(notificationTap.recipientUserId!==sessionUserId)return;
-    navigationRef.current.navigate('NotificationDetail',{id:notificationTap.id,source:notificationTap.source});
-  },[authBooted,navigationReady,notificationTap,petBooted,sessionUserId]);
+    if(notificationTap.recipientUserId!==sessionUserId){setNotificationTap(null);return;}
+    if (bootRouteName !== 'AppTabs') return;
+    let active = true;
+    let bootOwnsDestination = false;
+    const owner = sessionUserId;
+    const receipt = createNotificationOpenReceipt({ id: notificationTap.id, source: notificationTap.source, ownerId: owner });
+    withTimeout(fetchNotificationDetail(notificationTap.id, notificationTap.source), NOTIFICATION_LOOKUP_TIMEOUT_MS, 'notification detail').then(item => {
+      if (!active || useAuthStore.getState().session?.user.id !== owner || !navigationRef.current.isReady()) return;
+      const current = navigationRef.current.getCurrentRoute();
+      const existing = current?.params && 'notificationOpen' in current.params ? current.params.notificationOpen : null;
+      if (existing?.id === notificationTap.id && existing.source === notificationTap.source && existing.ownerId === owner) return;
+      const store = usePetStore.getState();
+      const destination = resolveNotificationDestination(item, receipt, store.selectedPetId ?? store.pets[0]?.id ?? null);
+      if (current?.name === 'Splash') {
+        bootOwnsDestination = true;
+        setStartupDestination({ tap: notificationTap, destination });
+        return;
+      }
+      navigationRef.current.dispatch(current?.name === 'HomeQuickNotifications'
+        ? StackActions.replace(destination.name, destination.params)
+        : StackActions.push(destination.name, destination.params));
+    }).catch(() => {
+      if (active && useAuthStore.getState().session?.user.id === owner && navigationRef.current.getCurrentRoute()?.name === 'Splash') {
+        bootOwnsDestination = true;
+        setStartupDestination({ tap: notificationTap, destination: { name: 'NotificationDetail', params: { id: receipt.id, source: receipt.source, notificationOpen: receipt } } });
+        return;
+      }
+      if (active && useAuthStore.getState().session?.user.id === owner) showToast({ tone: 'error', title: '알림을 열지 못했어요', message: '알림함에서 다시 확인해주세요.' });
+    }).finally(() => {
+      if (active && !bootOwnsDestination) setNotificationTap(current => current === notificationTap ? null : current);
+    });
+    return () => { active = false; };
+  },[authBooted,bootRouteName,navigationReady,notificationTap,petBooted,sessionUserId]);
 
   const persistCommunityRouteState = useCallback(() => {
     if (!navigationRef.current.isReady()) return;
@@ -266,7 +318,7 @@ function App() {
               onReady={handleNavigationReady}
               onStateChange={handleNavigationStateChange}
             >
-              <RootNavigator />
+              <RootNavigator notificationStartup={notificationStartup} />
             </NavigationContainer>
             <GlobalToast />
           </AppProviders>

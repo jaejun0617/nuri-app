@@ -21,6 +21,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
+import { useNotificationDestinationRead } from '../../hooks/useNotificationDestinationRead';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -563,6 +564,7 @@ export default function PetActivityAchievementsScreen() {
   },[route.params?.focusTitleId,route.params?.focusPetId,route.params?.initialTab,selectedPetId]);
   const offsets = useRef<Record<Tab, number>>({ summary: 0, vault: 0 });
   const dashboard = result?.owner === ownerId ? result.data : null;
+  useNotificationDestinationRead(route.params?.notificationOpen, Boolean(dashboard && !loading && !error));
   const inputs = useMemo(
     () =>
       pets.map(p => ({

@@ -1,4 +1,5 @@
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
+import { useNotificationDestinationRead } from '../../hooks/useNotificationDestinationRead';
 // 파일: src/screens/Records/TimelineScreen.tsx
 // 파일 목적:
 // - 선택된 펫의 기록을 시간순 타임라인으로 탐색하는 메인 목록 화면이다.
@@ -110,7 +111,7 @@ import { useRecordStore } from '../../store/recordStore';
 import { useWalkSources } from '../../hooks/useWalkProduct';
 import { useAuthStore } from '../../store/authStore';
 import { openMoreDrawer } from '../../store/uiStore';
-import { getKstYmd } from '../../utils/date';
+import { addDaysToYmd, formatYmdToDots, getKstYmd } from '../../utils/date';
 import { getTimelineEmptyCopy } from '../../services/timeline/emptyState';
 import { styles } from './TimelineScreen.styles';
 import TimelineSeasonalHeader, {
@@ -398,8 +399,10 @@ export default function TimelineScreen() {
       : null;
 
   const petId = useMemo(
-    () => resolveSelectedPetId(pets, selectedPetId, petIdFromParams),
-    [petIdFromParams, pets, selectedPetId],
+    () => route.params?.notificationOpen && petIdFromParams
+      ? pets.some(pet => pet.id === petIdFromParams) ? petIdFromParams : null
+      : resolveSelectedPetId(pets, selectedPetId, petIdFromParams),
+    [petIdFromParams, pets, route.params?.notificationOpen, selectedPetId],
   );
   const selectedPet = useMemo(
     () => pets.find(item => item.id === petId) ?? null,
@@ -427,6 +430,7 @@ export default function TimelineScreen() {
   const clearFocusedMemoryId = useRecordStore(s => s.clearFocusedMemoryId);
   const recordsById = useRecordStore.getState().recordsById;
   const status = normalizeStatus(timelineStatus);
+  useNotificationDestinationRead(route.params?.notificationOpen, Boolean(petId && status === 'ready'));
   const refreshing = status === 'refreshing';
 
   useEffect(() => {
@@ -556,7 +560,11 @@ export default function TimelineScreen() {
   const renderedFilteredIds = isHomeTotalSummaryListLoading
     ? EMPTY_TIMELINE_IDS
     : filteredIds;
-  const categoryCounts = timelineCategoryCountsReady
+  const notificationPeriod = isHomeTotalSummaryEntry ? undefined : route.params?.notificationPeriod;
+  const periodCategoryCounts = useMemo(() => notificationPeriod && summaryRecords?.petId === petId
+    ? buildTimelineCategoryCounts(summaryRecords.records, notificationPeriod)
+    : timelineView.categoryCounts, [notificationPeriod, petId, summaryRecords, timelineView.categoryCounts]);
+  const categoryCounts = notificationPeriod ? periodCategoryCounts : timelineCategoryCountsReady
     ? timelineCategoryCounts
     : timelineView.categoryCounts;
   const preloadSignatureRef = useRef<string>('');
@@ -1071,6 +1079,13 @@ export default function TimelineScreen() {
     [markExplicitMonthSelection,navigation],
   );
 
+  const showAllNotificationRecords = useCallback(() => {
+    jumpToYm(null);
+    setMainCategory('all');
+    setOtherSubCategory(null);
+    setOtherModalOpen(false);
+  }, [jumpToYm]);
+
   const onPressMainCategory = useCallback((key: MainCategory) => {
     if (key !== 'other') {
       setMainCategory(key);
@@ -1387,6 +1402,10 @@ export default function TimelineScreen() {
       openMoreDrawer();
     },
     onFallback: () => {
+      if (route.params?.notificationOpen) {
+        navigation.goBack();
+        return;
+      }
       navigation.navigate('HomeTab');
     },
   });
@@ -1422,6 +1441,23 @@ export default function TimelineScreen() {
           onOpenMonth={onOpenMonth}
           onPressCategory={onPressMainCategory}
         />
+        {notificationPeriod ? (
+          <View style={styles.notificationPeriod} testID="timeline-notification-period">
+            <AppText preset="unifiedMeta" style={styles.notificationPeriodText}>
+              {formatYmdToDots(notificationPeriod.startDate)} ~ {formatYmdToDots(addDaysToYmd(notificationPeriod.endDate, -1))} 기록
+            </AppText>
+            <TouchableOpacity
+              accessibilityRole="button"
+              accessibilityLabel="전체 기록 보기"
+              onPress={showAllNotificationRecords}
+              style={styles.notificationPeriodAction}
+              testID="timeline-notification-show-all"
+            >
+              <AppText preset="unifiedMeta" style={styles.notificationPeriodActionText}>전체 기록 보기</AppText>
+              <Feather name="chevron-right" size={16} color="#7045CB" />
+            </TouchableOpacity>
+          </View>
+        ) : null}
       </TimelineSeasonalHeader>
     ),
     [
@@ -1443,6 +1479,8 @@ export default function TimelineScreen() {
       onToggleSort,
       onOpenMonth,
       onPressMainCategory,
+      notificationPeriod,
+      showAllNotificationRecords,
     ],
   );
 

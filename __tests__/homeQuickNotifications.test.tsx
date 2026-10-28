@@ -1,4 +1,5 @@
 import React from 'react';
+import { Image, StyleSheet } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'styled-components/native';
@@ -11,11 +12,13 @@ import type { UserNotificationItem } from '../src/services/notifications/userNot
 const mockNavigate = { replace: jest.fn(), goBack: jest.fn(), isFocused: () => true };
 const mockMarkAll = jest.fn().mockResolvedValue(undefined);
 const mockRefetch = jest.fn().mockResolvedValue(undefined);
+const mockOpen = jest.fn().mockResolvedValue(undefined);
 const mockRpc = jest.fn<Promise<{ data: unknown; error: null }>, [string, Record<string, unknown>?]>();
 let mockOwner = '11111111-1111-4111-8111-111111111111';
 let mockState: { items?: UserNotificationItem[]; unread?: number; loading?: boolean; error?: boolean } = {};
 let mockUseActualHook = false;
 jest.mock('@react-navigation/native', () => ({ useNavigation: () => mockNavigate }));
+jest.mock('../src/hooks/useOpenNotification', () => ({ useOpenNotification: () => ({ open: mockOpen, opening: false }) }));
 jest.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 24, bottom: 24, left: 0, right: 0 }) }));
 jest.mock('../src/store/authStore', () => ({ useAuthStore: Object.assign((selector: (state: { session: { user: { id: string } } }) => unknown) => selector({ session: { user: { id: mockOwner } } }), { getState: () => ({ session: { user: { id: mockOwner } } }) }) }));
 jest.mock('../src/services/supabase/client', () => ({ supabase: { rpc: (name: string, args?: Record<string, unknown>) => mockRpc(name, args) } }));
@@ -56,7 +59,16 @@ it('does not consume unread rows by opening the preview; read-all delegates the 
   expect(mockMarkAll).toHaveBeenCalledTimes(1);
   expect(mockMarkAll).toHaveBeenCalledWith();
   await act(async () => renderer.root.findAllByProps({ testID: 'home-quick-notification-row' })[0].props.onPress());
-  expect(mockNavigate.replace).toHaveBeenCalledWith('NotificationDetail', { id: item(1).id, source: 'user' });
+  expect(mockOpen).toHaveBeenCalledWith({ id: item(1).id, source: 'user' });
+  await act(async () => renderer.unmount());
+});
+it('clips the extracted square canvas at the original rounded category surface rather than exposing white corners', async () => {
+  mockState = { items: [item(1)], unread: 1 };
+  let renderer!: TestRenderer.ReactTestRenderer;
+  await act(async () => { renderer = TestRenderer.create(provider(<HomeQuickNotificationsScreen />)); });
+  const category = renderer.root.findAllByType(Image).find(node => StyleSheet.flatten(node.props.style)?.width === 48);
+  expect(category).toBeDefined();
+  expect(StyleSheet.flatten(category?.props.style)).toMatchObject({ width: 48, height: 48, borderRadius: 16 });
   await act(async () => renderer.unmount());
 });
 it.each([{ loading: true }, { error: true }])('does not present a loading/failure response as an empty inbox', async state => {

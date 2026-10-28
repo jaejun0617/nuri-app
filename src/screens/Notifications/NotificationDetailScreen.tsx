@@ -1,15 +1,14 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useNavigation, useRoute } from '@react-navigation/native';
+import React, { useMemo, useRef, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { StackActions, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 import { notificationKeys } from '../../hooks/useNotificationInbox';
-import {
-  fetchNotificationDetail,
-  markUserNotificationRead,
-} from '../../services/notifications/userNotifications';
+import { fetchNotificationDetail } from '../../services/notifications/userNotifications';
+import { createNotificationOpenReceipt, resolveNotificationDestination } from '../../services/notifications/openNotification';
+import { useNotificationDestinationRead } from '../../hooks/useNotificationDestinationRead';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
@@ -28,10 +27,11 @@ function NotificationDetailContent() {
   const { params } = useRoute<RootScreenRoute<'NotificationDetail'>>();
   const insets = useSafeAreaInsets();
   const userId = useAuthStore(s => s.session?.user.id ?? null);
-  const queryClient = useQueryClient();
-  const [readError, setReadError] = useState(false),
-    [busy, setBusy] = useState(false);
-  const reading = useRef(false);
+  const [busy, setBusy] = useState(false);
+  const acting = useRef(false);
+  const receipt = useMemo(() => params.notificationOpen ?? (userId
+    ? createNotificationOpenReceipt({ id: params.id, source: params.source, ownerId: userId })
+    : undefined), [params.id, params.notificationOpen, params.source, userId]);
   const detail = useQuery({
     queryKey: [
       ...notificationKeys.owner(userId),
@@ -43,33 +43,14 @@ function NotificationDetailContent() {
     enabled: Boolean(userId),
     refetchOnMount: 'always',
   });
-  const markRead = useCallback(async () => {
-    if (!detail.data || reading.current || detail.data.readAt) return;
-    reading.current = true;
-    setReadError(false);
-    try {
-      await markUserNotificationRead({ id: params.id, source: params.source });
-      if (useAuthStore.getState().session?.user.id !== userId) return;
-      await queryClient.invalidateQueries({
-        queryKey: notificationKeys.owner(userId),
-      });
-    } catch {
-      if (useAuthStore.getState().session?.user.id === userId)
-        setReadError(true);
-    } finally {
-      reading.current = false;
-    }
-  }, [detail.data, params.id, params.source, queryClient, userId]);
-  // A successful detail commit precedes the read mutation. List exposure never reads.
-  useEffect(() => {
-    if (detail.isSuccess && !readError) markRead();
-  }, [detail.isSuccess, markRead, readError]);
+  const { readError, retryRead } = useNotificationDestinationRead(receipt, Boolean(detail.data && detail.isSuccess));
   const onAction = async () => {
-    if (busy) return;
+    if (acting.current || !receipt) return;
+    acting.current = true;
     setBusy(true);
     try {
       const item = await fetchNotificationDetail(params.id, params.source);
-      if (useAuthStore.getState().session?.user.id !== userId) return;
+      if (useAuthStore.getState().session?.user.id !== userId || !navigation.isFocused()) return;
       const target = item.actionTarget;
       if (!target || target.kind === 'unavailable') {
         showToast({
@@ -82,72 +63,7 @@ function NotificationDetailContent() {
       }
       const pets = usePetStore.getState().pets,
         selectedPetId = usePetStore.getState().selectedPetId;
-      switch (target.kind) {
-        case 'community_comment':
-          navigation.navigate('CommunityComments', {
-            postId: target.postId,
-            commentId: target.commentId,
-          });
-          break;
-        case 'community_post':
-          navigation.navigate('CommunityDetail', { postId: target.postId });
-          break;
-        case 'schedule':
-          navigation.navigate('ScheduleDetail', {
-            scheduleId: target.scheduleId,
-            petId: target.petId,
-          });
-          break;
-        case 'record':
-          navigation.navigate('AppTabs', {
-            screen: 'TimelineTab',
-            params: {
-              screen: 'RecordDetail',
-              params: { petId: target.petId, memoryId: target.memoryId },
-            },
-          });
-          break;
-        case 'title':
-          navigation.navigate('PetActivityAchievements', {
-            focusTitleId: target.titleId,
-            focusPetId: target.petId,
-          });
-          break;
-        case 'activity':
-          navigation.navigate('PetActivityAchievements', {
-            initialTab: 'summary',
-          });
-          break;
-        case 'timeline_period': {
-          const petId = target.petId ?? selectedPetId ?? pets[0]?.id;
-          if (!petId) throw new Error('NURI_NOTIFICATION_PET_UNAVAILABLE');
-          navigation.navigate('AppTabs', {
-            screen: 'TimelineTab',
-            params: {
-              screen: 'TimelineMain',
-              params: {
-                petId,
-                ymFilter: null,
-                notificationEntryId: params.id,
-                notificationPeriod: {
-                  startDate: target.startDate,
-                  endDate: target.endDate,
-                },
-              },
-            },
-          });
-          break;
-        }
-        case 'pet_anniversary':
-          navigation.navigate('AppTabs', {
-            screen: 'TimelineTab',
-            params: {
-              screen: 'TimelineMain',
-              params: { petId: target.petId, ymFilter: null, notificationPeriod:undefined,notificationEntryId:undefined },
-            },
-          });
-          break;
-        case 'notification_detail': {
+      if (target.kind === 'notification_detail') {
           const month = item.payload?.month;
           if (
             item.payload?.layout === 'monthly_news' &&
@@ -156,21 +72,22 @@ function NotificationDetailContent() {
           ) {
             const petId = selectedPetId ?? pets[0]?.id;
             if (!petId) throw new Error('NURI_NOTIFICATION_PET_UNAVAILABLE');
-            navigation.navigate('AppTabs', {
-              screen: 'TimelineTab',
+            navigation.dispatch(StackActions.push('NotificationTimeline', {
+              notificationOpen: receipt,
+              screen: 'TimelineMain',
               params: {
-                screen: 'TimelineMain',
-                params: {
                   petId,
                   ymFilter: month,
                   notificationEntryId: params.id,
                   notificationPeriod: undefined,
-                },
+                  notificationOpen: receipt,
               },
-            });
+            }));
           } else navigation.goBack();
-          break;
-        }
+      } else {
+        const destination = resolveNotificationDestination(item, receipt, selectedPetId ?? pets[0]?.id ?? null);
+        if (destination.name === 'NotificationDetail') throw new Error('NURI_NOTIFICATION_PET_UNAVAILABLE');
+        navigation.dispatch(StackActions.push(destination.name, destination.params));
       }
     } catch {
       showToast({
@@ -179,6 +96,7 @@ function NotificationDetailContent() {
         message: '연결 상태와 아이 정보를 확인한 뒤 다시 시도해주세요.',
       });
     } finally {
+      acting.current = false;
       setBusy(false);
     }
   };
@@ -196,9 +114,7 @@ function NotificationDetailContent() {
           }}
           busy={busy}
           readError={readError}
-          onRetryRead={() => {
-            markRead();
-          }}
+          onRetryRead={retryRead}
         />
       ) : (
         <NotificationState
