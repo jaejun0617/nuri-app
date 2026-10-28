@@ -321,6 +321,7 @@ export async function createSchedule(input: {
     throw new Error('SCHEDULE_SUBMISSION_INVALID');
   }
   const userRes = await supabase.auth.getUser();
+  if (userRes.error) throw userRes.error;
   const userId = userRes.data.user?.id ?? null;
   if (!userId) throw new Error('로그인 정보가 없습니다.');
   if (submission && userId !== submission.ownerId) {

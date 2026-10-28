@@ -1,4 +1,5 @@
 import { createSchedule } from '../src/services/supabase/schedules';
+import { getBrandedErrorMeta } from '../src/services/app/errors';
 
 const mockInsert = jest.fn(),
   mockSingle = jest.fn(),
@@ -111,6 +112,15 @@ it('rejects invalid submission identity and changed authentication before insert
     'SCHEDULE_SUBMISSION_OWNER_CHANGED',
   );
   expect(mockFrom).not.toHaveBeenCalled();
+});
+it('preserves a user lookup network failure instead of reporting a lost login', async () => {
+  const networkError = new Error('Network request failed');
+  mockGetUser.mockResolvedValue({ data: { user: null }, error: networkError });
+  await expect(createSchedule(input)).rejects.toBe(networkError);
+  expect(mockFrom).not.toHaveBeenCalled();
+  expect(getBrandedErrorMeta(networkError, 'schedule-create')).toMatchObject({
+    message: '연결 상태가 잠시 흔들렸어요. 안정적인 네트워크에서 다시 시도해 주세요.',
+  });
 });
 it('propagates a failed recovery query and rejects a mismatched successful response', async () => {
   mockSingle.mockResolvedValueOnce({ data: null, error: { code: '23505' } });

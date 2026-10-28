@@ -2,6 +2,15 @@
 
 상태: IN_PROGRESS. 전체 동결 아님. Master 단독 수행.
 
+## 2026-10-28 일정 실제 수락과 offline 오류 원인 보존
+
+- 설치39c36f019d89fedaf84073de3c072ea85c3bba3f/[CI40682565945](https://github.com/jaejun0617/nuri-app/actions/runs/40682565945) 모든 후속 PASS·runtime46bc85491d0da91a81bcf68d37639e5fa0faf1da6a24f771d54ebee3e91f27f8·bundled Debug APK845d4d9ca383fc4182d32abcd8f0a3aced27ac5d2fe9218dbce95afade8b0ab1을 물리/Google Play 에뮬레이터에 동일 서명·UID·최초 설치·권한·데이터 보존/Metro OFF로 설치했다. `delivery-schedule-submission`이 영수증을 소유하며 실제 수락은 `schedule-crud-acceptance.json`이다.
+- 에뮬레이터 요청 전 네트워크 차단→실패/서버0→제목/메모 보존→네트워크 복구/정상 저장 연속2탭→ed4eeb2b1개/매일/5분 전 native 예약1개를 확인했다. 같은ID의 제목/메모 수정과10분 전 변경은 이전5분 예약을 교체했다. 미래 일정 명시 완료 후 예약0, 정상 삭제 후 서버0/추적한 해당 native 예약0·빈 목록·동일 More 복귀를 확인했다. 네트워크1/1 원복, 기존 사용자 일정 변경0이다. 첫 과거 시각 시험은 입력 검증에서 차단돼 네트워크 주입 NOT_RUN으로 별도 보존했다.
+- 녹화는1080×2400/75.191944초/335 encoded frames(약4.45fps VFR), SHA f6fde9aa9124661d60adc90bf80a79ec5fde06e0fd4473fa19b97f3177de602d다. 3개 sheet의335개 수집 프레임에서 편집 완료·목록·상세·완료/삭제 확인창의 정상 경로를 관찰했다. 영상은 삭제 실행 뒤 복귀 전 끝나므로 삭제 복귀는 UI/서버 영수증으로만 수락한다. 모든 compositor frame/전 경로/FCM 수락으로 확대하지 않는다. 복사 hash 확인 뒤 이번 remote 영상만 제거했다.
+- 새 실제 FAIL: offline의 auth.getUser 오류를 createSchedule이 버리고 user=null을 ‘로그인 정보 없음’으로 바꿔 재로그인을 요구했다. 실제 세션은 유지돼 재로그인 없이 저장 재시도에 성공했다. SDK 오류를 공용 network 분류로 그대로 전달하는1줄 보정을 추가했다. 회귀1FAIL/8PASS→관련52/52·타입/lint0오류/0경고이며 새 전체/CI·설치 후 정확한 offline 안내 확인은 이어서 기록한다. DB/인증/예약 정책 변경0이다.
+- 일정 정상 CRUD·요청 전 실패/입력 보존 수락을 저장 후 응답 유실·실제 늦은 owner callback 전체 E2E로 확대하지 않는다. 기록 도메인 전체0/4·OS10/13(76.9%)·전체 미동결·원래7~9 미착수·STORE HOLD를 유지한다.
+- offline 오류 보존 후보의 최종 전체336suites4545/4545 PASS(`schedule-auth-network-full.json`)다. 이전4544개와 새 오류 회귀1개를 구분하며 동일 SHA CI·새 설치/실제 안내 수락을 대체하지 않는다.
+
 ## 2026-10-28 일정 저장 재시도와 소유 경계 후보
 
 - 원래6의 일정은 응답을 받기 전 재시도하면 새 서버 PK로 INSERT할 수 있었다. 원격 기존 UUID PK와 owner/pet 열을 읽기 전용으로 확인했고 DB/RPC/RLS/예약 정책은 바꾸지 않았다. 폼 수명 안에서 요청 전에 만든 UUID를 유지하고23505일 때 현재 owner/pet의 동일한 미삭제 row만 확인한다. 수정 입력을 upsert하지 않고 명시적인 ‘일정 확인’에서 최신 서버 값을 다시 읽어 기존 완료/예약 흐름을 진행한다.
