@@ -14,6 +14,7 @@
 // - pagination cursor와 삭제 시 storage 정리 흐름은 타임라인/상세/업로드 큐가 같이 의존하므로 회귀 검증이 필수다.
 
 import { supabase } from './client';
+import { isRequestId } from '../../utils/requestId';
 import { invalidateMonthlyExpenses } from '../records/expenses';
 import {
   deleteMemoryImage,
@@ -819,7 +820,16 @@ export async function fetchMemoriesByPetDateRange(input: {
 /* ---------------------------------------------------------
  * 2) Create
  * -------------------------------------------------------- */
+export class MemoryAlreadySavedError extends Error {
+  readonly code = 'MEMORY_ALREADY_SAVED';
+  constructor(readonly memoryId: string, readonly category: string | null) {
+    super('이미 저장된 기록이에요. 현재 초안은 보관하고 저장된 기록을 확인해 주세요.');
+    this.name = 'MemoryAlreadySavedError';
+  }
+}
+
 export async function createMemory(input: {
+  submission?: { id: string; ownerId: string };
   petId: string;
   title: string;
   content?: string | null;
@@ -832,9 +842,14 @@ export async function createMemory(input: {
   imagePath?: string | null;
   metadata?: MemoryRecordMetadata | null;
 }): Promise<string> {
+  const submission = input.submission;
+  if (submission && (!isRequestId(submission.id) || !submission.ownerId)) {
+    throw new Error('MEMORY_SUBMISSION_INVALID');
+  }
   const { data, error } = await supabase
     .from('memories')
     .insert({
+      ...(submission ? { id: submission.id, user_id: submission.ownerId } : {}),
       pet_id: input.petId,
       title: input.title,
       content: input.content ?? null,
@@ -850,10 +865,28 @@ export async function createMemory(input: {
     .select('id')
     .single();
 
-  if (error) throw error;
+  if (error) {
+    if (submission && error.code === '23505') {
+      // Never upsert/reapply edited text or photos to a previously saved row.
+      // Explicit owner/pet predicates supplement the existing server RLS.
+      const existing = await supabase.from('memories')
+        .select('id,pet_id,category')
+        .eq('id', submission.id)
+        .eq('user_id', submission.ownerId)
+        .eq('pet_id', input.petId)
+        .maybeSingle();
+      if (existing.error) throw existing.error;
+      if (isRecord(existing.data) && existing.data.id === submission.id && existing.data.pet_id === input.petId) {
+        invalidateMonthlyExpenses();
+        throw new MemoryAlreadySavedError(submission.id, typeof existing.data.category === 'string' ? existing.data.category : null);
+      }
+    }
+    throw error;
+  }
   if (!isInsertedMemoryIdRow(data)) {
     throw new Error('기록 식별자를 확인하지 못했어요.');
   }
+  if (submission && data.id !== submission.id) throw new Error('MEMORY_SUBMISSION_RESPONSE_INVALID');
   invalidateMonthlyExpenses();
   return data.id;
 }

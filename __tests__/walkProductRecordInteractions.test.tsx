@@ -131,9 +131,12 @@ jest.mock('../src/services/walk/product/invalidation', () => ({
   invalidateWalkProduct: jest.fn(),
 }));
 jest.mock('../src/store/authStore', () => ({
-  useAuthStore: (
+  useAuthStore: Object.assign((
     selector: (s: { session: { user: { id: string } } }) => unknown,
-  ) => selector({ session: { user: { id: 'owner' } } }),
+  ) => selector({ session: { user: { id: 'owner' } } }), {
+    getState: () => ({ session: { user: { id: 'owner' } } }),
+    subscribe: jest.fn(() => () => undefined),
+  }),
 }));
 jest.mock('../src/components/common/SeasonalFormSurface', () => ({
   SeasonalFormBackground: () => null,

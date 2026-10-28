@@ -4,6 +4,7 @@
 // - 앱 시작/포그라운드 복귀 시 재시도해서 기록과 이미지를 나중에 정합화
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuthStore } from '../../store/authStore';
 
 import {
   captureMonitoringException,
@@ -19,7 +20,17 @@ import {
 const MEMORY_UPLOAD_QUEUE_STORAGE_KEY = 'nuri.memory-upload-queue.v1';
 const MAX_ATTEMPTS = 5;
 let processingPromise: Promise<ProcessPendingMemoryUploadsResult> | null = null;
+let processingUserId: string | null = null;
 const claimedTaskIds = new Set<string>();
+let queueMutation: Promise<unknown> = Promise.resolve();
+
+function mutateQueue<T>(operation: () => Promise<T>): Promise<T> {
+  const next = queueMutation.catch(() => undefined).then(operation);
+  queueMutation = next;
+  return next;
+}
+
+class UploadOwnerChangedError extends Error {}
 
 class SupersededMemoryUploadTaskError extends Error {
   constructor() {
@@ -116,8 +127,8 @@ function normalizeTask(
   const rawEntries = Array.isArray(task.finalEntries)
     ? task.finalEntries
     : Array.isArray(task.images)
-      ? task.images
-      : [];
+    ? task.images
+    : [];
   const finalEntries = rawEntries
     .map(normalizePendingEntry)
     .filter((entry): entry is PendingMemoryUploadEntry => Boolean(entry));
@@ -164,30 +175,32 @@ export async function enqueuePendingMemoryUpload(
     'taskId' | 'attempts' | 'createdAt' | 'updatedAt' | 'lastErrorMessage'
   >,
 ): Promise<PendingMemoryUploadTask> {
-  const current = await loadQueue();
-  const now = new Date().toISOString();
+  return mutateQueue(async () => {
+    const current = await loadQueue();
+    const now = new Date().toISOString();
 
-  const nextTask: PendingMemoryUploadTask = {
-    taskId: `${input.memoryId}:${Date.now()}:${Math.random()
-      .toString(36)
-      .slice(2, 8)}`,
-    userId: input.userId,
-    petId: input.petId,
-    memoryId: input.memoryId,
-    mode: input.mode,
-    finalEntries: input.finalEntries.map(entry => ({ ...entry })),
-    attempts: 0,
-    createdAt: now,
-    updatedAt: now,
-    lastErrorMessage: null,
-  };
+    const nextTask: PendingMemoryUploadTask = {
+      taskId: `${input.memoryId}:${Date.now()}:${Math.random()
+        .toString(36)
+        .slice(2, 8)}`,
+      userId: input.userId,
+      petId: input.petId,
+      memoryId: input.memoryId,
+      mode: input.mode,
+      finalEntries: input.finalEntries.map(entry => ({ ...entry })),
+      attempts: 0,
+      createdAt: now,
+      updatedAt: now,
+      lastErrorMessage: null,
+    };
 
-  const nextQueue = current.filter(task => {
-    if (task.memoryId !== input.memoryId) return true;
-    return claimedTaskIds.has(task.taskId);
+    const nextQueue = current.filter(task => {
+      if (task.memoryId !== input.memoryId) return true;
+      return claimedTaskIds.has(task.taskId);
+    });
+    await saveQueue([...nextQueue, nextTask]);
+    return nextTask;
   });
-  await saveQueue([...nextQueue, nextTask]);
-  return nextTask;
 }
 
 export async function getPendingMemoryUploadCount(): Promise<number> {
@@ -196,22 +209,29 @@ export async function getPendingMemoryUploadCount(): Promise<number> {
 }
 
 async function removeTask(taskId: string): Promise<void> {
-  const current = await loadQueue();
-  await saveQueue(current.filter(task => task.taskId !== taskId));
+  await mutateQueue(async () => {
+    const current = await loadQueue();
+    await saveQueue(current.filter(task => task.taskId !== taskId));
+  });
 }
 
-async function updateTask(taskId: string, updater: (task: PendingMemoryUploadTask) => PendingMemoryUploadTask | null) {
-  const current = await loadQueue();
-  let changed = false;
-  const next = current.flatMap(task => {
-    if (task.taskId !== taskId) return [task];
-    changed = true;
-    const updated = updater(task);
-    return updated ? [updated] : [];
+async function updateTask(
+  taskId: string,
+  updater: (task: PendingMemoryUploadTask) => PendingMemoryUploadTask | null,
+) {
+  await mutateQueue(async () => {
+    const current = await loadQueue();
+    let changed = false;
+    const next = current.flatMap(task => {
+      if (task.taskId !== taskId) return [task];
+      changed = true;
+      const updated = updater(task);
+      return updated ? [updated] : [];
+    });
+    if (changed) {
+      await saveQueue(next);
+    }
   });
-  if (changed) {
-    await saveQueue(next);
-  }
 }
 
 function isMemoryNotFoundError(error: unknown) {
@@ -235,14 +255,16 @@ function findLatestTaskForMemory(
   queue: PendingMemoryUploadTask[],
   memoryId: string,
 ) {
-  return queue
-    .filter(task => task.memoryId === memoryId)
-    .sort((a, b) => {
-      const updatedDiff = a.updatedAt.localeCompare(b.updatedAt);
-      if (updatedDiff !== 0) return updatedDiff;
-      return a.createdAt.localeCompare(b.createdAt);
-    })
-    .at(-1) ?? null;
+  return (
+    queue
+      .filter(task => task.memoryId === memoryId)
+      .sort((a, b) => {
+        const updatedDiff = a.updatedAt.localeCompare(b.updatedAt);
+        if (updatedDiff !== 0) return updatedDiff;
+        return a.createdAt.localeCompare(b.createdAt);
+      })
+      .at(-1) ?? null
+  );
 }
 
 async function assertTaskNotSuperseded(task: PendingMemoryUploadTask) {
@@ -253,18 +275,22 @@ async function assertTaskNotSuperseded(task: PendingMemoryUploadTask) {
   throw new SupersededMemoryUploadTaskError();
 }
 
-async function processTask(task: PendingMemoryUploadTask): Promise<void> {
-  await assertTaskNotSuperseded(task);
-  await fetchMemoryById(task.memoryId);
-
+async function processTask(
+  task: PendingMemoryUploadTask,
+  assertOwner: () => void,
+): Promise<void> {
   const uploadedPathsByKey = new Map<string, string>();
   const uploadedNewPaths: string[] = [];
 
   try {
+    await assertTaskNotSuperseded(task);
+    assertOwner();
+    await fetchMemoryById(task.memoryId);
+    assertOwner();
     for (const entry of task.finalEntries) {
       if (entry.kind !== 'pending') continue;
       await assertTaskNotSuperseded(task);
-
+      assertOwner();
       const uploaded = await uploadMemoryImage({
         userId: task.userId,
         petId: task.petId,
@@ -274,31 +300,49 @@ async function processTask(task: PendingMemoryUploadTask): Promise<void> {
       });
       uploadedPathsByKey.set(entry.key, uploaded.path);
       uploadedNewPaths.push(uploaded.path);
-    }
-  } catch (error) {
-    await Promise.all(
-      uploadedNewPaths.map(path => deleteMemoryImage(path).catch(() => null)),
-    );
-    throw error;
-  }
-
-  const finalPaths = task.finalEntries.flatMap(entry => {
-    if (entry.kind === 'existing') {
-      const path = normalizeString(entry.path);
-      return path ? [path] : [];
+      assertOwner();
     }
 
-    const uploadedPath = normalizeString(uploadedPathsByKey.get(entry.key));
-    return uploadedPath ? [uploadedPath] : [];
-  });
+    const finalPaths = task.finalEntries.flatMap(entry => {
+      if (entry.kind === 'existing') {
+        const path = normalizeString(entry.path);
+        return path ? [path] : [];
+      }
 
-  try {
+      const uploadedPath = normalizeString(uploadedPathsByKey.get(entry.key));
+      return uploadedPath ? [uploadedPath] : [];
+    });
+
     await assertTaskNotSuperseded(task);
+    assertOwner();
     await updateMemoryImagePaths({
       memoryId: task.memoryId,
       imagePaths: finalPaths,
     });
+    assertOwner();
   } catch (error) {
+    // A different session's missing-row response does not prove deletion.
+    // Retain this owner's task and known uploaded paths without using new auth.
+    let ownerChanged = error instanceof UploadOwnerChangedError;
+    try {
+      assertOwner();
+    } catch {
+      ownerChanged = true;
+    }
+    if (ownerChanged) {
+      if (uploadedPathsByKey.size > 0)
+        await updateTask(task.taskId, stored => ({
+          ...stored,
+          finalEntries: stored.finalEntries.map(entry => {
+            const path =
+              entry.kind === 'pending'
+                ? uploadedPathsByKey.get(entry.key)
+                : undefined;
+            return path ? { kind: 'existing', path } : entry;
+          }),
+        }));
+      throw new UploadOwnerChangedError();
+    }
     await Promise.all(
       uploadedNewPaths.map(path => deleteMemoryImage(path).catch(() => null)),
     );
@@ -307,27 +351,35 @@ async function processTask(task: PendingMemoryUploadTask): Promise<void> {
 }
 
 function pickNextTask(queue: PendingMemoryUploadTask[]) {
-  return [...queue]
-    .filter(task => !claimedTaskIds.has(task.taskId))
-    .sort((a, b) => {
-      const updatedDiff = b.updatedAt.localeCompare(a.updatedAt);
-      if (updatedDiff !== 0) return updatedDiff;
-      return b.createdAt.localeCompare(a.createdAt);
-    })[0] ?? null;
+  return (
+    [...queue]
+      .filter(
+        task =>
+          !claimedTaskIds.has(task.taskId) && task.attempts < MAX_ATTEMPTS,
+      )
+      .sort((a, b) => {
+        const updatedDiff = b.updatedAt.localeCompare(a.updatedAt);
+        if (updatedDiff !== 0) return updatedDiff;
+        return b.createdAt.localeCompare(a.createdAt);
+      })[0] ?? null
+  );
 }
 
 async function resolveActiveQueueUserId(userId?: string | null) {
   const normalizedUserId = normalizeString(userId);
-  if (normalizedUserId) return normalizedUserId;
-
   const { data } = await supabase.auth.getUser();
-  return normalizeString(data.user?.id) || null;
+  const verified = normalizeString(data.user?.id);
+  const current = useAuthStore.getState().session?.user.id;
+  if (
+    !verified ||
+    verified !== current ||
+    (normalizedUserId && verified !== normalizedUserId)
+  )
+    return null;
+  return verified;
 }
 
-function pickNextTaskForUser(
-  queue: PendingMemoryUploadTask[],
-  userId: string,
-) {
+function pickNextTaskForUser(queue: PendingMemoryUploadTask[], userId: string) {
   return pickNextTask(queue.filter(task => task.userId === userId));
 }
 
@@ -347,7 +399,10 @@ export async function processPendingMemoryUploads(input?: {
   }
 
   if (processingPromise) {
-    await processingPromise;
+    const sameOwner = processingUserId === activeUserId;
+    const result = await processingPromise;
+    if (sameOwner && useAuthStore.getState().session?.user.id === activeUserId)
+      return result;
     const remainingQueue = await loadQueue();
     if (pickNextTaskForUser(remainingQueue, activeUserId)) {
       return processPendingMemoryUploads({ userId: activeUserId });
@@ -362,61 +417,83 @@ export async function processPendingMemoryUploads(input?: {
     };
   }
 
+  processingUserId = activeUserId;
   processingPromise = (async () => {
+    let ownerChanged = false;
+    const unsubscribe = useAuthStore.subscribe((next, previous) => {
+      if (next.session?.user.id !== previous.session?.user.id)
+        ownerChanged = true;
+    });
+    const assertOwner = () => {
+      if (
+        ownerChanged ||
+        useAuthStore.getState().session?.user.id !== activeUserId
+      )
+        throw new UploadOwnerChangedError();
+    };
     const touchedPetIds = new Set<string>();
     const succeededTaskIds: string[] = [];
     const failedTaskIds: string[] = [];
+    const attemptedTaskIds = new Set<string>();
     let processed = 0;
     let succeeded = 0;
     let failed = 0;
 
-    while (true) {
-      const latestActiveUserId = await resolveActiveQueueUserId(activeUserId);
-      if (latestActiveUserId !== activeUserId) {
-        break;
-      }
-
-      const queue = await loadQueue();
-      const task = pickNextTaskForUser(queue, activeUserId);
-      if (!task) break;
-
-      claimedTaskIds.add(task.taskId);
-      processed += 1;
-
-      try {
-        await processTask(task);
-        await removeTask(task.taskId);
-        touchedPetIds.add(task.petId);
-        succeeded += 1;
-        succeededTaskIds.push(task.taskId);
-        if (task.attempts > 0) {
-          captureMonitoringMessage('memory_upload_queue_recovered', {
-            tags: {
-              mode: task.mode,
-              attempts: task.attempts,
-            },
-            extras: {
-              taskId: task.taskId,
-              memoryId: task.memoryId,
-              petId: task.petId,
-            },
-          });
-        }
-      } catch (error: unknown) {
-        if (isSupersededTaskError(error)) {
-          await removeTask(task.taskId);
-          continue;
+    try {
+      while (true) {
+        if (ownerChanged) break;
+        const latestActiveUserId = await resolveActiveQueueUserId(activeUserId);
+        if (latestActiveUserId !== activeUserId) {
+          break;
         }
 
-        captureMonitoringException(error);
+        const queue = await loadQueue();
+        const task = pickNextTaskForUser(
+          queue.filter(item => !attemptedTaskIds.has(item.taskId)),
+          activeUserId,
+        );
+        if (!task) break;
+        if (ownerChanged) break;
 
-        if (isMemoryNotFoundError(error)) {
+        claimedTaskIds.add(task.taskId);
+        attemptedTaskIds.add(task.taskId);
+        processed += 1;
+
+        try {
+          await processTask(task, assertOwner);
+          assertOwner();
           await removeTask(task.taskId);
-        } else {
-          const attempts = task.attempts + 1;
-          if (attempts >= MAX_ATTEMPTS) {
+          touchedPetIds.add(task.petId);
+          succeeded += 1;
+          succeededTaskIds.push(task.taskId);
+          if (task.attempts > 0) {
+            captureMonitoringMessage('memory_upload_queue_recovered', {
+              tags: {
+                mode: task.mode,
+                attempts: task.attempts,
+              },
+              extras: {
+                taskId: task.taskId,
+                memoryId: task.memoryId,
+                petId: task.petId,
+              },
+            });
+          }
+        } catch (error: unknown) {
+          if (ownerChanged || error instanceof UploadOwnerChangedError) break;
+          if (isSupersededTaskError(error)) {
+            await removeTask(task.taskId);
+            continue;
+          }
+
+          captureMonitoringException(error);
+
+          if (isMemoryNotFoundError(error)) {
             await removeTask(task.taskId);
           } else {
+            const attempts = task.attempts + 1;
+            // Stop automatic retries at the existing limit, but do not destroy
+            // the only retained photo plan. A new explicit edit replaces it.
             await updateTask(task.taskId, currentTask => ({
               ...currentTask,
               attempts,
@@ -427,13 +504,15 @@ export async function processPendingMemoryUploads(input?: {
                   : '이미지 업로드 재시도 대기',
             }));
           }
-        }
 
-        failed += 1;
-        failedTaskIds.push(task.taskId);
-      } finally {
-        claimedTaskIds.delete(task.taskId);
+          failed += 1;
+          failedTaskIds.push(task.taskId);
+        } finally {
+          claimedTaskIds.delete(task.taskId);
+        }
       }
+    } finally {
+      unsubscribe();
     }
 
     return {
@@ -450,5 +529,6 @@ export async function processPendingMemoryUploads(input?: {
     return await processingPromise;
   } finally {
     processingPromise = null;
+    processingUserId = null;
   }
 }

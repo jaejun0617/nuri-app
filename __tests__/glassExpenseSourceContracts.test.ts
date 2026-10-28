@@ -58,7 +58,11 @@ describe('glass form and expense integration contracts', () => {
   });
   it('invalidates all month caches for create, price/date update and deletion', () => {
     const memories = source('src/services/supabase/memories.ts');
-    expect(memories.match(/invalidateMonthlyExpenses\(\);/g)).toHaveLength(3);
+    const create = memories.split('export async function createMemory(')[1].split('export async function updateMemoryFields(')[0];
+    expect(create.match(/invalidateMonthlyExpenses\(\);/g)).toHaveLength(2); // New insert and verified retry replay.
+    for (const name of ['updateMemoryFields', 'deleteMemoryWithFile']) {
+      expect(memories.split(`export async function ${name}(`)[1]).toContain('invalidateMonthlyExpenses();');
+    }
     expect(source('src/services/records/expenses.ts')).toContain(
       'queryKey: MONTHLY_EXPENSE_QUERY_KEY',
     );

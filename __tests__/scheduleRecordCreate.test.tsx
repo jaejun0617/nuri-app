@@ -50,9 +50,12 @@ jest.mock('@react-navigation/native', () => ({
 }));
 jest.mock('@tanstack/react-query', () => ({ ...jest.requireActual('@tanstack/react-query'), useQueryClient: () => mockQuery }));
 jest.mock('../src/store/authStore', () => ({
-  useAuthStore: (
+  useAuthStore: Object.assign((
     selector: (state: { session: { user: { id: string } } }) => unknown,
-  ) => selector({ session: { user: { id: mockUserId } } }),
+  ) => selector({ session: { user: { id: mockUserId } } }), {
+    getState: () => ({ session: { user: { id: mockUserId } } }),
+    subscribe: jest.fn(() => () => undefined),
+  }),
 }));
 jest.mock('../src/app/ui/AppText', () => 'AppText');
 jest.mock('../src/app/ui/AppTextInput', () => 'AppTextInput');

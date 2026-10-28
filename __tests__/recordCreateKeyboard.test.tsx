@@ -72,6 +72,9 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 24, bottom: 18, left: 0, right: 0 }),
 }));
 jest.mock('../src/components/records/RecordImageGallery', () => () => null);
+jest.mock('../src/store/authStore', () => ({
+  useAuthStore: jest.requireActual('zustand').create(() => ({ session: { user: { id: 'qa-owner' } } })),
+}));
 jest.mock('../src/components/date-picker/DatePickerModal', () => () => null);
 jest.mock('../src/components/common/PremiumRewardModal', () => () => null);
 jest.mock('../src/components/common/ConfirmDialog', () => () => null);

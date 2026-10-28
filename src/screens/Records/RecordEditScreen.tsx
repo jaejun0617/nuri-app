@@ -113,6 +113,7 @@ import {
 import { getMemoryImageSignedUrlCached } from '../../services/supabase/storageMemories';
 import { useKeyboardInset } from '../../hooks/useKeyboardInset';
 import { useAuthStore } from '../../store/authStore';
+import { useOwnerOperation } from '../../hooks/useOwnerOperation';
 import { useRecordStore } from '../../store/recordStore';
 import { showToast } from '../../store/uiStore';
 import AppText from '../../app/ui/AppText';
@@ -143,7 +144,7 @@ type PreviewItem =
   | { kind: 'existing'; key: string; path: string; uri: string | null }
   | { kind: 'added'; key: string; uri: string };
 
-export default function RecordEditScreen() {
+function RecordEditContent() {
   // ---------------------------------------------------------
   // 1) nav / params
   // ---------------------------------------------------------
@@ -161,6 +162,7 @@ export default function RecordEditScreen() {
   // 2) auth/store
   // ---------------------------------------------------------
   const userId = useAuthStore(s => s.session?.user?.id ?? null);
+  const captureCurrent = useOwnerOperation(`${userId ?? 'guest'}:${petId}:${memoryId}`);
 
   const updateOneLocal = useRecordStore(s => s.updateOneLocal);
   const upsertOneLocal = useRecordStore(s => s.upsertOneLocal);
@@ -184,12 +186,13 @@ export default function RecordEditScreen() {
 
   useEffect(() => {
     let mounted = true;
+    const current = captureCurrent();
 
     async function hydrateMissingRecord() {
       if (!petId || !memoryId || record) return;
       try {
         const fetched = await fetchMemoryById(memoryId);
-        if (!mounted) return;
+        if (!mounted || !current() || fetched.petId !== petId) return;
         upsertOneLocal(petId, fetched);
       } catch {
         // 화면 하단 가드가 처리한다.
@@ -200,7 +203,7 @@ export default function RecordEditScreen() {
     return () => {
       mounted = false;
     };
-  }, [memoryId, petId, record, upsertOneLocal]);
+  }, [memoryId, petId, record, upsertOneLocal, captureCurrent]);
 
   // ---------------------------------------------------------
   // 3) form state
@@ -239,6 +242,13 @@ export default function RecordEditScreen() {
   const [rewardNotice, setRewardNotice] = useState<RewardNoticeState | null>(
     null,
   );
+  useEffect(() => useAuthStore.subscribe((next, previous) => {
+    if (next.session?.user.id === previous.session?.user.id) return;
+    submitInFlightRef.current = false;
+    setSaving(false);
+    setRewardNotice(null);
+    setSuccessModalVisible(false);
+  }), []);
   const scrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
   const composerFieldOffsetsRef = useRef<
     Partial<Record<ComposerFocusTarget, number>>
@@ -443,12 +453,14 @@ export default function RecordEditScreen() {
   // ---------------------------------------------------------
   const onPickImage = useCallback(async () => {
     if (saving) return;
+    const current = captureCurrent();
 
     try {
       const result = await pickPhotoAssets({
         selectionLimit: 10,
         quality: 0.9,
       });
+      if (!current()) return;
       if (result.status === 'cancelled') return;
 
       const assets = result.assets.map(asset => ({
@@ -469,13 +481,14 @@ export default function RecordEditScreen() {
         ].slice(0, 10);
       });
     } catch (error) {
+      if (!current()) return;
       const { title: alertTitle, message } = getBrandedErrorMeta(
         error,
         'image-pick',
       );
       showToast({ tone: 'error', title: alertTitle, message });
     }
-  }, [saving]);
+  }, [saving, captureCurrent]);
 
   const openDateModal = useCallback(() => {
     if (saving) return;
@@ -603,6 +616,8 @@ export default function RecordEditScreen() {
       Alert.alert('로그인 정보가 없어요', '다시 로그인 후 시도해 주세요.');
       return;
     }
+    const current = captureCurrent();
+    if (!current()) return;
 
     try {
       submitInFlightRef.current = true;
@@ -614,12 +629,12 @@ export default function RecordEditScreen() {
           ...addedImages.map(image => ({ kind: 'pending' as const, key: image.key, uri: image.uri, mimeType: image.mimeType })),
         ] : null;
         const canonical = await saveLinkedWalkBody(walkScope, walkSource, { title, content, emotion, tags: parseRecordTags(tagsText), photos: addedImages }, imagePlan);
-        if (!walkScope.current()) return;
+        if (!current() || !walkScope.current()) return;
         upsertOneLocal(petId, canonical);
         setFocusedMemoryId(petId, memoryId);
         invalidateWalkProduct(walkScope, 'MEMORY_COMMIT');
         if (recoveryApplied && recoveryDraft) await walkRequest(walkScope, () => clearCommittedWalkDraft({ ownerId: walkScope.ownerId, petId, clientSessionId: walkSource.clientSessionId }, recoveryDraft));
-        if (walkScope.current()) setSuccessModalVisible(true);
+        if (current() && walkScope.current()) setSuccessModalVisible(true);
         return;
       }
 
@@ -655,17 +670,20 @@ export default function RecordEditScreen() {
         metadata: nextMetadata,
         occurredAt: occurred,
       });
+      if (!current()) return;
       const activityResult = await recordTimelineCategoryChangeActivity({
         petId,
         memoryId,
         previousCategory: record.category,
         nextCategory: mainCategoryKey,
       });
+      if (!current()) return;
       const presentCompletionModal = async () => {
         const xpReward = activityResult.xp;
         const canShowReward =
           Boolean(xpReward?.awarded && xpReward.xpAwarded > 0) &&
           !(await isRewardNoticeDismissedToday(userId).catch(() => false));
+        if (!current()) return;
 
         if (canShowReward && xpReward) {
           setRewardNotice({
@@ -722,10 +740,12 @@ export default function RecordEditScreen() {
         (async () => {
           try {
             const latest = await fetchMemoryById(memoryId);
+            if (!current()) return;
             upsertOneLocal(petId, latest);
             setFocusedMemoryId(petId, memoryId);
             refresh(petId).catch(() => {});
           } catch {
+            if (!current()) return;
             upsertOneLocal(petId, {
               ...record,
               title: nextTitle,
@@ -751,7 +771,9 @@ export default function RecordEditScreen() {
         mode: 'edit',
         finalEntries,
       });
+      if (!current()) return;
       const queueResult = await processPendingMemoryUploads({ userId });
+      if (!current()) return;
       const imageSaveSucceeded = queueResult.succeededTaskIds.includes(
         queuedTask.taskId,
       );
@@ -769,11 +791,13 @@ export default function RecordEditScreen() {
       }
 
       const latest = await fetchMemoryById(memoryId);
+      if (!current()) return;
       upsertOneLocal(petId, latest);
       setFocusedMemoryId(petId, memoryId);
       await presentCompletionModal();
       refresh(petId).catch(() => {});
     } catch (err) {
+      if (!current()) return;
       if (walkSource && !walkScope?.current()) return;
       const { title: alertTitle, message } = getBrandedErrorMeta(
         err,
@@ -781,7 +805,7 @@ export default function RecordEditScreen() {
       );
       Alert.alert(alertTitle, walkSource ? walkErrorCopy(err) : message);
     } finally {
-      if (!walkSource || walkScope?.current()) {
+      if (current() && (!walkSource || walkScope?.current())) {
         submitInFlightRef.current = false;
         setSaving(false);
       }
@@ -817,9 +841,12 @@ export default function RecordEditScreen() {
     updateOneLocal,
     upsertOneLocal,
     bodyReady, sourceReady, walkSource, walkScope, recoveryApplied, recoveryDraft,
+    captureCurrent,
   ]);
 
   const onConfirmSuccess = useCallback(() => {
+    const current = captureCurrent();
+    if (!current()) return;
     setSuccessModalVisible(false);
     setRewardNotice(null);
     setFocusedMemoryId(petId, memoryId);
@@ -840,13 +867,15 @@ export default function RecordEditScreen() {
     route.params.entrySource,
     route.params.scheduleReturn,
     setFocusedMemoryId,
+    captureCurrent,
   ]);
 
   const dismissRewardNoticeToday = useCallback(() => {
+    const current = captureCurrent();
     dismissRewardNoticeForToday(userId)
       .catch(() => {})
-      .finally(onConfirmSuccess);
-  }, [onConfirmSuccess, userId]);
+      .finally(() => { if (current()) onConfirmSuccess(); });
+  }, [onConfirmSuccess, userId, captureCurrent]);
 
   // ---------------------------------------------------------
   // 9) guard
@@ -1194,4 +1223,10 @@ export default function RecordEditScreen() {
       />}
     </SafeAreaView>
   );
+}
+
+export default function RecordEditScreen() {
+  const owner = useAuthStore(state => state.session?.user.id ?? null);
+  const { params } = useRoute<Route>();
+  return <RecordEditContent key={`${owner ?? 'guest'}:${params.petId}:${params.memoryId}`} />;
 }

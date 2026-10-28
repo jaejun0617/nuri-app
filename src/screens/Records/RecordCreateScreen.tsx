@@ -48,6 +48,8 @@ import Feather from '../../components/icons/NuriFeatherIcon';
 import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 
 import AppText from '../../app/ui/AppText';
+import { useOwnerOperation } from '../../hooks/useOwnerOperation';
+import { createRequestId, isRequestId } from '../../utils/requestId';
 import { spacing } from '../../app/theme/tokens/spacing';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import PremiumRewardModal from '../../components/common/PremiumRewardModal';
@@ -75,6 +77,7 @@ import {
   parseOptionalWonPrice,
   optionalWonPriceError,
   RECORD_EMOTION_OPTIONS,
+  RECORD_MAIN_CATEGORIES,
   RECORD_WRITE_MAIN_CATEGORIES,
   RECORD_WRITE_OTHER_SUBCATEGORIES,
   normalizeRecordPriceInput,
@@ -99,8 +102,10 @@ import {
 import { normalizeMemoryRecord } from '../../services/records/imageSources';
 import {
   clearRecordCreateDraft,
+  adoptLegacyRecordCreateDraft,
   loadRecordCreateDraft,
   saveRecordCreateDraft,
+  type RecordCreateDraft,
   saveScheduleRecordRecovery,
   loadScheduleRecordRecovery,
   clearScheduleRecordRecovery,
@@ -125,14 +130,14 @@ import {
   type ComposerFocusTarget,
 } from '../../services/forms/composerFocus';
 import { pickPhotoAssets } from '../../services/media/photoPicker';
-import { supabase } from '../../services/supabase/client';
 import {
   createMemory,
+  MemoryAlreadySavedError,
   type EmotionTag,
   fetchMemoryById,
   type MemoryRecord,
 } from '../../services/supabase/memories';
-import { updatePetDefaultMealAmount } from '../../services/supabase/pets';
+import { fetchMyPets, updatePetDefaultMealAmount } from '../../services/supabase/pets';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import { useAuthStore } from '../../store/authStore';
 import { useRecordStore } from '../../store/recordStore';
@@ -158,7 +163,7 @@ type RewardNoticeState = {
   message: string;
 };
 
-export default function RecordCreateScreen() {
+function RecordCreateContent() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<RecordCreateRoute>();
   const insets = useSafeAreaInsets();
@@ -201,6 +206,9 @@ export default function RecordCreateScreen() {
         : undefined,
     [scheduleContext, userId, petId],
   );
+  const recordDraftScope = useMemo(() => draftScope ?? (userId && petId ? { userId, petId } : undefined), [draftScope, userId, petId]);
+  const captureCurrent = useOwnerOperation(`${userId ?? 'guest'}:${petId ?? 'none'}`);
+  const submissionIdRef = useRef<string | null>(null);
   const selectedPet = useMemo(
     () => pets.find(item => item.id === petId) ?? null,
     [petId, pets],
@@ -243,6 +251,7 @@ export default function RecordCreateScreen() {
     null,
   );
   const [draftHydrated, setDraftHydrated] = useState(false);
+  const [draftLoadAttempt, setDraftLoadAttempt] = useState(0);
   const draftLoadedRef = useRef(false);
   const persistedScheduleMemoryRef = useRef<string | null>(null);
   const hydratedScheduleScopeRef = useRef<typeof draftScope>(undefined);
@@ -274,6 +283,15 @@ export default function RecordCreateScreen() {
   const pendingSuccessNavigationRef = useRef<(() => Promise<void>) | null>(
     null,
   );
+  useEffect(() => useAuthStore.subscribe((next, previous) => {
+    if (next.session?.user.id === previous.session?.user.id) return;
+    // Invalidate old UI callbacks even if React batches A -> B -> A.
+    // Keep A's submission ID: an in-flight request may already be committed.
+    submitLockRef.current = false;
+    setSaving(false);
+    setRewardNotice(null);
+    pendingSuccessNavigationRef.current = null;
+  }), []);
   const scrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
   const formPanelOffsetRef = useRef(0);
   const composerFieldOffsetsRef = useRef<
@@ -293,6 +311,7 @@ export default function RecordCreateScreen() {
     (!careCategory || careTypes.length > 0);
   const disabled =
     saving ||
+    (!isGps && !draftHydrated) ||
     (isGps && !gps.ready) ||
     !scheduleSourceReady ||
     !scheduleScopeMatches ||
@@ -356,6 +375,15 @@ export default function RecordCreateScreen() {
     title,
     todayYmd,
   ]);
+  const draftSnapshot = useMemo<RecordCreateDraft>(() => ({
+    petId, title, content, occurredAt, selectedTags, mainCategoryKey,
+    otherSubCategoryKey, priceText, mealAmountText, useDefaultMealAmount,
+    saveMealAmountAsDefault, healthCondition, healthWeightText, healthCare,
+    groomingCareTypes, selectedEmotion, selectedImages, updatedAt: new Date().toISOString(),
+  }), [petId, title, content, occurredAt, selectedTags, mainCategoryKey,
+    otherSubCategoryKey, priceText, mealAmountText, useDefaultMealAmount,
+    saveMealAmountAsDefault, healthCondition, healthWeightText, healthCare,
+    groomingCareTypes, selectedEmotion, selectedImages]);
   const headerTopInset = useMemo(() => Math.max(insets.top, 12), [insets.top]);
   const handleFocusField = useCallback(() => {
     requestAnimationFrame(() => {
@@ -383,6 +411,7 @@ export default function RecordCreateScreen() {
     });
   }, []);
   const resetForm = useCallback(() => {
+    submissionIdRef.current = null;
     setTitle('');
     setContent('');
     setOccurredAt(todayYmd);
@@ -434,17 +463,20 @@ export default function RecordCreateScreen() {
   useEffect(() => {
     if (isGps) return;
     let mounted = true;
+    const current = captureCurrent();
 
     async function hydrateDraft() {
       if (draftLoadedRef.current) return;
       draftLoadedRef.current = true;
+      let hydrated = false;
 
       try {
+        if (!recordDraftScope) throw new Error('로그인과 아이 정보를 확인해 주세요.');
         if (scheduleContext) {
           if (!draftScope)
             throw new Error('일정의 아이와 로그인 상태를 확인해 주세요.');
           const source = await fetchScheduleById(scheduleContext.scheduleId);
-          if (!mounted) return;
+          if (!mounted || !current()) return;
           if (
             source.petId !== draftScope.petId ||
             source.userId !== draftScope.userId ||
@@ -453,7 +485,7 @@ export default function RecordCreateScreen() {
             throw new Error('완료한 이 아이의 일정에서 기록을 남겨 주세요.');
           }
           const pending = await loadScheduleRecordRecovery(draftScope);
-          if (!mounted) return;
+          if (!mounted || !current()) return;
           if (source.linkedMemoryId || pending) {
             navigation.popTo('ScheduleDetail', scheduleContext);
             return;
@@ -470,8 +502,20 @@ export default function RecordCreateScreen() {
           hydratedScheduleScopeRef.current = draftScope;
           setScheduleSourceReady(true);
         }
-        const draft = await loadRecordCreateDraft(draftScope);
-        if (!mounted) return;
+        let draft = await loadRecordCreateDraft(recordDraftScope);
+        if (!mounted || !current()) return;
+        if (!draft && !scheduleContext) {
+          const legacy = await loadRecordCreateDraft();
+          if (!mounted || !current()) return;
+          if (legacy?.petId === petId) {
+            const owned = await fetchMyPets(recordDraftScope.userId);
+            if (!mounted || !current()) return;
+            if (!owned.some(pet => pet.id === recordDraftScope.petId)) throw new Error('RECORD_DRAFT_SCOPE_MISMATCH');
+            draft = await adoptLegacyRecordCreateDraft(recordDraftScope);
+            if (!mounted || !current()) return;
+          }
+        }
+        submissionIdRef.current = draft?.submissionId ?? null;
 
         if (draft) {
           if (scheduleContext && draft.petId !== draftScope?.petId) {
@@ -515,19 +559,24 @@ export default function RecordCreateScreen() {
           );
           setActiveImageIndex(0);
         }
+        hydrated = true;
       } catch (error: unknown) {
-        if (mounted && scheduleContext) {
-          setScheduleSourceReady(false);
+        if (mounted && current()) {
+          if (scheduleContext) setScheduleSourceReady(false);
+          draftLoadedRef.current = false;
           const feedback = getBrandedErrorMeta(error, 'record-create');
-          Alert.alert(feedback.title, feedback.message);
+          Alert.alert(feedback.title, feedback.message, [
+            { text: '닫기', style: 'cancel' },
+            { text: '다시 시도', onPress: () => { if (current()) setDraftLoadAttempt(value => value + 1); } },
+          ]);
         }
       } finally {
-        if (mounted) setDraftHydrated(true);
+        if (mounted && current()) setDraftHydrated(hydrated);
       }
     }
 
     hydrateDraft().catch(() => {
-      if (mounted) setDraftHydrated(true);
+      if (mounted && current()) setDraftHydrated(false);
     });
 
     return () => {
@@ -543,12 +592,17 @@ export default function RecordCreateScreen() {
     navigation,
     route.params?.initialHealthRecordKind,
     isGps,
+    recordDraftScope,
+    captureCurrent,
+    petId,
+    draftLoadAttempt,
   ]);
 
   useEffect(() => {
     if (
       isGps ||
       !draftHydrated ||
+      !recordDraftScope ||
       saving ||
       !scheduleSourceReady ||
       !scheduleScopeMatches
@@ -569,32 +623,13 @@ export default function RecordCreateScreen() {
       selectedImages.length > 0;
 
     if (!hasContent) {
-      clearRecordCreateDraft(draftScope).catch(() => {});
+      clearRecordCreateDraft(recordDraftScope).catch(() => {});
       return;
     }
 
     saveRecordCreateDraft(
-      {
-        petId,
-        title,
-        content,
-        occurredAt,
-        selectedTags,
-        mainCategoryKey,
-        otherSubCategoryKey,
-        priceText,
-        mealAmountText,
-        useDefaultMealAmount,
-        saveMealAmountAsDefault,
-        healthCondition,
-        healthWeightText,
-        healthCare,
-        groomingCareTypes,
-        selectedEmotion,
-        selectedImages,
-        updatedAt: new Date().toISOString(),
-      },
-      draftScope,
+      { ...draftSnapshot, submissionId: submissionIdRef.current ?? undefined },
+      recordDraftScope,
     ).catch(() => {});
   }, [
     content,
@@ -621,16 +656,20 @@ export default function RecordCreateScreen() {
     draftScope,
     scheduleSourceReady,
     scheduleScopeMatches,
+    recordDraftScope,
+    draftSnapshot,
   ]);
 
   const pickImage = useCallback(async () => {
     if (saving) return;
+    const current = captureCurrent();
 
     try {
       const result = await pickPhotoAssets({
         selectionLimit: 10,
         quality: 0.9,
       });
+      if (!current()) return;
       if (result.status === 'cancelled') return;
 
       const assets = result.assets.map(asset => ({
@@ -650,13 +689,14 @@ export default function RecordCreateScreen() {
         ].slice(0, 10);
       });
     } catch (error) {
+      if (!current()) return;
       const { title: alertTitle, message } = getBrandedErrorMeta(
         error,
         'image-pick',
       );
       showToast({ tone: 'error', title: alertTitle, message });
     }
-  }, [saving]);
+  }, [saving, captureCurrent]);
 
   const removeActiveImage = useCallback((targetIndex = activeImageIndex) => {
     setSelectedImages(prev => {
@@ -804,10 +844,10 @@ export default function RecordCreateScreen() {
       setExitConfirmVisible(true);
       return;
     }
-    clearRecordCreateDraft(draftScope).catch(() => {});
+    if (recordDraftScope) clearRecordCreateDraft(recordDraftScope).catch(() => {});
     resetForm();
     navigateBackToOrigin();
-  }, [hasDraftContent, navigateBackToOrigin, resetForm, saving, draftScope, isGps]);
+  }, [hasDraftContent, navigateBackToOrigin, resetForm, saving, recordDraftScope, isGps]);
 
   useFocusEffect(
     useCallback(() => {
@@ -923,6 +963,8 @@ export default function RecordCreateScreen() {
 
   const onSubmit = useCallback(async () => {
     if (disabled || !petId || submitLockRef.current) return;
+    const current = captureCurrent();
+    if (!current()) return;
     submitLockRef.current = true;
     let completed = false;
 
@@ -931,6 +973,7 @@ export default function RecordCreateScreen() {
 
       if (isGps) {
         const result = await gps.submit();
+        if (!current()) return;
         if (!result || !gps.draftScope) return;
         const canonical = result.commit.record.memory!;
         const openDetail = () => navigation.navigate('AppTabs', { screen: 'TimelineTab', params: { screen: 'RecordDetail', params: { petId: canonical.petId, memoryId: canonical.id } } });
@@ -956,14 +999,18 @@ export default function RecordCreateScreen() {
         const savedId =
           persistedScheduleMemoryRef.current ??
           (await loadScheduleRecordRecovery(draftScope));
+        if (!current()) return;
         if (savedId) {
           await linkScheduleRecord({
             petId,
             scheduleId: scheduleContext.scheduleId,
             memoryId: savedId,
           });
+          if (!current()) return;
           await clearScheduleRecordRecovery(draftScope);
-          await clearRecordCreateDraft(draftScope);
+          if (!current()) return;
+          await clearRecordCreateDraft(recordDraftScope);
+          if (!current()) return;
           completed = true;
           await navigateAfterCreateSuccess({
             petId,
@@ -972,12 +1019,13 @@ export default function RecordCreateScreen() {
           });
           return;
         }
-        const current = await fetchScheduleById(scheduleContext.scheduleId);
+        const source = await fetchScheduleById(scheduleContext.scheduleId);
+        if (!current()) return;
         if (
-          current.petId !== petId ||
-          current.userId !== draftScope.userId ||
-          !current.completedAt ||
-          current.linkedMemoryId
+          source.petId !== petId ||
+          source.userId !== draftScope.userId ||
+          !source.completedAt ||
+          source.linkedMemoryId
         ) {
           throw new Error(
             '일정 상태가 바뀌었어요. 상세 화면에서 다시 확인해 주세요.',
@@ -1012,7 +1060,15 @@ export default function RecordCreateScreen() {
           ? buildGroomingRecordMetadata(filterRecordCareTypes(careCategory, groomingCareTypes))
           : null;
 
+      if (!recordDraftScope || !userId) throw new Error('로그인 상태를 확인해 주세요.');
+      const submissionId = submissionIdRef.current ?? createRequestId();
+      if (!isRequestId(submissionId)) throw new Error('MEMORY_SUBMISSION_INVALID');
+      submissionIdRef.current = submissionId;
+      // A failed disk write must not send a request with an unretained ID.
+      await saveRecordCreateDraft({ ...draftSnapshot, submissionId }, recordDraftScope);
+      if (!current()) return;
       const memoryId = await createMemory({
+        submission: { id: submissionId, ownerId: userId },
         petId,
         title: trimmedTitle,
         content: content.trim() || null,
@@ -1025,12 +1081,24 @@ export default function RecordCreateScreen() {
         imagePath: null,
         metadata,
       });
+      if (!current()) return;
+
+      let queuedPhotoTaskId: string | null = null;
+      if (selectedImages.length > 0 && userId) {
+        const finalEntries: PendingMemoryUploadEntry[] = selectedImages.map(image => ({
+          kind: 'pending', key: image.key, uri: image.uri, mimeType: image.mimeType,
+        }));
+        const queued = await enqueuePendingMemoryUpload({ userId, petId, memoryId, mode: 'create', finalEntries });
+        if (!current()) return;
+        queuedPhotoTaskId = queued.taskId;
+      }
 
       if (draftScope) {
         persistedScheduleMemoryRef.current = memoryId;
         try {
           await saveScheduleRecordRecovery(draftScope, memoryId);
         } catch {
+          if (!current()) return;
           showToast({
             tone: 'warning',
             title: '기록은 저장됐어요',
@@ -1040,6 +1108,7 @@ export default function RecordCreateScreen() {
           });
         }
       }
+      if (!current()) return;
 
       if (
         isMealCategory &&
@@ -1052,6 +1121,7 @@ export default function RecordCreateScreen() {
             petId,
             amountGrams: mealAmount,
           });
+          if (!current()) return;
           upsertPet(
             {
               ...selectedPet,
@@ -1060,6 +1130,7 @@ export default function RecordCreateScreen() {
             { persist: true },
           );
         } catch {
+          if (!current()) return;
           showToast({
             tone: 'warning',
             title: '기록은 저장됐어요',
@@ -1074,6 +1145,7 @@ export default function RecordCreateScreen() {
         memoryId,
         category: mainCategoryKey,
       });
+      if (!current()) return;
 
       const optimisticRecord: MemoryRecord = normalizeMemoryRecord({
         id: memoryId,
@@ -1101,31 +1173,13 @@ export default function RecordCreateScreen() {
         let shouldHydrateFromServer = true;
 
         try {
-          if (selectedImages.length > 0) {
-            const userRes = await supabase.auth.getUser();
-            const uploadUserId = userRes.data.user?.id ?? null;
-            if (!uploadUserId) throw new Error('로그인 정보가 없습니다.');
-
-            const finalEntries: PendingMemoryUploadEntry[] = selectedImages.map(
-              image => ({
-                kind: 'pending',
-                key: image.key,
-                uri: image.uri,
-                mimeType: image.mimeType,
-              }),
-            );
-            const queuedTask = await enqueuePendingMemoryUpload({
-              userId: uploadUserId,
-              petId,
-              memoryId,
-              mode: 'create',
-              finalEntries,
-            });
+          if (queuedPhotoTaskId && userId) {
             const queueResult = await processPendingMemoryUploads({
-              userId: uploadUserId,
+              userId,
             });
+            if (!current()) return;
 
-            if (!queueResult.succeededTaskIds.includes(queuedTask.taskId)) {
+            if (!queueResult.succeededTaskIds.includes(queuedPhotoTaskId)) {
               shouldHydrateFromServer = false;
               showToast({
                 tone: 'warning',
@@ -1139,13 +1193,14 @@ export default function RecordCreateScreen() {
 
           if (shouldHydrateFromServer) {
             const created = await fetchMemoryById(memoryId);
+            if (!current()) return;
             upsertOneLocal(petId, created);
             refresh(petId).catch(() => {});
           } else {
-            upsertOneLocal(petId, latestLocal);
+            if (current()) upsertOneLocal(petId, latestLocal);
           }
         } catch {
-          upsertOneLocal(petId, latestLocal);
+          if (current()) upsertOneLocal(petId, latestLocal);
         }
       })().catch(() => {});
 
@@ -1156,8 +1211,10 @@ export default function RecordCreateScreen() {
             scheduleId: scheduleContext.scheduleId,
             memoryId,
           });
+          if (!current()) return;
           await clearScheduleRecordRecovery(draftScope);
         } catch {
+          if (!current()) return;
           showToast({
             tone: 'warning',
             title: '기록은 저장됐어요',
@@ -1166,7 +1223,9 @@ export default function RecordCreateScreen() {
           });
         }
       }
-      await clearRecordCreateDraft(draftScope);
+      if (!current()) return;
+      await clearRecordCreateDraft(recordDraftScope);
+      if (!current()) return;
       completed = true;
       showToast({
         tone: 'success',
@@ -1186,6 +1245,7 @@ export default function RecordCreateScreen() {
       const dismissedToday = await isRewardNoticeDismissedToday(userId).catch(
         () => false,
       );
+      if (!current()) return;
 
       if (hasRewardNotice && !dismissedToday) {
         pendingSuccessNavigationRef.current = () =>
@@ -1209,6 +1269,18 @@ export default function RecordCreateScreen() {
       await navigateAfterCreateSuccess({ petId, memoryId, occurred });
     } catch (error) {
       completed = false;
+      if (!current()) return;
+      if (error instanceof MemoryAlreadySavedError) {
+        const savedId = error.memoryId;
+        const savedCategory = RECORD_MAIN_CATEGORIES.find(option => option.key === error.category)?.key;
+        if (savedCategory) await recordTimelineCreateActivity({ petId, memoryId: savedId, category: savedCategory });
+        if (!current()) return;
+        Alert.alert('저장된 기록을 확인했어요', '현재 내용과 사진은 초안으로 보관했어요. 변경할 내용은 저장된 기록의 수정 화면에서 확인해 주세요.', [
+          { text: '계속 작성', style: 'cancel' },
+          { text: '기록 보기', onPress: () => { if (current()) navigateAfterCreateSuccess({ petId, memoryId: savedId, occurred: null }).catch(() => {}); } },
+        ]);
+        return;
+      }
       if (isGps && !gps.current()) return;
       if (scheduleContext && persistedScheduleMemoryRef.current) {
         showToast({
@@ -1235,12 +1307,15 @@ export default function RecordCreateScreen() {
     } finally {
       // Android native removal can retain this tree during its transition.
       // Keep the saved form and busy state stable until unmount; only failures retry.
-      if (!completed && (!isGps || gps.current())) {
+      if (!completed && current() && (!isGps || gps.current())) {
         setSaving(false);
         submitLockRef.current = false;
       }
     }
   }, [
+    captureCurrent,
+    draftSnapshot,
+    recordDraftScope,
     content,
     disabled,
     groomingCareTypes,
@@ -1750,4 +1825,15 @@ export default function RecordCreateScreen() {
       />
     </View>
   );
+}
+
+export default function RecordCreateScreen() {
+  const { params } = useRoute<RecordCreateRoute>();
+  const owner = useAuthStore(state => state.session?.user.id ?? null);
+  const pets = usePetStore(state => state.pets);
+  const selected = usePetStore(state => state.selectedPetId);
+  const explicitPet = params?.returnTo?.tab === 'ScheduleDetail'
+    ? params.returnTo.params.petId : params?.petId;
+  const scopePet = resolveSelectedPetId(pets, selected, explicitPet);
+  return <RecordCreateContent key={`${owner ?? 'guest'}:${scopePet ?? 'none'}:${params?.gpsSession?.clientSessionId ?? 'manual'}`} />;
 }

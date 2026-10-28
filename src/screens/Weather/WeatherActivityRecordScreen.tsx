@@ -29,6 +29,8 @@ import MaterialCommunityIcons from '../../components/icons/NuriMaterialIcon';
 import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
 import { SeasonalFormBackground, SeasonalFormPanel } from '../../components/common/SeasonalFormSurface';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
+import { useOwnerOperation } from '../../hooks/useOwnerOperation';
+import { createRequestId } from '../../utils/requestId';
 import PhotoAddCard from '../../components/media/PhotoAddCard';
 import RecordTagModal from '../Records/components/RecordTagModal';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -40,6 +42,7 @@ import {
 } from '../../services/records/form';
 import {
   createMemory,
+  MemoryAlreadySavedError,
   fetchMemoryById,
   updateMemoryImagePaths,
 } from '../../services/supabase/memories';
@@ -71,7 +74,7 @@ const EMOTION_MAP = {
   angry: 'angry',
 } as const;
 
-export default function WeatherActivityRecordScreen() {
+function WeatherActivityRecordContent() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const keyboardVisible = useKeyboardState(state => state.isVisible);
@@ -85,6 +88,9 @@ export default function WeatherActivityRecordScreen() {
   const petId = useMemo(() => {
     return resolveSelectedPetId(pets, selectedPetId);
   }, [pets, selectedPetId]);
+  const captureCurrent = useOwnerOperation(`${userId ?? 'guest'}:${petId ?? 'none'}`);
+  const submissionIdRef = useRef<string | null>(null);
+  const submitLock = useRef(false);
   const guideKey = route.params.guideKey;
   const district = route.params?.district?.trim() || '현재 위치';
   const guide = useMemo(() => getIndoorActivityGuide(guideKey), [guideKey]);
@@ -124,6 +130,12 @@ export default function WeatherActivityRecordScreen() {
   const [tagDraft, setTagDraft] = useState('');
   const [saving, setSaving] = useState(false);
   const [doneVisible, setDoneVisible] = useState(false);
+  useEffect(() => useAuthStore.subscribe((next, previous) => {
+    if (next.session?.user.id === previous.session?.user.id) return;
+    submitLock.current = false;
+    setSaving(false);
+    setDoneVisible(false);
+  }), []);
   const scrollRef = useRef<KeyboardAwareScrollViewRef | null>(null);
   const titleInputRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
   const noteInputRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
@@ -172,27 +184,31 @@ export default function WeatherActivityRecordScreen() {
   }, [tagDraft]);
 
   const onPickImage = useCallback(async () => {
+    if (submitLock.current) return;
+    const current = captureCurrent();
     try {
       const result = await pickPhotoAssets({
         selectionLimit: 1,
         quality: 0.9,
       });
+      if (!current()) return;
       if (result.status === 'cancelled') return;
 
       const asset = result.assets[0];
       setImageUri(asset.uri);
       setImageMimeType(asset.mimeType);
     } catch (error) {
+      if (!current()) return;
       const { title: alertTitle, message } = getBrandedErrorMeta(
         error,
         'image-pick',
       );
       showToast({ tone: 'error', title: alertTitle, message });
     }
-  }, []);
+  }, [captureCurrent]);
 
   const onSubmit = useCallback(async () => {
-    if (saving) return;
+    if (saving || submitLock.current) return;
     if (!petId) {
       Alert.alert('아이를 먼저 선택해 주세요.');
       return;
@@ -212,13 +228,19 @@ export default function WeatherActivityRecordScreen() {
       return;
     }
 
+    const current = captureCurrent();
+    if (!current()) return;
+    submitLock.current = true;
     try {
       setSaving(true);
+      const submissionId = submissionIdRef.current ?? createRequestId();
+      submissionIdRef.current = submissionId;
       let savedImagePaths: string[] = [];
       const occurredAt = getKstYmd();
       const createdAt = new Date().toISOString();
 
       const memoryId = await createMemory({
+        submission: { id: submissionId, ownerId: userId },
         petId,
         title: trimmedTitle,
         content: note.trim() || null,
@@ -226,6 +248,7 @@ export default function WeatherActivityRecordScreen() {
         tags: selectedTags,
         occurredAt,
       });
+      if (!current()) return;
 
       if (imageUri) {
         const uploaded = await uploadMemoryImage({
@@ -235,17 +258,21 @@ export default function WeatherActivityRecordScreen() {
           fileUri: imageUri,
           mimeType: imageMimeType ?? 'image/jpeg',
         });
+        if (!current()) return;
         const saveResult = await updateMemoryImagePaths({
           memoryId,
           imagePaths: [uploaded.path],
         });
+        if (!current()) return;
         savedImagePaths = saveResult.savedPaths;
       }
 
       try {
         const created = await fetchMemoryById(memoryId);
+        if (!current()) return;
         upsertOneLocal(petId, created);
       } catch {
+        if (!current()) return;
         upsertOneLocal(
           petId,
           normalizeMemoryRecord({
@@ -267,13 +294,24 @@ export default function WeatherActivityRecordScreen() {
 
       setDoneVisible(true);
     } catch (error) {
+      if (!current()) return;
+      if (error instanceof MemoryAlreadySavedError) {
+        const savedId = error.memoryId;
+        Alert.alert('저장된 기록을 확인했어요', '현재 작성 내용은 그대로 두었어요. 사진과 내용의 변경은 저장된 기록에서 확인해 주세요.', [
+          { text: '작성 내용 유지', style: 'cancel' },
+          { text: '기록 보기', onPress: () => {
+            if (current()) navigation.navigate('AppTabs', { screen: 'TimelineTab', params: { screen: 'RecordDetail', params: { petId, memoryId: savedId } } });
+          } },
+        ]);
+        return;
+      }
       const { title: alertTitle, message } = getBrandedErrorMeta(
         error,
         'record-create',
       );
       Alert.alert(alertTitle, message);
     } finally {
-      setSaving(false);
+      if (current()) { setSaving(false); submitLock.current = false; }
     }
   }, [
     imageMimeType,
@@ -287,6 +325,8 @@ export default function WeatherActivityRecordScreen() {
     title,
     upsertOneLocal,
     userId,
+    captureCurrent,
+    navigation,
   ]);
 
   const onPressDone = useCallback(() => {
@@ -532,6 +572,14 @@ export default function WeatherActivityRecordScreen() {
       />
     </SafeAreaView>
   );
+}
+
+export default function WeatherActivityRecordScreen() {
+  const owner = useAuthStore(state => state.session?.user.id ?? null);
+  const pets = usePetStore(state => state.pets);
+  const selected = usePetStore(state => state.selectedPetId);
+  const petId = resolveSelectedPetId(pets, selected);
+  return <WeatherActivityRecordContent key={`${owner ?? 'guest'}:${petId ?? 'none'}`} />;
 }
 
 const styles = StyleSheet.create({

@@ -2,6 +2,26 @@
 
 상태: IN_PROGRESS. 전체 동결 아님. Master 단독 수행.
 
+## 2026-10-28 기록 재시도·초안·사진 소유 경계 후보
+
+- 원래6의 실제 코드 진단에서 일반 기록의 재시도마다 새 UUID INSERT, owner/pet 없는 일반 초안 key, 사진 큐의 전달된 userId를 실제 인증 확인 없이 신뢰하는 경로를 확인했다. 운영 중 중복·혼입이 발생했다고 소급 단정하지 않는다. 현재 보정은 기존 memories PK/RLS와 기존 초안/업로드 큐를 활용하며 DB·XP 정책·새 오프라인 엔진을 바꾸지 않는다.
+- 일반 작성은 암호학적 UUID를 초안에 먼저 보존하고 같은 ID로 재시도한다. 23505는 현재 owner/pet의 동일 row를 조회해 확인한 경우에만 기존 저장 안내를 하며, 편집한 본문·사진을 기존 row에 덮어쓰지 않는다. 기록 생성의 두 실제 호출부(일반/날씨)를 연결했다. 일반 초안은 owner/pet별로 분리하고, 레거시는 실제 서버 소유 펫 확인 뒤 같은 펫만 이동한다. 손상/저장 실패는 삭제·빈 초안으로 은폐하지 않고 재시도를 제공한다.
+- 사진 큐는 현재 서버 인증과 앱 owner를 함께 확인하고 계정 A→B→A/이탈을 무효화한다. 변경 중에는 작업과 확인된 업로드 path를 보존하며 다른 계정으로 삭제/연결하지 않는다. 큐 변경은 직렬화한다. 실패는 호출당 한 번만 처리하고 기존5회 한도에서 자동 재시도를 멈추되 유일한 사진 계획은 삭제하지 않는다. 새 명시적 이미지 수정이 해당 계획을 교체하는 기존 동작은 유지한다. 한도 도달 후 사진 선택을 다시 적용하는 실제 UX는 아직 별도 기기 수락 전이다.
+- 작성/수정/날씨의 picker·저장·후처리는 mounted owner/pet 요청 세대를 확인한다. AppProviders의 업로드 후 갱신도 계정 세대를 확인한다. 이미 전송한 요청을 취소했다고 주장하지 않으며 기존 서버 RLS가 최종 권한 경계다. GPS 원자 저장·엔진·거리·타이머는 수정하지 않았고 기존 연결 회귀 검사를 유지한다.
+- 최초 전체 검사는 332suites 중329PASS/3FAIL, 4484PASS/4FAIL이다. 키보드 검사의 로그인 fixture 누락2개와, owner guard/검증된 replay 무효화가 추가된 뒤의 source 검사2개다. 로그인 전제·기존 busy 안정성·create/update/delete 캐시 무효화 검증을 유지해 표적16/16을 통과시켰다. `records-full-tests.json`은 최초 실패를 보존하며 최종 전체 결과와 설치 수락은 후속 증거로 구분한다.
+- 수정 뒤 최종 전체332suites4488/4488, 타입·관련lint 오류/경고0·diff check PASS다. `records-full-tests-corrected.json`이 최종 결과이며 서비스/초안/owner/큐 계약 검사와 실제 UI 재시도의 회귀를 포함한다. 실제 단말·Storage·네트워크 유실 E2E의 대체 증거가 아니다.
+- 다음: 최종 타입/lint/전체/CI와 동일 서명 bundled 후보의 일반 기록·사진·건강 생성/수정/실패/Back을 실제 확인한다. 일정의 응답 유실과 원래 인증·17이벤트·OS13·NAV 미마감은 계속 남아 있다. 코드 검사를 도메인4/4 또는 전체 동결로 합산하지 않는다.
+
+## 2026-10-28 15:45 KST native 후보 수락과 기록 경계 착수
+
+- 최신 설치 소스0302841a3e2a415557dc1e9f97f47682a1520456, runtime79968d7dc9e164fcf38e81177426b8cd44d0d4c2f14deaff54f0c2d192dc4b70, APK6c34778fffbeaedb17cb1d1ff5bd5a0790ac28b60cdec99c490b131350d815b7이다. delivery-screens-race의 동일 서명·UID·데이터·권한 보존/Metro OFF 설치와 [CI40643480162](https://github.com/jaejun0617/nuri-app/actions/runs/40643480162) 후속 전체 PASS를 연결한다. 실제 native 재컴파일이며 Fast Refresh가 아니다.
+- 물리 cold5/5, emulator 유효 cold5/5(원래1+resume2+finish2), 각 목적지10초·선택 아이 유지·새 native crash0을 확인했다. emulator의 준비 실패2회는 SIGKILL 직후 ActivityManager가 죽은 task를 재사용해 `Activity not started/LaunchState UNKNOWN`을 반환한 경우다. 첫 실패의 stdout은 보존되지 않았고 두 번째는 launch-4.json으로 확인했다. QA helper만 실제 launcher resumed와 이전 ProcessRecord 제거를 기다리고 표준 MAIN/LAUNCHER로 시작해 남은2회 COLD를 확인했다. 제품에 고정 지연을 추가하지 않았다. 실패 영상/관찰도 보존하며 유효 성공과 합산하지 않는다.
+- 물리 More→알림함→More→Home5/5, 메뉴 항목 bounds·선택 아이 보존이다. 150.223344초/1080×2340/1141 encoded VFR frames·평균약7.60fps 영상과2초 간격 contact sheet를 확인했다. 표본에서 의도하지 않은 중간 Home은 관찰되지 않았으나 모든 compositor frame 또는 전 경로 zero-flicker 증명은 아니다. screens-cold-* / screens-more-physical-*가 원본·해시·실제 조건을 소유한다. 과거 영상의 종료 원인은 계속 미확정이다.
+- OS04 실제 채널 OFF: 물리 nuri_news만 true→false로 바꾸고 canonical Kakao transport231d44be를 전송했다. FCM accepted/7515등록1개, OS keys0이며 inbox는 보존됐다. 채널을 원래true로 복원한 뒤 실제 인앱→상세→06:41:35.354269Z 읽음을 확인했다. 앱 category·다른 채널·사용자 알림은 변경하지 않았다. channel-off-* / physical-news-channel-baseline/restored.json이 증거다.
+- 다음 최소 단위는 기록 응답 유실·재시도와 초안 범위다. 실제 createMemory는 매번 서버 UUID INSERT이고 일반 draft는 owner/pet 없는 공통 key다. 요청 식별자와 기존 draft의 owner/pet 구분, 이탈/계정 변경 후 늦은 반영 방어를 보정한다. 현재는 코드 진단이며 실제 중복 생성 E2E를 이미 실행했다고 주장하지 않는다. DB/RLS/XP 규칙·새 오프라인 엔진은 변경하지 않는다.
+
+위 수락은 1~6/NAV의 일부이며 이벤트17·OS13·기록4도메인 전체 완료나 동결이 아니다. 원래7~9·STORE HOLD를 유지한다.
+
 ## 2026-10-28 15:22 KST 세션 경계 수락과 시작 종료의 새 근거
 
 - 로그아웃 보정 소스ae6a5d320b6d40a56c7f0befd3d4a1e7c671c2ed, runtime0fc57adf36fabeeed49e963797a3f8ecfd460d7ce3cb26d29b1842f957f0a74d, APKb912a4d33223eeec4e0ba7c34787a745657572e6a0c09181708e272017aecafa를 두 인스턴스에 동일 서명·UID·데이터·권한 보존/Metro OFF로 갱신했다. [CI40641481350](https://github.com/jaejun0617/nuri-app/actions/runs/40641481350)의 전체·critical·타입·lint·후속 단계 PASS다. delivery-local-logout 영수증이 소유한다.

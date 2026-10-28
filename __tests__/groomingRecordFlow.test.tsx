@@ -10,8 +10,8 @@ import RecordEditScreen from '../src/screens/Records/RecordEditScreen';
 import RecordCareFields from '../src/components/records/RecordCareFields';
 import RecordChoiceGrid from '../src/components/records/RecordChoiceGrid';
 import TimelineButton from '../src/components/records/TimelineButton';
-import { createMemory, updateMemoryFields, type MemoryRecord } from '../src/services/supabase/memories';
-import { loadRecordCreateDraft, type RecordCreateDraft } from '../src/services/local/recordDraft';
+import { createMemory, MemoryAlreadySavedError, updateMemoryFields, type MemoryRecord } from '../src/services/supabase/memories';
+import { clearRecordCreateDraft, loadRecordCreateDraft, saveRecordCreateDraft, type RecordCreateDraft } from '../src/services/local/recordDraft';
 import { filterRecordCareTypes, getRecordCareOptions, normalizeMemoryRecordMetadata } from '../src/services/records/metadata';
 import { parseOptionalWonPrice } from '../src/services/records/form';
 import { useRecordStore } from '../src/store/recordStore';
@@ -74,6 +74,34 @@ describe('grooming and hygiene record compatibility', () => {
   }
   function submitAction() { const node=tree.root.findAllByType(TimelineButton).find(item=>/record-(create|edit)-submit/.test(item.props.testID??''));if(!node)throw new Error('Submit action missing');return node; }
   async function submit() { await act(async () => submitAction().props.onPress()); }
+  it('keeps one persisted submission ID after a lost response and retains the draft on replay', async () => {
+    const id = '8bb826c0-5c0b-4aa4-9fba-55e3840ae64d';
+    jest.mocked(loadRecordCreateDraft).mockResolvedValue({ ...draftBase, title: '재시도', groomingCareTypes: ['coat_care'], submissionId: id });
+    jest.mocked(createMemory).mockRejectedValueOnce(new Error('response lost'))
+      .mockRejectedValueOnce(new MemoryAlreadySavedError(id, 'other'));
+    await mount();
+    const writesBeforeSubmit = jest.mocked(saveRecordCreateDraft).mock.calls.length;
+    await submit();
+    expect(submitAction().props.disabled).toBe(false);
+    await submit();
+    expect(jest.mocked(createMemory).mock.calls.map(call => call[0].submission)).toEqual([
+      { id, ownerId: 'u' }, { id, ownerId: 'u' },
+    ]);
+    expect(jest.mocked(saveRecordCreateDraft).mock.calls.slice(writesBeforeSubmit)).toEqual(expect.arrayContaining([
+      [expect.objectContaining({ submissionId: id, title: '재시도' }), { userId: 'u', petId: 'qa' }],
+    ]));
+    expect(clearRecordCreateDraft).not.toHaveBeenCalled();
+    expect(Alert.alert).toHaveBeenLastCalledWith('저장된 기록을 확인했어요', expect.any(String), expect.any(Array));
+  });
+  it('does not send an unretained request when local draft persistence fails', async () => {
+    jest.mocked(loadRecordCreateDraft).mockResolvedValue({ ...draftBase, title: '디스크 실패', groomingCareTypes: ['coat_care'] });
+    await mount();
+    jest.mocked(saveRecordCreateDraft).mockRejectedValueOnce(new Error('disk full'));
+    await submit();
+    expect(createMemory).not.toHaveBeenCalled();
+    expect(submitAction().props.disabled).toBe(false);
+    expect(clearRecordCreateDraft).not.toHaveBeenCalled();
+  });
   it('maps stable category codes while legacy normalization preserves old cross-category choices', () => {
     expect(getRecordCareOptions('grooming').map(item => item.value)).toEqual(['full_grooming', 'partial_grooming', 'sanitary_trim', 'scissor_cut', 'clipper_cut', 'sporting_cut', 'face_trim', 'paw_pad_trim', 'nail_trim', 'coat_care']);
     expect(getRecordCareOptions('bathing').map(item => item.value)).toEqual(['bath', 'drying', 'brushing', 'conditioning', 'spa', 'mud_pack', 'tooth_brushing', 'ear_cleaning', 'anal_gland_care']);

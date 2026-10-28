@@ -131,6 +131,7 @@ export default function AppProviders({ children }: Props) {
       const session = useAuthStore.getState().session;
       const userId = session?.user?.id ?? null;
       if (!userId) return;
+      const transition = transitionSeqRef.current;
 
       try {
         await flushPendingConsentSnapshot(userId);
@@ -140,6 +141,7 @@ export default function AppProviders({ children }: Props) {
 
       try {
         const result = await processPendingMemoryUploads({ userId });
+        if (transitionSeqRef.current !== transition || useAuthStore.getState().session?.user.id !== userId) return;
         if (result.succeeded > 0) {
           result.touchedPetIds.forEach(petId => {
             refreshRecords(petId).catch(() => {});
