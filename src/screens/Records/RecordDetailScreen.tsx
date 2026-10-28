@@ -1,5 +1,6 @@
 import TimelineArtwork from '../../components/records/TimelineArtwork';
 import { useNotificationDestinationRead } from '../../hooks/useNotificationDestinationRead';
+import { useOwnerOperation } from '../../hooks/useOwnerOperation';
 import { LavenderScreenBackground } from '../../components/common/LavenderScreenBackground';
 import { TIMELINE_DESIGN as C } from '../../theme/timelineDesign';
 import CtaButton, { CtaIcon, CtaText } from '../../components/records/TimelineButton';
@@ -756,6 +757,7 @@ export default function RecordDetailScreen() {
   const recordsById = useRecordStore(s => s.recordsById);
 
   const resolvedPetId = record?.petId?.trim() || petId;
+  const captureCurrent = useOwnerOperation(`${titleOwnerId ?? 'guest'}:${resolvedPetId ?? 'none'}:${memoryId ?? 'none'}`);
   const walkScope = useWalkScope(resolvedPetId);
   const isWalkRecord = record?.category === 'walk';
   const walkSources = useWalkSources(resolvedPetId, isWalkRecord && memoryId ? [memoryId] : [], isWalkRecord);
@@ -848,12 +850,13 @@ export default function RecordDetailScreen() {
           removeOneLocal(pending.petId, pending.memoryId);
           invalidateWalkProduct(walkScope, 'MEMORY_DELETE');
           setDeleteModalVisible(false);
-          navigation.navigate('TimelineMain', { petId: pending.petId, mainCategory: 'all' });
+          if (route.params.notificationOpen) navigation.goBack();
+          else navigation.navigate('TimelineMain', { petId: pending.petId, mainCategory: 'all' });
         }
         if (walkScope.current()) interruptedWalkDelete.current = null;
       }).catch(() => undefined);
     return () => controller.abort();
-  }, [walkScope, isWalkRecord, memoryId, resolvedPetId, upsertOneLocal, removeOneLocal, navigation]);
+  }, [walkScope, isWalkRecord, memoryId, resolvedPetId, upsertOneLocal, removeOneLocal, navigation, route.params.notificationOpen]);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
   const [remembrance, setRemembrance] = useState<{
@@ -1061,6 +1064,8 @@ export default function RecordDetailScreen() {
   const onConfirmDelete = useCallback(async () => {
     if (!resolvedPetId || !record || deleting) return;
     if (isWalkRecord && !walkScope?.current()) return;
+    const current = captureCurrent();
+    if (!current()) return;
     const scoped = <T,>(operation: () => Promise<T>) => isWalkRecord && walkScope ? walkRequest(walkScope, operation) : operation();
 
     try {
@@ -1071,11 +1076,13 @@ export default function RecordDetailScreen() {
         imagePath: record.imagePath,
         imagePaths: record.imagePaths,
       }));
+      if (!current()) return;
       await scoped(() => removeTimelineWalkActivity({
         petId: resolvedPetId,
         memoryId: record.id,
         category: record.category,
       }));
+      if (!current()) return;
 
       removeOneLocal(resolvedPetId, record.id);
       interruptedWalkDelete.current = null;
@@ -1086,6 +1093,9 @@ export default function RecordDetailScreen() {
         navigation.popTo('ScheduleDetail', route.params.scheduleReturn);
       } else if (route.params?.entrySource === 'health_report') {
         navigateToHealthReport();
+      } else if (route.params.notificationOpen) {
+        // The notification stack may start at Detail with no ordinary tab below it.
+        navigation.goBack();
       } else {
         navigation.navigate('TimelineMain', {
           petId: resolvedPetId,
@@ -1094,13 +1104,15 @@ export default function RecordDetailScreen() {
       }
       refresh(resolvedPetId).catch(() => {});
     } catch (error: unknown) {
+      if (!current()) return;
       if (isWalkRecord && !walkScope?.current()) return;
       const { title, message } = getBrandedErrorMeta(error, 'record-delete');
       Alert.alert(title, message);
     } finally {
-      if (!isWalkRecord || walkScope?.current()) setDeleting(false);
+      if (current() && (!isWalkRecord || walkScope?.current())) setDeleting(false);
     }
   }, [
+    captureCurrent,
     deleting,
     navigation,
     record,
@@ -1109,6 +1121,7 @@ export default function RecordDetailScreen() {
     resolvedPetId,
     route.params?.entrySource,
     route.params?.scheduleReturn,
+    route.params.notificationOpen,
     navigateToHealthReport,
     walkScope,
     isWalkRecord,

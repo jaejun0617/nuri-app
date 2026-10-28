@@ -2,6 +2,16 @@
 
 상태: IN_PROGRESS. 전체 동결 아님. Master 단독 수행.
 
+## 2026-10-28 알림에서 기록 삭제 후 복귀 결함 보정 중
+
+- 173b2334fe71e635d034545426aa7c800fe91d5b/[CI40656687504](https://github.com/jaejun0617/nuri-app/actions/runs/40656687504) 전체 후속 PASS·runtime64dbddaa3be3ec70b9d51204a3afd6311d6008cc8522a34b69651ac4b8a59c73·bundled Debug APK05645b075500e281a5550e2d99768e852335e0dd482b17161a1ee926760d5c27를 물리/에뮬레이터에 동일 서명·UID·데이터/권한 보존/Metro OFF로 설치했다. 실제 추모 아이 시트 표시, 살아 있는 아이 숨김과 추모 아이 작성 복귀→Home에서 살아 있는 아이 선택→일반 Timeline22개 일치를 확인했다. `memorial-visible-confirmed`, `alive-hidden-latest`, `timeline-selection-alive-after-memorial-return`이 근거다. 알림으로 다른 아이의 기록을 열었을 때도 실제 기록의 추모 상태를 사용했다.
+- 실제 QA 기록227b0a0a(누리테스트)를 앱에서 작성·명시 기억 활동 포함 후 삭제했다. 기존 추모 기록은 수정하지 않았다. ME01은 이 새 기록이 아니라 앞선 기존 기억 활동 조회의 정상 engine refresh08:30:50Z에서 최초 부여됐다. award e4baa62b→알림6dff3d09→실제 해당 아이/ME01 보관함→read_at08:42:23.141314Z를 확인했다. 새 기록 알림7a1b1e95도 정확한227b0a0a 상세→read_at08:43:22.1939Z다. Home 선택은 누리로 보존했다. `title-me01-destination`, `memorial-notification-pet-not-global`과 관련 서버 조회를 연결하며 transport 삽입 E2E가 아니다. 다른25개 eventType의 실제 완료로 확대하지 않는다.
+- 새 FAIL: 알림 전용 NotificationTimeline이 RecordDetail로 시작한 상태에서 삭제하면 기존 공통 삭제 코드가 notificationOpen 없는 TimelineMain을 그 안에 추가했다. 이 화면의 HomeTab 이동은 해당 부모에 없으므로 실제 시스템/헤더 Back이 모두 무효였다. 정상 원본 삭제는 완료됐고 해당 QA row0이다. `record-me1-after-delete-route`에 재현을 보존한다. 최소 후보는 알림 진입의 삭제 완료/기존 canonical 삭제 조정 경로만 stack Back으로 원래 알림 화면에 복귀시킨다. 일반·건강·일정 반환과400ms·Walk 데이터 엔진은 보존한다.
+- 보정 검사: 수정 전 notification delete 회귀1FAIL/28PASS, 수정 뒤 관련68/68·타입 PASS다. 삭제 후 늦은 완료가 owner 변경/화면 이탈 뒤 navigation·cache에 적용되지 않도록 기존 useOwnerOperation을 상세 삭제에도 사용했다. 실제 네트워크 요청 취소나 서버 rollback을 보장한다고 쓰지 않는다. 새 소스는 아직 설치 수락 전이다.
+- Google 에뮬레이터에서 요청 전 네트워크만 차단해 명확한 저장 실패/서버0개→입력 보존→화면 이탈 확인→재진입 초안 복원→네트워크 복원 후 실제1개 저장을 확인했다. ID5117d952, 제목QA-20261028-OFFLINE이며 소유 Googleet⁶/본문이 일치한다. `record-offline-failure-alert/failed-server/draft-restored/retry-server`가 증거다. wifi/data는 원래1/1로 복원했다. 저장 후 응답 유실·업로드 실패·건강/일정 전체 수락과는 별개이며 이 QA row는 후속 새 후보의 알림 삭제 수락에 재사용한다. 기록4도메인 전체 완료는0/4다.
+- 다음: 최신 전체/CI·보존 설치 후 알림 진입 QA 기록 삭제→원래 목록·정상 Back을 확인한다. 실패 복구와 기존 OS13/이벤트17/인증 미마감은 계속한다. 원래7~9·STORE HOLD는 유지한다.
+- 최신 삭제 반환 후보의 최종 전체333suites4502/4502, 타입·관련lint0오류/0경고·diff check PASS다(`notification-delete-full-tests.json`). 실제 설치 수락은 아직 남는다.
+
 ## 2026-10-28 일반 Timeline의 이전 아이 고정 수정 중
 
 - f798be3/CI40653859668 전체 필수 PASS·runtime d2fe1b4f8aa2db5e878bf80189298f5c05c8836851a47755cff49d7193e1d9cc·APK5d964abd8e956798f8a891c8494e077385bd3d22aa91de3ce2d4ae8893220a4e를 물리/에뮬레이터에 보존 설치했다. Metro OFF 실제 살아 있는 누리 기록의 관리 시트에서 기억 활동 행이 숨겨지고 수정/삭제가 유지됨을 확인했다(`memorial-live-hidden`). 추모 아이의 실제 양성 수락은 아래 결함 때문에 아직 미확인이다.

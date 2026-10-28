@@ -27,6 +27,7 @@ import { deleteMemoryWithFile } from '../src/services/supabase/memories';
 import { walkRecordRepository } from '../src/services/walk/server/supabaseWalkRecordRepository';
 import type { WalkMemorySourceSummary, WalkRecordView } from '../src/services/walk/server/recordRepository';
 import { appQueryClient } from '../src/services/query/appQueryClient';
+import type { TimelineStackParamList } from '../src/navigation/TimelineStackNavigator';
 
 const mockRecord: MemoryRecord = {
   id: 'detail',
@@ -50,8 +51,10 @@ const mockNavigation = {
   canGoBack: () => true,
   popTo: jest.fn(),
   replace: jest.fn(),
+  getState: () => ({ routeNames: [] }),
+  getParent: () => undefined,
 };
-const mockRoute = {
+const mockRoute: { params: TimelineStackParamList['RecordDetail'] } = {
   params: { petId: 'pet', memoryId: 'detail', entrySource: 'timeline' },
 };
 let mockTitleOwner = 'owner';
@@ -62,7 +65,7 @@ jest.mock('../src/services/activity/titleVaultV2', () => ({
 jest.mock('../src/store/authStore', () => ({
   useAuthStore: Object.assign((select: (state: { session: { user: { id: string } } }) => unknown) =>
     select({ session: { user: { id: mockTitleOwner } } }),
-  { getState: () => ({ session: { user: { id: mockTitleOwner } } }) }),
+  { getState: () => ({ session: { user: { id: mockTitleOwner } } }), subscribe: () => () => undefined }),
 }));
 const mockFetchPage = jest.fn();
 let mockSeason: SeasonKey = 'autumn';
@@ -154,6 +157,7 @@ describe('memory detail rendered contract', () => {
   });
   beforeEach(() => {
     jest.clearAllMocks();
+    mockRoute.params = { petId: 'pet', memoryId: 'detail', entrySource: 'timeline' };
     mockTitleOwner = 'owner';
     mockPets.pets = [{ id: 'pet', name: '누리', avatarUrl: null, deathDate: '2026-02-22' }];
     mockPets.selectedPetId = 'pet';
@@ -577,6 +581,40 @@ describe('memory detail rendered contract', () => {
     await TestRenderer.act(async () => finish());
     expect(mockStore.removeOneLocal).toHaveBeenCalledTimes(1);
     TestRenderer.act(() => tree.unmount());
+  });
+  it.each([false, true])('returns a deleted record to its notification origin only when notification=%s', async notification => {
+    if (notification) {
+      mockRoute.params = {
+        petId: 'pet', memoryId: 'detail',
+        notificationOpen: { id: 'notice', source: 'user', ownerId: 'owner', requestId: 'open-1' },
+      };
+    }
+    jest.mocked(deleteMemoryWithFile).mockResolvedValueOnce(undefined);
+    mockStore.refresh.mockResolvedValueOnce(undefined);
+    const tree = await render();
+    await TestRenderer.act(async () => tree.root.findByType(TimelineDeleteDialog).props.onConfirm());
+    expect(deleteMemoryWithFile).toHaveBeenCalledWith({ memoryId: 'detail', imagePath: undefined, imagePaths: [] });
+    expect(mockStore.removeOneLocal).toHaveBeenCalledWith('pet', 'detail');
+    if (notification) {
+      expect(mockNavigation.goBack).toHaveBeenCalledTimes(1);
+      expect(mockNavigation.navigate).not.toHaveBeenCalled();
+    } else {
+      expect(mockNavigation.navigate).toHaveBeenCalledWith('TimelineMain', { petId: 'pet', mainCategory: 'all' });
+      expect(mockNavigation.goBack).not.toHaveBeenCalled();
+    }
+  });
+  it.each(['owner', 'unmount'])('does not apply an old delete callback after %s changes', async boundary => {
+    let finish!: () => void;
+    jest.mocked(deleteMemoryWithFile).mockReturnValueOnce(new Promise<void>(resolve => { finish = resolve; }));
+    const tree = await render();
+    let deleting!: Promise<void>;
+    TestRenderer.act(() => { deleting = tree.root.findByType(TimelineDeleteDialog).props.onConfirm(); });
+    if (boundary === 'owner') mockTitleOwner = 'different-owner';
+    else TestRenderer.act(() => tree.unmount());
+    await TestRenderer.act(async () => { finish(); await deleting; });
+    expect(mockStore.removeOneLocal).not.toHaveBeenCalled();
+    expect(mockNavigation.navigate).not.toHaveBeenCalled();
+    expect(mockNavigation.goBack).not.toHaveBeenCalled();
   });
   it('shows a retry instead of inventing a zero related count after a read failure', async () => {
     mockFetchPage.mockRejectedValueOnce(new Error('read failure'));
