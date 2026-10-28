@@ -2,6 +2,45 @@
 
 상태: IN_PROGRESS. 전체 동결 아님. Master 단독 수행.
 
+## 2026-10-28 14:59 KST 다중 세션 로그아웃 회귀 발견
+
+- 5517 후보에서 물리 Google logout05:38:32Z 직후에는 에뮬레이터의 등록이 active였지만, 이후 원격 Google auth.sessions가0이 되고 에뮬레이터도 SignIn으로 복귀했다. 등록 row만으로 다른 인스턴스 세션 유지 PASS를 판정할 수 없었다. 기존 두 인스턴스 표시/읽음 동기화는 logout 이전 관측 범위로 보존한다.
+- 실제 원인은 auth.ts의 signOut/signOutBestEffort가 옵션 없이 호출해 SDK 기본 global 범위를 사용한 것이다. 설치된 auth-js GoTrueClient와 [공식 signOut 계약](https://supabase.com/docs/reference/javascript/auth-signout)을 대조했다. 일반 로그아웃·복구 세션 정리와 개발 도구의 같은 버튼만 명시 local로 보정하며 계정 삭제·provider·callback·DB/RLS를 변경하지 않는다.
+- 새 회귀 검사6개 중 수정 전5개가 scope 누락으로 실패했고, 최소 수정 후 관련5suites25/25·전체327suites4460/4460·타입·관련lint PASS다. 최신 후보의 설치·실제 두 세션 중 한쪽 logout 후 다른 쪽 갱신/수신은 아직 재검증 전이다. OS11의 세션 분리 필수 케이스는 현재 FAIL이며 이전 등록 해제 부분 PASS로 덮지 않는다.
+- 알림 category OFF 시험 c6bbdc7e는 inbox 보존/worker suppressed/기기 발송0 및05:45:37.135983Z 서버 읽음을 확인했다. 이후의 전역 세션 해제로 인한 로딩/SignIn은 위 결함과 구분한다. 원래 Google QA로 정상 OAuth 재로그인해 Home으로 복귀했다. 임시 service OFF/에뮬레이터 OS 허용은 후속 QA 뒤 원래 설정으로 복원한다.
+
+| 케이스 / 원래 번호 | 조건 | 현재 결과 | 상태 |
+|---|---|---|---|
+| OS11-SESSION-ISOLATION / 3·5 | 한 설치 logout 후 다른 설치 세션 유지·등록·수신 | 5517에서 전역 세션 해제 재현. 최소 수정의 기기 수락 대기 | FAIL |
+| OS03-CATEGORY-OFF / 4·5 | news OFF, inbox 저장·읽음 유지/OS 발송 없음 | c6bbdc7e suppressed, device receipt0, 실제 인앱 선택/서버 read_at. 이후 세션 실패는 별도 결함 | PASS |
+
+다음은 이 실제 결함의 새 후보 설치와 두 세션 재검증이다. 기존17이벤트·26eventType·OS13묶음의 분모는 유지하며 전체 미동결·STORE HOLD다.
+
+## 2026-10-28 14:35 KST 최신 설치와 수락 누적
+
+- 최신 앱 소스5517bd4e4569b0556c05d5cadcefaffd6efdeaa2, runtime4b4d2841761a9e5a4dc6047f96f7fc92c7fbf1d7fca5f99281389cc41ca83d35, APK19249651e7b3b2c11f9799a0c2771acd05178c19a5fbda0543914770a7e3b2dd다. 두 인스턴스에 동일 서명·UID·권한·데이터 보존/Metro OFF로 설치했다. delivery-footer-cta의 build/installation/emulator-installation 영수증과 [CI40635471433](https://github.com/jaejun0617/nuri-app/actions/runs/40635471433)의 전체·critical·타입·lint·후속 단계 PASS를 연결한다.
+- 실제 CTA: 두 기록 아래 버튼[51,1835,1029,1981]px, 약347.73×51.91dp, 목록 끝에서 FAB 위55px다. footer-cta-physical.png/layout.json에서 헤더 링크·‘모든 아이’ 안내 없음, 목록 아래 중앙 CTA를 확인했고 클릭 후 기간 밖 기록이 다시 나타났다. 일반 Timeline·기간 날짜·선택 아이·Back은 보존했다.
+- 이전1bac1d5의 실제 주간 warm3/3과 background2회·cold1회의 이동/읽음/Back 증거는 common resolver·Root·두 read/open hook·기간 query·Auth·Native push10파일 SHA가 최신과 같아 해당 범위만 재사용한다. 새 CTA 배치 자체는 이전 영상으로 대신하지 않았다. reused-notification-source-boundary.json이 원본/최신 파일 해시를 소유한다. cold의 기존 am kill 준비 실패1회는 새 메시지 발행 전 프로세스가 종료되지 않은 시험 준비 실패다. 다음 앱 UID SIGKILL(설정 강제 종료 아님) 후 실제 OS 탭→고정2행·서버 읽음·10초 안정·Back을 관찰했다. 과거 native SIGSEGV 원인은 여전히 미확정이다.
+- 현재 두 인스턴스는 PO가 직접 로그인한 같은 canonical Google QA다. 이름이나 선택 아이가 아니라 서버 identity·Native owner·등록 owner로 확인했다. Google QA가 소유한 아이는 실제2마리이며 두 기기의 선택 아이가 서로 다른 것은 계정 불일치가 아니다. 물리1대+Google Play 에뮬레이터1개이며 실물2대 결과로 확대하지 않는다.
+
+| 케이스 / 원래 번호 | 기대·조건 | 실제 결과·증거 | 상태 |
+|---|---|---|---|
+| B2-LATEST / 1 | 최신 앱 소스의 로컬·원격 필수 gate | 326suites4454/4454, 타입 PASS, 관련lint0errors/기존1warning, 동일5517 SHA CI의 후속 단계까지 PASS | PASS |
+| B1-CUSTODY / 2 | 실환경 키·인증·암호화·QA 제한·보관 | 실제 FCM2등록 접수/단말 표시, Vault↔Edge digest 일치, 실제403 경계, key-custody와NURI3cron/cohort2 유지. 원문/앱 번들 유출·회전 없음 | PASS |
+| AUTH-KAKAO-LOGIN / 3 | 기존 canonical provider 성공·Home·등록 | 실제 Chrome OAuth 후05:10:45.320227Z 동일Kakao ID 로그인, Native owner 일치/7515등록05:10:48 active·Home. 최초 Back 시도는 SSO가 먼저 성공해 취소로 계산하지 않음 | PASS |
+| AUTH-KAKAO-CANCEL / 3 | provider browser에서 Back→SignIn, 세션 미생성 | Kakao browser 관찰 뒤 Back·로그인 화면 복귀, 기존 마지막 로그인 시각 불변. kakao-cancel-finalized.mp4(5.881167초/84 encoded frames)와 해시 복구 영수증. 최초 MP4 복사가 finalization보다 빨라 실패한 것은 도구 이슈이며 불완전 파일도 보존 | PASS |
+| AUTH-GOOGLE-CANCEL / 3 | provider browser에서 Back→SignIn | google-cancel-observed-result.json, Native owner 없음·로그인 버튼 복귀, Metro OFF | PASS |
+| AUTH-GOOGLE-LOGIN / 3 | 고정Google QA로 성공, 기존 데이터 | PO 직접 로그인 완료, 서버05:17:16.696377Z canonical ID·현재 Native owner/70e0등록 일치, 기존 아이2마리 Home | PASS |
+| AUTH-RESTORE / 3 | Google 세션의 재실행·갱신 | 물리의 실제 COLD 재실행→기존Home/Native owner, 앱 데이터 초기화0. 에뮬레이터는10/25 세션이10/28 04:52:33 서버 refreshed_at으로 갱신됐고 현재 등록05:23:42 성공. 임의 만료 토큰 주입은 하지 않음 | PASS |
+| AUTH-LOGOUT-DEVICE / 3·5 | 해당 설치의 owner/등록 해제 | Kakao logout05:09:28.653357Z, Native owner 없음/7515 revoked(user_logout), 재로그인 시 재연결. 다른 인스턴스 분리 해제의 최종 검증은 별도 미마감 | PASS |
+| OS02-DELIVERY / 5 | OS 거부에서도 inbox 저장, OS 미표시 | 7dd5c9f7는 두 등록FCM accepted, 에뮬레이터 실제권한false/기존 및 이후NURI OS keys0, 인앱11개/해당 행 표시. 동시에 권한허용 물리에서는 실제OS 표시·탭·상세·05:22:15.206661Z read_at | PASS |
+| OS11-LIVE-READ / 4·5 | 한 기기 읽음의 다른 인스턴스 실시간 반영 | 7dd5c9f7와01706689에서 물리 읽음 후 에뮬레이터 팝업을 재진입하지 않고11→10. server unread10과 일치. dual-read-emulator-live.json/dual-instance-live-read-sync.json | PASS |
+| OS11-DUAL-DISPLAY / 5 | 같은 계정2등록·각 OS표시·탭 | 01706689가70e0/edf8 두 등록accepted·두 OS에 같은QA제목/각 UID 알림key1개. 물리 read_at05:26:27.105566Z, 이후 emulator OS 탭에도 동일 상세/읽음 시각 불변 | PASS |
+| NAV-OS-QUICK-BACK / NAV | quick modal 배경의 OS탭 후 정상복귀 | 실제 emulator 상세→Back1회 Home/선택GooglePet 유지. 기존 App.tsx의 ephemeral quick replace 계약에 맞다. 초기 시험이 popup 복원을 기대한 것은 미확인 기대값이었으며 제품 결함으로 처리하지 않음. dual-instance-back-observation.json | PASS |
+| OS05-NATIVE-FOREGROUND / 5 | 전경 인앱 갱신·native callback·OS중복 없음 | 양쪽 foreground/권한true 유지 중8ea8674a accepted2, OS keys양쪽0·배지양쪽11. 등록last_seen이05:31:36/05:28:39→05:34:02/05:34:03으로 변경. Realtime은등록sync를호출하지않고 App의 Native수신/토큰변경callback만 이 조건에서sync하므로 수신bridge의 간접 증거다. raw native 패킷 계측과 구분 | PASS |
+
+위 행은 필수 묶음의 하위 수락이며 인증/OS13/이벤트17/기록4도메인의 전체 완료로 합산하지 않는다. 에뮬레이터 OS 권한은 두 기기 표시 검증을 위해 임시허용했고 원래false/USER_SET 상태로 최종 복원해야 한다. 물리는 Google QA 로그인 상태이며 후속 계정 전환 검증 뒤 최종 상태를 기록한다. 전체 미동결·원래7~9 미착수·STORE HOLD다.
+
 ## 2026-10-28 목록 하단 CTA 피드백과 현재 설치
 
 - 안내 제거 후보1bac1d5c08dc978c85bd4b2aba556bd0792e4413 / runtime66fecd04 / APK816d0ad3을 두 QA 인스턴스에 동일 서명·UID·권한·데이터 보존/Metro OFF로 설치했다. [CI40633837435](https://github.com/jaejun0617/nuri-app/actions/runs/40633837435) 전체 필수 단계 PASS, 로컬325suites4446/4446·타입 PASS다. 실기기에서 안내 제거와 실제 주간 고정2행→Back 선택 아이 보존3/3을 확인했다. weekly-warm-01..03-result.json과 각 영상/화면이 근거다.

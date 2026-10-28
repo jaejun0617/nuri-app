@@ -337,7 +337,8 @@ export async function signUpWithEmail(email: string, password: string) {
 }
 
 export async function signOut() {
-  const { error } = await supabase.auth.signOut();
+  // Ordinary logout must preserve independently authenticated device sessions.
+  const { error } = await supabase.auth.signOut({ scope: 'local' });
   if (error) throw error;
 }
 
@@ -404,7 +405,7 @@ export async function signOutBestEffort(timeoutMs = 1200): Promise<{
   let timedOut = false;
 
   const signOutPromise = supabase.auth
-    .signOut()
+    .signOut({ scope: 'local' })
     .then(({ error }) => {
       if (error) throw error;
       return null;

@@ -126,7 +126,7 @@ export default function DevTestScreen() {
   const onSignOut = useCallback(async () => {
     try {
       pushLog('로그아웃...');
-      const { error } = await supabase.auth.signOut();
+      const { error } = await supabase.auth.signOut({ scope: 'local' });
       if (error) throw error;
       pushLog('✅ 로그아웃 완료');
       Alert.alert('OK', '로그아웃 완료');
