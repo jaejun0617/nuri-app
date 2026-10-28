@@ -29,7 +29,7 @@ import { HOME_HERO_COLORS, HOME_HERO_ACCENT, HOME_HERO_TOOLBAR_RADIUS } from '..
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { ScreenEntrySource } from '../../navigation/entry';
 
-import { openMoreDrawer } from '../../store/uiStore';
+import { closeMoreDrawer, openMoreDrawer } from '../../store/uiStore';
 
 export type ActiveTabKey = 'home' | 'timeline' | 'community' | 'guestbook' | 'more';
 
@@ -91,6 +91,9 @@ export default function AppNavigationToolbar({
         onNavigateTab(target);
         return;
       }
+
+      // An explicit tab choice discards the retained menu; ordinary Back still restores it.
+      closeMoreDrawer();
 
       if (target === 'timeline') {
         navigation.navigate('AppTabs', {

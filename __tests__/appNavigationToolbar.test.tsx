@@ -10,8 +10,9 @@ import { HOME_HERO_COLORS, HOME_HERO_ACCENT, HOME_HERO_TOOLBAR_RADIUS } from '..
 
 const mockNavigate = jest.fn();
 const mockOpenMore = jest.fn();
+const mockCloseMore = jest.fn();
 let mockLoggedIn = true;
-beforeEach(() => { jest.clearAllMocks(); mockLoggedIn = true; });
+beforeEach(() => { jest.resetAllMocks(); mockLoggedIn = true; });
 jest.mock('../src/app/ui/AppText', () => 'AppText');
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => ({ navigate: mockNavigate }),
@@ -27,7 +28,67 @@ jest.mock('../src/store/petStore', () => ({
   usePetStore: (selector: (state: { pets: never[]; selectedPetId: null }) => unknown) =>
     selector({ pets: [], selectedPetId: null }),
 }));
-jest.mock('../src/store/uiStore', () => ({ openMoreDrawer: () => mockOpenMore() }));
+jest.mock('../src/store/uiStore', () => ({
+  openMoreDrawer: () => mockOpenMore(),
+  closeMoreDrawer: () => mockCloseMore(),
+}));
+
+function toolbarTab(renderer: TestRenderer.ReactTestRenderer, label: string) {
+  const tab = renderer.root.findAll(node =>
+    node.props.accessibilityRole === 'tab' && typeof node.props.onPress === 'function',
+  ).find(node => node.findAllByType(AppText).some(text => text.props.children === label));
+  if (!tab) throw new Error(`Expected toolbar tab: ${label}`);
+  return tab;
+}
+
+it.each([
+  ['홈', 'HomeTab'],
+  ['타임라인', 'TimelineTab'],
+  ['커뮤니티', 'CommunityTab'],
+  ['편지함', 'GuestbookTab'],
+])('dismisses a retained return menu when a detail toolbar explicitly selects %s', async (label, screen) => {
+  let renderer!: TestRenderer.ReactTestRenderer;
+  const order: string[] = [];
+  const before = jest.fn(() => order.push('before'));
+  mockCloseMore.mockImplementationOnce(() => order.push('close-menu'));
+  mockNavigate.mockImplementationOnce(() => order.push('navigate'));
+  await act(async () => {
+    renderer = TestRenderer.create(
+      <ThemeProvider theme={createTheme('light')}>
+        <AppNavigationToolbar activeKey="more" onBeforeNavigate={before} />
+      </ThemeProvider>,
+    );
+  });
+  expect(mockCloseMore).not.toHaveBeenCalled();
+  const tab = toolbarTab(renderer, label);
+  await act(async () => tab.props.onPress());
+  expect(order).toEqual(['before', 'close-menu', 'navigate']);
+  expect(mockCloseMore).toHaveBeenCalledTimes(1);
+  expect(mockNavigate).toHaveBeenCalledWith('AppTabs', screen === 'TimelineTab'
+    ? { screen, params: { screen: 'TimelineMain', params: { mainCategory: 'all', entrySource: 'more' } } }
+    : { screen });
+  await act(async () => renderer.unmount());
+});
+
+it('leaves drawer fade ordering to a supplied tab navigator and does not close More on re-entry', async () => {
+  let renderer!: TestRenderer.ReactTestRenderer;
+  const override = jest.fn();
+  await act(async () => {
+    renderer = TestRenderer.create(
+      <ThemeProvider theme={createTheme('light')}>
+        <AppNavigationToolbar activeKey="more" onNavigateTab={override} />
+      </ThemeProvider>,
+    );
+  });
+  await act(async () => toolbarTab(renderer, '홈').props.onPress());
+  expect(override).toHaveBeenCalledWith('home');
+  expect(mockCloseMore).not.toHaveBeenCalled();
+  expect(mockNavigate).not.toHaveBeenCalled();
+  await act(async () => toolbarTab(renderer, '전체메뉴').props.onPress());
+  expect(mockOpenMore).toHaveBeenCalledTimes(1);
+  expect(mockCloseMore).not.toHaveBeenCalled();
+  await act(async () => renderer.unmount());
+});
 
 it('bounds long tab labels to one fitted line without changing the routes', async () => {
   let renderer!: TestRenderer.ReactTestRenderer;

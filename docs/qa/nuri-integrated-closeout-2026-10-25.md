@@ -2,6 +2,16 @@
 
 상태: IN_PROGRESS. 전체 동결 아님. Master 단독 수행.
 
+## 2026-10-28 최신 설치 수락과 상세 툴바의 잔존 메뉴
+
+- 설치 기준은618b0fc91803a42a774f6b8bc8d894671b65cd22/[CI40660757723](https://github.com/jaejun0617/nuri-app/actions/runs/40660757723) 후속 전체 PASS, runtime bdce38ba3bc61c62a95b42810d0fd1da01f9737ac51ab08342a01622c39b16ff, APK9e49cbfb33a39f524682f886e644f6c826cb49b1b34f14eca3ee2af19be15b0a다. `delivery-notification-delete-return`의 빌드·두 설치 영수증이 동일 서명·UID·권한·데이터 보존과 Metro OFF를 확인한다. 전체333suites4502/4502·타입·관련lint PASS다. Store RC/성능 검증본은 아니다.
+- Google 에뮬레이터의 실제 기록 알림39dc1f05→5117d952 상세→읽음09:05:20.495197Z→해당 QA 기록 삭제→알림 목록→Back Home을 확인했다. `delete-return-inbox-confirmed`, `record-offline-deleted-server`와 `notification-delete-return-20261028.mp4`가 증거다. 영상은1080×2400/72.883756초/267 encoded frames, 평균 약3.66fps VFR이므로 모든 compositor frame 무플리커 증명으로 확대하지 않는다. 물리의 삭제된 기록 알림da73d838은 원문을 다시 노출하지 않는 안내 상세→읽음09:13:15.000843Z→Home 복귀를 확인했다. QA R1/R2/R3 기록은 모두 삭제했고 기존 기록은 보존했다.
+- OS08: 에뮬레이터 Android 설정의 실제 ‘강제 종료’ 확인 후 stopped=true에서03c2deb4의 FCM accepted/OS0을 확인했다. 설정의 ‘열기’로 수동 재실행한 뒤 e1883deb와 앞선 메시지가 OS 자동 그룹으로 표시됐다. 그룹 summary 탭은 개별 목적지 수락에 합산하지 않았다. 분리된 후속 d13953f5는 실제 단일 알림 표시→개별 탭→상세→read_at09:17:26.474772Z다. `os08-stopped-before-send/stopped-after-accepted/relaunch-ready/recovery-child-displayed/recovery-child-destination`이 근거다. 실제 기기 구성은 물리1대+에뮬레이터1개이며 이 케이스 실행은 에뮬레이터다. 원래 OS 권한OFF는 남은 검증 뒤 복원해야 한다.
+- 건강 부분 수락: 물리/누리의 정상 UI로 QA 체중9b171263(2026-10-28/QA-20261028-WEIGHT)를6.1→6.2kg 수정하고 Home6.2kg 반영을 확인했다. 해당 QA 행만 삭제 후 이전3개 로그와 pet6.00kg가 복원됐고 Home도6kg다. `weight-home-updated`, `weight-home-restored-after-delete`와 실제 서버 대조가 근거다. 건강 전체 실패 복구나 기록4도메인 완료는 아니다.
+- 새 NAV FAIL: More→건강관리에서 하단 Home을 누르면 Home 위의 보존된 More가 그대로 나타나는 것을2회 확인했다. Root 상세 push에서 메뉴를 보존하는 정상 Back 계약과 달리, 공용 상세 툴바의 기본 탭 이동에는 메뉴 해제가 없었다. `AppNavigationToolbar`의 명시적 탭 이동만 기존 closeMoreDrawer를 호출한다. 커스텀 tab override/More push/Back/400ms는 유지한다. 회귀 검사는 도구의 잘못된 parent 선택을 고친 뒤 수정 전4FAIL/12PASS, 수정 후 관련6suites97/97·타입·lint0오류/0경고다. 현재 이 새 보정의 설치 수락은 남아 있다.
+- 기존 native cold 각5회·More 왕복5회는 해당 후보의 한정 증거로 유지한다. 새 툴바 변경은 상세→명시적 탭/Back을 다시 검증해야 한다. 시작 native·인증·알림 읽음·서버는 이번 보정에서 바꾸지 않는다. 전체1~6/NAV 미동결·기록4도메인 전체0/4·STORE HOLD이며 다음은 이 후보 검사/보존 설치 후 위 신규 경로 수락이다.
+- 이 툴바 보정의 최종 전체333suites4507/4507·타입·관련lint0오류/0경고·diff PASS다. 첫 전체4493PASS/14FAIL은 기존 아이콘 시험 mock에 새 close 함수가 없던 테스트 연결 오류로 보존했다. mock만 실제 계약에 맞추고14색상/기존 route assertion과 명시 탭4회 해제를 모두 검사했다. `toolbar-retained-menu-full-corrected.json`이 최종 결과이며 새 설치/동일 SHA CI와는 별도다.
+
 ## 2026-10-28 알림에서 기록 삭제 후 복귀 결함 보정 중
 
 - 173b2334fe71e635d034545426aa7c800fe91d5b/[CI40656687504](https://github.com/jaejun0617/nuri-app/actions/runs/40656687504) 전체 후속 PASS·runtime64dbddaa3be3ec70b9d51204a3afd6311d6008cc8522a34b69651ac4b8a59c73·bundled Debug APK05645b075500e281a5550e2d99768e852335e0dd482b17161a1ee926760d5c27를 물리/에뮬레이터에 동일 서명·UID·데이터/권한 보존/Metro OFF로 설치했다. 실제 추모 아이 시트 표시, 살아 있는 아이 숨김과 추모 아이 작성 복귀→Home에서 살아 있는 아이 선택→일반 Timeline22개 일치를 확인했다. `memorial-visible-confirmed`, `alive-hidden-latest`, `timeline-selection-alive-after-memorial-return`이 근거다. 알림으로 다른 아이의 기록을 열었을 때도 실제 기록의 추모 상태를 사용했다.
@@ -229,19 +239,19 @@ PO 중간 요약: [2026-10-25 20:15 KST 중간보고서](../reports/nuri-integra
 
 | ID / 원래 작업 | OS 필수 시나리오·기대 | 기존 결과·증거 | 최신 결과·기기/다음 조치 |
 |---|---|---|---|
-| OS01 / 5 | 앱 권한 허용: 정상 표시·탭·목적지·읽음 | PASS, Google QA background transport; emulator-background-native-display.json/consumed-ui.json | NOT_RUN, 최신 후보 재검증 |
-| OS02 / 5 | 앱 권한 거부: inbox 유지·OS 미표시 | 전달 NOT_RUN; 설정 분리·원래 거부 복원만 확인 | NOT_RUN, emulator에서 실제 발송 |
-| OS03 / 5 | 앱 카테고리 OFF: inbox 유지·OS 억제 | NOT_RUN | NOT_RUN, QA 설정만 통제 |
-| OS04 / 5 | Android 채널 OFF: 앱 설정 우회 없이 미표시 | NOT_RUN | NOT_RUN, 기존 채널1개만 통제 |
-| OS05 / 5 | 전경: native 수신·inbox 갱신, OS 중복 배너 없음 | 부분 관찰, 접수·배너 없음·읽음. native callback 독립 증거 미확보 | NOT_RUN, 최신 receipt 연결 |
-| OS06 / 5 | 백그라운드: OS 표시→탭→실제 목적지→읽음 | PASS, Google QA transport; 실제 업무 원본 E2E와 구분 | NOT_RUN, 직접 목적지 변경 후 재검증 |
+| OS01 / 5 | 앱 권한 허용: 정상 표시·탭·목적지·읽음 | 과거 transport 소비 증거 보존 | PASS: 618b0fc/에뮬레이터 d13953f5 실제 OS 단일 표시·상세·읽음. 위 OS08 증거와 공유하며 별도 업무 E2E로 합산하지 않음 |
+| OS02 / 5 | 앱 권한 거부: inbox 유지·OS 미표시 | 설정 분리·원래 거부 복원 증거 보존 | PASS: 5517의7dd5c9f7/에뮬레이터 권한false·OS0·inbox11/해당 행. 권한/발송/목록 코드는 이후 변경하지 않아 재사용. 최종 OFF 복원은 남음 |
+| OS03 / 5 | 앱 카테고리 OFF: inbox 유지·OS 억제 | 과거 미실행 상태 보존 | PASS: c6bbdc7e suppressed·device0·inbox/읽음. 이후 설정/worker 조건 불변으로 재사용. service 설정은 원래값 복원 |
+| OS04 / 5 | Android 채널 OFF: 앱 설정 우회 없이 미표시 | 과거 미실행 상태 보존 | PASS: 231d44be 물리 채널OFF·FCM accepted/OS0·inbox/채널 복원 후 읽음. 채널/전송 구현 불변으로 재사용 |
+| OS05 / 5 | 전경: native 수신·inbox 갱신, OS 중복 배너 없음 | 과거 간접 증거 한계 보존 | PASS(간접 native bridge): 5517의8ea8674a/두 인스턴스 accepted2·OS0·badge11과 native callback만 호출하는 등록last_seen 갱신. 이후 해당 연결 불변. raw packet 수집 증거는 아님 |
+| OS06 / 5 | 백그라운드: OS 표시→탭→실제 목적지→읽음 | 과거 Google transport 증거 보존 | PASS: 618b0fc/에뮬레이터 d13953f5 background 단일 OS 표시→상세/읽음. 같은 OS01/08 실행의 공유 증거이며 전체 eventType E2E는 아님 |
 | OS07 / 5 | 최근 앱 제거·프로세스 미실행: 두 조건 구분 및 cold 진입 | NOT_RUN | NOT_RUN, 종료 이유/진입 증거 각각 확보 |
-| OS08 / 5 | 설정 강제 종료: 플랫폼 미수신과 수동 재실행 복구 구분 | NOT_RUN | NOT_RUN, 임의 앱 삭제 없이 실행 |
+| OS08 / 5 | 설정 강제 종료: 플랫폼 미수신과 수동 재실행 복구 구분 | 과거 미실행 상태 보존 | PASS: 618b0fc/에뮬레이터 실제 Settings stopped=true/accepted·OS0→수동 열기→별도 단일 알림 표시·탭·읽음. 자동 그룹 summary 탭은 개별 목적지 PASS에 합산하지 않음 |
 | OS09 / 5 | 네트워크 단절·TTL: 유효 메시지와 만료 메시지 구분 | NOT_RUN | NOT_RUN, QA 기기 네트워크만 통제 |
-| OS10 / 3·5 | 로그아웃·계정 전환: 현재 owner 등록과 대상 격리 | NOT_RUN | NOT_RUN, 승인 QA identity 두 개만 사용 |
-| OS11 / 4·5 | 실제 별도 두 인스턴스: 각각 수신·읽음 동기화·한쪽 로그아웃 격리 | 준비 완료, NOT_RUN | NOT_RUN, 현재 물리Kakao/에뮬레이터Google로 서로 다른 계정. 같은 QA 로그인 필요 |
+| OS10 / 3·5 | 로그아웃·계정 전환: 현재 owner 등록과 대상 격리 | 과거 미실행 상태 보존 | NOT_RUN(필수 묶음 잔여): 실제 Kakao→Google→Kakao/등록 결합과 local logout 격리는 위 증거. 이전 계정 알림 탭·늦은 callback의 전체 실제 경계는 남음 |
+| OS11 / 4·5 | 실제 별도 두 인스턴스: 각각 수신·읽음 동기화·한쪽 로그아웃 격리 | 과거 준비 상태 보존 | PASS(물리1+에뮬레이터1): 01706689 동일Google 두 등록/각 OS1/읽음 시각 불변·live11→10, ae6a5d3 local logout 뒤 emulator 세션·7a4ed093 수신/읽음 유지. auth/local/등록/읽음 경로 불변으로 한정 재사용. 실물2대/OEM절전 검증은 아님 |
 | OS12 / 5 | 등록 갱신·무효 등록: 현재 기기 연결·정확한 오류만 폐기 | NOT_RUN | NOT_RUN, 등록 식별자/전송 결과 대조 |
-| OS13 / 4·5·NAV | 연속 탭·cold/warm: 동일 요청 중복 이동·중간 Home 없음 | NOT_RUN | NOT_RUN, 유한 재현 계획 적용 |
+| OS13 / 4·5·NAV | 연속 탭·cold/warm: 동일 요청 중복 이동·중간 Home 없음 | 과거 미실행 상태 보존 | NOT_RUN(필수 묶음 잔여): 주간 warm/cold·More 왕복의 한정 증거는 위 절. 618 실제 삭제 복귀는 통과했으나 상세 하단 탭의 잔존 메뉴 FAIL과 새 보정의 설치 수락이 남음 |
 
 ## 기록 통합 U5
 

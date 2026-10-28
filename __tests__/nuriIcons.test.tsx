@@ -29,6 +29,7 @@ jest.mock('react-native-safe-area-context', () => ({
 }));
 const mockNavigate = jest.fn();
 const mockMore = jest.fn();
+const mockCloseMore = jest.fn();
 let mockColor = '#EC4899';
 let mockLoggedIn = true;
 jest.mock('@react-navigation/native', () => ({
@@ -50,7 +51,10 @@ jest.mock('../src/store/petStore', () => ({
       pets: [{ id: 'p1', themeColor: mockColor }],
     }),
 }));
-jest.mock('../src/store/uiStore', () => ({ openMoreDrawer: () => mockMore() }));
+jest.mock('../src/store/uiStore', () => ({
+  openMoreDrawer: () => mockMore(),
+  closeMoreDrawer: () => mockCloseMore(),
+}));
 
 async function render(element: React.ReactElement) {
   let renderer!: TestRenderer.ReactTestRenderer;
@@ -393,6 +397,7 @@ describe('NURI custom icon candidate', () => {
     'keeps the fixed lavender navigation palette independent of pet theme %s',
     async color => {
       mockColor = color;
+      mockCloseMore.mockClear();
       const renderer = await render(
         <ThemeProvider theme={createTheme('light')}>
           <AppNavigationToolbar activeKey="home" />
@@ -427,6 +432,7 @@ describe('NURI custom icon candidate', () => {
         });
       const tabs = renderer.root.findAllByType(TouchableOpacity);
       tabs.forEach(tab => tab.props.onPress());
+      expect(mockCloseMore).toHaveBeenCalledTimes(4);
       expect(mockNavigate).toHaveBeenCalledWith('AppTabs', {
         screen: 'HomeTab',
       });
