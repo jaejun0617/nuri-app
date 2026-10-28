@@ -2,6 +2,21 @@
 
 상태: IN_PROGRESS. 전체 동결 아님. Master 단독 수행.
 
+## 2026-10-28 일정 저장 재시도와 소유 경계 후보
+
+- 원래6의 일정은 응답을 받기 전 재시도하면 새 서버 PK로 INSERT할 수 있었다. 원격 기존 UUID PK와 owner/pet 열을 읽기 전용으로 확인했고 DB/RPC/RLS/예약 정책은 바꾸지 않았다. 폼 수명 안에서 요청 전에 만든 UUID를 유지하고23505일 때 현재 owner/pet의 동일한 미삭제 row만 확인한다. 수정 입력을 upsert하지 않고 명시적인 ‘일정 확인’에서 최신 서버 값을 다시 읽어 기존 완료/예약 흐름을 진행한다.
+- 화면 이탈·아이 변경·계정 A→B→A 뒤 늦은 완료/안내/이동은 기존 useOwnerOperation 세대로 차단한다. 이미 서버에 전송한 요청의 취소나 일정 초안의 프로세스 영속 복원을 구현했다고 주장하지 않는다. 일반 기록의 기존 durable draft 증거와 구분한다.
+- 최초 서비스 회귀4FAIL/3PASS, 날짜 복귀 계약1FAIL을 보존했고 생산 코드의 점 구분 날짜를 기존 ISO 일자 계약으로 정규화했다. 관련5suites75/75·타입·관련lint0오류/0경고·source guard PASS다. 최초 전체4543PASS/1FAIL은 일정 폼 시험의 로그인 전제 누락이었으며 로그인 fixture만 보강했다. 원래 알림 offset/반복·저장 assertion은 유지한다. 최종 전체336suites4544/4544 PASS(`schedule-submission-full-corrected.json`)이며 동일 SHA CI·보존 설치·실제 실패/재시도·예약 수락은 이어서 기록한다.
+- OS 상태10/13(76.9%) 한정 수락과 기록 도메인 전체0/4를 유지한다. 전체 배치 완료율을 임의 산출하지 않으며 이번 설치와 일정 실제 QA 뒤 인증·OS10/12/13·업무 이벤트·남은 실패 복구를 계속한다. 원래7~9 미착수·STORE HOLD다.
+
+## 2026-10-28 디스크 캐시 설치 수락과 실제 XP 원본 알림
+
+- 최신 설치는a53f62e6c781012d46bb853605df9e8bd92f5d39/[CI40678423371](https://github.com/jaejun0617/nuri-app/actions/runs/40678423371) 모든 후속 단계 PASS, runtime a135892ca529866a3a00a96e720ec6bccf647f99d8b92645bddc1557f6c317a7, APKc80541db402af7ef2a609b3a7f75ed628d6e1bde63785fab4ed422a01f81deed다. `delivery-home-cache-restore`의 build/두 설치/CI는 동일 서명·UID·최초 설치·권한·데이터 보존/Metro OFF를 확인한다. Full335suites4531/4531·타입·관련lint0오류/기존11경고다. 이 이후 문서만 바뀌면 앱 입력은 불변이며 같은 APK를 재설치하지 않는다.
+- 실제 cache 수락: 보존한 QA0a9a9479를 알림에서 연 뒤 정확한 QA 제목 확인→정상 삭제→원래Home 복귀→일반Timeline0개/카드0을 확인했다. Home으로 복귀한 뒤 앱 UID/PID SIGKILL(stopped=false, 데이터 삭제0)→정상 재실행→같은 Googleet⁶→Timeline0개/카드0을 다시 확인했다. 물리의 누리 일반 목록22개와 선택도 유지됐다. `cache-delete-acceptance.json`, `cache-delete-server-zero`, warm/cold empty와 physical-existing-records UI 영수증이 근거다. R1~R6 QA 기록은 모두0이며 기존 기록을 비우거나 캐시 전체를 삭제하지 않았다.
+- 실제 업무 원본/읽음: R6 저장의 record.created e29f29d0와 재시도에서 정상 확정된 XP ledger b1457226(timeline_memory/0a9a9479/+20)→activity.xp_granted18cf8ca6을 확인했다. 재시도2회에도 ledger와 두 원본 알림은 각각1개다. 최신 Home quick에서 XP→활동 요약→read_at11:20:08.940927Z, 기록→정확한 R6 상세→read_at11:20:50.074067Z·Home badge22→21→20을 연결했다. 뒤의 삭제 알림2cd03ccc는11:22:00.412221Z 원본에서 생성됐다. `interrupt-business-server/consumed/after-delete-business`와 두 목적지 UI가 근거이며 transport 행 삽입/모의 원본이 아니다. 각26eventType/OS 전달 전체 PASS로 합산하지 않는다. 삭제 후 기존 XP 보존 정책을 변경하지 않았다.
+- 녹화는1080×2400/141.662878초/416 encoded frames, 약2.94fps VFR이다. 3개 contact sheet의 수집 프레임을 확인했고 정상 삭제 후 반환·빈 목록을 관찰했다. cold 시작에는 기존 native 아이콘→흰 handoff→JS splash→Home이 보인다. 캐시 수락을 native-first splash의 시각적 마감/전역 무플리커로 확대하지 않는다. 복사 hash 대조 후 이번 remote 영상만 제거했으며 원본은 외부 증거 루트에 보존했다.
+- 다음1순위는 남은 일정의 저장 응답 유실/예약·계정 경계와 사진·건강 실패 복구다. 원래1~6/NAV 전체 미동결·기록4도메인 전체0/4·OS10/12/13 미마감·원래7~9 미착수·STORE HOLD를 유지한다.
+
 ## 2026-10-28 저장 중단 복구 수락과 Home 디스크 캐시 보정
 
 - 4a8b67a97796e6f0ff33c0f257a1a5f2f52f0d1b/[CI40676454025](https://github.com/jaejun0617/nuri-app/actions/runs/40676454025) 후속 전체 PASS, runtime efcb14d1f5225f3345dfd67f3d1fe9a6db3e8997f990c964be0bc84ee6dad346, bundled Debug APKbbdbe40c51f97c354cbd4b2986f6fc82186d1af83a171c1cb0288bb19a99cbd0를 양쪽에 동일 서명·UID·권한·데이터 보존/Metro OFF로 설치했다. `delivery-record-cache-race`의 source/build/install/CI 영수증과 전체334suites4523/4523·critical127/127·타입·전체lint0오류/기존24경고·diff를 연결한다. 첫 source guard는 shell PATH의 Yarn 불일치로 거부됐고 승인 Node24/Yarn3.6.4 경로에서 그대로 PASS했다. 검증 강도/설정은 바꾸지 않았다.

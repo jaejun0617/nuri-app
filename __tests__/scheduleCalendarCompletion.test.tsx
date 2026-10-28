@@ -16,6 +16,8 @@ import { useScheduleCreateForm } from '../src/hooks/useScheduleCreateForm';
 import ScheduleListScreen from '../src/screens/Schedules/ScheduleListScreen';
 import {
   createSchedule,
+  fetchScheduleById,
+  ScheduleAlreadySavedError,
   type PetSchedule,
 } from '../src/services/supabase/schedules';
 import { upsertScheduleNotification } from '../src/services/schedules/notifications';
@@ -31,6 +33,33 @@ const mockNavigation = {
 const mockRoute = { params: { petId: 'p', entrySource: 'home' } };
 const mockSheetCompletions: Array<(finished?: boolean) => void> = [];
 const mockSheetTimings: Array<{ value: number; duration: number }> = [];
+let mockOwner = 'u';
+type MockAuthState = { session: { user: { id: string } } };
+const mockAuthListeners = new Set<
+  (next: MockAuthState, previous: MockAuthState) => void
+>();
+function changeOwner(next: string) {
+  const previous = { session: { user: { id: mockOwner } } };
+  mockOwner = next;
+  mockAuthListeners.forEach(listener =>
+    listener({ session: { user: { id: next } } }, previous),
+  );
+}
+jest.mock('../src/store/authStore', () => ({
+  useAuthStore: Object.assign(
+    (selector: (state: MockAuthState) => unknown) =>
+      selector({ session: { user: { id: mockOwner } } }),
+    {
+      getState: () => ({ session: { user: { id: mockOwner } } }),
+      subscribe: (
+        listener: (next: MockAuthState, previous: MockAuthState) => void,
+      ) => {
+        mockAuthListeners.add(listener);
+        return () => mockAuthListeners.delete(listener);
+      },
+    },
+  ),
+}));
 jest.mock('react-native-reanimated', () => ({
   __esModule: true,
   default: { View: 'AnimatedView' },
@@ -91,6 +120,7 @@ jest.mock('react-native-safe-area-context', () => ({
 jest.mock('../src/services/supabase/schedules', () => ({
   ...jest.requireActual('../src/services/supabase/schedules'),
   createSchedule: jest.fn(),
+  fetchScheduleById: jest.fn(),
 }));
 jest.mock('../src/services/schedules/notifications', () => ({
   ...jest.requireActual('../src/services/schedules/notifications'),
@@ -155,6 +185,7 @@ describe('calendar registration and schedule hub completion', () => {
   const beforeSchedule = useScheduleStore.getState();
   beforeEach(() => {
     jest.clearAllMocks();
+    mockOwner = 'u';
     mockSheetCompletions.length = 0;
     mockSheetTimings.length = 0;
     jest.spyOn(Alert, 'alert');
@@ -162,6 +193,7 @@ describe('calendar registration and schedule hub completion', () => {
       .spyOn(ReactNative, 'useWindowDimensions')
       .mockReturnValue({ width: 384, height: 800, fontScale: 1, scale: 3 });
     jest.mocked(createSchedule).mockResolvedValue('new');
+    jest.mocked(fetchScheduleById).mockResolvedValue(row);
     jest.mocked(upsertScheduleNotification).mockResolvedValue({
       status: 'cleared',
       persistedRecord: 'unchanged',
@@ -244,13 +276,23 @@ describe('calendar registration and schedule hub completion', () => {
     await act(async () =>
       renderer.root.findByType(Modal).props.onRequestClose(),
     );
-    expect(byId('confirm-dialog-card').props.accessibilityViewIsModal).toBe(true);
-    expect(byId('confirm-dialog-cancel').props.accessibilityLabel).toBe('계속 작성하기');
-    expect(byId('confirm-dialog-confirm').props.accessibilityLabel).toBe('나가기');
+    expect(byId('confirm-dialog-card').props.accessibilityViewIsModal).toBe(
+      true,
+    );
+    expect(byId('confirm-dialog-cancel').props.accessibilityLabel).toBe(
+      '계속 작성하기',
+    );
+    expect(byId('confirm-dialog-confirm').props.accessibilityLabel).toBe(
+      '나가기',
+    );
     expect(Alert.alert).not.toHaveBeenCalled();
     expect(renderer.root.findAllByType(Modal)).toHaveLength(1);
     await act(async () => byId('confirm-dialog-cancel').props.onPress());
-    expect(renderer.root.findAll(node => node.props.testID === 'confirm-dialog-card')).toHaveLength(0);
+    expect(
+      renderer.root.findAll(
+        node => node.props.testID === 'confirm-dialog-card',
+      ),
+    ).toHaveLength(0);
     expect(sheetProps.onClose).not.toHaveBeenCalled();
     expect(byId('calendar-create-title').props.value).toBe('QA draft');
   });
@@ -263,7 +305,9 @@ describe('calendar registration and schedule hub completion', () => {
   });
   it('discards only through the styled confirmation and completed exit motion', async () => {
     await mount(<ScheduleCalendarSheet {...sheetProps} />);
-    await act(async () => byId('calendar-create-note').props.onChangeText('QA draft'));
+    await act(async () =>
+      byId('calendar-create-note').props.onChangeText('QA draft'),
+    );
     await act(async () => byId('home-calendar-agenda-close').props.onPress());
     expect(byId('confirm-dialog-card')).toBeDefined();
     await act(async () => byId('confirm-dialog-confirm').props.onPress());
@@ -347,7 +391,9 @@ describe('calendar registration and schedule hub completion', () => {
   it('is opaque at rest and during motion, without native blur inside the input sheet', async () => {
     await mount(<ScheduleCalendarSheet {...sheetProps} />);
     expect(byId('home-calendar-agenda').props).not.toHaveProperty('blurAmount');
-    expect(StyleSheet.flatten(byId('home-calendar-agenda').props.style)).toMatchObject({ backgroundColor: '#FFFFFF', overflow: 'hidden' });
+    expect(
+      StyleSheet.flatten(byId('home-calendar-agenda').props.style),
+    ).toMatchObject({ backgroundColor: '#FFFFFF', overflow: 'hidden' });
     expect(
       StyleSheet.flatten(byId('home-calendar-reading-surface').props.style),
     ).toMatchObject({ backgroundColor: '#FFFFFF' });
@@ -477,6 +523,116 @@ describe('calendar registration and schedule hub completion', () => {
     expect(form.persisted).toBe(false);
     expect(hookSaved).not.toHaveBeenCalled();
   });
+  it('keeps one owner-scoped submission ID when retrying a failed response', async () => {
+    jest
+      .mocked(createSchedule)
+      .mockRejectedValueOnce(new Error('response lost'));
+    await mount(<Probe />);
+    await act(async () => form.setTitle('QA first'));
+    await act(async () => form.onSubmit());
+    await act(async () => form.setTitle('QA retry edited'));
+    await act(async () => form.onSubmit());
+    const first = jest.mocked(createSchedule).mock.calls[0][0].submission;
+    expect(first).toEqual({
+      id: expect.stringMatching(/^[0-9a-f-]{36}$/),
+      ownerId: 'u',
+    });
+    expect(jest.mocked(createSchedule).mock.calls[1][0].submission).toEqual(
+      first,
+    );
+  });
+  it('keeps edited input on replay and repairs only the canonical saved schedule after explicit confirmation', async () => {
+    jest
+      .mocked(createSchedule)
+      .mockRejectedValueOnce(new ScheduleAlreadySavedError(row));
+    await mount(<Probe />);
+    await act(async () => form.setTitle('QA edited retry'));
+    await act(async () => form.onSubmit());
+    expect(form.title).toBe('QA edited retry');
+    expect(upsertScheduleNotification).not.toHaveBeenCalled();
+    expect(hookSaved).not.toHaveBeenCalled();
+    const confirm = jest
+      .mocked(Alert.alert)
+      .mock.calls.find(call => call[0] === '저장된 일정을 확인했어요')?.[2]
+      ?.find(button => button.text === '일정 확인')?.onPress;
+    expect(confirm).toBeDefined();
+    await act(async () => {
+      await confirm?.();
+    });
+    expect(fetchScheduleById).toHaveBeenCalledWith(row.id);
+    expect(upsertScheduleNotification).toHaveBeenCalledWith(
+      row,
+      expect.any(Object),
+    );
+    expect(hookSaved).toHaveBeenCalledWith({ id: row.id, ymd: '2099-10-05' });
+    expect(createSchedule).toHaveBeenCalledTimes(1);
+  });
+  it('does not apply a completed write after owner A → B → A changes', async () => {
+    let finish: ((id: string) => void) | undefined;
+    jest.mocked(createSchedule).mockImplementationOnce(
+      () =>
+        new Promise<string>(resolve => {
+          finish = resolve;
+        }),
+    );
+    await mount(<Probe />);
+    await act(async () => form.setTitle('QA old owner'));
+    let pending: Promise<void> | undefined;
+    act(() => {
+      pending = form.onSubmit();
+    });
+    changeOwner('other');
+    changeOwner('u');
+    await act(async () => {
+      finish?.('late');
+      await pending;
+    });
+    expect(upsertScheduleNotification).not.toHaveBeenCalled();
+    expect(useScheduleStore.getState().refresh).not.toHaveBeenCalled();
+    expect(hookSaved).not.toHaveBeenCalled();
+  });
+  it('does not reschedule a deleted or inaccessible saved target during replay confirmation', async () => {
+    jest
+      .mocked(createSchedule)
+      .mockRejectedValueOnce(new ScheduleAlreadySavedError(row));
+    jest
+      .mocked(fetchScheduleById)
+      .mockRejectedValueOnce(new Error('not found'));
+    await mount(<Probe />);
+    await act(async () => form.setTitle('QA preserved retry'));
+    await act(async () => form.onSubmit());
+    const confirm = jest
+      .mocked(Alert.alert)
+      .mock.calls.find(call => call[0] === '저장된 일정을 확인했어요')?.[2]
+      ?.find(button => button.text === '일정 확인')?.onPress;
+    expect(confirm).toBeDefined();
+    await act(async () => {
+      await confirm?.();
+    });
+    expect(form.title).toBe('QA preserved retry');
+    expect(form.persisted).toBe(false);
+    expect(upsertScheduleNotification).not.toHaveBeenCalled();
+    expect(hookSaved).not.toHaveBeenCalled();
+  });
+  it('ignores replay confirmation after the owner has changed', async () => {
+    jest
+      .mocked(createSchedule)
+      .mockRejectedValueOnce(new ScheduleAlreadySavedError(row));
+    await mount(<Probe />);
+    await act(async () => form.setTitle('QA old owner'));
+    await act(async () => form.onSubmit());
+    const confirm = jest
+      .mocked(Alert.alert)
+      .mock.calls.find(call => call[0] === '저장된 일정을 확인했어요')?.[2]
+      ?.find(button => button.text === '일정 확인')?.onPress;
+    expect(confirm).toBeDefined();
+    changeOwner('other');
+    await act(async () => {
+      await confirm?.();
+    });
+    expect(upsertScheduleNotification).not.toHaveBeenCalled();
+    expect(hookSaved).not.toHaveBeenCalled();
+  });
   it('rejects an empty title without writes or alarm changes', async () => {
     await mount(<Probe />);
     await act(async () => form.onSubmit());
@@ -524,14 +680,26 @@ describe('calendar registration and schedule hub completion', () => {
     await mount(<ScheduleListScreen />);
     const item = renderer.root
       .findByType(SectionList)
-      .props.renderItem({ item: { key: row.id, schedule: row, startsAt: row.startsAt, startDay: '2026-10-05' }, section: { day: '2026-10-05' } });
-    expect(StyleSheet.flatten(item.props.style)).not.toHaveProperty('backgroundColor');
+      .props.renderItem({
+        item: {
+          key: row.id,
+          schedule: row,
+          startsAt: row.startsAt,
+          startDay: '2026-10-05',
+        },
+        section: { day: '2026-10-05' },
+      });
+    expect(StyleSheet.flatten(item.props.style)).not.toHaveProperty(
+      'backgroundColor',
+    );
     const glass = item.props.children;
     expect(glass.props.testID).toBe('schedule-hub-glass-qa');
     expect(glass.props.season).toBe('autumn');
     expect(glass.props.borderRadius).toBe(12);
     expect(StyleSheet.flatten(glass.props.style)).toMatchObject({
-      marginTop: 0, paddingHorizontal: 12, paddingVertical: 12,
+      marginTop: 0,
+      paddingHorizontal: 12,
+      paddingVertical: 12,
     });
     await act(async () => item.props.onPress());
     expect(mockNavigation.navigate).toHaveBeenCalledWith(
@@ -544,17 +712,38 @@ describe('calendar registration and schedule hub completion', () => {
     );
   });
   it('groups all/today/upcoming/past in order and preserves search when selecting Today', async () => {
-    useScheduleStore.setState({ byPetId: { p: { status: 'ready', items: [row], errorMessage: null, requestSeq: 1 } } });
+    useScheduleStore.setState({
+      byPetId: {
+        p: { status: 'ready', items: [row], errorMessage: null, requestSeq: 1 },
+      },
+    });
     await mount(<ScheduleListScreen />);
-    const keys = [...new Set(renderer.root.findAll(node => node.props.accessibilityRole === 'tab').map(node => node.props.testID))];
-    expect(keys).toEqual(['schedule-hub-filter-all', 'schedule-hub-filter-today', 'schedule-hub-filter-upcoming', 'schedule-hub-filter-past']);
-    expect(renderer.root.findAll(node => node.props.testID === 'schedule-hub-today')).toHaveLength(0);
+    const keys = [
+      ...new Set(
+        renderer.root
+          .findAll(node => node.props.accessibilityRole === 'tab')
+          .map(node => node.props.testID),
+      ),
+    ];
+    expect(keys).toEqual([
+      'schedule-hub-filter-all',
+      'schedule-hub-filter-today',
+      'schedule-hub-filter-upcoming',
+      'schedule-hub-filter-past',
+    ]);
+    expect(
+      renderer.root.findAll(node => node.props.testID === 'schedule-hub-today'),
+    ).toHaveLength(0);
     await act(async () => byId('schedule-hub-search').props.onChangeText('qa'));
     await act(async () => byId('schedule-hub-filter-today').props.onPress());
     expect(byId('schedule-hub-search').props.value).toBe('qa');
-    expect(byId('schedule-hub-filter-today').props.accessibilityState.selected).toBe(true);
+    expect(
+      byId('schedule-hub-filter-today').props.accessibilityState.selected,
+    ).toBe(true);
     expect(renderer.root.findByType(SectionList).props.sections).toEqual([]);
     await act(async () => byId('schedule-hub-filter-all').props.onPress());
-    expect(renderer.root.findByType(SectionList).props.sections[0].data).toHaveLength(1);
+    expect(
+      renderer.root.findByType(SectionList).props.sections[0].data,
+    ).toHaveLength(1);
   });
 });

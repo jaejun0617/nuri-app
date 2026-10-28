@@ -4,6 +4,8 @@ import type { RootStackParamList } from '../navigation/RootNavigator';
 import { getBrandedErrorMeta, getErrorMessage } from '../services/app/errors';
 import {
   createSchedule,
+  fetchScheduleById,
+  ScheduleAlreadySavedError,
   type ScheduleCategory,
   type ScheduleColorKey,
   type ScheduleIconKey,
@@ -34,7 +36,10 @@ import {
   upsertScheduleNotification,
 } from '../services/schedules/notifications';
 import { useScheduleStore } from '../store/scheduleStore';
+import { useAuthStore } from '../store/authStore';
 import { showToast } from '../store/uiStore';
+import { createRequestId } from '../utils/requestId';
+import { useOwnerOperation } from './useOwnerOperation';
 import { useScheduleNotificationSettings } from './useScheduleNotificationSettings';
 
 type Props = {
@@ -80,6 +85,9 @@ export function useScheduleCreateForm({ petId, params, onSaved }: Props) {
   const [dateModalVisible, setDateModalVisible] = useState(false);
   const [reminderNoticeVisible, setReminderNoticeVisible] = useState(false);
   const savingRef = useRef(false);
+  const formOwner = useRef(useAuthStore.getState().session?.user.id ?? null);
+  const submissionId = useRef<string | null>(null);
+  const captureCurrent = useOwnerOperation(petId ?? '');
   const completed = useRef(false);
   const mounted = useRef(true);
   // If cache refresh fails after insertion, retry that completion, not the server insert.
@@ -193,6 +201,11 @@ export function useScheduleCreateForm({ petId, params, onSaved }: Props) {
 
   const onSubmit = useCallback(async () => {
     if (savingRef.current || completed.current) return;
+    const ownerId = useAuthStore.getState().session?.user.id;
+    if (!ownerId || ownerId !== formOwner.current) {
+      Alert.alert('로그인 정보를 확인해 주세요.');
+      return;
+    }
     if (!petId) {
       Alert.alert('반려동물을 찾을 수 없어요.');
       return;
@@ -204,6 +217,25 @@ export function useScheduleCreateForm({ petId, params, onSaved }: Props) {
     }
     savingRef.current = true;
     setSaving(true);
+    const current = captureCurrent();
+    const finishSaved = async (saved: NonNullable<typeof inserted.current>) => {
+      if (!current()) return;
+      if (!saved.notificationSynced) {
+        const notification = await upsertScheduleNotification(
+          saved.notification,
+          saved.lifecycle,
+        );
+        saved.notificationSynced = true;
+        if (!current()) return;
+        const feedback = getScheduleNotificationSyncFeedback(notification);
+        if (feedback) showToast(feedback);
+      }
+      await refresh(petId);
+      if (current()) {
+        await onSaved({ id: saved.id, ymd: saved.ymd });
+        completed.current = true;
+      }
+    };
     try {
       if (!inserted.current) {
         const ymd = normalizeScheduleDateInput(dateText);
@@ -218,7 +250,9 @@ export function useScheduleCreateForm({ petId, params, onSaved }: Props) {
           return;
         }
         const lifecycle = captureScheduleNotificationLifecycle();
+        submissionId.current ??= createRequestId();
         const id = await createSchedule({
+          submission: { id: submissionId.current, ownerId },
           petId,
           title: trimmedTitle,
           note: note.trim() || null,
@@ -234,6 +268,7 @@ export function useScheduleCreateForm({ petId, params, onSaved }: Props) {
           repeatRule,
           reminderMinutes,
         });
+        if (!current()) return;
         inserted.current = {
           id,
           ymd,
@@ -250,34 +285,76 @@ export function useScheduleCreateForm({ petId, params, onSaved }: Props) {
             completedAt: null,
           },
         };
-        if (mounted.current) setPersisted(true);
+        setPersisted(true);
       }
-      if (!inserted.current.notificationSynced) {
-        const notification = await upsertScheduleNotification(
-          inserted.current.notification,
-          inserted.current.lifecycle,
-        );
-        inserted.current.notificationSynced = true;
-        const feedback = getScheduleNotificationSyncFeedback(notification);
-        if (feedback) showToast(feedback);
-      }
-      await refresh(petId);
-      if (mounted.current) {
-        await onSaved({ id: inserted.current.id, ymd: inserted.current.ymd });
-        completed.current = true;
-      }
+      await finishSaved(inserted.current);
     } catch (error) {
-      if (mounted.current) {
+      if (!current()) return;
+      if (error instanceof ScheduleAlreadySavedError) {
+        const canonical = error.schedule;
+        Alert.alert(
+          '저장된 일정을 확인했어요',
+          '입력은 그대로 유지했어요. 변경할 내용은 저장된 일정의 수정 화면에서 확인해 주세요.',
+          [
+            { text: '계속 작성', style: 'cancel' },
+            {
+              text: '일정 확인',
+              onPress: async () => {
+                if (!current() || savingRef.current || completed.current)
+                  return;
+                savingRef.current = true;
+                setSaving(true);
+                try {
+                  const latest = await fetchScheduleById(canonical.id);
+                  if (!current()) return;
+                  if (
+                    latest.userId !== ownerId ||
+                    latest.petId !== petId ||
+                    latest.syncStatus === 'deleted'
+                  ) {
+                    throw new Error('SCHEDULE_RECOVERY_UNAVAILABLE');
+                  }
+                  inserted.current = {
+                    id: latest.id,
+                    ymd: normalizeScheduleDateInput(
+                      toScheduleDateInput(new Date(latest.startsAt)),
+                    ),
+                    notification: latest,
+                    lifecycle: captureScheduleNotificationLifecycle(),
+                    notificationSynced: false,
+                  };
+                  setPersisted(true);
+                  await finishSaved(inserted.current);
+                } catch (completionError) {
+                  if (current()) {
+                    const meta = getBrandedErrorMeta(
+                      completionError,
+                      'schedule-create',
+                    );
+                    Alert.alert(meta.title, meta.message);
+                  }
+                } finally {
+                  savingRef.current = false;
+                  if (current()) setSaving(false);
+                }
+              },
+            },
+          ],
+        );
+        return;
+      }
+      if (current()) {
         const meta = getBrandedErrorMeta(error, 'schedule-create');
         Alert.alert(meta.title, meta.message);
       }
     } finally {
       savingRef.current = false;
-      if (mounted.current) setSaving(false);
+      if (current()) setSaving(false);
     }
   }, [
     allDay,
     category,
+    captureCurrent,
     colorKey,
     customReminderMinutesText,
     dateText,

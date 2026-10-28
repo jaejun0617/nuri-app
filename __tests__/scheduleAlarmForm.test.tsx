@@ -39,6 +39,12 @@ const mockRoute = {
   },
 };
 
+jest.mock('../src/store/authStore', () => ({
+  useAuthStore: {
+    getState: () => ({ session: { user: { id: 'qa' } } }),
+    subscribe: () => () => undefined,
+  },
+}));
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
   useNavigation: () => mockNavigation,

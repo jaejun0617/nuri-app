@@ -14,6 +14,7 @@
 // - 외부 캘린더 관련 필드는 아직 확장 여지가 큰 영역이라, 현재 미완성 기능을 완료된 것처럼 주석에 적지 말아야 한다.
 
 import { supabase } from './client';
+import { isRequestId } from '../../utils/requestId';
 
 export type ScheduleCategory =
   | 'walk'
@@ -283,7 +284,18 @@ export async function fetchScheduleById(scheduleId: string): Promise<PetSchedule
   return mapRow(data);
 }
 
+export class ScheduleAlreadySavedError extends Error {
+  readonly code = 'SCHEDULE_ALREADY_SAVED';
+  constructor(readonly schedule: PetSchedule) {
+    super(
+      '이미 저장된 일정이에요. 입력은 유지하고 저장된 일정을 확인해 주세요.',
+    );
+    this.name = 'ScheduleAlreadySavedError';
+  }
+}
+
 export async function createSchedule(input: {
+  submission?: { id: string; ownerId: string };
   petId: string;
   title: string;
   note?: string | null;
@@ -304,11 +316,19 @@ export async function createSchedule(input: {
   externalEventId?: string | null;
   syncStatus?: ScheduleSyncStatus;
 }): Promise<string> {
+  const submission = input.submission;
+  if (submission && (!isRequestId(submission.id) || !submission.ownerId)) {
+    throw new Error('SCHEDULE_SUBMISSION_INVALID');
+  }
   const userRes = await supabase.auth.getUser();
   const userId = userRes.data.user?.id ?? null;
   if (!userId) throw new Error('로그인 정보가 없습니다.');
+  if (submission && userId !== submission.ownerId) {
+    throw new Error('SCHEDULE_SUBMISSION_OWNER_CHANGED');
+  }
 
   const payload = {
+    ...(submission ? { id: submission.id } : {}),
     user_id: userId,
     pet_id: input.petId,
     title: input.title.trim(),
@@ -337,7 +357,29 @@ export async function createSchedule(input: {
     .select('id')
     .single();
 
-  if (error) throw error;
+  if (error) {
+    if (submission && error.code === '23505') {
+      // A replay can confirm the old write, but must never reapply edited fields.
+      const existing = await supabase
+        .from('pet_schedules')
+        .select(SCHEDULE_COLUMNS)
+        .eq('id', submission.id)
+        .eq('user_id', submission.ownerId)
+        .eq('pet_id', input.petId)
+        .maybeSingle();
+      if (existing.error) throw existing.error;
+      if (
+        isPetSchedulesRow(existing.data) &&
+        existing.data.id === submission.id &&
+        existing.data.user_id === submission.ownerId &&
+        existing.data.pet_id === input.petId &&
+        existing.data.sync_status !== 'deleted'
+      ) {
+        throw new ScheduleAlreadySavedError(mapRow(existing.data));
+      }
+    }
+    throw error;
+  }
 
   if (
     !isRecord(data) ||
@@ -345,6 +387,9 @@ export async function createSchedule(input: {
     data.id.trim().length === 0
   ) {
     throw new Error('일정 식별자를 확인하지 못했어요.');
+  }
+  if (submission && data.id !== submission.id) {
+    throw new Error('SCHEDULE_SUBMISSION_RESPONSE_INVALID');
   }
 
   return data.id;
