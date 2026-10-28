@@ -29,7 +29,7 @@ const mockPets = {
   pets: [] as { id: string; name: string }[],
   errorMessage: null,
 };
-const mockNavigation = { reset: jest.fn(), isFocused: () => true };
+const mockNavigation = { reset: jest.fn(), replace: jest.fn(), isFocused: () => true };
 const mockRestore = jest.fn();
 const mockCommunity = { restoreListSnapshot: mockRestore };
 const mockLoad = jest.fn<Promise<CommunityRouteStateSnapshot | null>, []>();
@@ -231,6 +231,15 @@ describe('seasonal splash presentation and boot preservation', () => {
     expect(mockNavigation.reset).toHaveBeenCalledTimes(1);
   });
 
+  it('requests the existing system icon for notification cold starts on Android 13 and later', () => {
+    for (const version of ['values-v33', 'values-v35']) {
+      const xml = fs.readFileSync(path.join(process.cwd(), `android/app/src/main/res/${version}/styles.xml`), 'utf8');
+      expect(xml).toContain('<item name="android:windowSplashScreenBehavior">icon_preferred</item>');
+      expect(xml).toContain('<item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>');
+      expect(xml).toContain('<item name="android:windowLightStatusBar">true</item>');
+    }
+  });
+
   it('waits for auth and pet bootstrap before navigation', async () => {
     mockPets.booted = false;
     await render();
@@ -245,6 +254,21 @@ describe('seasonal splash presentation and boot preservation', () => {
       jest.advanceTimersByTime(1);
     });
     expect(mockNavigation.reset).toHaveBeenCalledTimes(1);
+  });
+
+  it('replaces only the initial Splash when opening the ordinary app shell', async () => {
+    mockAuth.isLoggedIn = true;
+    mockAuth.session = { user: { id: 'fixture' } };
+    mockAuth.profile.nickname = 'fixture';
+    mockPets.pets = [{ id: 'pet', name: 'fixture' }];
+    await render();
+    await act(async () => jest.advanceTimersByTime(1999));
+    expect(mockNavigation.replace).not.toHaveBeenCalled();
+    await act(async () => jest.advanceTimersByTime(1));
+    expect(mockNavigation.replace).toHaveBeenCalledWith('AppTabs', undefined);
+    expect(mockNavigation.reset).not.toHaveBeenCalled();
+    await act(async () => jest.advanceTimersByTime(3000));
+    expect(mockNavigation.replace).toHaveBeenCalledTimes(1);
   });
 
   it('holds the existing splash for a pending push then makes one destination-first boot decision', async () => {
@@ -265,6 +289,7 @@ describe('seasonal splash presentation and boot preservation', () => {
       { name: 'AppTabs', params: { screen: 'HomeTab' } }, destination,
     ] });
     expect(consumed).toHaveBeenCalledTimes(1);
+    expect(mockNavigation.replace).not.toHaveBeenCalled();
   });
 
   it('does not bypass a guest auth gate even if a push destination was resolved', async () => {

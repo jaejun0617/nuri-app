@@ -2,6 +2,14 @@
 
 상태: IN_PROGRESS. 전체 동결 아님. Master 단독 수행.
 
+## 2026-10-28 시작 연결의 두 번째 경계 분리
+
+- 5bb2b38f718c3f74f6b7135fa2205ea11f6e08c8/[CI40695529169](https://github.com/jaejun0617/nuri-app/actions/runs/40695529169) 필수 후속 전체 PASS, runtime9365e5fd95d2f3d6857191e3440ee59e29c8d25d63c3e0016ff004defd7a8ac8·APK3ba9adbd45b761d86f9869ee369f2a1210f2dfe1e88756f276e054f1cfdbdf20을 두 인스턴스에 동일 서명·UID·최초 설치·권한·데이터 보존/Metro OFF로 설치했다. native 컴파일 포함 BUILD SUCCESSFUL이며 이번 신규 package의 override 인자명 경고2개는 다음 후보에서 원래 interface 이름과 맞춘다. 기존 시스템바/React delegate deprecation과 구분한다.
+- 첫 경계: normal launcher cold에서 물리202/에뮬레이터67개 수집 프레임의 OS 아이콘→승인 JS artwork 연결에 빈 바탕을 관찰하지 않았다. emulator UI dump1회 실패는 앱 PID 유지와 완료 영상의 hash 복구·나중의 같은 아이 Home으로 구분했다. 동일 launch를 다시 시작하지 않았다. `native-handoff-first-acceptance.json`이 영수증과 한계를 소유한다.
+- 두 번째 실제 FAIL: emulator에서 JS artwork 뒤 frame47(14.332522초)이 빈 바탕이고 frame48(14.868289초)에 Home 기본 UI가 보인다. 약0.536초는 해당 VFR 영상의 표본 간격이지 모든 compositor frame의 실제 지속시간 계측이 아니다. 첫 native 경계 수락을 전체 시작 PASS로 확대하지 않는다. 초기 BottomTab의 focused animation 값은0이어서 첫 장면을 의도적으로 투명하게 시작하는 fade가 원인은 아니었다. 현재 후보는 한 장짜리 최초 Splash→AppTabs에서 전체 reset 대신 native replace를 사용해 출발 scene 수명을 보존한다. 복구된 커뮤니티 목록도 같은 단일 경로만 적용하며 알림/댓글 복구의 두 장짜리 atomic Back stack과 guest/auth 분기는 유지한다. 실제 gap 해소 여부는 새 설치에서 판정한다.
+- 별도 cold OS: QA 전달7d51a148의 실제 알림 탭→해당 댓글→read_at→Back1회 Home을 확인했다(304개 수집 프레임 전부 검토). 그러나 notification cold 시작에서는 OS가 기존 icon을 생략한 흰 시작 view를 유지했다. [Android 공식 계약](https://developer.android.com/develop/ui/views/launch/splash-screen)의 Android13+ icon_preferred를 기존 icon에 명시한다. API33/35 resource만 보완하고 기존 이미지·흰 바탕·system glyph·권한·안전영역은 그대로 둔다. 실제 구형 API 전체 시각 검증으로 확대하지 않는다.
+- 현재 후보: 새 정상 shell 회귀1FAIL/19PASS→관련4suites54/54·타입·대상lint0오류/0경고·전체338suites4562/4562 PASS다(`boot-shell-replacement-before/focused/full.json`). native 컴파일/새 SHA CI·보존 설치와 normal/cold notification/실패 안내/입력의 실제 수락은 남는다. 새 guard를 약화하거나 타이머·전역 가림막·전체 animation OFF·Root 전면 교체를 추가하지 않았다. 전체1~6/NAV 미동결·원래7~9 미착수·STORE HOLD다.
+
 ## 2026-10-28 알림 왕복5회와 시작 화면 연결 후보
 
 - 333795c의 새 알림 요청 화면을 물리2회/에뮬레이터3회, warm3회/cold2회에서 실제 OS PendingIntent→정확한 QA 댓글→서버 read_at→시스템 Back1회 Home으로5/5 확인했다. `push-request-journeys-acceptance.json`은 실제 좋아요 원본1건과 전달 전용4건을 구분한다. 영상123/218/163/316/148개 수집 프레임을 모두 검토했다. warm의 원래 출발 Home은 native 앱 복귀 및 정상 push에서 보이지만 canonical 서버 대기는 실제 알림 요청 화면 안에서 처리된다. cold는 Splash에서 댓글로 열리며 목적지 전 Home은 관찰되지 않았다. 정상 슬라이드 출발 화면을 의도하지 않은 중간 Home으로 분류하지 않는다. 모든 compositor frame/연속 요청/전체 NAV PASS는 아니다.

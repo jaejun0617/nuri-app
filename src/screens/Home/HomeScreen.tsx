@@ -225,11 +225,15 @@ export default function HomeScreen({ notificationStartup }: { notificationStartu
             ],
           });
         } else {
-          navigation.reset({
-            index: 0,
-            routes: [{ name: 'AppTabs', params: { screen: 'CommunityTab' } }],
-          });
+          navigation.replace('AppTabs', { screen: 'CommunityTab' });
         }
+        return;
+      }
+
+      if (nextRoute.name === 'AppTabs') {
+        // Keep the outgoing native screen until the app shell is presented.
+        // Only the initial Splash is replaced; notification Back routes above stay atomic.
+        navigation.replace('AppTabs', nextRoute.params);
         return;
       }
 

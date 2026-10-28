@@ -12,10 +12,10 @@ import com.facebook.react.uimanager.ViewManager
 import com.nuri.MainActivity
 
 class LaunchPresentationPackage : ReactPackage {
-  override fun createNativeModules(context: ReactApplicationContext): List<NativeModule> =
-    listOf(LaunchPresentationModule(context))
+  override fun createNativeModules(reactContext: ReactApplicationContext): List<NativeModule> =
+    listOf(LaunchPresentationModule(reactContext))
 
-  override fun createViewManagers(context: ReactApplicationContext): List<ViewManager<*, *>> = emptyList()
+  override fun createViewManagers(reactContext: ReactApplicationContext): List<ViewManager<*, *>> = emptyList()
 }
 
 private class LaunchPresentationModule(context: ReactApplicationContext) : ReactContextBaseJavaModule(context) {
