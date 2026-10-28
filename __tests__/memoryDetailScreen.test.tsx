@@ -73,8 +73,8 @@ const mockStore = {
   upsertOneLocal: jest.fn(),
   recordsById: {},
 };
-const mockPets = {
-  pets: [{ id: 'pet', name: '누리', avatarUrl: null }],
+const mockPets: { pets: Array<{ id: string; name: string; avatarUrl: string | null; deathDate?: string | null }>; selectedPetId: string } = {
+  pets: [{ id: 'pet', name: '누리', avatarUrl: null, deathDate: '2026-02-22' }],
   selectedPetId: 'pet',
 };
 jest.mock('@react-navigation/native', () => ({
@@ -155,6 +155,8 @@ describe('memory detail rendered contract', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockTitleOwner = 'owner';
+    mockPets.pets = [{ id: 'pet', name: '누리', avatarUrl: null, deathDate: '2026-02-22' }];
+    mockPets.selectedPetId = 'pet';
     mockManageRemembrance.mockReset().mockResolvedValue(false);
     mockSeason = 'autumn';
     mockRecord.imagePaths = [];
@@ -182,7 +184,34 @@ describe('memory detail rendered contract', () => {
       },
     );
   });
-  it('reads remembrance only on menu open and never changes an original record just by reading', async () => {
+  it.each([null, undefined, ''])('hides remembrance for a together pet without querying or changing participation: %s', async deathDate => {
+    mockPets.pets = [
+      { id: 'pet', name: '함께하는 아이', avatarUrl: null, deathDate },
+      { id: 'other', name: '추모 아이', avatarUrl: null, deathDate: '2026-02-22' },
+    ];
+    mockPets.selectedPetId = 'other'; // The record's pet, not the global selection, owns this action.
+    const before = JSON.stringify(mockRecord), tree = await render();
+    const open = tree.root.findAllByType(TouchableOpacity).find(node => node.props.testID === 'memory-detail-more');
+    if (!open) throw new Error('missing record menu');
+    await TestRenderer.act(async () => open.props.onPress());
+    expect(tree.root.findAllByProps({ testID: 'memory-remembrance-control' })).toHaveLength(0);
+    expect(mockManageRemembrance).not.toHaveBeenCalled();
+    expect(tree.root.findAll(node => node.props.accessibilityLabel === '기록 수정하기').length).toBeGreaterThan(0);
+    expect(tree.root.findAll(node => node.props.accessibilityLabel === '기록 삭제하기').length).toBeGreaterThan(0);
+    expect(JSON.stringify(mockRecord)).toBe(before);
+  });
+  it('does not infer memorial state while the record pet profile is unavailable', async () => {
+    mockPets.pets = [];
+    const tree = await render();
+    const open = tree.root.findAllByType(TouchableOpacity).find(node => node.props.testID === 'memory-detail-more');
+    if (!open) throw new Error('missing record menu');
+    await TestRenderer.act(async () => open.props.onPress());
+    expect(tree.root.findAllByProps({ testID: 'memory-remembrance-control' })).toHaveLength(0);
+    expect(mockManageRemembrance).not.toHaveBeenCalled();
+  });
+  it('reads remembrance only on a memorial record menu even with another together pet selected', async () => {
+    mockPets.pets.push({ id: 'other', name: '함께하는 아이', avatarUrl: null });
+    mockPets.selectedPetId = 'other';
     const before = JSON.stringify(mockRecord), tree = await render();
     try {
       expect(mockManageRemembrance).not.toHaveBeenCalled();

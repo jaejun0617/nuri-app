@@ -93,6 +93,7 @@ import { walkRequest } from '../../services/walk/product/requests';
 import { walkRecordRepository } from '../../services/walk/server/supabaseWalkRecordRepository';
 import { canonicalWalkMemory } from '../../services/walk/product/presentation';
 import { usePetStore } from '../../store/petStore';
+import { isMemorialPet } from '../../services/pets/memorial';
 import { useRecordStore } from '../../store/recordStore';
 import { openMoreDrawer } from '../../store/uiStore';
 import { styles } from './RecordDetailScreen.styles';
@@ -763,6 +764,7 @@ export default function RecordDetailScreen() {
     () => pets.find(item => item.id === resolvedPetId) ?? null,
     [pets, resolvedPetId],
   );
+  const showRemembrance = isMemorialPet(selectedPet?.deathDate);
   const petName = useMemo(
     () => selectedPet?.name?.trim() || '반려동물',
     [selectedPet?.name],
@@ -873,7 +875,7 @@ export default function RecordDetailScreen() {
     setSavingRemembrance(false);
   }, [titleOwnerId, memoryId]);
   useEffect(() => {
-    if (!actionMenuVisible || !memoryId || !titleOwnerId) return;
+    if (!showRemembrance || !actionMenuVisible || !memoryId || !titleOwnerId) return;
     let cancelled = false;
     const request = ++remembranceReads.current;
     setRemembrance({ owner: titleOwnerId, memory: memoryId, included: null, error: false });
@@ -883,10 +885,10 @@ export default function RecordDetailScreen() {
       if (!cancelled && request === remembranceReads.current) setRemembrance({ owner: titleOwnerId, memory: memoryId, included: null, error: true });
     });
     return () => { cancelled = true; };
-  }, [actionMenuVisible, memoryId, titleOwnerId, remembranceRetry]);
+  }, [showRemembrance, actionMenuVisible, memoryId, titleOwnerId, remembranceRetry]);
   const currentRemembrance = remembrance?.owner === titleOwnerId && remembrance?.memory === memoryId ? remembrance : null;
   const changeRemembrance = async (included: boolean) => {
-    if (!memoryId || !titleOwnerId || currentRemembrance?.included === null || !currentRemembrance || remembranceWrite.current || deleting) return;
+    if (!showRemembrance || !memoryId || !titleOwnerId || currentRemembrance?.included === null || !currentRemembrance || remembranceWrite.current || deleting) return;
     const owner = titleOwnerId, memory = memoryId;
     const current = () => remembranceScope.current.mounted && remembranceScope.current.owner === owner &&
       remembranceScope.current.memory === memory && useAuthStore.getState().session?.user.id === owner;
@@ -1354,7 +1356,7 @@ export default function RecordDetailScreen() {
           <View accessibilityViewIsModal style={[styles.actionSheet,{maxWidth:600,paddingBottom:insets.bottom+20,borderBottomLeftRadius:0,borderBottomRightRadius:0}]}>
             <View style={{alignSelf:'center',width:40,height:4,borderRadius:2,backgroundColor:'#CBC5DF',marginBottom:18}}/>
             <AppText preset="unifiedTitle" style={{color:C.ink,marginBottom:12}}>이 기록 관리</AppText>
-            <View style={styles.sheetActionRow} testID="memory-remembrance-control">
+            {showRemembrance ? <View style={styles.sheetActionRow} testID="memory-remembrance-control">
               <Feather name="heart" size={24} color={C.primary}/>
               <AppText style={styles.sheetActionText}>추억으로 함께하기</AppText>
               {currentRemembrance?.error ? (
@@ -1365,7 +1367,7 @@ export default function RecordDetailScreen() {
                   value={currentRemembrance.included} disabled={savingRemembrance || deleting} style={{ minWidth: 52, minHeight: 48 }}
                   onValueChange={changeRemembrance} trackColor={{ false: C.border, true: C.primary }}/>
               ) : <ActivityIndicator accessibilityLabel="추억 활동 확인 중" size="small"/>}
-            </View>
+            </View> : null}
             <TouchableOpacity accessibilityRole="button" accessibilityLabel="기록 수정하기" style={styles.sheetActionRow} onPress={onPressEdit} disabled={deleting || savingRemembrance}><TimelineArtwork name="edit" size={24}/><AppText style={styles.sheetActionText}>기록 수정하기</AppText><Feather name="chevron-right" size={18} color={C.muted}/></TouchableOpacity>
             <TouchableOpacity accessibilityRole="button" accessibilityLabel="기록 삭제하기" style={styles.sheetActionRow} onPress={onPressDelete} disabled={deleting || savingRemembrance}><TimelineArtwork name="delete" size={24}/><AppText style={styles.sheetActionDeleteText}>기록 삭제하기</AppText><Feather name="chevron-right" size={18} color={C.muted}/></TouchableOpacity>
             <CtaButton role="neutral" style={{marginTop:16}} onPress={closeActionMenu}><CtaText>닫기</CtaText></CtaButton>
