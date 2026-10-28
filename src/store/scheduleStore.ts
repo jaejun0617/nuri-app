@@ -34,6 +34,7 @@ type ScheduleStore = {
   bootstrap: (petId: string) => Promise<void>;
   refresh: (petId: string) => Promise<void>;
   replaceAll: (petId: string, items: PetSchedule[]) => void;
+  restoreFromCache: (petId: string, items: PetSchedule[]) => void;
   clearPet: (petId: string) => void;
   clearAll: () => void;
 };
@@ -185,6 +186,21 @@ export const useScheduleStore = create<ScheduleStore>((set, get) => ({
         };
       });
     }
+  },
+
+  restoreFromCache: (petId, items) => {
+    if (!petId || items.length === 0) return;
+    set(state => {
+      const current = state.byPetId[petId] ?? createInitialPetState();
+      if (current.status === 'ready' || current.items.length > 0) return state;
+      const cached = items.filter(item => item.petId === petId);
+      if (cached.length === 0) return state;
+      // Keep pending request/status: its canonical response still owns completion.
+      return { byPetId: {
+        ...state.byPetId,
+        [petId]: { ...current, items: cached },
+      } };
+    });
   },
 
   replaceAll: (petId, items) => {

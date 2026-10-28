@@ -84,6 +84,7 @@ type RecordStore = {
   loadMore: (petId: string) => Promise<void>;
 
   replaceAll: (petId: string, items: MemoryRecord[]) => void;
+  restoreFromCache: (petId: string, items: MemoryRecord[]) => void;
   upsertOneLocal: (petId: string, item: MemoryRecord) => void;
 
   updateOneLocal: (
@@ -665,6 +666,30 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
   // ---------------------------------------------------------
   // write helpers
   // ---------------------------------------------------------
+  restoreFromCache: (petId, items) => {
+    if (!petId || items.length === 0) return;
+    set(s => {
+      const current = s.byPetId[petId] ?? createInitialPetState();
+      // Cache is a preview, never a replacement for a completed server read.
+      if (current.status === 'ready' || current.items.length > 0) return s;
+      const cached = normalizeRecordItems(items.filter(item => item.petId === petId));
+      if (cached.length === 0) return s;
+      sortByDisplayDateDesc(cached);
+      const next = { ...current, items: cached };
+      return {
+        recordsById: upsertRecordEntities(s.recordsById, cached),
+        byPetId: { ...s.byPetId, [petId]: next },
+        timelineByPetId: {
+          ...s.timelineByPetId,
+          [petId]: {
+            ...toTimelineState(next),
+            entityVersion: (s.timelineByPetId[petId]?.entityVersion ?? 0) + 1,
+          },
+        },
+      };
+    });
+  },
+
   replaceAll: (petId, items) => {
     if (!petId) return;
     get().ensurePetState(petId);

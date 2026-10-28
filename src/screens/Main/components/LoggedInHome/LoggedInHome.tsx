@@ -1960,9 +1960,9 @@ export default function LoggedInHome() {
   // ---------------------------------------------------------
   const bootstrapRecords = useRecordStore(s => s.bootstrap);
   const refreshRecords = useRecordStore(s => s.refresh);
-  const replaceAllRecords = useRecordStore(s => s.replaceAll);
+  const restoreCachedRecords = useRecordStore(s => s.restoreFromCache);
   const bootstrapSchedules = useScheduleStore(s => s.bootstrap);
-  const replaceAllSchedules = useScheduleStore(s => s.replaceAll);
+  const restoreCachedSchedules = useScheduleStore(s => s.restoreFromCache);
 
   const recordItems = useRecordStore(s =>
     activePetId
@@ -2086,30 +2086,19 @@ export default function LoggedInHome() {
       .then(cache => {
         if (cancelled || !cache) return;
 
-        const recordState = useRecordStore.getState().getPetState(activePetId);
-        if (cache.records.length > 0 && recordState.items.length === 0) {
-          replaceAllRecords(activePetId, cache.records);
-        }
-
-        const scheduleState = useScheduleStore
-          .getState()
-          .getPetState(activePetId);
-        if (cache.schedules.length > 0 && scheduleState.items.length === 0) {
-          replaceAllSchedules(activePetId, cache.schedules);
-        }
+        restoreCachedRecords(activePetId, cache.records);
+        restoreCachedSchedules(activePetId, cache.schedules);
       })
       .catch(() => {});
 
     return () => {
       cancelled = true;
     };
-  }, [activePetId, replaceAllRecords, replaceAllSchedules, sessionUserId]);
+  }, [activePetId, restoreCachedRecords, restoreCachedSchedules, sessionUserId]);
 
   useEffect(() => {
     if (!activePetId || !sessionUserId) return;
     if (recordStatus !== 'ready' || scheduleStatus !== 'ready') return;
-    if (recordItems.length === 0 && scheduleItems.length === 0) return;
-
     saveHomeRecordScheduleCache({
       userId: sessionUserId,
       petId: activePetId,

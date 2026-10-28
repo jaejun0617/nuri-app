@@ -82,6 +82,16 @@ describe('home record/schedule disk cache', () => {
     ).toBe('@nuri/home-record-schedule/v1:user-2:pet-1');
   });
 
+  it('persists a confirmed empty snapshot instead of retaining a deleted record on disk', async () => {
+    await saveHomeRecordScheduleCache({
+      userId: 'user-1', petId: 'pet-1', records: [], schedules: [], now: 2000,
+    });
+    expect(AsyncStorage.setItem).toHaveBeenCalledWith(
+      '@nuri/home-record-schedule/v1:user-1:pet-1',
+      JSON.stringify({ schemaVersion: 1, userId: 'user-1', petId: 'pet-1', savedAt: 2000, records: [], schedules: [] }),
+    );
+  });
+
   it('현재 user/pet scope 데이터만 저장한다', async () => {
     await saveHomeRecordScheduleCache({
       userId: 'user-1',

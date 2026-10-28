@@ -2,6 +2,15 @@
 
 상태: IN_PROGRESS. 전체 동결 아님. Master 단독 수행.
 
+## 2026-10-28 저장 중단 복구 수락과 Home 디스크 캐시 보정
+
+- 4a8b67a97796e6f0ff33c0f257a1a5f2f52f0d1b/[CI40676454025](https://github.com/jaejun0617/nuri-app/actions/runs/40676454025) 후속 전체 PASS, runtime efcb14d1f5225f3345dfd67f3d1fe9a6db3e8997f990c964be0bc84ee6dad346, bundled Debug APKbbdbe40c51f97c354cbd4b2986f6fc82186d1af83a171c1cb0288bb19a99cbd0를 양쪽에 동일 서명·UID·권한·데이터 보존/Metro OFF로 설치했다. `delivery-record-cache-race`의 source/build/install/CI 영수증과 전체334suites4523/4523·critical127/127·타입·전체lint0오류/기존24경고·diff를 연결한다. 첫 source guard는 shell PATH의 Yarn 불일치로 거부됐고 승인 Node24/Yarn3.6.4 경로에서 그대로 PASS했다. 검증 강도/설정은 바꾸지 않았다.
+- 실제 중단 복구: Google emulator에서 QA-20261028-INTERRUPT를 정상 저장했고0a9a9479가11:05:49.906774Z에 확정된 것을 host read-only SQL로 확인했다. 같은 시점의 작성 submit disabled/폼 잔존을 확인한 뒤 해당 QA 앱 UID/PID만 SIGKILL했다. pid없음/stopped=false·앱 데이터 보존이며 Android 설정 강제 종료와 다르다. 재실행 후 owner/pet별 초안의 제목/원문이 복원됐다. 본문을 QA-interrupt-retry-edited로 바꾸고 정상 submit을 두 번 실행했으나 서버는 같은ID/created_at/updated_at·QA-interrupt-original1개를 유지했다. ‘저장된 기록을 확인했어요’→‘계속 작성’은 수정 입력을 보존하고 ‘기록 보기’는 실제 저장 원문 상세를 열었다. `record-interrupt-acceptance.json` 및 해당 UI/서버 영수증이 근거다. 1080×2400/4.135489초/173 encoded frames 영상 SHA b31a59c5051f5677018922db6097fa0bf7ef155d4f5d1fa43e2956a29a2c28e4를 보존했다. 중단 전후 정상 원본 저장 복구 PASS이며 어느 TCP 응답이 유실됐는지는 입증하지 않는다. 네트워크 shaping은 원래 unlimited/0ms로 원복했고 QA 행은 다음 캐시 삭제 수락에 재사용한다.
+- 새 FAIL: 새 설치 후 Timeline에서도 삭제된 QA-20261028-REPLAY 카드가 서버0/카테고리0에 남았다. 늦은 페이지 경합 수정의 실제 전체 해소라고 보고하지 않는다. 실제 Home 코드가 디스크 복구 시 items0만 확인해 이미 ready인 서버 빈 결과도 replaceAll로 덮었고, 두 목록이 모두 비면 디스크 저장 자체를 생략해 오래된 데이터를 남겼다. 프로세스 종료 뒤에도 반복되는 현상과 이 경로를 연결하되 저장 파일 원문을 추출했다고 주장하지 않는다.
+- 최소 보정: 두 store의 restoreFromCache는 아직 확정되지 않은 빈 상태에만 preview를 넣는다. 서버 ready/로컬 mutation 결과는 건드리지 않고 진행 중 요청의 status/requestSeq를 그대로 유지해 늦은 디스크가 정상 서버 완료를 취소하지 않는다. idle에서 복구돼도 bootstrap을 실제 실행하고 offline error는 error로 유지한다. Home은 이 복구 API를 사용하며 두 목록이 실제 ready이면 빈 snapshot도 저장한다. source/pet 범위·기존 캐시 key/수명·디자인·400ms·DB/서버 정책은 변경하지 않았다.
+- 새 관련3suites25/25·타입 PASS, lint0오류/기존 Home shadow11경고/신규0이다. 이전4523개의 CI/설치를 이 새 미커밋 후보 수락으로 사용하지 않는다. 최신 전체/CI·보존 설치·QA 행 삭제와 재실행/빈 목록 실제 확인이 다음1순위다. 기록4도메인 전체0/4·OS10/12/13 전체 미마감·원래7~9 미착수·STORE HOLD를 유지한다.
+- 이 디스크 복원 후보의 최종 전체335suites4531/4531·타입·관련lint PASS다(`home-cache-restore-full.json`). 기존4523개와 신규8개를 구분하며 동일 소스 CI·설치는 아직 별도 수락 대상이다.
+
 ## 2026-10-28 건강 상세 설치 수락과 기록 캐시 경합
 
 - 설치 기준은7f428863e604555570335dbe7cd4b781ccf368ba/[CI40671978734](https://github.com/jaejun0617/nuri-app/actions/runs/40671978734) 후속 전체 PASS, runtime7eca30a32877fe868a5e4382e63e28f3afcb45249bdaf1aea84005f4e78dce7e, bundled 내부 Debug APKd681a45a0fc0719842c5e5b997442399349ea7479711b34186177dba7408f735다. `delivery-health-detail-context`의 빌드/물리·에뮬레이터 설치/CI 영수증으로 동일 서명·UID·최초 설치·권한·데이터 보존과 Metro OFF를 확인했다. 아래 이전 설치 대기 표기는 당시 이력이며 이번 건강 상세 수락으로 갱신한다. Store RC/Release 성능 검증본은 아니다.
