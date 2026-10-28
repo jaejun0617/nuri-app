@@ -942,6 +942,18 @@ export default function RecordDetailScreen() {
 
   const navigateToHealthReport = useCallback(() => {
     if (!resolvedPetId) return;
+    const parent = navigation.getParent<NativeStackNavigationProp<RootStackParamList>>();
+    const state = parent?.getState();
+    if (
+      state?.routes[state.index]?.name === 'HealthTimeline' &&
+      state.routes[state.index - 1]?.name === 'HealthReport'
+    ) {
+      // Pop only the detail stack so the report's date, tab and scroll remain intact.
+      // Reconcile any child edits/deletion in the still-mounted report, not a replacement scene.
+      appQueryClient.invalidateQueries({ queryKey: ['health-report', 'month', resolvedPetId] });
+      parent.goBack();
+      return;
+    }
     navigation.navigate('HealthReport', {
       petId: resolvedPetId,
       initialTab: 'records',

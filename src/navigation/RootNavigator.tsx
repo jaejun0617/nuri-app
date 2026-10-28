@@ -163,6 +163,7 @@ export type RootStackParamList = {
         entrySource?: ScreenEntrySource;
       }
     | undefined;
+  HealthTimeline: NavigatorScreenParams<TimelineStackParamList>;
   ScheduleList: { petId?: string; entrySource?: ScreenEntrySource } | undefined;
   ScheduleCreate:
     | {
@@ -448,6 +449,11 @@ export default function RootNavigator({ notificationStartup }: { notificationSta
       <Stack.Screen
         name="HealthReport"
         component={HealthReportScreen}
+        options={{ headerShown: false }}
+      />
+      <Stack.Screen
+        name="HealthTimeline"
+        component={TimelineStackNavigator}
         options={{ headerShown: false }}
       />
       <Stack.Screen

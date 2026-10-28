@@ -178,6 +178,18 @@ describe('health redesign preserves feature ownership', () => {
       node => node.type === RN.View && /^health-.*-glass$/.test(String(node.props.testID)),
     );
 
+  it('opens a health memory above the current report rather than revealing the tab underlay', async () => {
+    await mount();
+    const entry = button('건강 관찰, 저장한 메모, 상세 보기');
+    if (!entry) throw new Error('Expected the real health activity card');
+    await act(async () => entry.props.onPress());
+    expect(mockNavigate).toHaveBeenCalledWith('HealthTimeline', {
+      screen: 'RecordDetail',
+      params: { petId: 'qa', memoryId: 'a', entrySource: 'health_report' },
+    });
+    expect(mockNavigate).not.toHaveBeenCalledWith('AppTabs', expect.anything());
+  });
+
   it.each([
     { speciesDisplayName: '말티즈', breed: '푸들', expected: '4살 · 말티즈' },
     { speciesDisplayName: '강아지', breed: '말티즈', expected: '4살 · 말티즈' },
@@ -377,15 +389,12 @@ describe('health redesign preserves feature ownership', () => {
     await act(async () =>
       button('건강 관찰, 저장한 메모, 상세 보기')?.props.onPress(),
     );
-    expect(mockNavigate).toHaveBeenCalledWith('AppTabs', {
-      screen: 'TimelineTab',
+    expect(mockNavigate).toHaveBeenCalledWith('HealthTimeline', {
+      screen: 'RecordDetail',
       params: {
-        screen: 'RecordDetail',
-        params: {
-          petId: 'qa',
-          memoryId: 'a',
-          entrySource: 'health_report',
-        },
+        petId: 'qa',
+        memoryId: 'a',
+        entrySource: 'health_report',
       },
     });
   });

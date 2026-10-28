@@ -946,15 +946,13 @@ export default function HealthReportScreen() {
       if (!pet) return;
 
       if (item.source === 'memory' && item.memoryId) {
-        navigation.navigate('AppTabs', {
-          screen: 'TimelineTab',
+        // Keep the report and its return menu below the native detail scene.
+        navigation.navigate('HealthTimeline', {
+          screen: 'RecordDetail',
           params: {
-            screen: 'RecordDetail',
-            params: {
-              petId: pet.id,
-              memoryId: item.memoryId,
-              entrySource: 'health_report',
-            },
+            petId: pet.id,
+            memoryId: item.memoryId,
+            entrySource: 'health_report',
           },
         });
         return;

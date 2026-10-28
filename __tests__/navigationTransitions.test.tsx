@@ -112,6 +112,7 @@ describe('actual native navigator transition configuration', () => {
   test.each([
     'PetManagement',
     'PetProfileEdit',
+    'HealthTimeline',
     'ScheduleDetail',
     'GuideDetail',
     'RecordCreate',

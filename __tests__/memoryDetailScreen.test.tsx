@@ -43,6 +43,11 @@ const mockRecord: MemoryRecord = {
 };
 let mockWalkScope = { ownerId: 'owner', petId: 'pet', generation: 'first', current: () => true };
 let mockWalkSource: WalkMemorySourceSummary | undefined;
+const mockHealthParentBack = jest.fn();
+let mockHealthParent: {
+  getState: () => { index: number; routes: Array<{ name: string }> };
+  goBack: () => void;
+} | undefined;
 jest.mock('../src/hooks/useWalkProduct', () => ({ useWalkScope: () => mockWalkScope, useWalkSources: () => ({ data: mockWalkSource ? [mockWalkSource] : [] }) }));
 jest.mock('../src/services/walk/server/supabaseWalkRecordRepository', () => ({ walkRecordRepository: { get: jest.fn() } }));
 const mockNavigation = {
@@ -52,7 +57,7 @@ const mockNavigation = {
   popTo: jest.fn(),
   replace: jest.fn(),
   getState: () => ({ routeNames: [] }),
-  getParent: () => undefined,
+  getParent: () => mockHealthParent,
 };
 const mockRoute: { params: TimelineStackParamList['RecordDetail'] } = {
   params: { petId: 'pet', memoryId: 'detail', entrySource: 'timeline' },
@@ -157,6 +162,7 @@ describe('memory detail rendered contract', () => {
   });
   beforeEach(() => {
     jest.clearAllMocks();
+    mockHealthParent = undefined;
     mockRoute.params = { petId: 'pet', memoryId: 'detail', entrySource: 'timeline' };
     mockTitleOwner = 'owner';
     mockPets.pets = [{ id: 'pet', name: '누리', avatarUrl: null, deathDate: '2026-02-22' }];
@@ -581,6 +587,45 @@ describe('memory detail rendered contract', () => {
     await TestRenderer.act(async () => finish());
     expect(mockStore.removeOneLocal).toHaveBeenCalledTimes(1);
     TestRenderer.act(() => tree.unmount());
+  });
+  it.each(['header', 'delete'])('returns to the still-mounted health report after %s without changing its menu context', async action => {
+    const invalidation = jest.spyOn(appQueryClient, 'invalidateQueries');
+    mockRoute.params = { petId: 'pet', memoryId: 'detail', entrySource: 'health_report' };
+    mockHealthParent = {
+      getState: () => ({ index: 2, routes: [{ name: 'AppTabs' }, { name: 'HealthReport' }, { name: 'HealthTimeline' }] }),
+      goBack: mockHealthParentBack,
+    };
+    if (action === 'delete') {
+      jest.mocked(deleteMemoryWithFile).mockResolvedValueOnce(undefined);
+      mockStore.refresh.mockResolvedValueOnce(undefined);
+    }
+    const tree = await render();
+    await TestRenderer.act(async () => {
+      if (action === 'delete') await tree.root.findByType(TimelineDeleteDialog).props.onConfirm();
+      else {
+        const back = tree.root.findAllByType(TouchableOpacity).find(node => node.props.accessibilityLabel === '추억 상세 뒤로가기');
+        if (!back) throw new Error('Expected detail Back');
+        back.props.onPress();
+      }
+    });
+    expect(mockHealthParentBack).toHaveBeenCalledTimes(1);
+    expect(mockNavigation.navigate).not.toHaveBeenCalled();
+    expect(mockNavigation.goBack).not.toHaveBeenCalled();
+    expect(invalidation).toHaveBeenCalledWith({ queryKey: ['health-report', 'month', 'pet'] });
+    invalidation.mockRestore();
+  });
+  it('retains the existing health return when no report is under the detail stack', async () => {
+    mockRoute.params = { petId: 'pet', memoryId: 'detail', entrySource: 'health_report' };
+    mockHealthParent = {
+      getState: () => ({ index: 1, routes: [{ name: 'AppTabs' }, { name: 'HealthTimeline' }] }),
+      goBack: mockHealthParentBack,
+    };
+    const tree = await render();
+    const back = tree.root.findAllByType(TouchableOpacity).find(node => node.props.accessibilityLabel === '추억 상세 뒤로가기');
+    if (!back) throw new Error('Expected detail Back');
+    await TestRenderer.act(async () => back.props.onPress());
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('HealthReport', expect.objectContaining({ petId: 'pet', initialTab: 'records' }));
+    expect(mockHealthParentBack).not.toHaveBeenCalled();
   });
   it.each([false, true])('returns a deleted record to its notification origin only when notification=%s', async notification => {
     if (notification) {

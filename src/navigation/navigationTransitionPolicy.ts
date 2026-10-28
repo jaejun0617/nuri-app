@@ -25,6 +25,7 @@ const rootRoutes: Record<keyof RootStackParamList, TransitionKind> = {
   PetProfileEdit: 'detail',
   PetProfileEditDone: 'detail',
   HealthReport: 'detail',
+  HealthTimeline: 'detail',
   ScheduleList: 'detail',
   ScheduleCreate: 'detail',
   ScheduleDetail: 'detail',

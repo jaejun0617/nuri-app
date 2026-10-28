@@ -2,6 +2,22 @@
 
 상태: IN_PROGRESS. 전체 동결 아님. Master 단독 수행.
 
+## 2026-10-28 OS07/09 수락과 건강 상세의 계층 결함
+
+- 앱79fc198/동일 CI·양쪽 설치 후보에서 OS07의 두 준비 조건을 분리했다. 최근 목록의 Pet Nuri 카드 제거 후 pid없음/stopped=false를 확인한 e4cc7dd2, task를 유지한 채 QA 앱 UID SIGKILL로 pid없음/stopped=false를 확인한4c71c7a5 모두 정상 FCM 경로→실제 OS 단일 표시→탭/상세→서버 읽음→Home을 확인했다. read_at은 각각09:55:50.791399Z/09:59:04.832688Z이며 각25초 영상과 `recents-removed-verified/process-absent-tap-result`가 후보/해시를 소유한다. 첫 swipe가 카드를 제거하지 못한 채 발행한 ab29157d는 준비 미충족으로 OS07 수락에서 제외했고 재현 실패나 제품 결함으로 계산하지 않았다.
+- OS09: Google 에뮬레이터만 wifi/data0/0 및 Active default network:none에서 fab6c290를 정상 worker/FCM accepted 상태로 만들었다. OS0 확인 후 원래1/1 복원 시 실제 단일 알림 표시→탭→읽음10:02:27.695872Z→Home을 확인했다. 별도957b8b4a는 QA transport에만120초 수명을 부여했고 실제 accepted 후10:05:38.075276Z 만료까지 계속 offline이었다. 재연결 후15초/3개 관찰의 OS0과 네트워크1/1 복원을 확인했다. `os09-valid-*`, `offline-valid-tap-result`, `os09-expiry-result`가 증거다. 서버/API 또는 native 중 어느 계층에서 폐기됐는지는 미확정이며 실제 업무 이벤트 E2E나 모든 지연 상황의 보장으로 확대하지 않는다. 기존 worker/data payload·FCM normal·native expiry guard·운영 수명은 변경하지 않았다. [공식 수명 계약](https://firebase.google.com/docs/cloud-messaging/customize-messages/setting-message-lifespan)의 accepted/표시 구분을 적용했다.
+- 실제 건강 원본: 물리/누리에서 QA-20261028-HEALTH 입력 후 요청 전 offline 저장 실패/서버0→입력·normal 컨디션 보존→네트워크 원복→정상 재시도1개(648346cc, category health/condition,10:10:28Z)→보상 확인/건강 목록 반영을 확인했다. `health-offline-*`, `health-record-created-server/after-create-return`가 근거다. 응답 유실 수락은 아니며 이 QA 기록은 새 계층 수정의 상세/편집/삭제 검증을 위해 보존 중이다.
+- 신규 NAV FAIL: 위 건강 목록에서 정상 생성 행을 열자 원래 HealthReport가 AppTabs/Timeline RecordDetail로 돌아가고 보존된 More가 그 위에 실제 표시됐다. `health-detail-more-overlay-observation.png/json`으로 UIA underlay 혼입과 실제 화면 가림을 구분했다. 하단 탭 보정은 이 별도의 상세 진입을 바꾸지 않았다. 같은 TimelineStack을 Root HealthTimeline에 재사용해 현재 건강 화면 위에 상세를 열며, header/삭제 Back은 바로 아래 실제 HealthReport가 있을 때만 부모 stack을 pop한다. 건강 날짜/탭/스크롤/More 문맥과400ms·native 상세 정책은 유지하고 전체 navigator를 교체하지 않는다. 돌아올 때 해당 아이의 건강 query만 무효화해 편집/삭제 결과를 재조회한다. 다른 entry의 기존 health fallback은 유지한다.
+- 수정 전 새 회귀3FAIL/78PASS를 보존했다. 첫 수정 뒤 구 destination 기대1FAIL은 같은 pet/memory/entry 검증을 유지해 새 presentation에 맞췄으며 새 route를 누락한 transition 분류는 TypeScript가 차단했다. 명시 detail 정책을 추가한 뒤 관련132cases·타입 PASS다. 최신 전체/설치와 QA 기록 편집/삭제·실제 Back 수락은 아직 남는다. 기록 전체0/4·전체 미동결·STORE HOLD다.
+- 건강 계층 보정의 최종 전체333suites4512/4512·타입·관련lint0오류/0경고·diff PASS다(`health-detail-presentation-full.json`)。 이 검사와 새 설치/해당 소스 CI는 구분한다. 기존 OS13묶음 중 관찰 범위를 명시해 수락한 것은10개이고 OS10/12/13의 전체 수락은 남는다. 전체 배치 완료율이나 앱 전체 개발률로 바꾸지 않는다.
+
+## 2026-10-28 상세 명시 탭 수정의 실제 설치 수락
+
+- 앱 소스79fc198a833467fc50e235d7268bfdaf3a615d40/[CI40666412971](https://github.com/jaejun0617/nuri-app/actions/runs/40666412971) 후속 전체 단계 PASS, runtime b7ecdc2393bb0c6eec3eddf096dc05fb0702e782f9cf67adc0431ac0827319bf, bundled 내부 Debug APK3d22fe81df1c2016a6ce3de610abda59f4017da26d6c2aa148889a8f09caaa70다. `delivery-retained-menu-toolbar`의 빌드/양쪽 설치/CI 영수증이 동일 서명·UID·최초 설치·권한·데이터 보존, Metro OFF를 확인한다. 문서만 후속 변경되면 이 앱 입력을 재설치하지 않는다.
+- 물리 SM-S937N에서 More→건강→하단 Home3/3, More→건강→header Back의 같은 메뉴 위치1/1, More→건강→하단 Timeline1/1을 확인했다. 선택 아이도 유지됐고 총5/5다. `retained-menu-physical-result.json`과 실제85.950744초/452 encoded frames/1080×2340 영상이 근거다. 5개 contact sheet의452개 수집 프레임에서 의도하지 않은 More 재노출·Home 경유·빈 화면을 확인하지 못했다. 평균 약5.26fps VFR 관찰로 모든 compositor frame 또는 전체 경로 PASS를 선언하지 않는다.
+- 준비 helper 첫 실행은 recorder가 없는 pidof의 정상exit1을 오류로 처리해 녹화 전에 중단됐다. status0/1을 구분한 뒤 한 번 실행했으며 제품 재현 실패/추가 빌드로 계산하지 않는다. AppNavigationToolbar의 실제 호출부는 AppTabs/More/건강이며 override와 Back은 기존 검사/기기 결과로 구분한다. 공통 코드 검토를 모든 개별 메뉴의 실제 실행으로 합산하지 않는다.
+- 다음: 앱 소스 변경 없이 OS07 최근 목록 제거/프로세스 미실행, OS09 네트워크/만료와 나머지 인증·이벤트·기록 실패 복구를 계속한다. 전체 미동결·기록4도메인 전체0/4·원래7~9 미착수·STORE HOLD다.
+
 ## 2026-10-28 최신 설치 수락과 상세 툴바의 잔존 메뉴
 
 - 설치 기준은618b0fc91803a42a774f6b8bc8d894671b65cd22/[CI40660757723](https://github.com/jaejun0617/nuri-app/actions/runs/40660757723) 후속 전체 PASS, runtime bdce38ba3bc61c62a95b42810d0fd1da01f9737ac51ab08342a01622c39b16ff, APK9e49cbfb33a39f524682f886e644f6c826cb49b1b34f14eca3ee2af19be15b0a다. `delivery-notification-delete-return`의 빌드·두 설치 영수증이 동일 서명·UID·권한·데이터 보존과 Metro OFF를 확인한다. 전체333suites4502/4502·타입·관련lint PASS다. Store RC/성능 검증본은 아니다.
@@ -245,9 +261,9 @@ PO 중간 요약: [2026-10-25 20:15 KST 중간보고서](../reports/nuri-integra
 | OS04 / 5 | Android 채널 OFF: 앱 설정 우회 없이 미표시 | 과거 미실행 상태 보존 | PASS: 231d44be 물리 채널OFF·FCM accepted/OS0·inbox/채널 복원 후 읽음. 채널/전송 구현 불변으로 재사용 |
 | OS05 / 5 | 전경: native 수신·inbox 갱신, OS 중복 배너 없음 | 과거 간접 증거 한계 보존 | PASS(간접 native bridge): 5517의8ea8674a/두 인스턴스 accepted2·OS0·badge11과 native callback만 호출하는 등록last_seen 갱신. 이후 해당 연결 불변. raw packet 수집 증거는 아님 |
 | OS06 / 5 | 백그라운드: OS 표시→탭→실제 목적지→읽음 | 과거 Google transport 증거 보존 | PASS: 618b0fc/에뮬레이터 d13953f5 background 단일 OS 표시→상세/읽음. 같은 OS01/08 실행의 공유 증거이며 전체 eventType E2E는 아님 |
-| OS07 / 5 | 최근 앱 제거·프로세스 미실행: 두 조건 구분 및 cold 진입 | NOT_RUN | NOT_RUN, 종료 이유/진입 증거 각각 확보 |
+| OS07 / 5 | 최근 앱 제거·프로세스 미실행: 두 조건 구분 및 cold 진입 | 과거 미실행 상태 보존 | PASS: 79fc198/에뮬레이터 e4cc7dd2 최근 카드 제거와4c71c7a5 앱 UID SIGKILL 각각 pid없음/stopped=false→OS 표시/탭/읽음/Back. 준비 실패1회 제외, 위 실제 영상/서버 증거 |
 | OS08 / 5 | 설정 강제 종료: 플랫폼 미수신과 수동 재실행 복구 구분 | 과거 미실행 상태 보존 | PASS: 618b0fc/에뮬레이터 실제 Settings stopped=true/accepted·OS0→수동 열기→별도 단일 알림 표시·탭·읽음. 자동 그룹 summary 탭은 개별 목적지 PASS에 합산하지 않음 |
-| OS09 / 5 | 네트워크 단절·TTL: 유효 메시지와 만료 메시지 구분 | NOT_RUN | NOT_RUN, QA 기기 네트워크만 통제 |
+| OS09 / 5 | 네트워크 단절·TTL: 유효 메시지와 만료 메시지 구분 | 과거 미실행 상태 보존 | PASS(관찰 범위): 79fc198/에뮬레이터 fab6c290 offline accepted·OS0→원복 표시/읽음,957b8b4a 실제120초 만료 후 재연결15초 OS0. 운영 수명/worker 변경0·폐기 계층 미확정·network1/1 원복 |
 | OS10 / 3·5 | 로그아웃·계정 전환: 현재 owner 등록과 대상 격리 | 과거 미실행 상태 보존 | NOT_RUN(필수 묶음 잔여): 실제 Kakao→Google→Kakao/등록 결합과 local logout 격리는 위 증거. 이전 계정 알림 탭·늦은 callback의 전체 실제 경계는 남음 |
 | OS11 / 4·5 | 실제 별도 두 인스턴스: 각각 수신·읽음 동기화·한쪽 로그아웃 격리 | 과거 준비 상태 보존 | PASS(물리1+에뮬레이터1): 01706689 동일Google 두 등록/각 OS1/읽음 시각 불변·live11→10, ae6a5d3 local logout 뒤 emulator 세션·7a4ed093 수신/읽음 유지. auth/local/등록/읽음 경로 불변으로 한정 재사용. 실물2대/OEM절전 검증은 아님 |
 | OS12 / 5 | 등록 갱신·무효 등록: 현재 기기 연결·정확한 오류만 폐기 | NOT_RUN | NOT_RUN, 등록 식별자/전송 결과 대조 |
