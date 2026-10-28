@@ -663,7 +663,9 @@ describe('Timeline seasonal design', () => {
     expect(source).toContain('{notificationPeriod ? (');
     expect(source).not.toContain('모든 아이 · ');
     expect(source).not.toContain(" : '전체 기록'}");
-    expect(source).toContain('accessibilityLabel="전체 기록 보기"');
+    expect(source).toContain('onShowAllRecords={notificationPeriod ? showAllNotificationRecords : undefined}');
+    const headerSource = source.slice(source.indexOf('<TimelineSeasonalHeader'), source.indexOf('</TimelineSeasonalHeader>'));
+    expect(headerSource).not.toContain('timeline-notification-show-all');
     expect(source).not.toContain('마지막 기록이에요');
     expect(source).not.toContain('styles.primaryIcon');
     expect(source).not.toContain("dateHeader?.isWeekend ? '#CC4425'");

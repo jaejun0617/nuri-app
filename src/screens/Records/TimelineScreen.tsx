@@ -118,6 +118,7 @@ import { styles } from './TimelineScreen.styles';
 import TimelineSeasonalHeader, {
   TimelineSeasonalControls,
 } from './TimelineSeasonalHeader';
+import TimelineListFooter from './TimelineListFooter';
 import { LavenderScreenBackground } from '../../components/common/LavenderScreenBackground';
 import TimelineCreateButton from './TimelineCreateButton';
 import {
@@ -1282,27 +1283,14 @@ export default function TimelineScreen() {
   const keyExtractor = useCallback((itemId: string) => itemId, []);
   const getItemType = useCallback(() => 'memory', []);
 
-  const listFooterComponent = useMemo(() => {
-    if (filteredIds.length === 0) return null;
-
-    if (status === 'loadingMore') {
-      return (
-        <View style={styles.footer}>
-          <ActivityIndicator />
-          <AppText preset="unifiedMeta" style={styles.footerText}>
-            더 불러오는 중...
-          </AppText>
-        </View>
-      );
-    }
-
-    if (status === 'ready' && !hasMore) {
-      // Retain the existing FAB clearance without a terminal message.
-      return <View testID="timeline-end-clearance" style={{ height: 48 }} />;
-    }
-
-    return <View style={{ height: 18 }} />;
-  }, [filteredIds.length, hasMore, status]);
+  const listFooterComponent = useMemo(() => (
+    <TimelineListFooter
+      visibleCount={filteredIds.length}
+      hasMore={hasMore}
+      status={status}
+      onShowAllRecords={notificationPeriod ? showAllNotificationRecords : undefined}
+    />
+  ), [filteredIds.length, hasMore, notificationPeriod, showAllNotificationRecords, status]);
 
   const listEmptyComponent = useMemo(() => {
     const shouldRenderActualEmpty = shouldShowTimelineEmpty({
@@ -1472,16 +1460,6 @@ export default function TimelineScreen() {
             <AppText preset="unifiedMeta" style={styles.notificationPeriodText}>
               {formatYmdToDots(notificationPeriod.startDate)} ~ {formatYmdToDots(addDaysToYmd(notificationPeriod.endDate, -1))} 기록
             </AppText>
-            <TouchableOpacity
-              accessibilityRole="button"
-              accessibilityLabel="전체 기록 보기"
-              onPress={showAllNotificationRecords}
-              style={styles.notificationPeriodAction}
-              testID="timeline-notification-show-all"
-            >
-              <AppText preset="unifiedMeta" style={styles.notificationPeriodActionText}>전체 기록 보기</AppText>
-              <Feather name="chevron-right" size={16} color="#7045CB" />
-            </TouchableOpacity>
           </View>
         ) : null}
       </TimelineSeasonalHeader>
@@ -1506,7 +1484,6 @@ export default function TimelineScreen() {
       onOpenMonth,
       onPressMainCategory,
       notificationPeriod,
-      showAllNotificationRecords,
       notificationOwnerScope,
       notificationScoped,
       hasMore,

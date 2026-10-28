@@ -2,6 +2,13 @@
 
 상태: IN_PROGRESS. 전체 동결 아님. Master 단독 수행.
 
+## 2026-10-28 목록 하단 CTA 피드백과 현재 설치
+
+- 안내 제거 후보1bac1d5c08dc978c85bd4b2aba556bd0792e4413 / runtime66fecd04 / APK816d0ad3을 두 QA 인스턴스에 동일 서명·UID·권한·데이터 보존/Metro OFF로 설치했다. [CI40633837435](https://github.com/jaejun0617/nuri-app/actions/runs/40633837435) 전체 필수 단계 PASS, 로컬325suites4446/4446·타입 PASS다. 실기기에서 안내 제거와 실제 주간 고정2행→Back 선택 아이 보존3/3을 확인했다. weekly-warm-01..03-result.json과 각 영상/화면이 근거다.
+- 최신 PO가 ‘전체 기록 보기’를 오른쪽 위가 아닌 목록 아래 CTA로 변경하도록 요청했다. 이 추가 후보는 TimelineListFooter 하나로 기간 목록의 실제 끝에 배치하며, 기존 폰트·라벤더와 중앙 문구/18dp 화살표를 사용한다. 좌우18dp·상단24dp·최소높이52dp·하단64dp를 확보해 작성 FAB와 겹치지 않도록 한다. 기간이 비어도 전체 보기는 제공하고 추가 페이지·초기 로딩·실패를 목록 끝으로 오인하지 않는다. 정상 일반 Timeline은 기존48dp 끝 여백을 유지한다. 새 설치 수락은 아래 기존 후보와 구분해 추가한다.
+- CTA 후보의 표적5suites49/49·타입 PASS, 최종 전체326suites4454/4454 PASS다. 관련 lint 오류0/기존ControlsBar shadow1/신규0이다. 최초 전체의1실패는 footer가 분리돼 과거 source 문자열을 찾지 못한 검사였다. 필터된0개를 실제 컴포넌트에 넣어 null을 검증하는 방식으로 바꾸고 Home 재선택/빈 카테고리 계약을 보존했다. 초기4453PASS/1FAIL은 footer-full-tests.json, 수정 후 전체는 footer-full-tests-corrected.json으로 구분한다.
+- B1 키 보관: Desktop의 유일 원본 JSON을 서버 digest/프로젝트/RSA 형식 대조 후 사용자 Library/Application Support/NURI/PushTransport로 이동했다. 원본 bytes 유지·폴더0700·파일0600·Desktop 사본 없음이며 키 회전/폐기/원문 출력은 하지 않았다. push-key-custody.json이 경로·시각을 소유한다. 현재 Edge3개 존재, Vault↔Edge worker digest 일치, notification-device-v3 v3 / worker-v3 v2 ACTIVE, NURI3cron1분/최근succeeded·QA cohort2 유지다. 무인증/오류 인증의 실제 worker 호출은 모두403/WORKER_AUTH_REQUIRED다. 일반 사용자 발송은 개방하지 않았다.
+
 ## 2026-10-28 13:39 KST 회고 조회 수락과 표시 피드백
 
 - 실제 후속 후보7bf555766d11281654e481df90277dc3aa073014 / runtime157f4a62 / APKdbaa4a27은 물리SM-S937N과 Google Play API35 에뮬레이터에 같은 서명·UID·데이터 보존/Metro OFF로 설치했다. [CI40631438704](https://github.com/jaejun0617/nuri-app/actions/runs/40631438704)의 후속 필수 단계까지 PASS다. 아래6988/5d88493은 이전 후보 이력이다.

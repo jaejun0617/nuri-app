@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import TimelineListFooter from '../src/screens/Records/TimelineListFooter';
 
 const read = (file: string) => fs.readFileSync(path.join(__dirname, '..', file), 'utf8');
 
@@ -20,7 +21,9 @@ describe('Home reselect wiring and empty timeline boundary', () => {
   it('does not render the end-of-list footer for an empty category result', () => {
     const timeline = read('src/screens/Records/TimelineScreen.tsx');
     const footer = timeline.slice(timeline.indexOf('const listFooterComponent ='));
-    expect(footer).toContain('if (filteredIds.length === 0) return null;');
-    expect(footer).not.toContain('if (timelineIds.length === 0) return null;');
+    expect(footer).toContain('visibleCount={filteredIds.length}');
+    expect(footer).not.toContain('visibleCount={timelineIds.length}');
+    expect(TimelineListFooter({ visibleCount: 0, status: 'ready', hasMore: false })).toBeNull();
+    expect(TimelineListFooter({ visibleCount: 0, status: 'loadingMore', hasMore: true })).toBeNull();
   });
 });
