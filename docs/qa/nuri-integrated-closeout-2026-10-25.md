@@ -4,6 +4,11 @@
 
 ## 2026-10-28 현재 중간 기준점
 
+- 후속 실행은 새 원장을 만들지 않고 이 원장을 계속 쓴다. 최신 설치6988f7a46ef20e7f0c1475e7e845551de0f97d51/APK4a480d3e/runtime75f2089e는5d88493 프로필 변경을 포함하는 후속 commit이며 실기기1대+Google Play 에뮬레이터1개에 동일 서명·UID·권한·데이터 보존/Metro OFF 설치했다. CI40628826679 후속 전체 단계 PASS다. 5d88493/632332f7의 프로필 증거는 해당 코드가 바뀌지 않아 재사용하되 공통 진입·읽음·Back은 최신 후보에서 다시 확인한다.
+- 최신 실제 인앱 생일: 정상 scheduler 알림4c33b1e1을 Home 빠른 알림에서 눌러 해당 아이의 Timeline으로 직접 진입했다. 실제 표시 녹화와03:55:59.613588Z 서버 read_at, Android Back→Home 미읽음1→0을 확인했다. OS 표시/탭은 아직 별도다. 홈 아이콘16dp의 흰 사각 모서리 제거는 notification-icon-white-after.png가 소유한다. 목록 표면은 추가 검증 중이다.
+- 실제 주간 수락에서 새 FAIL을 발견했다. owner 전체 회고26de2132의2026-10-19≤occurred_at<2026-10-26에는 누리의2개가 있으나 선택된 누리테스트의 기록만 표시하고 자동 최신 월이 기간을 가렸다. 현재 미설치 보정은 owner/pet/기간 전용 query·기존 cursor reader의 서버 발생일 조건·명시 전체 해제·알림 진입의 자동 월 선택 OFF다. 일반 Timeline cache/선택 펫과 정상 필터 정책은 보존한다. 실제 결함 보정에 필요한 두 번째 후보이며 같은 APK의 반복 설치가 아니다. 이 보정의 전체325suites4446/4446·표적62·타입 PASS다.
+- 종료 제보의 유한 재현 계획: 수정 후보에서 같은 주간 target을 사용해 warm 인앱3회, background OS warm3회, 프로세스 미실행 OS cold3회, 전환 중 Back3회를 수행한다. 각 회10초 관찰과 한 번의 native exit-info/해당 PID JS 오류 확인, 녹화를 연결한다. OS 시험용 재전송은 QA transport로 구분하고 기존 주간 업무 이벤트 E2E에 합산하지 않는다. 과거 SIGSEGV의 trace는 없고 원인 연결은 미확정이며 미재현만으로 원인 해결/차단 해제를 선언하지 않는다.
+
 - [12:33 KST 중간보고](../reports/nuri-integrated-closeout-interim-2026-10-28.md)가 최신 설치 5d88493/632332f7, 동일 SHA CI40622609366, 미설치 알림 후속 수정과 남은 1~6/NAV를 구분한다. 아래 10월25일 수치는 이전 후보 이력이다.
 - 생일 누락은 선택 펫이 아니라 memorial profile 제외 조건이 원인이다. 원격20261028031925는 scheduler predicate1곳만 수정했다. SQL52/52, 전후 advisor 동일, QA push cohort2와 NURI cron3활성 유지. 정상 정기 작업의 실제 생일1개 생성·실기기 빠른 알림창 표시를 확인했다. OS 표시/탭/읽음은 아직 별도 미검증이다. 사용자 수신 설정은 변경하지 않았다.
 - 주간 영상은17.03초로 기간 필터2행 노출을 확인했지만 종료 장면은 없다. 과거 native SIGSEGV 이력과 이 영상/APK의 대응은 미확인이다. 직접 목적지·성공 후 읽음·기간 안내/전체 기록 보기와 홈 아이콘 사각 흰 모서리 보정은 아직 새 후보 설치 전이다.
@@ -108,21 +113,23 @@ PO 중간 요약: [2026-10-25 20:15 KST 중간보고서](../reports/nuri-integra
 - 과거 nickname 기반 QA producer는 현재 canonical Kakao QA를 거부했다. 계정 이름이나 기존 RPC 권한을 바꿔 통과시키지 않았다. 실패 트랜잭션의 새 알림은 0개다.
 - QA fixture의 source는 `qa_transport`, dedupe prefix는 `qa.transport:TyHdIk:`다. 일반 사용자 알림·공지 전체 발송을 하지 않는다.
 
-| OS 필수 시나리오 | 상태 |
-|---|---|
-| 앱 권한 허용 | PASS: QA background transport의 표시·탭·읽음 연결. 모든 업무 이벤트의 E2E는 아님 |
-| 앱 권한 거부 | 전달 matrix NOT_RUN. 설정 표시·계정 동의/채널 분리와 원래 거부 상태 복원만 확인 |
-| 앱 카테고리 OFF | NOT_RUN |
-| Android 채널 OFF | NOT_RUN |
-| 전경 | 부분 관찰: FCM 접수·OS 배너 없음·인앱 읽음. native callback receipt 독립 증거 미확보 |
-| 백그라운드 | PASS: Google QA transport의 실제 OS 표시→탭→상세→서버 읽음. 실제 업무 원본 E2E와 구분 |
-| 최근 앱 제거·프로세스 미실행 | NOT_RUN |
-| 설정 강제 종료·직접 재실행 복구 | NOT_RUN |
-| 네트워크 단절·TTL | NOT_RUN |
-| 로그아웃·계정 전환 | NOT_RUN |
-| 실제 별도 두 인스턴스 | 준비 완료, NOT_RUN; 실기기+에뮬레이터로 구분 |
-| 등록 갱신·무효 등록 | NOT_RUN |
-| 연속 탭·cold/warm 중복 진입 | NOT_RUN |
+원래13개 상태 묶음과 순서를 유지한다. 원문에는 별도 행 ID가 없었으므로 아래 OS01~13은 같은 행을 추적하기 위한 보조 ID다. 이전 PASS는 과거 후보의 전달/소비 증거이며, 공통 이동·읽음 변경의 최신 수락을 대체하지 않는다. 서버는v3/QA cohort2/20261028031925, 최신 앱 후보는 위 절의 해시를 사용한다.
+
+| ID / 원래 작업 | OS 필수 시나리오·기대 | 기존 결과·증거 | 최신 결과·기기/다음 조치 |
+|---|---|---|---|
+| OS01 / 5 | 앱 권한 허용: 정상 표시·탭·목적지·읽음 | PASS, Google QA background transport; emulator-background-native-display.json/consumed-ui.json | NOT_RUN, 최신 후보 재검증 |
+| OS02 / 5 | 앱 권한 거부: inbox 유지·OS 미표시 | 전달 NOT_RUN; 설정 분리·원래 거부 복원만 확인 | NOT_RUN, emulator에서 실제 발송 |
+| OS03 / 5 | 앱 카테고리 OFF: inbox 유지·OS 억제 | NOT_RUN | NOT_RUN, QA 설정만 통제 |
+| OS04 / 5 | Android 채널 OFF: 앱 설정 우회 없이 미표시 | NOT_RUN | NOT_RUN, 기존 채널1개만 통제 |
+| OS05 / 5 | 전경: native 수신·inbox 갱신, OS 중복 배너 없음 | 부분 관찰, 접수·배너 없음·읽음. native callback 독립 증거 미확보 | NOT_RUN, 최신 receipt 연결 |
+| OS06 / 5 | 백그라운드: OS 표시→탭→실제 목적지→읽음 | PASS, Google QA transport; 실제 업무 원본 E2E와 구분 | NOT_RUN, 직접 목적지 변경 후 재검증 |
+| OS07 / 5 | 최근 앱 제거·프로세스 미실행: 두 조건 구분 및 cold 진입 | NOT_RUN | NOT_RUN, 종료 이유/진입 증거 각각 확보 |
+| OS08 / 5 | 설정 강제 종료: 플랫폼 미수신과 수동 재실행 복구 구분 | NOT_RUN | NOT_RUN, 임의 앱 삭제 없이 실행 |
+| OS09 / 5 | 네트워크 단절·TTL: 유효 메시지와 만료 메시지 구분 | NOT_RUN | NOT_RUN, QA 기기 네트워크만 통제 |
+| OS10 / 3·5 | 로그아웃·계정 전환: 현재 owner 등록과 대상 격리 | NOT_RUN | NOT_RUN, 승인 QA identity 두 개만 사용 |
+| OS11 / 4·5 | 실제 별도 두 인스턴스: 각각 수신·읽음 동기화·한쪽 로그아웃 격리 | 준비 완료, NOT_RUN | NOT_RUN, 현재 물리Kakao/에뮬레이터Google로 서로 다른 계정. 같은 QA 로그인 필요 |
+| OS12 / 5 | 등록 갱신·무효 등록: 현재 기기 연결·정확한 오류만 폐기 | NOT_RUN | NOT_RUN, 등록 식별자/전송 결과 대조 |
+| OS13 / 4·5·NAV | 연속 탭·cold/warm: 동일 요청 중복 이동·중간 Home 없음 | NOT_RUN | NOT_RUN, 유한 재현 계획 적용 |
 
 ## 기록 통합 U5
 

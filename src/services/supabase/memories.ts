@@ -569,6 +569,7 @@ export async function fetchMemoriesByPetPage(input: {
   limit?: number;
   cursor?: string | null; // ✅ compound cursor
   prefetchTop?: number; // default 10
+  recap?: { ownerId: string; period?: { startDate: string; endDate: string } };
 }): Promise<FetchMemoriesPageResult> {
   // ✅ RN 카드 리스트 체감 최적(16~18 권장). 필요 시 호출부에서 override 가능.
   const limit = input.limit ?? 18;
@@ -581,6 +582,18 @@ export async function fetchMemoriesByPetPage(input: {
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
     .limit(limit);
+
+  if (input.recap) {
+    q = q.eq('user_id', input.recap.ownerId)
+      .not('metadata', 'cs', '{"qaFixture":true}')
+      .not('metadata', 'cs', '{"isQaFixture":true}')
+      .not('metadata', 'cs', '{"draft":true}')
+      .not('metadata', 'cs', '{"invalidated":true}');
+    if (input.recap.period) {
+      q = q.gte('occurred_at', input.recap.period.startDate)
+        .lt('occurred_at', input.recap.period.endDate);
+    }
+  }
 
   if (input.cursor) {
     const c = decodeCursor(input.cursor);

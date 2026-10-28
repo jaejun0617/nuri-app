@@ -79,8 +79,12 @@ describe('typed notification destinations', () => {
     const destination = resolveNotificationDestination(item({ kind: 'timeline_period', petId: 'other-pet', startDate: '2026-10-19', endDate: '2026-10-26' }), receipt, 'selected-pet');
     expect(destination).toMatchObject({ name: 'NotificationTimeline', params: { screen: 'TimelineMain', params: { petId: 'other-pet', ymFilter: null, notificationPeriod: { startDate: '2026-10-19', endDate: '2026-10-26' } } } });
   });
-  it('uses readable detail when a period has no available pet, never an invented Home success', () => {
-    expect(resolveNotificationDestination(item({ kind: 'timeline_period', petId: null, startDate: '2026-10-19', endDate: '2026-10-26' }), receipt, null).name).toBe('NotificationDetail');
+  it('keeps an owner-wide recap owner-wide rather than substituting the selected pet', () => {
+    const target = item({ kind: 'timeline_period', petId: null, startDate: '2026-10-19', endDate: '2026-10-26' });
+    const first = resolveNotificationDestination(target, receipt, 'pet-a');
+    const second = resolveNotificationDestination(target, receipt, 'pet-b');
+    expect(first).toEqual(second);
+    expect(first).toMatchObject({ name: 'NotificationTimeline', params: { params: { notificationScope: 'owner', petId: undefined } } });
   });
 });
 

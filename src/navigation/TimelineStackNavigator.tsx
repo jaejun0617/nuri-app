@@ -34,6 +34,7 @@ export type TimelineStackParamList = {
         otherSubCategory?: MemoryOtherSubCategory;
         ymFilter?: string | null;
         notificationPeriod?: { startDate: string; endDate: string };
+        notificationScope?: 'owner' | 'pet';
         notificationEntryId?: string;
         entrySource?: ScreenEntrySource;
         entryRequestId?: number;

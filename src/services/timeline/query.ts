@@ -21,6 +21,7 @@ export type TimelineFilterInput = {
   query: string;
   sortMode: TimelineSortMode;
   dateRange?: { startDate: string; endDate: string };
+  includeHealth?: boolean;
 };
 
 type TimelineRecordMeta = {
@@ -139,12 +140,13 @@ export function dedupeTimelineRecords(items: ReadonlyArray<MemoryRecord>) {
 export function buildTimelineCategoryCounts(
   items: ReadonlyArray<MemoryRecord>,
   dateRange?: TimelineFilterInput['dateRange'],
+  includeHealth = false,
 ): TimelineCategoryCounts {
   const counts = createEmptyTimelineCategoryCounts();
   const uniqueItems = dedupeTimelineRecords(items);
 
   for (const item of uniqueItems) {
-    if (isHealthMemoryRecord(item)) continue;
+    if (!includeHealth && isHealthMemoryRecord(item)) continue;
     if (dateRange && !timelineRecordMatchesFilters(item, {
       dateRange,
       ymFilter: null,
@@ -156,7 +158,7 @@ export function buildTimelineCategoryCounts(
     const mainCategory = getTimelineRecordMeta(item).mainCategory;
     counts.all += 1;
 
-    if (mainCategory !== 'all' && mainCategory !== 'health') {
+    if (mainCategory !== 'all') {
       counts[mainCategory] += 1;
     }
   }
@@ -232,7 +234,7 @@ export function buildTimelineView(input:
   for (const id of ids) {
     const record = recordsById[id];
     if (!record) continue;
-    if (isHealthMemoryRecord(record)) continue;
+    if (!input.filters.includeHealth && isHealthMemoryRecord(record)) continue;
 
     const meta = getTimelineRecordMeta(record);
     if (meta.monthKey && !seenMonthKeys.has(meta.monthKey)) {
@@ -262,8 +264,8 @@ export function buildTimelineView(input:
   const baseItems = ids
     .map(id => recordsById[id])
     .filter((item): item is MemoryRecord => Boolean(item))
-    .filter(item => !isHealthMemoryRecord(item));
-  const categoryCounts = buildTimelineCategoryCounts(baseItems, input.filters.dateRange);
+    .filter(item => input.filters.includeHealth || !isHealthMemoryRecord(item));
+  const categoryCounts = buildTimelineCategoryCounts(baseItems, input.filters.dateRange, input.filters.includeHealth);
   const filteredItems = filteredIds
     .map(id => recordsById[id])
     .filter((item): item is MemoryRecord => Boolean(item));

@@ -1,5 +1,6 @@
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import { useNotificationDestinationRead } from '../../hooks/useNotificationDestinationRead';
+import { useNotificationTimeline } from '../../hooks/useNotificationTimeline';
 // 파일: src/screens/Records/TimelineScreen.tsx
 // 파일 목적:
 // - 선택된 펫의 기록을 시간순 타임라인으로 탐색하는 메인 목록 화면이다.
@@ -373,6 +374,7 @@ export default function TimelineScreen() {
   const route = useRoute<TimelineMainRoute>();
   const isFocused = useIsFocused();
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
+  const ownerId = useAuthStore(s => s.session?.user.id ?? null);
 
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
@@ -413,14 +415,24 @@ export default function TimelineScreen() {
     [theme.colors.brand],
   );
 
+  const notificationScoped = Boolean(route.params?.notificationOpen && route.params.notificationScope);
+  const notificationOwnerScope = route.params?.notificationScope === 'owner';
+  const notificationSource = useNotificationTimeline({
+    enabled: notificationScoped && isLoggedIn,
+    ownerId,
+    petIds: notificationOwnerScope ? pets.map(pet => pet.id) : petId ? [petId] : [],
+    period: route.params?.notificationPeriod,
+    isFocused,
+  });
+
   const bootstrap = useRecordStore(s => s.bootstrap);
-  const refresh = useRecordStore(s => s.refresh);
-  const loadMore = useRecordStore(s => s.loadMore);
-  const timelineIds = useRecordStore(s => s.selectTimelineIdsByPetId(petId));
+  const storeRefresh = useRecordStore(s => s.refresh);
+  const storeLoadMore = useRecordStore(s => s.loadMore);
+  const storeTimelineIds = useRecordStore(s => s.selectTimelineIdsByPetId(petId));
   const timelineStatus = useRecordStore(s =>
     s.selectTimelineStatusByPetId(petId),
   );
-  const hasMore = useRecordStore(s => s.selectTimelineHasMoreByPetId(petId));
+  const storeHasMore = useRecordStore(s => s.selectTimelineHasMoreByPetId(petId));
   const timelineEntityVersion = useRecordStore(s =>
     s.selectTimelineEntityVersionByPetId(petId),
   );
@@ -428,15 +440,19 @@ export default function TimelineScreen() {
     petId ? s.focusedMemoryIdByPet[petId] ?? null : null,
   );
   const clearFocusedMemoryId = useRecordStore(s => s.clearFocusedMemoryId);
-  const recordsById = useRecordStore.getState().recordsById;
-  const status = normalizeStatus(timelineStatus);
+  const recordsById = notificationSource?.recordsById ?? useRecordStore.getState().recordsById;
+  const timelineIds = notificationSource?.ids ?? storeTimelineIds;
+  const hasMore = notificationSource?.hasMore ?? storeHasMore;
+  const status = notificationSource?.status ?? normalizeStatus(timelineStatus);
+  const refresh = useCallback((id: string) => notificationSource ? notificationSource.refresh() : storeRefresh(id), [notificationSource, storeRefresh]);
+  const loadMore = useCallback((id: string) => notificationSource ? notificationSource.loadMore() : storeLoadMore(id), [notificationSource, storeLoadMore]);
   useNotificationDestinationRead(route.params?.notificationOpen, Boolean(petId && status === 'ready'));
   const refreshing = status === 'refreshing';
 
   useEffect(() => {
-    if (!isLoggedIn || !petId) return;
+    if (!isLoggedIn || !petId || notificationScoped) return;
     bootstrap(petId);
-  }, [bootstrap, isLoggedIn, petId]);
+  }, [bootstrap, isLoggedIn, notificationScoped, petId]);
 
   const [sortMode, setSortMode] = useState<TimelineSortMode>('recent');
   const [ymFilter, setYmFilter] = useState<string | null>(() =>
@@ -524,6 +540,7 @@ export default function TimelineScreen() {
       filters: {
         ymFilter,
         dateRange: isHomeTotalSummaryEntry ? undefined : route.params?.notificationPeriod,
+        includeHealth: notificationScoped,
         mainCategory,
         otherSubCategory,
         query: '',
@@ -540,6 +557,7 @@ export default function TimelineScreen() {
     timelineEntityVersion,
     route.params?.notificationPeriod,
     isHomeTotalSummaryEntry,
+    notificationScoped,
   ]);
   const availableYmList = timelineView.availableMonthKeys;
   const filteredIds = timelineView.filteredIds;
@@ -564,13 +582,13 @@ export default function TimelineScreen() {
   const periodCategoryCounts = useMemo(() => notificationPeriod && summaryRecords?.petId === petId
     ? buildTimelineCategoryCounts(summaryRecords.records, notificationPeriod)
     : timelineView.categoryCounts, [notificationPeriod, petId, summaryRecords, timelineView.categoryCounts]);
-  const categoryCounts = notificationPeriod ? periodCategoryCounts : timelineCategoryCountsReady
+  const categoryCounts = notificationScoped ? timelineView.categoryCounts : notificationPeriod ? periodCategoryCounts : timelineCategoryCountsReady
     ? timelineCategoryCounts
     : timelineView.categoryCounts;
   const preloadSignatureRef = useRef<string>('');
 
   useEffect(() => {
-    if (!isLoggedIn || !petId) {
+    if (!isLoggedIn || !petId || notificationScoped) {
       setTimelineCategoryCounts(createEmptyTimelineCategoryCounts());
       setTimelineCategoryCountsReady(false);
       setSummaryRecords(null);
@@ -600,14 +618,17 @@ export default function TimelineScreen() {
       cancelled = true;
       task.cancel();
     };
-  }, [isLoggedIn, petId, timelineEntityVersion, timelineView.categoryCounts]);
+  }, [isLoggedIn, notificationScoped, petId, timelineEntityVersion, timelineView.categoryCounts]);
 
   const totalSummary = useMemo(
-    () =>
-      summaryRecords?.petId === petId
+    () => notificationScoped ? hasMore ? null : {
+      ...buildTotalSummary(timelineView.baseItems),
+      totalRecords: timelineView.categoryCounts.all,
+      recordDays: new Set(timelineView.baseItems.map(getRecordDisplayYmd).filter(Boolean)).size,
+    } : summaryRecords?.petId === petId
         ? buildTotalSummary(summaryRecords.records)
         : null,
-    [petId, summaryRecords],
+    [hasMore, notificationScoped, petId, summaryRecords, timelineView.baseItems, timelineView.categoryCounts.all],
   );
   const latestRecordedMonth = useMemo(
     () =>
@@ -619,11 +640,12 @@ export default function TimelineScreen() {
   );
   const markExplicitMonthSelection = useTimelineInitialMonth({
     petId,
-    enabled: isLoggedIn && !isHomeTotalSummaryEntry,
+    enabled: isLoggedIn && !isHomeTotalSummaryEntry && !route.params?.notificationOpen,
     latestRecordedMonth,
     setMonth: setYmFilter,
   });
   const dayCounts = useMemo(() => {
+    if (notificationScoped) return buildTimelineDayCounts(timelineView.filteredItems);
     if (!summaryRecords || summaryRecords.petId !== petId) return null;
     const completeView = buildTimelineView({
       items: summaryRecords.records,
@@ -643,6 +665,8 @@ export default function TimelineScreen() {
     sortMode,
     summaryRecords,
     ymFilter,
+    notificationScoped,
+    timelineView.filteredItems,
   ]);
   const latestVisibleDay = useMemo(
     () =>
@@ -970,15 +994,15 @@ export default function TimelineScreen() {
 
   const onPressItem = useCallback(
     (item: MemoryRecord) => {
-      if (!petId) return;
+      if (!pets.some(pet => pet.id === item.petId)) return;
       navigation.navigate('RecordDetail', {
-        petId,
+        petId: item.petId,
         memoryId: item.id,
         // The immediate list owns the return path, not its earlier Home entry.
         entrySource: 'timeline',
       });
     },
-    [navigation, petId],
+    [navigation, pets],
   );
 
   const onRefresh = useCallback(() => {
@@ -1234,7 +1258,7 @@ export default function TimelineScreen() {
           dateHeaderDotColor={seasonColors.selectedCategory}
           timelineDotColor={seasonColors.statsGradientEnd}
           timelineRailColor="#E4E8ED"
-          metaTextOverride={formatRecordCreatedTime(record)}
+          metaTextOverride={notificationOwnerScope ? `${pets.find(pet => pet.id === record.petId)?.name ?? '아이'} · ${formatRecordCreatedTime(record)}` : formatRecordCreatedTime(record)}
           hideBottomRail={isLastVisibleItem}
         />
       );
@@ -1250,6 +1274,8 @@ export default function TimelineScreen() {
       recordsById,
       seasonColors,
       walkSourceMap,
+      notificationOwnerScope,
+      pets,
     ],
   );
 
@@ -1425,7 +1451,7 @@ export default function TimelineScreen() {
         level={levelSummary}
         titles={earnedTitles}
         summary={totalSummary}
-        petName={selectedPet?.name ?? null}
+        petName={notificationOwnerScope ? null : selectedPet?.name ?? null}
         showWalkStatus={visibleMainCategory === 'walk'}
         onPressBack={onPressBack}
       >
@@ -1436,17 +1462,17 @@ export default function TimelineScreen() {
           mainCategory={visibleMainCategory}
           categoryLabel={visibleCategoryLabel}
           counts={visibleCategoryCounts}
-          transitioning={isHomeTotalSummaryControlsLoading}
+          transitioning={isHomeTotalSummaryControlsLoading || (notificationScoped && hasMore)}
           onToggleSort={onToggleSort}
           onOpenMonth={onOpenMonth}
           onPressCategory={onPressMainCategory}
         />
-        {notificationPeriod ? (
+        {notificationPeriod || notificationOwnerScope ? (
           <View style={styles.notificationPeriod} testID="timeline-notification-period">
             <AppText preset="unifiedMeta" style={styles.notificationPeriodText}>
-              {formatYmdToDots(notificationPeriod.startDate)} ~ {formatYmdToDots(addDaysToYmd(notificationPeriod.endDate, -1))} 기록
+              {notificationOwnerScope ? '모든 아이 · ' : ''}{notificationPeriod ? `${formatYmdToDots(notificationPeriod.startDate)} ~ ${formatYmdToDots(addDaysToYmd(notificationPeriod.endDate, -1))} 기록` : '전체 기록'}
             </AppText>
-            <TouchableOpacity
+            {notificationPeriod ? <TouchableOpacity
               accessibilityRole="button"
               accessibilityLabel="전체 기록 보기"
               onPress={showAllNotificationRecords}
@@ -1455,7 +1481,7 @@ export default function TimelineScreen() {
             >
               <AppText preset="unifiedMeta" style={styles.notificationPeriodActionText}>전체 기록 보기</AppText>
               <Feather name="chevron-right" size={16} color="#7045CB" />
-            </TouchableOpacity>
+            </TouchableOpacity> : null}
           </View>
         ) : null}
       </TimelineSeasonalHeader>
@@ -1481,6 +1507,9 @@ export default function TimelineScreen() {
       onPressMainCategory,
       notificationPeriod,
       showAllNotificationRecords,
+      notificationOwnerScope,
+      notificationScoped,
+      hasMore,
     ],
   );
 

@@ -35,7 +35,7 @@ export function createNotificationOpenReceipt(input: { id: string; source: UserN
 
 /** Only server-validated targets become internal routes. Unavailable/news retain
  * their readable detail; there is never an arbitrary route string or Home fallback. */
-export function resolveNotificationDestination(item: UserNotificationItem, receipt: NotificationOpenReceipt, selectedPetId: string | null): NotificationDestination {
+export function resolveNotificationDestination(item: UserNotificationItem, receipt: NotificationOpenReceipt, _selectedPetId: string | null): NotificationDestination {
   const target = item.actionTarget;
   switch (target?.kind) {
     case 'community_comment': return { name: 'CommunityComments', params: { postId: target.postId, commentId: target.commentId, notificationOpen: receipt } };
@@ -45,9 +45,7 @@ export function resolveNotificationDestination(item: UserNotificationItem, recei
     case 'title': return { name: 'PetActivityAchievements', params: { focusTitleId: target.titleId, focusPetId: target.petId, notificationOpen: receipt } };
     case 'activity': return { name: 'PetActivityAchievements', params: { initialTab: 'summary', notificationOpen: receipt } };
     case 'timeline_period': {
-      const petId = target.petId ?? selectedPetId;
-      if (petId) return { name: 'NotificationTimeline', params: { screen: 'TimelineMain', params: { petId, notificationEntryId: receipt.id, notificationPeriod: { startDate: target.startDate, endDate: target.endDate }, ymFilter: null, notificationOpen: receipt }, notificationOpen: receipt } };
-      break;
+      return { name: 'NotificationTimeline', params: { screen: 'TimelineMain', params: { petId: target.petId ?? undefined, notificationScope: target.petId ? 'pet' : 'owner', notificationEntryId: receipt.id, notificationPeriod: { startDate: target.startDate, endDate: target.endDate }, ymFilter: null, notificationOpen: receipt }, notificationOpen: receipt } };
     }
     case 'pet_anniversary': return { name: 'NotificationTimeline', params: { screen: 'TimelineMain', params: { petId: target.petId, ymFilter: null, notificationOpen: receipt }, notificationOpen: receipt } };
   }

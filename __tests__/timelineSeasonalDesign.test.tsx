@@ -659,7 +659,7 @@ describe('Timeline seasonal design', () => {
     expect(source).toContain('buildTimelineCategoryCounts(records)');
     expect(source).not.toContain('fetchTimelineCategoryCountsByPet(petId)');
     expect(source).toContain('enabled: isLoggedIn && !isHomeTotalSummaryEntry');
-    expect(source).toContain('petName={selectedPet?.name ?? null}');
+    expect(source).toContain('petName={notificationOwnerScope ? null : selectedPet?.name ?? null}');
     expect(source).not.toContain('마지막 기록이에요');
     expect(source).not.toContain('styles.primaryIcon');
     expect(source).not.toContain("dateHeader?.isWeekend ? '#CC4425'");
