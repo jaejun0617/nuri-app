@@ -2,6 +2,19 @@
 
 상태: IN_PROGRESS. 전체 동결 아님. Master 단독 수행.
 
+## 2026-10-28 15:22 KST 세션 경계 수락과 시작 종료의 새 근거
+
+- 로그아웃 보정 소스ae6a5d320b6d40a56c7f0befd3d4a1e7c671c2ed, runtime0fc57adf36fabeeed49e963797a3f8ecfd460d7ce3cb26d29b1842f957f0a74d, APKb912a4d33223eeec4e0ba7c34787a745657572e6a0c09181708e272017aecafa를 두 인스턴스에 동일 서명·UID·데이터·권한 보존/Metro OFF로 갱신했다. [CI40641481350](https://github.com/jaejun0617/nuri-app/actions/runs/40641481350)의 전체·critical·타입·lint·후속 단계 PASS다. delivery-local-logout 영수증이 소유한다.
+- 실제 두 Google 서버 세션에서 물리만 logout한 뒤 물리 세션만 제거되고 에뮬레이터 세션714fa019는 유지됐다. 에뮬레이터 등록edf89425만 새 QA transport7a4ed093의 FCM을 접수했고 실제 OS 표시→탭→알림 상세→06:16:33.862971Z 읽음을 확인했다. 물리 OS key0, emulator1이다. local-session-before/after 및 local-logout-survivor-displayed/consumed 증거를 연결한다. 이 시험 중 강제 세션 만료·토큰 추출·신규 계정 생성은0이다. 이후 물리는 기존 Kakao SSO로 정상 복귀했다.
+- OS11-SESSION-ISOLATION의 기존 FAIL은 위 후보/조건에서 PASS다. 두 인스턴스 전체 matrix를 완료한 것은 아니다. Google service OFF는 원래true로 실제 UI/서버 복원했다. 에뮬레이터 OS 앱 권한은 계속 임시true로, QA 종료 시 원래false로 복원해야 한다.
+- 새 시작 종료: 물리의 설치 직후 첫 실행15:05:29/PID19803에서 native SIGSEGV를 확보했다. 재실행은 정상Home이다. 정확한 APK libreactnative BuildId a611525f8033715552514b1b0045a21f28ca315d와 역어셈블을 대조해 pullTransaction+520의 delegate vtable 두 번째 load(0x11dcaf4, x8=0x100000003)임을 확인했다. 실제 잘못된 delegate 상태는 확인되지만 그 포인터의 생성 주체까지 계측한 것은 아니다. 과거 영상/10월26일 종료의 원인을 동일하다고 소급 단정하지 않는다.
+- 설치된 screens4.27.0에는 [공식4413](https://github.com/software-mansion/react-native-screens/pull/4413)의 미수정 초기화 경합이 실제 남아 있다. 4.27 유지·공식4파일만 Yarn patch로 역이식하며 upstream head204d36b4와 path mapping 후4/4 bytes 일치를 확인했다. 화면 전환/400ms/애니메이션을 끄거나 Navigator를 교체하지 않는다. 새 후보 Android 컴파일·bounded cold/Back 검증 전이므로 NAV 시작 안정성은 아직 FAIL이다.
+- 별도 진단 도구: Metro JS를 제공하지 않는 inspector-only를 일시 연결해 세션 갱신을 관찰하려 했으나 emulator15:09/PID10940에서 Hermes native 종료를 관찰했다. 해당 시도는 성공 증거가 아니다. 즉시 도구를 종료했고 앱을 정상 재실행했으며 이후 세션/전송 검증은 Metro·inspector OFF에서 수행했다. 이 Hermes 스택과 물리 Fabric 스택을 하나의 원인으로 합치지 않는다.
+- 새 C++ host 검사는 설치된 실제 RNSScreenRemovalListener를 컴파일해 mutation 보존·stale token·캡처 해제·재진입·동시 callback 교체를 검증했다. Fabric/JNI 값 타입만 stub이므로 Android 전체 PASS가 아니다. 최초 Mac CLT 기본 경로에 libc++ 헤더가 없어 컴파일이 실패했고 xcrun이 반환한 실제 SDK 표준 헤더 경로를 명시해 통과했다. assertion/대상을 약화하거나 skip하지 않았다.
+- 이 공식 수정 후보는 전체328suites4461/4461·타입·관련lint PASS다. 설치 후 유한 관찰은 물리/에뮬레이터 각각cold5회(10초·Home 또는 고정 알림 목적지)와 대표 push/Back5회로 정한다. 앱 설정 force-stop과 일반 프로세스 미실행은 별도로 기록한다. 반복0종료는 관찰 조건의 결과이며 과거 전체 종료의 해소나 절대 무결함 증명이 아니다. 해당 원인의 새 단서 없이 반복 횟수를 계속 늘리지 않는다.
+
+다음은 공식 native 수정의 Android 설치 후보와 시작/전환 수락이며 기존1~6/NAV 잔여는 계속한다. 전체 미동결·STORE HOLD다.
+
 ## 2026-10-28 14:59 KST 다중 세션 로그아웃 회귀 발견
 
 - 5517 후보에서 물리 Google logout05:38:32Z 직후에는 에뮬레이터의 등록이 active였지만, 이후 원격 Google auth.sessions가0이 되고 에뮬레이터도 SignIn으로 복귀했다. 등록 row만으로 다른 인스턴스 세션 유지 PASS를 판정할 수 없었다. 기존 두 인스턴스 표시/읽음 동기화는 logout 이전 관측 범위로 보존한다.

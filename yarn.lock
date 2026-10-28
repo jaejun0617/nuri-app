@@ -9564,7 +9564,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-screens@npm:^4.27.0":
+"react-native-screens@npm:4.27.0":
   version: 4.27.0
   resolution: "react-native-screens@npm:4.27.0"
   dependencies:
@@ -9574,6 +9574,19 @@ __metadata:
     react: "*"
     react-native: "*"
   checksum: 5f09b4f2a03fdbf85ca83900cd67cbd1c7c81513e4f9b9f5c0ac1ed1a1ea226959c43c85873757febad1059ac44edba0625d62a608acd21f8433731687561e77
+  languageName: node
+  linkType: hard
+
+"react-native-screens@patch:react-native-screens@npm%3A4.27.0#./.yarn/patches/react-native-screens-npm-4.27.0-78335f53c6.patch::locator=nuri%40workspace%3A.":
+  version: 4.27.0
+  resolution: "react-native-screens@patch:react-native-screens@npm%3A4.27.0#./.yarn/patches/react-native-screens-npm-4.27.0-78335f53c6.patch::version=4.27.0&hash=7f3b9f&locator=nuri%40workspace%3A."
+  dependencies:
+    react-freeze: ^1.0.0
+    warn-once: ^0.1.0
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+  checksum: d368e83683f4a04f7c082fee8d84e8c4f80e537967d8917075cd7931a115067951f9b37ea23914e1c15da9d3545f06b4d5dba107620c3ee572593af13ebbd121
   languageName: node
   linkType: hard
 

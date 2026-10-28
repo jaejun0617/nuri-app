@@ -96,7 +96,8 @@
     "postcss": "8.5.23",
     "source-map-js": "1.2.2",
     "query-string@^7.1.3": "patch:query-string@npm%3A7.1.3#./.yarn/patches/query-string-npm-7.1.3-4e8804142a.patch",
-    "@react-native-firebase/crashlytics@^23.8.6": "patch:@react-native-firebase/crashlytics@npm%3A23.8.6#./.yarn/patches/@react-native-firebase-crashlytics-npm-23.8.6-f5ba9c2e64.patch"
+    "@react-native-firebase/crashlytics@^23.8.6": "patch:@react-native-firebase/crashlytics@npm%3A23.8.6#./.yarn/patches/@react-native-firebase-crashlytics-npm-23.8.6-f5ba9c2e64.patch",
+    "react-native-screens@^4.27.0": "patch:react-native-screens@npm%3A4.27.0#./.yarn/patches/react-native-screens-npm-4.27.0-78335f53c6.patch"
   },
   "packageManager": "yarn@3.6.4"
 }
