@@ -263,7 +263,7 @@ export type RootStackParamList = {
   CommunityEdit: { postId: string };
   CommunityBlockedUsers: { entrySource?: ScreenEntrySource } | undefined;
   UserNotifications: { entrySource?: ScreenEntrySource } | undefined;
-  NotificationDetail: { id: string; source: 'user'|'announcement'; notificationOpen?: NotificationOpenReceipt };
+  NotificationDetail: { id: string; source: 'user'|'announcement'; notificationOpen?: NotificationOpenReceipt; resolveTargetOnLoad?: boolean };
   NotificationTimeline: NavigatorScreenParams<TimelineStackParamList> & { notificationOpen: NotificationOpenReceipt };
   HomeQuickNotifications: undefined;
   NuriRanking: { entrySource?: ScreenEntrySource } | undefined;

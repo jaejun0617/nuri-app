@@ -2,6 +2,15 @@
 
 상태: IN_PROGRESS. 전체 동결 아님. Master 단독 수행.
 
+## 2026-10-28 실제 댓글/답글과 OS warm 이동의 준비 지연
+
+- 최신 설치3c31287fa874d34e4e052bbbabe175e8f1aeaac8/[CI40684999925](https://github.com/jaejun0617/nuri-app/actions/runs/40684999925) 전체 후속 PASS·runtime e0ebf56642b4b5360989db0b24deea81e67f947d9152beacf205054a9586576d·bundled Debug APK76e656052b7f803ec8bd793416668b63a442971bcbcd6bef58590bfe8765ab3c을 양쪽 보존 설치/Metro OFF로 확인했다. 실제 offline 재시험에서 네트워크 안내·입력 보존·서버0·network1/1 복원을 수락했다(`schedule-network-acceptance.json`). 이전 일정의 정상 성공/예약 경로는 오류 전달1줄만 달라 영향 없이 재사용하며 전체 응답 유실/도메인 완료로 확대하지 않는다.
+- 신규 업무 원본 E2E: 기존 Kakao QA 소유 cef6a6d1 게시글을 그대로 재사용했다. Google emulator의 정상 댓글 bc550ea3→a1079375/FCM accepted/물리 OS 해당 본문→정확한 댓글 문맥→read_at12:17:30.532994Z를 확인했다. Kakao 물리의 정상 답글 a37a783b→47923dc5/accepted/에뮬레이터 OS 해당 본문→펼친 해당 답글 문맥→read_at12:21:03.579474Z도 확인했다. 각 원본1알림/수신 대상1기기이며 답글에 게시글 작성자용 중복 댓글 알림은 없었다. `community-business-acceptance.json`이 증거를 연결한다. transport 행 삽입/원장 직접 지급이 아니다. 두 QA 댓글만 영향 있는 다음 NAV 재시험을 위해 보존했고 기존 게시글/사용자 콘텐츠는 수정하지 않았다.
+- 새 NAV FAIL: physical OS warm 탭 영상208개 수집 프레임에서 기존 Home이26.136222~27.652467초(약1.516245초) 먼저 보이고 댓글 화면이 열린다. 원래 출발 Home의 native 복귀이지 잘못된 Home reset이라고 추정하지 않는다. App이 목적지를 알기 위한 detail/preferences의 두 조회를 기다린 뒤 dispatch하는 실제 순서와 연결한다. 기존 More의 별도 해결을 취소하거나 정상 슬라이드의 출발 화면과 혼동하지 않는다. 물리 영상은1080×2340/34.762489초/208 frames/약5.98fps VFR이며3개 sheet의 전 수집 프레임을 검토했다. emulator 답글 영상은 탭 전에 종료돼 탭 영상 PASS로 쓰지 않으며 UI/서버 읽음 증거만 연결한다.
+- 최소 후보: warm OS 요청은 기존 NotificationDetail의 실제 헤더/Back/로딩/실패/재시도 화면으로 즉시 push하고, 서버 확인이 끝나면 그 요청 화면만 typed 목적지로 replace한다. HomeQuick 또는 이미 진행 중인 요청은 replace하여 임시 요청 stack을 쌓지 않는다. 일반 알림 상세/소식/접근 불가의 명시 동작, cold Splash의 기존 owner/부트 게이트,400ms/기존 native motion은 유지한다. 고정 지연·전역 가림막·애니메이션 OFF·전역 lock을 추가하지 않았다. 목적지가 있는 요청 화면은 읽음 처리하지 않고 실제 목적지의 기존 표시/도메인 성공 후 읽음을 유지한다. 계정 불일치/Back/계정 A→B→A의 늦은 조회를 차단한다.
+- 새 관련32/32·타입/lint를 검사 중이다. 최초 전체4552PASS/1FAIL은 설정 시험의 gcTime0 수집 timer와 ‘unmount 뒤 서버 성공 cache’ assertion의 경합이다. 분리 실행은12/12 PASS였고 제품 cache 정책은 바꾸지 않았다. 같은 시험에서 GC timer만 통제해 서버 확정 값 assertion을 그대로 유지한 뒤 timer 실행 후 실제 수집도 추가 검증했다. 최신 전체/CI·새 보존 설치·OS warm/cold/Back 재수락이 남아 있으며 소스 완료를 NAV PASS로 쓰지 않는다. OS10/13(76.9%) 한정 수락·기록4도메인 전체0/4·전체 미동결·원래7~9 미착수·STORE HOLD다.
+- 이 요청 화면 후보의 최종 전체337suites4553/4553·타입·관련lint0오류/0경고·diff PASS다(`push-request-loading-full-corrected.json`). 이전4545개와 신규8개를 구분하며 실제 설치/동일 SHA CI 수락은 이어서 기록한다.
+
 ## 2026-10-28 일정 실제 수락과 offline 오류 원인 보존
 
 - 설치39c36f019d89fedaf84073de3c072ea85c3bba3f/[CI40682565945](https://github.com/jaejun0617/nuri-app/actions/runs/40682565945) 모든 후속 PASS·runtime46bc85491d0da91a81bcf68d37639e5fa0faf1da6a24f771d54ebee3e91f27f8·bundled Debug APK845d4d9ca383fc4182d32abcd8f0a3aced27ac5d2fe9218dbce95afade8b0ab1을 물리/Google Play 에뮬레이터에 동일 서명·UID·최초 설치·권한·데이터 보존/Metro OFF로 설치했다. `delivery-schedule-submission`이 영수증을 소유하며 실제 수락은 `schedule-crud-acceptance.json`이다.
@@ -311,7 +320,7 @@ PO 중간 요약: [2026-10-25 20:15 KST 중간보고서](../reports/nuri-integra
 | OS10 / 3·5 | 로그아웃·계정 전환: 현재 owner 등록과 대상 격리 | 과거 미실행 상태 보존 | NOT_RUN(필수 묶음 잔여): 실제 Kakao→Google→Kakao/등록 결합과 local logout 격리는 위 증거. 이전 계정 알림 탭·늦은 callback의 전체 실제 경계는 남음 |
 | OS11 / 4·5 | 실제 별도 두 인스턴스: 각각 수신·읽음 동기화·한쪽 로그아웃 격리 | 과거 준비 상태 보존 | PASS(물리1+에뮬레이터1): 01706689 동일Google 두 등록/각 OS1/읽음 시각 불변·live11→10, ae6a5d3 local logout 뒤 emulator 세션·7a4ed093 수신/읽음 유지. auth/local/등록/읽음 경로 불변으로 한정 재사용. 실물2대/OEM절전 검증은 아님 |
 | OS12 / 5 | 등록 갱신·무효 등록: 현재 기기 연결·정확한 오류만 폐기 | NOT_RUN | NOT_RUN, 등록 식별자/전송 결과 대조 |
-| OS13 / 4·5·NAV | 연속 탭·cold/warm: 동일 요청 중복 이동·중간 Home 없음 | 과거 미실행 상태 보존 | NOT_RUN(필수 묶음 잔여): 주간 warm/cold·More 왕복의 한정 증거는 위 절. 618 실제 삭제 복귀는 통과했으나 상세 하단 탭의 잔존 메뉴 FAIL과 새 보정의 설치 수락이 남음 |
+| OS13 / 4·5·NAV | 연속 탭·cold/warm: 동일 요청 중복 이동·중간 Home 없음 | 과거 후보의 한정 결과 보존 | FAIL(필수 잔여):3c31287 물리 실제 댓글 OS warm 탭에서 목적지 조회 전 기존 Home 약1.516245초 노출. 즉시 실제 알림 요청 화면→검증된 목적지의 최소 후보 검사 중. 빠른 연속/공통 경로 전체는 미실행이며 이전 More/건강 수락과 구분 |
 
 ## 기록 통합 U5
 

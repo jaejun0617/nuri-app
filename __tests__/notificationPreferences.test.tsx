@@ -47,17 +47,26 @@ it.each([true, false])('mirrors the pending toggle and restores confirmed state 
 });
 
 it('keeps a confirmed server result in the account cache after the sheet unmounts', async () => {
+  // Separate the confirmed write from this fixture's immediate GC timer.
+  jest.useFakeTimers({ doNotFake: ['queueMicrotask', 'setImmediate'] });
   const save = deferred();
   mockRpc.mockImplementation((_name: string, args?: object) => args ? save.promise : Promise.resolve({ data: initial, error: null }));
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false, gcTime: 0 } } });
-  let renderer!: TestRenderer.ReactTestRenderer;
-  await act(async () => { renderer = TestRenderer.create(<QueryClientProvider client={client}><Harness /></QueryClientProvider>); });
-  let write!: Promise<unknown>;
-  await act(async () => { write = current.update('service', true); });
-  await act(async () => renderer.unmount());
-  const saved = { pushOptIn: true, categories: { service: true, community: false } };
-  await act(async () => { save.resolve({ data: saved, error: null }); await write; });
-  expect(client.getQueryData(key)).toEqual(saved); client.clear();
+  try {
+    let renderer!: TestRenderer.ReactTestRenderer;
+    await act(async () => { renderer = TestRenderer.create(<QueryClientProvider client={client}><Harness /></QueryClientProvider>); });
+    let write!: Promise<unknown>;
+    await act(async () => { write = current.update('service', true); });
+    await act(async () => renderer.unmount());
+    const saved = { pushOptIn: true, categories: { service: true, community: false } };
+    await act(async () => { save.resolve({ data: saved, error: null }); await write; });
+    expect(client.getQueryData(key)).toEqual(saved);
+    await act(async () => jest.runOnlyPendingTimers());
+    expect(client.getQueryData(key)).toBeUndefined();
+  } finally {
+    client.clear();
+    jest.useRealTimers();
+  }
 });
 
 it('does not commit the old account response after an account switch', async () => {

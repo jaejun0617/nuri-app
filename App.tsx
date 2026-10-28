@@ -123,6 +123,26 @@ function App() {
     let bootOwnsDestination = false;
     const owner = sessionUserId;
     const receipt = createNotificationOpenReceipt({ id: notificationTap.id, source: notificationTap.source, ownerId: owner });
+    const currentRoute = navigationRef.current.getCurrentRoute();
+    const openReceipt = currentRoute?.params && 'notificationOpen' in currentRoute.params ? currentRoute.params.notificationOpen : null;
+    if (openReceipt?.id === receipt.id && openReceipt.source === receipt.source && openReceipt.ownerId === owner) {
+      setNotificationTap(current => current === notificationTap ? null : current);
+      return;
+    }
+    if (currentRoute?.name !== 'Splash') {
+      // Show the real notification request state immediately, not the resumed
+      // Home while two server lookups determine an unknown push destination.
+      const params: RootStackParamList['NotificationDetail'] = {
+        id: receipt.id, source: receipt.source, notificationOpen: receipt, resolveTargetOnLoad: true,
+      };
+      const replaceRequest = currentRoute?.name === 'HomeQuickNotifications' ||
+        (currentRoute?.name === 'NotificationDetail' && currentRoute.params?.resolveTargetOnLoad === true);
+      navigationRef.current.dispatch(replaceRequest
+        ? StackActions.replace('NotificationDetail', params)
+        : StackActions.push('NotificationDetail', params));
+      setNotificationTap(current => current === notificationTap ? null : current);
+      return;
+    }
     withTimeout(fetchNotificationDetail(notificationTap.id, notificationTap.source), NOTIFICATION_LOOKUP_TIMEOUT_MS, 'notification detail').then(item => {
       if (!active || useAuthStore.getState().session?.user.id !== owner || !navigationRef.current.isReady()) return;
       const current = navigationRef.current.getCurrentRoute();

@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { StackActions, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -7,7 +7,9 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 import { notificationKeys } from '../../hooks/useNotificationInbox';
 import { fetchNotificationDetail } from '../../services/notifications/userNotifications';
-import { createNotificationOpenReceipt, resolveNotificationDestination } from '../../services/notifications/openNotification';
+import { createNotificationOpenReceipt, NOTIFICATION_LOOKUP_TIMEOUT_MS, resolveNotificationDestination } from '../../services/notifications/openNotification';
+import { withTimeout } from '../../services/app/boot';
+import { useOwnerOperation } from '../../hooks/useOwnerOperation';
 import { useNotificationDestinationRead } from '../../hooks/useNotificationDestinationRead';
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
@@ -29,9 +31,12 @@ function NotificationDetailContent() {
   const userId = useAuthStore(s => s.session?.user.id ?? null);
   const [busy, setBusy] = useState(false);
   const acting = useRef(false);
+  const redirected = useRef<string | null>(null);
+  const captureCurrent = useOwnerOperation(`${params.source}:${params.id}`);
   const receipt = useMemo(() => params.notificationOpen ?? (userId
     ? createNotificationOpenReceipt({ id: params.id, source: params.source, ownerId: userId })
     : undefined), [params.id, params.notificationOpen, params.source, userId]);
+  const ownerMatches = Boolean(userId && receipt?.ownerId === userId);
   const detail = useQuery({
     queryKey: [
       ...notificationKeys.owner(userId),
@@ -39,11 +44,34 @@ function NotificationDetailContent() {
       params.source,
       params.id,
     ],
-    queryFn: () => fetchNotificationDetail(params.id, params.source),
-    enabled: Boolean(userId),
+    queryFn: async () => {
+      const current = captureCurrent();
+      if (!current() || receipt?.ownerId !== userId) throw new Error('NURI_NOTIFICATION_ACCOUNT_CHANGED');
+      const item = await withTimeout(fetchNotificationDetail(params.id, params.source), NOTIFICATION_LOOKUP_TIMEOUT_MS, 'notification detail');
+      if (!current()) throw new Error('NURI_NOTIFICATION_ACCOUNT_CHANGED');
+      return item;
+    },
+    enabled: ownerMatches,
     refetchOnMount: 'always',
+    retry: params.resolveTargetOnLoad ? false : undefined,
   });
-  const { readError, retryRead } = useNotificationDestinationRead(receipt, Boolean(detail.data && detail.isSuccess));
+  const autoDestination = useMemo(() => {
+    if (!params.resolveTargetOnLoad || !receipt || !detail.isSuccess || detail.isFetching || !detail.data) return null;
+    const pets = usePetStore.getState();
+    return resolveNotificationDestination(detail.data, receipt, pets.selectedPetId ?? pets.pets[0]?.id ?? null);
+  }, [detail.data, detail.isFetching, detail.isSuccess, params.resolveTargetOnLoad, receipt]);
+  const resolvingTarget = Boolean(params.resolveTargetOnLoad && autoDestination?.name !== 'NotificationDetail');
+  useEffect(() => {
+    if (!autoDestination || !receipt || redirected.current === receipt.requestId || receipt.ownerId !== userId || useAuthStore.getState().session?.user.id !== userId || !navigation.isFocused()) return;
+    redirected.current = receipt.requestId;
+    if (autoDestination.name === 'NotificationDetail') {
+      navigation.setParams({ resolveTargetOnLoad: undefined });
+      return;
+    }
+    // Replace only this request screen so Back returns to the original context.
+    navigation.dispatch(StackActions.replace(autoDestination.name, autoDestination.params));
+  }, [autoDestination, navigation, receipt, userId]);
+  const { readError, retryRead } = useNotificationDestinationRead(receipt, Boolean(!resolvingTarget && detail.data && detail.isSuccess));
   const onAction = async () => {
     if (acting.current || !receipt) return;
     acting.current = true;
@@ -103,7 +131,9 @@ function NotificationDetailContent() {
   return (
     <NotificationCanvas top={insets.top}>
       <NotificationHeader title="알림 상세" onBack={navigation.goBack} />
-      {detail.isPending ? (
+      {!ownerMatches ? (
+        <NotificationState message="현재 계정에서 확인할 수 없는 알림이에요" />
+      ) : detail.isPending || (resolvingTarget && !detail.isError) ? (
         <NotificationState loading message="알림을 확인하고 있어요" />
       ) : detail.data ? (
         <NotificationDetailDesign
