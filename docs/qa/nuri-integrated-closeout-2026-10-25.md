@@ -2,6 +2,17 @@
 
 상태: IN_PROGRESS. 전체 동결 아님. Master 단독 수행.
 
+## 2026-10-28 건강 상세 설치 수락과 기록 캐시 경합
+
+- 설치 기준은7f428863e604555570335dbe7cd4b781ccf368ba/[CI40671978734](https://github.com/jaejun0617/nuri-app/actions/runs/40671978734) 후속 전체 PASS, runtime7eca30a32877fe868a5e4382e63e28f3afcb45249bdaf1aea84005f4e78dce7e, bundled 내부 Debug APKd681a45a0fc0719842c5e5b997442399349ea7479711b34186177dba7408f735다. `delivery-health-detail-context`의 빌드/물리·에뮬레이터 설치/CI 영수증으로 동일 서명·UID·최초 설치·권한·데이터 보존과 Metro OFF를 확인했다. 아래 이전 설치 대기 표기는 당시 이력이며 이번 건강 상세 수락으로 갱신한다. Store RC/Release 성능 검증본은 아니다.
+- 물리 SM-S937N에서 More→건강→QA648346cc 상세→같은 건강→같은 메뉴→Home5/5를 확인했다. header Back3회/system Back2회이며 선택 아이와 메뉴 항목 bounds를 보존했다. `health-context-physical-result.json`과143.715244초/1080×2340/786 encoded frames 영상(SHA521e36bceae577c0e34cda9e356e0a993f250b07e96bba28896cb2837c5bb214)이 근거다. 6개 contact sheet의786개 수집 프레임에서 의도하지 않은 More 가림/중간 Home/공백을 관찰하지 못했다. 약5.47fps VFR이며 마지막 sheet의 검정 채움은786개 뒤의 빈 셀이다. 모든 compositor frame이나 전 경로 PASS로 확대하지 않는다.
+- 같은 실제 건강 기록을 QA-health-condition→QA-health-edited로 정상 수정했다. 같은 ID/created_at/health metadata와10:40:46.676989Z updated_at, 상세·이전 건강 목록의 새 본문을 확인했다. 삭제 확인창의 QA 제목 대조 뒤 해당 행만 삭제했고 원래 건강 목록/빈 당일 화면으로 복귀했다. `health-record-edited-server/detail-edited/list-edited/delete-confirm/after-delete-return/deleted-server`가 근거다. 기존 체중3로그/6kg와 기존 일반 기록은 보존했다. 건강의 정상 CRUD와 요청 전 offline 복구 부분 수락이며 도메인 전체 수락은 아니다.
+- 별도 실제 관찰: Google emulator의 일반 Timeline에서 서버/카테고리0인데 이미 삭제된5117d952 카드가 남았다. `timeline-empty-count-stale-card.png/json`과 read-only 서버0을 보존했다. 명시 새로고침 뒤 빈 화면으로 일치했다. 이 과거 관찰의 정확한 요청 순서는 미계측이므로 원인을 단정하지 않는다. 통제된 store 검사에서는 삭제 전 loadMore 응답의 재삽입, replace 뒤 이전 refresh 덮어쓰기, cache clear 후 동일 request 번호 재사용, 늦은 page 실패 덮어쓰기6개 실패를 실제 재현했다(`record-race-before`:6FAIL/5PASS).
+- 최소 보정은 recordStore의 단조 증가 요청 identity와 해당 아이의 write/clear 시 이전 refresh 공유 해제다. 이전 페이지의 성공·실패를 무시하고 변경 뒤 새 refresh는 실제 새 조회를 시작한다. 변경이 없으면 기존 동시 refresh 공유를 유지한다. DB/RLS/서버·디자인·400ms·목록 remount는 변경하지 않았다. 새 경합11개 및 관련8suites88/88·타입 PASS다. 첫 lint의 사용하지 않는 이전 st1개를 제거한 뒤 관련lint0오류/0경고다. 이 보정의 최신 전체/CI/설치 수락은 아직 남는다.
+- 응답 유실 시험은 보수적으로 미수락이다. 에뮬레이터에만10,000:1kbit/s를 적용해 실제 c15d8d9e(QA-20261028-REPLAY,10:50:31.90584Z) 저장 후 네트워크를 차단했지만30초 관찰에서 실패 UI가 없었고 원복 뒤 정상 상세에 도달했다. `replay-loss-*`는 실패 주입 시도/NOT_RUN이며 중복 재시도 PASS로 합산하지 않는다. wifi/data1/1·속도 unlimited·지연0ms를 finally로 복원했다. 해당 QA 행은 정상 삭제했고 `replay-deleted-server`의 QA 기록0과 `replay-after-delete-settled` 빈 목록을 확인했다. 운영 시간/다른 기기 네트워크/서버 정책은 변경하지 않았다.
+- 다음1순위: 이 캐시 보정의 최종 검사·CI·보존 설치와 실제 삭제/재진입을 확인하고, 기존 응답 유실·사진·건강·일정 실패 복구 및 OS10/12/13·인증·실제 업무 이벤트 미마감을 계속한다. OS 기존10/13 한정 수락, 기록4도메인 전체0/4, 전체 미동결·원래7~9 미착수·STORE HOLD를 유지한다.
+- 캐시 보정의 최종 전체334suites4523/4523·타입·관련lint0오류/0경고·diff PASS다(`record-race-full.json`). 이전4512개와 신규11개를 구분하며 새 소스 CI·설치 수락을 대신하지 않는다.
+
 ## 2026-10-28 OS07/09 수락과 건강 상세의 계층 결함
 
 - 앱79fc198/동일 CI·양쪽 설치 후보에서 OS07의 두 준비 조건을 분리했다. 최근 목록의 Pet Nuri 카드 제거 후 pid없음/stopped=false를 확인한 e4cc7dd2, task를 유지한 채 QA 앱 UID SIGKILL로 pid없음/stopped=false를 확인한4c71c7a5 모두 정상 FCM 경로→실제 OS 단일 표시→탭/상세→서버 읽음→Home을 확인했다. read_at은 각각09:55:50.791399Z/09:59:04.832688Z이며 각25초 영상과 `recents-removed-verified/process-absent-tap-result`가 후보/해시를 소유한다. 첫 swipe가 카드를 제거하지 못한 채 발행한 ab29157d는 준비 미충족으로 OS07 수락에서 제외했고 재현 실패나 제품 결함으로 계산하지 않았다.

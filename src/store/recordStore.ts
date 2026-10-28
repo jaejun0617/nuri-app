@@ -105,6 +105,13 @@ const PAGE_SIZE = 20;
 // navigation callback awaits refresh. Share that in-flight task per pet so
 // home never treats an already-running refresh as completed.
 const refreshPromises = new Map<string, Promise<void>>();
+// Never reuse a request identity after logout, pet cache removal or a write.
+// A late page must not restore records that have since been edited/deleted.
+let requestSequence = 0;
+function nextRequestSequence() {
+  requestSequence += 1;
+  return requestSequence;
+}
 
 const createInitialPetState = (): PetRecordsState => ({
   items: [],
@@ -394,7 +401,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
       return;
     }
 
-    const req = st.requestSeq + 1;
+    const req = nextRequestSequence();
 
     set(s => ({
       byPetId: {
@@ -479,9 +486,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
     }
 
     get().ensurePetState(petId);
-    const st = get().getPetState(petId);
-
-    const req = st.requestSeq + 1;
+    const req = nextRequestSequence();
 
     const refreshTask = (async () => {
       set(s => ({
@@ -641,7 +646,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
     } catch (error: unknown) {
       set(s => {
         const cur = s.byPetId[petId];
-        if (!cur) return s;
+        if (!cur || cur.requestSeq !== req) return s;
 
         return {
           byPetId: {
@@ -663,6 +668,8 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
   replaceAll: (petId, items) => {
     if (!petId) return;
     get().ensurePetState(petId);
+    refreshPromises.delete(petId);
+    const requestSeq = nextRequestSequence();
 
     const next = normalizeRecordItems([...items]);
     sortByDisplayDateDesc(next);
@@ -677,7 +684,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
           errorMessage: null,
           cursor: getNextCursorFromItems(next),
           hasMore: next.length >= PAGE_SIZE,
-          requestSeq: s.byPetId[petId]?.requestSeq ?? 0,
+          requestSeq,
         },
       },
       timelineByPetId: {
@@ -688,7 +695,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
           errorMessage: null,
           cursor: getNextCursorFromItems(next),
           hasMore: next.length >= PAGE_SIZE,
-          requestSeq: s.timelineByPetId[petId]?.requestSeq ?? 0,
+          requestSeq,
           entityVersion: (s.timelineByPetId[petId]?.entityVersion ?? 0) + 1,
         },
       },
@@ -698,6 +705,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
   upsertOneLocal: (petId, item) => {
     if (!petId) return;
     get().ensurePetState(petId);
+    refreshPromises.delete(petId);
 
     set(s => {
       const normalizedItem = normalizeMemoryRecord(
@@ -714,6 +722,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
         ...curTimeline,
         ids: nextIds,
         status: 'ready',
+        requestSeq: nextRequestSequence(),
         cursor: getNextCursorFromTimelineIds(nextIds, nextRecordsById),
         entityVersion: curTimeline.entityVersion + 1,
       };
@@ -745,6 +754,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
         s.recordsById[memoryId] ??
         s.byPetId[petId]?.items.find(item => item.id === memoryId);
       if (!current) return s;
+      refreshPromises.delete(petId);
 
       const nextRecord = normalizeMemoryRecord({
         ...current,
@@ -763,6 +773,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
         ...curTimeline,
         ids: nextIds,
         status: 'ready',
+        requestSeq: nextRequestSequence(),
         cursor: getNextCursorFromTimelineIds(nextIds, nextRecordsById),
         entityVersion: curTimeline.entityVersion + 1,
       };
@@ -788,6 +799,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
   removeOneLocal: (petId, memoryId) => {
     if (!petId) return;
     get().ensurePetState(petId);
+    refreshPromises.delete(petId);
 
     set(s => {
       const nextRecordsById = removeRecordEntityById(s.recordsById, memoryId);
@@ -798,6 +810,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
         ...curTimeline,
         ids: nextIds,
         status: 'ready',
+        requestSeq: nextRequestSequence(),
         cursor: getNextCursorFromTimelineIds(nextIds, nextRecordsById),
         entityVersion: curTimeline.entityVersion + 1,
       };
@@ -845,6 +858,7 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
   // ---------------------------------------------------------
   clearPet: petId => {
     if (!petId) return;
+    refreshPromises.delete(petId);
     set(s => {
       const next = { ...s.byPetId };
       const nextTimeline = { ...s.timelineByPetId };
@@ -860,11 +874,13 @@ export const useRecordStore = create<RecordStore>((set, get) => ({
     });
   },
 
-  clearAll: () =>
+  clearAll: () => {
+    refreshPromises.clear();
     set({
       byPetId: {},
       recordsById: {},
       timelineByPetId: {},
       focusedMemoryIdByPet: {},
-    }),
+    });
+  },
 }));
