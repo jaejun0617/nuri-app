@@ -63,8 +63,9 @@ let client: QueryClient;
 async function settle() {
   await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
 }
-async function render() {
+async function render(cached?: UserNotificationItem) {
   client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+  if (cached) client.setQueryData(['notifications-v3', 'owner', 'detail', 'user', 'notice'], cached);
   await act(async () => {
     renderer = Renderer.create(<QueryClientProvider client={client}><NotificationDetailScreen /></QueryClientProvider>);
   });
@@ -108,8 +109,17 @@ it.each(['notification_detail', 'unavailable'] as const)('retains a readable %s 
 it('keeps failure retry and Back available without redirecting or reading', async () => {
   mockFetch.mockRejectedValue(new Error('offline'));
   await render(); await settle();
+  expect(renderer?.root.findByProps({ testID: 'NotificationState' }).props.message).toBe('알림을 불러오지 못했어요');
   expect(renderer?.root.findByProps({ testID: 'NotificationState' }).props.retry).toEqual(expect.any(Function));
   expect(renderer?.root.findByProps({ testID: 'NotificationHeader' }).props.onBack).toBe(mockNavigation.goBack);
+  expect(mockDispatch).not.toHaveBeenCalled();
+  expect(mockReady).toHaveBeenLastCalledWith(false);
+});
+it('does not present a cached target as freshly resolved after its verification fails', async () => {
+  mockFetch.mockRejectedValue(new Error('offline'));
+  await render(item({ kind: 'activity' })); await settle();
+  expect(renderer?.root.findByProps({ testID: 'NotificationState' }).props.message).toBe('알림을 불러오지 못했어요');
+  expect(renderer?.root.findAllByProps({ testID: 'NotificationDetailDesign' })).toHaveLength(0);
   expect(mockDispatch).not.toHaveBeenCalled();
   expect(mockReady).toHaveBeenLastCalledWith(false);
 });

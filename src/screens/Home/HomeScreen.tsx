@@ -29,6 +29,8 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { NotificationStartup } from '../../services/notifications/openNotification';
 import * as S from './HomeScreen.styles';
 import { getBootSplashHoldMs, resolveBootRoute } from '../../services/app/boot';
+import { finishNativeLaunchPresentation } from '../../services/app/nativeLaunchPresentation';
+import { captureMonitoringException } from '../../services/monitoring/sentry';
 import {
   loadCommunityRouteStateSnapshot,
   type CommunityRouteStateSnapshot,
@@ -68,6 +70,21 @@ export default function HomeScreen({ notificationStartup }: { notificationStartu
   const [reduceMotionEnabled, setReduceMotionEnabled] = useState<
     boolean | null
   >(null);
+  const [artworkLoaded, setArtworkLoaded] = useState(false);
+  const [artworkLaidOut, setArtworkLaidOut] = useState(false);
+
+  useEffect(() => {
+    if (!artworkLoaded || !artworkLaidOut) return;
+    const frame = requestAnimationFrame(() => {
+      finishNativeLaunchPresentation().catch(captureMonitoringException);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [artworkLaidOut, artworkLoaded]);
+
+  useEffect(() => () => {
+    // An alternate boot destination or failed bitmap must not retain the OS view.
+    finishNativeLaunchPresentation().catch(captureMonitoringException);
+  }, []);
 
   // Splash 시작 시각
   const startedAtRef = useRef<number>(Date.now());
@@ -260,6 +277,12 @@ export default function HomeScreen({ notificationStartup }: { notificationStartu
         source={seasonalVisual.source}
         resizeMode="contain"
         fadeDuration={0}
+        onLoad={() => setArtworkLoaded(true)}
+        onLayout={() => setArtworkLaidOut(true)}
+        onError={() => {
+          captureMonitoringException(new Error('NURI_SPLASH_ARTWORK_UNAVAILABLE'));
+          finishNativeLaunchPresentation().catch(captureMonitoringException);
+        }}
         accessible
         accessibilityRole="image"
         accessibilityLabel={seasonalVisual.accessibilityLabel}

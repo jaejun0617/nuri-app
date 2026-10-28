@@ -2,6 +2,34 @@
 
 상태: IN_PROGRESS. 전체 동결 아님. Master 단독 수행.
 
+## 2026-10-28 알림 왕복5회와 시작 화면 연결 후보
+
+- 333795c의 새 알림 요청 화면을 물리2회/에뮬레이터3회, warm3회/cold2회에서 실제 OS PendingIntent→정확한 QA 댓글→서버 read_at→시스템 Back1회 Home으로5/5 확인했다. `push-request-journeys-acceptance.json`은 실제 좋아요 원본1건과 전달 전용4건을 구분한다. 영상123/218/163/316/148개 수집 프레임을 모두 검토했다. warm의 원래 출발 Home은 native 앱 복귀 및 정상 push에서 보이지만 canonical 서버 대기는 실제 알림 요청 화면 안에서 처리된다. cold는 Splash에서 댓글로 열리며 목적지 전 Home은 관찰되지 않았다. 정상 슬라이드 출발 화면을 의도하지 않은 중간 Home으로 분류하지 않는다. 모든 compositor frame/연속 요청/전체 NAV PASS는 아니다.
+- 기존 시작 잔여: native 시작 화면이 첫 빈 React frame에 자동 해제돼 승인된 로컬 이미지가 그려지기 전 흰 공백을 보였다. 최신 후보는 Android31+의 기존 OS Splash exit view를 이미지 onLoad+onLayout 및 다음 프레임까지 유지한 뒤 해제한다. 새 화면/가림막/이미지/라이브러리/고정 대기/전환시간 변경은 없다. 이미지 오류·Splash 이탈·다른 부트 목적지는 해제하며 기존 React를 보존한 Activity 재생성에는 새 대기를 걸지 않는다. Activity 파괴 시 listener view를 정리한다.
+- Android12+의 OS가 먼저 표시하는 아이콘 시작 화면 자체를 임의 제거하거나 full-screen 이미지로 바꿨다고 주장하지 않는다. 이번 최소 보정의 목표는 OS 시작 화면→기존 승인 JS 스플래시의 빈 handoff 제거다. 기존 계절 선택·접근성·2초 브랜드 노출·인증/알림 목적지·400ms는 보존한다.
+- 새 후보의 관련4suites31/31·타입·대상lint0오류/0경고·전체338suites4559/4559 PASS다(`native-handoff-focused.json`, `native-handoff-full.json`). native 컴파일·동일 SHA CI·보존 설치·실제 정상/cold 알림/키보드/Back의 영향 수락은 아직 남는다. 이전333795c의5회 영상을 새 native 후보의 시작 수락으로 사용하지 않는다. 전체 미동결·원래7~9 미착수·STORE HOLD다.
+- 추가 실제 실패 수락:333795c의 전달 시험81e5e86b를 emulator OS에서 정상 표시/탭한 뒤 QA 단말만 offline으로 두었다. 실제 요청 실패/재시도 버튼→Back1회 Home→network1/1 복구 뒤 Home 유지·server read_at NULL을 확인했다.85개 수집 프레임 전부 검토했으며 성공 응답이 늦게 도착하는 조건까지 증명한 것은 아니다. `push-request-cancel-06-*`이 근거다. 첫 안내가 연결 실패를 ‘삭제되었거나’로 표시한 실제 FAIL과, 실패 시 오래된 query data를 새 목적지 확인처럼 보여줄 수 있는 계약 FAIL2개를 보존했다(`request-offline-before.json`,2FAIL/7PASS).
+- 최소 보정: 요청 확인 실패는 ‘알림을 불러오지 못했어요’와 재시도를 표시하고, 자동 목적지 확인 실패에 cached target을 표시하지 않는다. 일반 명시 상세의 기존 offline cache/서버의 삭제·접근 불가 결과는 유지한다. 별도 완료/읽음 처리도 없다. 명시 오류 분기 뒤 불가능해진 query union branch의 refetch 접근을 제거해 타입 축소를 존중했다. 최종 관련5suites52/52·타입·대상lint0오류/0경고·전체338suites4560/4560 PASS다(`native-handoff-offline-focused.json`, `native-handoff-offline-full.json`). 새 설치에서 실제 안내/재시도와 시작 연결을 함께 수락한다.
+
+## 2026-10-28 22:03 KST 최신 후보 수락 기준 진행률
+
+- 후보333795c241f9674d695b9e3c0070ee12b35dfb5f의 전체337suites4553/4553·타입·관련lint0오류/0경고와 [CI40689673810](https://github.com/jaejun0617/nuri-app/actions/runs/40689673810)의 필수 후속 단계 전부 PASS를 확인했다. `delivery-push-request-screen/ci.json`이 동일 SHA를 소유한다. runtime f042c5acf0904696e4446ffaaef60ee0b52b41e76a33fe8901a0a20ce8c1a678·APK253c9d2ac38ff086cbda1fe0746e4272c3c22a2ac4366fc92d4b5545951a983c을 물리1대+Google Play 에뮬레이터1대에 기존 서명·UID·최초 설치·권한·데이터 보존/Metro OFF로 설치했다. 내부 bundled Debug이며 Store RC/Release 성능 수락이 아니다.
+- `push-settings-final-audit.json`은22:01 KST의 실환경3개 설정·FCM 서비스 계정 project/digest·Edge/Vault worker 인증 일치·0700/0600 보관·device-v3 v3/worker-v3 v2 ACTIVE·NURI3cron 활성/1분·canonical QA2명만 허용·누락/오류 인증403/403을 확인했다. 키 회전·일반 사용자 발송 개방·대기열 삭제·서버 변경0이다. 기존 실제 기기 암호화 토큰의 전달 성공을 재사용하며 단순 설정 존재만으로 수락하지 않았다.
+
+| 수락 단위 | 이 후보의 최종 상태 | 근거와 미마감 |
+|---|---|---|
+| 1 검사/B2 | PASS | 최신 로컬 전체와 동일 SHA 원격 후속 단계 수락 |
+| 2 외부 설정/B1 | PASS | 실제 QA 전달 경로와 최신 설정·보관·인증·범위 대조 |
+| 3 인증/U1 | IN_PROGRESS | 실제 provider 성공/취소/세션 증거 보존, 늦은 callback/이전 계정 목적지 경계 잔여 |
+| 4 인앱/U2 | IN_PROGRESS | 원본 댓글·답글·댓글 좋아요/기록·XP·칭호 등의 한정 E2E 보존,17묶음/26eventType 전체 미마감 |
+| 5 OS/U3 | IN_PROGRESS | 기존10/13묶음76.9%, OS10/12/13 잔여. 최신 이동/읽음 영향은 재수락 중 |
+| 6 기록/U5 | IN_PROGRESS | 도메인 전체0/4, 실제 CRUD/일부 실패 복구와 전체 필수 수락은 구분 |
+| NAV-01 | IN_PROGRESS | 새 후보 실제 warm/cold·Back 수락과 시작 handoff·빠른 입력 잔여 |
+
+- 최종 마감 항목 비율은2/7=28.6%다. 코드 작성량·앱 전체 개발률·개별 필수 행의 가중 완료율이 아니다. 이후 런타임/서버가 바뀌면 영향 있는 해당 수락을 재개방한다. 중간 설명의1/7=14.3%는 최신 CI와 외부 설정 최종 대조 전 시점이며 그 뒤 완료된 두 항목과 구분한다.
+- 새 업무 원본: Kakao 물리의 정상 댓글 좋아요→66159a9f→FCM accepted/Google 에뮬레이터 OS→정확한 QA 댓글→12:46:38.865682Z read_at·Back1회 Home을 확인했다. `community-like-consumed.json`과 `push-request-like-01-*`이 근거다. QA 전달 시험용 news.direct 행은 이 업무 E2E에 합산하지 않는다. QA 댓글2개/좋아요1개는 영향 있는 재시험 뒤 정상 UI로 정리할 예정이다.
+- 관찰: 새 warm 영상은 서버 대기를 실제 알림 요청 화면 안에서 처리한다. 원래 Home이 native 재개 및 정상 push 출발 화면으로 보이는 구간은 잘못된 중간 Home reset과 구분하며, 영상을 검토하기 전 전역 무플리커 PASS로 올리지 않는다. cold 영상의 흰 native→JS handoff는 기존 BOOT-01 잔여로 유지한다. 전체 미동결·원래7~9 미착수·STORE HOLD다.
+
 ## 2026-10-28 실제 댓글/답글과 OS warm 이동의 준비 지연
 
 - 최신 설치3c31287fa874d34e4e052bbbabe175e8f1aeaac8/[CI40684999925](https://github.com/jaejun0617/nuri-app/actions/runs/40684999925) 전체 후속 PASS·runtime e0ebf56642b4b5360989db0b24deea81e67f947d9152beacf205054a9586576d·bundled Debug APK76e656052b7f803ec8bd793416668b63a442971bcbcd6bef58590bfe8765ab3c을 양쪽 보존 설치/Metro OFF로 확인했다. 실제 offline 재시험에서 네트워크 안내·입력 보존·서버0·network1/1 복원을 수락했다(`schedule-network-acceptance.json`). 이전 일정의 정상 성공/예약 경로는 오류 전달1줄만 달라 영향 없이 재사용하며 전체 응답 유실/도메인 완료로 확대하지 않는다.

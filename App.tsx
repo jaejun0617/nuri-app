@@ -43,6 +43,7 @@ import {
   saveCommunityRouteStateSnapshot,
 } from './src/navigation/communityRouteState';
 import {
+  captureMonitoringException,
   initMonitoring,
   registerSentryNavigation,
   wrapWithSentry,
@@ -52,6 +53,7 @@ import { useCommunityStore } from './src/store/communityStore';
 import { usePetStore } from './src/store/petStore';
 import {consumeInitialNotificationTap,observeNativePush,type NotificationTap} from './src/services/notifications/nativePush';
 import {syncPushNotificationDevice} from './src/services/notifications/pushTokenLifecycle';
+import { finishNativeLaunchPresentation } from './src/services/app/nativeLaunchPresentation';
 import {appQueryClient} from './src/services/query/appQueryClient';
 import { fetchNotificationDetail } from './src/services/notifications/userNotifications';
 import { createNotificationOpenReceipt, NOTIFICATION_LOOKUP_TIMEOUT_MS, resolveNotificationDestination, type NotificationDestination } from './src/services/notifications/openNotification';
@@ -295,10 +297,16 @@ function App() {
     setNavigationReady(true);
     registerSentryNavigation(navigationRef.current);
     persistCommunityRouteState();
+    if (navigationRef.current.getCurrentRoute()?.name !== 'Splash') {
+      finishNativeLaunchPresentation().catch(captureMonitoringException);
+    }
   }, [persistCommunityRouteState]);
 
   const handleNavigationStateChange = useCallback(() => {
     persistCommunityRouteState();
+    if (navigationRef.current.getCurrentRoute()?.name !== 'Splash') {
+      finishNativeLaunchPresentation().catch(captureMonitoringException);
+    }
     if (pendingScheduleTapRef.current) {
       setNavigationStateRevision(previous => previous + 1);
     }

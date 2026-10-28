@@ -33,6 +33,12 @@ const mockNavigation = { reset: jest.fn(), isFocused: () => true };
 const mockRestore = jest.fn();
 const mockCommunity = { restoreListSnapshot: mockRestore };
 const mockLoad = jest.fn<Promise<CommunityRouteStateSnapshot | null>, []>();
+const mockFinishNativeLaunch = jest.fn<Promise<void>, []>().mockResolvedValue(undefined);
+
+jest.mock('../src/services/app/nativeLaunchPresentation', () => ({
+  finishNativeLaunchPresentation: () => mockFinishNativeLaunch(),
+}));
+jest.mock('../src/services/monitoring/sentry', () => ({ captureMonitoringException: jest.fn() }));
 
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => mockNavigation,
@@ -87,6 +93,30 @@ describe('seasonal splash presentation and boot preservation', () => {
     if (renderer) await act(async () => renderer.unmount());
     jest.restoreAllMocks();
     jest.useRealTimers();
+  });
+
+  it('releases the Android starting view only after the image has loaded and laid out', async () => {
+    await render();
+    const image = renderer.root.findByType(Animated.Image);
+    expect(mockFinishNativeLaunch).not.toHaveBeenCalled();
+    await act(async () => image.props.onLoad());
+    await act(async () => jest.advanceTimersByTime(32));
+    expect(mockFinishNativeLaunch).not.toHaveBeenCalled();
+    await act(async () => image.props.onLayout());
+    await act(async () => jest.advanceTimersByTime(32));
+    expect(mockFinishNativeLaunch).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not retain the Android starting view if the local bitmap fails', async () => {
+    await render();
+    await act(async () => renderer.root.findByType(Animated.Image).props.onError());
+    expect(mockFinishNativeLaunch).toHaveBeenCalledTimes(1);
+  });
+
+  it('releases on early boot-screen removal even without an image callback', async () => {
+    await render();
+    await act(async () => renderer.unmount());
+    expect(mockFinishNativeLaunch).toHaveBeenCalledTimes(1);
   });
 
   it.each(['autumn', 'winter', 'spring', 'summer'] as const)(

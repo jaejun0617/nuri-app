@@ -17,6 +17,17 @@ import com.nuri.notifications.NuriPushModule
 import com.nuri.walk.WalkVisibility
 
 class MainActivity : ReactActivity() {
+  private var launchContentReady = false
+  private var removeLaunchView: (() -> Unit)? = null
+
+  fun finishLaunchPresentation() {
+    launchContentReady = true
+    val remove = removeLaunchView ?: return
+    removeLaunchView = null
+    // Wait for the submitted React frame, not an estimated startup duration.
+    window.decorView.postOnAnimation { if (!isDestroyed) remove() }
+  }
+
   private fun applySystemBarStyle() {
     // Match the white seasonal splash canvas before React Native's first frame.
     // Normal screens remain responsible for their own surfaces and insets.
@@ -35,6 +46,7 @@ class MainActivity : ReactActivity() {
   }
 
   override fun onCreate(savedInstanceState: Bundle?) {
+    val retainedReact = (application as? ReactApplication)?.reactHost?.currentReactContext?.hasActiveReactInstance() == true
     NuriPushModule.capture(this, intent)
     // Capture a notification tap before React Native is ready. JS consumes it
     // once after navigation, auth, and pet bootstrap have completed.
@@ -46,8 +58,21 @@ class MainActivity : ReactActivity() {
     supportFragmentManager.fragmentFactory = RNScreensFragmentFactory()
     super.onCreate(savedInstanceState)
 
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !retainedReact) {
+      splashScreen.setOnExitAnimationListener { view ->
+        if (launchContentReady || isDestroyed) view.remove()
+        else removeLaunchView = { view.remove() }
+      }
+    }
+
     WindowCompat.setDecorFitsSystemWindows(window, true)
     applySystemBarStyle()
+  }
+
+  override fun onDestroy() {
+    removeLaunchView?.invoke()
+    removeLaunchView = null
+    super.onDestroy()
   }
 
   override fun onNewIntent(intent: Intent) {

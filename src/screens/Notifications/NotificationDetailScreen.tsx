@@ -135,6 +135,8 @@ function NotificationDetailContent() {
         <NotificationState message="현재 계정에서 확인할 수 없는 알림이에요" />
       ) : detail.isPending || (resolvingTarget && !detail.isError) ? (
         <NotificationState loading message="알림을 확인하고 있어요" />
+      ) : detail.isError && (params.resolveTargetOnLoad || !detail.data) ? (
+        <NotificationState message="알림을 불러오지 못했어요" retry={() => { detail.refetch().catch(() => {}); }} />
       ) : detail.data ? (
         <NotificationDetailDesign
           item={detail.data}
@@ -147,12 +149,7 @@ function NotificationDetailContent() {
           onRetryRead={retryRead}
         />
       ) : (
-        <NotificationState
-          message="삭제되었거나 확인할 수 없는 알림이에요"
-          retry={() => {
-            detail.refetch().catch(() => {});
-          }}
-        />
+        <NotificationState message="삭제되었거나 확인할 수 없는 알림이에요" />
       )}
     </NotificationCanvas>
   );
