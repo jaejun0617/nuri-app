@@ -2,6 +2,14 @@
 
 상태: IN_PROGRESS. 전체 동결 아님. Master 단독 수행.
 
+## 2026-10-29 첫 root 진입의 native 애니메이션 분리
+
+- 94b7ac8b3277543255c0729eba84fb50c8d1460e/[CI40709096063](https://github.com/jaejun0617/nuri-app/actions/runs/40709096063)의 필수 후속 전체 PASS·runtime1d7b2f4e3d10d38c7cfd89cabc73f806e550b899dc9683a33851dfa7926c68ac·APKcdc83027115ae2cc20419c757900c6ecc0ee6c19de480d750317162db1cbfd56을 양쪽 보존 설치/Metro OFF로 확인했다. `delivery-boot-shell-preload`와 `boot-preload-acceptance.json`이 정확한 영수증을 소유한다.
+- 실제 physical cold c2ff559c에서는 ActivityOptions의 기존 icon 선호가 적용돼 누리 OS icon→승인 artwork→해당 댓글/15:03:11.301723Z 읽음→Back1회 같은 Home을 확인했다.287개 수집 프레임을 모두 검토했으며 QA transport이지 업무 원본 E2E가 아니다. 새 앱 코드에서 이 native 부분이 불변인 범위만 재사용할 수 있다.
+- preload는 충분한 해결안이 아니었다. emulator85개 수집 프레임의60~62가 빈 바탕이며15.353444~16.444144초는 표본 간격이다. 양수 onLayout을 실제 표시 완료로 올리지 않았다. 설치된 ScreenStack은 preloaded top도 새 진입으로 분류하고, Android33+ DEFAULT enter는 alpha0/50ms offset·450ms 이동을 적용한다. 따라서 준비된 구조와 실제 native 진입 효과를 별개로 다룬다. 이 경로의 시간만으로 전체 공백 지속시간·과거 종료 원인을 확정하지 않는다.
+- 다음 최소 후보는 효과 없는 preload·layout state·임시 props를 제거하고 원래 canonical 단일 boot reset으로 돌아간다. AppTabs root 진입에만 animation none을 명시해 겹치는 DEFAULT enter를 사용하지 않는다. 실제 툴바400ms fade·More·상세 native slide/역방향 Back·guest/auth·cold 알림의 두 장짜리 stack은 유지한다. 새 가림막·타이머·전역 animation OFF는 없다. 숨긴 Home 환영 안내의 focus 경계와 실제 수락한 FCM icon 옵션은 유지한다.
+- preload 기능 자체의 route/layout 검사4개는 해당 실험 제거와 함께 정리하고 실패 영상/앞선 CI/회귀 JSON은 보존했다. 시각 수락 조건은 낮추지 않았다. 최초 root 진입만 별도로 검사하면서 탭400ms·auth·상세 animation assertion을 유지했다. 최종6suites79/79·전체339suites4563/4563·타입·대상lint0오류/0경고 PASS(`boot-entry-*`)이며 새 후보 CI/설치·실제 시작 수락은 남는다. 전체 항목2/7=28.6%·OS10/13·기록 전체0/4·미동결·원래7~9 미착수·STORE HOLD다.
+
 ## 2026-10-28 실제 실패 안내 수락과 최초 shell 준비
 
 - c5313379e84bf65838eb157e89d2cbf1049df12d/[CI40699213322](https://github.com/jaejun0617/nuri-app/actions/runs/40699213322)의 필수 후속 전체 PASS를 확인했다. runtime cc821f9c23c67d4ae13eca3daebc2c91b75dd4a3c4f59fdadd32b75aacf1fb11·APK0675ae25e91e48166c0b6bf588a218468d2dc2da103e0bd323a72e3462ace4ae를 두 인스턴스에 보존 설치/Metro OFF로 확인했다. `delivery-boot-shell-replacement`와 `boot-shell-acceptance.json`이 영수증을 소유한다.

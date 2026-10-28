@@ -35,7 +35,7 @@ jest.mock('../src/screens/Main/components/LoggedInHome/LoggedInHome', () => 'Log
 jest.mock('../src/components/common/ConfirmDialog', () => 'ConfirmDialog');
 jest.mock('../src/components/onboarding/FirstPetWelcomeModal', () => 'FirstPetWelcomeModal');
 
-test('a preloaded Home cannot open or consume the first-pet welcome before focus', async () => {
+test('an unfocused Home cannot open or consume the first-pet welcome before focus', async () => {
   mockFocused = false;
   mockLoadWelcome.mockResolvedValue({ userId: 'qa-owner', petId: 'qa-pet', petName: 'QA' });
   let tree: Renderer.ReactTestRenderer | null = null;

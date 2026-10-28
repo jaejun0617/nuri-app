@@ -159,16 +159,12 @@ function CustomTabBar(
   );
 }
 
-export default function AppTabsNavigator({ onPrepared }: { onPrepared?: () => void }) {
+export default function AppTabsNavigator() {
   const reduceMotion = useNavigationMotion();
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const [toolbarHeight, setToolbarHeight] = useState<number | null>(null);
   const [moreVisible, setMoreVisible] = useState(false);
-  const handleShellLayout = useCallback((event: LayoutChangeEvent) => {
-    const { width, height } = event.nativeEvent.layout;
-    if (width > 0 && height > 0) onPrepared?.();
-  }, [onPrepared]);
   const handleToolbarLayout = useCallback((event: LayoutChangeEvent) => {
     const height = event.nativeEvent.layout.height;
     if (height > 0) setToolbarHeight(height);
@@ -190,7 +186,7 @@ export default function AppTabsNavigator({ onPrepared }: { onPrepared?: () => vo
         56 + Math.max(insets.bottom, Platform.OS === 'android' ? 18 : 10)
       }
     >
-      <View testID="app-tabs-shell" style={[styles.root, { backgroundColor: theme.colors.background }]} onLayout={handleShellLayout}>
+      <View style={[styles.root, { backgroundColor: theme.colors.background }]}>
         <Tab.Navigator
           screenOptions={{
             headerShown: false,

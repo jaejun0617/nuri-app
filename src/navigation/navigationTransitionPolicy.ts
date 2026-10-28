@@ -93,6 +93,9 @@ const coveredTabFade: BottomTabNavigationOptions = {
   },
 };
 const preserved: NativeStackNavigationOptions = {};
+// The app shell replaces Splash; it is not another toolbar-tab transition.
+// Android's default native enter starts transparent even after a preload.
+const appShellEntry: NativeStackNavigationOptions = { animation: 'none' };
 const detailSlide: NativeStackNavigationOptions = {
   animation: 'slide_from_right',
 };
@@ -102,6 +105,7 @@ export function rootTransitionOptions(
   name: keyof RootStackParamList,
   reduceMotion: boolean,
 ) {
+  if (name === 'AppTabs') return appShellEntry;
   return rootRoutes[name] === 'detail'
     ? reduceMotion
       ? reducedDetail

@@ -125,12 +125,12 @@ describe('actual root tab navigator and fixed toolbar', () => {
     if (tree) await act(async () => tree.unmount());
     jest.restoreAllMocks();
   });
-  const mount = async (onPrepared?: () => void) =>
+  const mount = async () =>
     act(async () => {
       tree = Renderer.create(
         <ThemeProvider theme={createTheme('light')}>
           <NavigationContainer ref={ref}>
-            <AppTabsNavigator onPrepared={onPrepared} />
+            <AppTabsNavigator />
           </NavigationContainer>
         </ThemeProvider>,
       );
@@ -157,16 +157,6 @@ describe('actual root tab navigator and fixed toolbar', () => {
       if (!tab) throw Error('Expected root tab was not rendered');
       tab.props.onPress();
     });
-  test('reports shell preparation only after a positive actual layout', async () => {
-    const prepared = jest.fn();
-    await mount(prepared);
-    expect(prepared).not.toHaveBeenCalled();
-    const shell = tree.root.findAllByProps({ testID: 'app-tabs-shell' })[0];
-    await act(async () => shell.props.onLayout({ nativeEvent: { layout: { width: 0, height: 800 } } }));
-    expect(prepared).not.toHaveBeenCalled();
-    await act(async () => shell.props.onLayout({ nativeEvent: { layout: { width: 400, height: 800 } } }));
-    expect(prepared).toHaveBeenCalledTimes(1);
-  });
   test('all actual scenes use a 400ms opacity-only fade while the toolbar stays outside them', async () => {
     await mount();
     const view = tree.root.findByType(BottomTabView);

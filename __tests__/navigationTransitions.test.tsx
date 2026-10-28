@@ -4,7 +4,7 @@ import { AccessibilityInfo } from 'react-native';
 import fs from 'node:fs';
 import path from 'node:path';
 import { parse } from '@babel/parser';
-import { CommonActions, StackActions, StackRouter } from '@react-navigation/routers';
+import { CommonActions, StackRouter } from '@react-navigation/routers';
 import { TAB_FADE_TIMING, tabTransitionOptions } from '../src/navigation/navigationTransitionPolicy';
 
 jest.mock('@react-navigation/native-stack', () => {
@@ -96,13 +96,14 @@ describe('actual native navigator transition configuration', () => {
         : navigator.props.screenOptions;
     return { ...defaults, ...screen.props.options };
   };
-  test('links the prepared shell route key to the existing Splash instance', async () => {
+  test('only the root app-shell entry avoids Android default opacity delay; toolbar fades remain 400ms', async () => {
     await mount(<RootNavigator />);
-    const splash = () => tree.root.find(n => Object.prototype.hasOwnProperty.call(n.props, 'appTabsLayoutKey'));
-    expect(splash().props.appTabsLayoutKey).toBeNull();
-    const shell = tree.root.find(n => (n.type as unknown) === 'AppTabs');
-    await act(async () => shell.props.onPrepared());
-    expect(splash().props.appTabsLayoutKey).toBe('test-AppTabs');
+    expect(options('AppTabs').animation).toBe('none');
+    expect(options('Splash').animation).toBeUndefined();
+    expect(options('SignIn').animation).toBeUndefined();
+    expect(options('CommunityDetail').animation).toBe('slide_from_right');
+    expect(tabTransitionOptions(false).transitionSpec?.config).toEqual(TAB_FADE_TIMING);
+    expect(TAB_FADE_TIMING.duration).toBe(400);
   });
   test('root toolbar tabs share the 400ms fade configuration with More', () => {
     const result = tabTransitionOptions(false);
@@ -144,7 +145,6 @@ describe('actual native navigator transition configuration', () => {
   );
   test.each([
     'Splash',
-    'AppTabs',
     'SignIn',
     'OAuthCallback',
     'NicknameSetup',
@@ -197,23 +197,6 @@ describe('actual native navigator transition configuration', () => {
 });
 
 describe('installed StackRouter action serialization', () => {
-  test('initial replacement consumes the actual preloaded route without remounting its identity', () => {
-    const bootRouter = StackRouter({ initialRouteName: 'Splash' });
-    const bootOptions = { routeNames: ['Splash', 'AppTabs'], routeParamList: {}, routeGetIdList: {} };
-    const initial = bootRouter.getInitialState(bootOptions);
-    const preloadResult = bootRouter.getStateForAction(initial, CommonActions.preload('AppTabs'), bootOptions);
-    if (!preloadResult) throw Error('Installed router did not accept preload');
-    const prepared = bootRouter.getRehydratedState(preloadResult, bootOptions);
-    expect(prepared.routes[prepared.index].name).toBe('Splash');
-    expect(prepared.preloadedRoutes).toHaveLength(1);
-    const key = prepared.preloadedRoutes[0].key;
-    const replaceResult = bootRouter.getStateForAction(prepared, StackActions.replace('AppTabs'), bootOptions);
-    if (!replaceResult) throw Error('Installed router did not accept replacement');
-    const opened = bootRouter.getRehydratedState(replaceResult, bootOptions);
-    expect(opened.routes.map(route => route.name)).toEqual(['AppTabs']);
-    expect(opened.routes[0].key).toBe(key);
-    expect(opened.preloadedRoutes).toHaveLength(0);
-  });
   const router = StackRouter({ initialRouteName: 'AppTabs' });
   const config = {
     routeNames: ['AppTabs', 'PetManagement', 'PetProfileEdit'],

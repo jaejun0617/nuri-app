@@ -47,10 +47,7 @@ import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'Splash'>;
 
-export default function HomeScreen({ notificationStartup, appTabsLayoutKey }: {
-  notificationStartup?: NotificationStartup;
-  appTabsLayoutKey?: string | null;
-}) {
+export default function HomeScreen({ notificationStartup }: { notificationStartup?: NotificationStartup }) {
   const navigation = useNavigation<Nav>();
 
   const authBooted = useAuthStore(s => s.booted);
@@ -176,17 +173,6 @@ export default function HomeScreen({ notificationStartup, appTabsLayoutKey }: {
     };
   }, []);
 
-  const prepareOrdinaryShell = authBooted && petBooted && communityRouteSnapshotChecked &&
-    nextRoute.name === 'AppTabs' && !communityRouteSnapshot &&
-    (!notificationStartup || (notificationStartup.initialChecked && !notificationStartup.pending && !notificationStartup.destination));
-
-  useEffect(() => {
-    if (!prepareOrdinaryShell || nextRoute.name !== 'AppTabs') return;
-    // Prepare only the next initial screen through the installed native stack.
-    // Its positive layout, not a guessed delay or network completion, releases Splash.
-    navigation.preload('AppTabs', nextRoute.params);
-  }, [navigation, nextRoute, prepareOrdinaryShell]);
-
   // ---------------------------------------------------------
   // ✅ 핵심: 부트 완료 + 최소 Splash 시간 만족 → AppTabs reset
   // ---------------------------------------------------------
@@ -195,7 +181,6 @@ export default function HomeScreen({ notificationStartup, appTabsLayoutKey }: {
     if (!authBooted || !petBooted) return;
     if (!communityRouteSnapshotChecked) return;
     if (nextRoute.name === 'AppTabs' && notificationStartup && (!notificationStartup.initialChecked || notificationStartup.pending)) return;
-    if (prepareOrdinaryShell && !navigation.getState().preloadedRoutes.some(route => route.name === 'AppTabs' && route.key === appTabsLayoutKey)) return;
 
     const elapsed = Date.now() - startedAtRef.current;
     const wait = Math.max(0, splashHoldMs - elapsed);
@@ -240,15 +225,11 @@ export default function HomeScreen({ notificationStartup, appTabsLayoutKey }: {
             ],
           });
         } else {
-          navigation.replace('AppTabs', { screen: 'CommunityTab' });
+          navigation.reset({
+            index: 0,
+            routes: [{ name: 'AppTabs', params: { screen: 'CommunityTab' } }],
+          });
         }
-        return;
-      }
-
-      if (nextRoute.name === 'AppTabs') {
-        // Keep the outgoing native screen until the app shell is presented.
-        // Only the initial Splash is replaced; notification Back routes above stay atomic.
-        navigation.replace('AppTabs', nextRoute.params);
         return;
       }
 
@@ -261,14 +242,12 @@ export default function HomeScreen({ notificationStartup, appTabsLayoutKey }: {
     return () => clearTimeout(t);
   }, [
     authBooted,
-    appTabsLayoutKey,
     communityRouteSnapshot,
     communityRouteSnapshotChecked,
     navigation,
     notificationStartup,
     nextRoute,
     petBooted,
-    prepareOrdinaryShell,
     splashHoldMs,
   ]);
 
