@@ -2,6 +2,14 @@
 
 상태: IN_PROGRESS. 전체 동결 아님. Master 단독 수행.
 
+## 2026-10-28 일반 Timeline의 이전 아이 고정 수정 중
+
+- f798be3/CI40653859668 전체 필수 PASS·runtime d2fe1b4f8aa2db5e878bf80189298f5c05c8836851a47755cff49d7193e1d9cc·APK5d964abd8e956798f8a891c8494e077385bd3d22aa91de3ce2d4ae8893220a4e를 물리/에뮬레이터에 보존 설치했다. Metro OFF 실제 살아 있는 누리 기록의 관리 시트에서 기억 활동 행이 숨겨지고 수정/삭제가 유지됨을 확인했다(`memorial-live-hidden`). 추모 아이의 실제 양성 수락은 아래 결함 때문에 아직 미확인이다.
+- 실제 Home에서 누리→누리테스트를 선택한 후 하단 Timeline을 열어도 이전 누리22개가 남았다. 작성 복귀의 petId가 보존된 route에 남고 `resolveSelectedPetId`의 preferred 우선순위가 현재 선택을 가린 것이 원인이다. 새로운 후보는 일반 Timeline만 현재 선택을 따르게 하며 알림의 명시적 소유 펫/접근 불가 null/owner 회고·기간 조회는 보존한다. Navigator·400ms·route key·Back/같은 아이의 필터와 스크롤은 바꾸지 않는다. 표적63/63·타입 PASS, 관련lint0오류/기존ControlsBar shadow1경고/신규0이며 최신 설치 수락 전이다.
+- 기록 R1(26e20439)의 실제 생성→사진 연결→본문 수정→사진 제거→Home 최근 기록 반영→재설치 후 유지→앱에서 QA 제목 확인 후 삭제까지 확인했다. 서버 해당 row0, 사진 참조0, 해당 Storage path0 및 Timeline23→22/일기11→10이다. `record-r1-created/edited/deleted-server`, `record-r1-home-summary`, 두 실제 영상이 후보·시각·해시를 소유한다. 일반 record.created/updated/deleted의 서버 알림3개는 업무 원본 생성 증거이며 클릭·읽음 E2E 또는 기록4도메인 전체 수락으로 합산하지 않는다. Home 삭제 후 갱신·실패 복구는 남아 있다.
+- 최신 사용자 질문에 타임라인 대형 Hero 생략을 의견으로 제안했을 뿐 이미지·디자인은 변경하지 않았다. 현재1~6/NAV 미마감을 계속하며 원래7~9·STORE HOLD를 유지한다.
+- 이 보정의 최종 전체333suites4498/4498 PASS(`timeline-pet-full-tests.json`)이며 표적63·타입·관련lint0오류/기존1경고·diff check와 연결한다. 최종 SHA의 CI·설치 영수증 및 실제 아이 전환은 후속 증거이며 검사 PASS와 동일시하지 않는다.
+
 ## 2026-10-28 최신 PO: 추모 아이의 기록 관리에만 기억 활동 표시
 
 - 최신 PO가 ‘추억으로 함께하기’는 추모 프로필인 아이의 기록에서만 보여야 한다고 확정했다. 기존 공용 `isMemorialPet(deathDate)`와 상세 기록의 실제 petId를 사용한다. 전역 선택 아이가 다른 경우에도 그 상태를 대신 사용하지 않으며, 프로필 미확인은 추모로 추정하지 않는다.

@@ -107,7 +107,8 @@ import {
   getMemoryImageSignedUrlsCached,
   type MemoryImageVariant,
 } from '../../services/supabase/storageMemories';
-import { usePetStore, resolveSelectedPetId } from '../../store/petStore';
+import { usePetStore } from '../../store/petStore';
+import { resolveTimelinePetId } from '../../services/timeline/petContext';
 import { useRecordStore } from '../../store/recordStore';
 import { useWalkSources } from '../../hooks/useWalkProduct';
 import { useAuthStore } from '../../store/authStore';
@@ -402,9 +403,12 @@ export default function TimelineScreen() {
       : null;
 
   const petId = useMemo(
-    () => route.params?.notificationOpen && petIdFromParams
-      ? pets.some(pet => pet.id === petIdFromParams) ? petIdFromParams : null
-      : resolveSelectedPetId(pets, selectedPetId, petIdFromParams),
+    () => resolveTimelinePetId(
+      pets,
+      selectedPetId,
+      petIdFromParams,
+      Boolean(route.params?.notificationOpen),
+    ),
     [petIdFromParams, pets, route.params?.notificationOpen, selectedPetId],
   );
   const selectedPet = useMemo(
