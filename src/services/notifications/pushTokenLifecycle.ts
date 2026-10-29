@@ -5,6 +5,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import type { Session } from '@supabase/supabase-js';
 
 import { supabase } from '../supabase/client';
 import { useAuthStore } from '../../store/authStore';
@@ -145,21 +146,38 @@ export async function revokeCurrentDevicePushToken(
   return typeof data === 'number' ? data : 0;
 }
 
-const deviceSync = new Map<string, Promise<boolean>>();
+const deviceSync = new Map<string, {
+  promise: Promise<boolean>;
+  isCurrent: () => boolean;
+}>();
+let deviceSyncTail: Promise<void> = Promise.resolve();
 /** No permission prompt or token acquisition before explicit opt-in and server readiness. */
 export function syncPushNotificationDevice(): Promise<boolean> {
-  const owner = useAuthStore.getState().session?.user.id;
-  if (!owner) return Promise.resolve(false);
-  const pending = deviceSync.get(owner);
-  if (pending) return pending;
-  const task = syncDevice().finally(() => deviceSync.delete(owner));
-  deviceSync.set(owner, task);
-  return task;
-}
-async function syncDevice(): Promise<boolean> {
   const session = useAuthStore.getState().session;
   const owner = session?.user.id;
   if (!session || !owner || !session.access_token || Platform.OS !== 'android')
+    return Promise.resolve(false);
+  const pending = deviceSync.get(owner);
+  if (pending?.isCurrent()) return pending.promise;
+  let active = true;
+  const unsubscribe = useAuthStore.subscribe((next, previous) => {
+    if (next.session?.user.id !== previous.session?.user.id) active = false;
+  });
+  const isCurrent = () => active && useAuthStore.getState().session?.user.id === owner;
+  // One installation shares one server device lock across owners. Do not let B
+  // overtake A's unresolved request; this is not server-side fencing after a
+  // transport failure or process death, where A's commit can remain unknown.
+  const task = deviceSyncTail.then(() => syncDevice(session, isCurrent)).finally(() => {
+    unsubscribe();
+    if (deviceSync.get(owner)?.promise === task) deviceSync.delete(owner);
+  });
+  deviceSyncTail = task.then(() => undefined, () => undefined);
+  deviceSync.set(owner, { promise: task, isCurrent });
+  return task;
+}
+async function syncDevice(session: Session, isCurrent: () => boolean): Promise<boolean> {
+  const owner = session.user.id;
+  if (!isCurrent() || !session.access_token || Platform.OS !== 'android')
     return false;
   const headers = { Authorization: `Bearer ${session.access_token}` };
   const preference = await supabase
@@ -167,7 +185,7 @@ async function syncDevice(): Promise<boolean> {
     .select('push_opt_in')
     .maybeSingle();
   if (preference.error) throw preference.error;
-  if (useAuthStore.getState().session?.user.id !== owner) return false;
+  if (!isCurrent()) return false;
   if (!preference.data?.push_opt_in) {
     await clearNativePushOwner(owner);
     return false;
@@ -177,11 +195,11 @@ async function syncDevice(): Promise<boolean> {
     headers,
   });
   if (status.error || status.data?.configured !== true) return false;
-  if (useAuthStore.getState().session?.user.id !== owner) return false;
+  if (!isCurrent()) return false;
   const token = await getNativePushToken();
   if (!token) return false;
   const deviceId = await getNotificationDeviceInstallId();
-  if (useAuthStore.getState().session?.user.id !== owner) return false;
+  if (!isCurrent()) return false;
   const registration = await supabase.functions.invoke(
     'notification-device-v3',
     { body: { action: 'register', deviceId, token }, headers },
@@ -189,11 +207,11 @@ async function syncDevice(): Promise<boolean> {
   if (registration.error) throw registration.error;
   if (
     registration.data?.registered !== true ||
-    useAuthStore.getState().session?.user.id !== owner
+    !isCurrent()
   )
     return false;
   await bindNativePushOwner(owner);
-  if (useAuthStore.getState().session?.user.id !== owner) {
+  if (!isCurrent()) {
     await clearNativePushOwner(owner);
     return false;
   }
