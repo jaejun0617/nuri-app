@@ -17,32 +17,47 @@ export function useNotificationDestinationRead(receipt: NotificationOpenReceipt 
   const [retry, setRetry] = useState(0);
   const completed = useRef<string | null>(null);
   const pending = useRef<string | null>(null);
+  const scope = useRef({ active: false });
+  const requestId = receipt?.requestId;
+  const ownerId = receipt?.ownerId;
   useLayoutEffect(() => {
-    if (!receipt) return;
+    if (!requestId || !ownerId) return;
     let root = navigation;
     for (let depth = 0; depth < 5 && !root.getState().routeNames.includes('AppTabs'); depth += 1) {
       const parent = root.getParent<NativeStackNavigationProp<ParamListBase> | undefined>();
       if (!parent) return;
       root = parent;
     }
+    // A receipt belongs to one owner lifetime, not merely the same user ID
+    // observed again after A -> B -> A. A new receipt gets a new scope object.
+    const current = { active: useAuthStore.getState().session?.user.id === ownerId };
+    scope.current = current;
+    const unsubscribeOwner = useAuthStore.subscribe((next, previous) => {
+      if (next.session?.user.id === previous.session?.user.id) return;
+      current.active = false;
+      setAppeared(null);
+      setFailedRequest(null);
+    });
     const onEnd = root.addListener('transitionEnd', event => {
-      if (!event.data.closing && root.isFocused()) setAppeared(receipt.requestId);
+      if (current.active && !event.data.closing && root.isFocused()) setAppeared(requestId);
     });
     const onBlur = root.addListener('blur', () => setAppeared(null));
-    return () => { onEnd(); onBlur(); };
-  }, [navigation, receipt]);
+    return () => { current.active = false; unsubscribeOwner(); onEnd(); onBlur(); };
+  }, [navigation, ownerId, requestId]);
   useEffect(() => {
     if (!receipt || !ready || appeared !== receipt.requestId || pending.current === receipt.requestId || completed.current === receipt.requestId) return;
-    if (useAuthStore.getState().session?.user.id !== receipt.ownerId) return;
+    const current = scope.current;
+    const isCurrent = () => current.active && scope.current === current && useAuthStore.getState().session?.user.id === receipt.ownerId;
+    if (!isCurrent()) return;
     pending.current = receipt.requestId;
     setFailedRequest(null);
     let mounted = true;
     markUserNotificationRead(receipt).then(async () => {
-      if (useAuthStore.getState().session?.user.id !== receipt.ownerId) return;
+      if (!isCurrent()) return;
       completed.current = receipt.requestId;
       await appQueryClient.invalidateQueries({ queryKey: notificationKeys.owner(receipt.ownerId) });
     }).catch(() => {
-      if (mounted && useAuthStore.getState().session?.user.id === receipt.ownerId) {
+      if (mounted && isCurrent()) {
         setFailedRequest(receipt.requestId);
         showToast({ tone: 'error', title: '읽음 상태를 저장하지 못했어요', message: '연결을 확인한 뒤 다시 시도해주세요.' });
       }

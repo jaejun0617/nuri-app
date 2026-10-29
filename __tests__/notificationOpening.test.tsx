@@ -172,4 +172,63 @@ describe('destination-owned read receipt', () => {
     expect(mockRead).toHaveBeenCalledTimes(2); expect(result.readError).toBe(false);
     await act(async () => tree.unmount());
   });
+  it('does not rearm an old receipt when A returns after an owner change before data readiness', async () => {
+    let tree!: Renderer.ReactTestRenderer;
+    await act(async () => { tree = Renderer.create(<Harness ready={false} />); });
+    await act(async () => { mockListeners.get('transitionEnd')?.({ data: { closing: false } }); });
+    await act(async () => {
+      mockOwner = 'other';
+      mockOwnerListener?.({ session: { user: { id: 'other' } } }, { session: { user: { id: 'qa-owner' } } });
+      mockOwner = 'qa-owner';
+      mockOwnerListener?.({ session: { user: { id: 'qa-owner' } } }, { session: { user: { id: 'other' } } });
+      tree.update(<Harness ready />);
+    });
+    expect(mockRead).not.toHaveBeenCalled();
+    await act(async () => tree.unmount());
+  });
+  it('does not show a late A read failure after A to B to A', async () => {
+    const pending = deferred<void>(); mockRead.mockReturnValueOnce(pending.promise);
+    let tree!: Renderer.ReactTestRenderer;
+    await act(async () => { tree = Renderer.create(<Harness ready />); });
+    await act(async () => { mockListeners.get('transitionEnd')?.({ data: { closing: false } }); });
+    await act(async () => {
+      mockOwner = 'other';
+      mockOwnerListener?.({ session: { user: { id: 'other' } } }, { session: { user: { id: 'qa-owner' } } });
+      mockOwner = 'qa-owner';
+      mockOwnerListener?.({ session: { user: { id: 'qa-owner' } } }, { session: { user: { id: 'other' } } });
+      pending.reject(new Error('old read failed'));
+    });
+    expect(result.readError).toBe(false);
+    expect(mockToast).not.toHaveBeenCalled();
+    expect(mockInvalidate).not.toHaveBeenCalled();
+    await act(async () => tree.unmount());
+  });
+  it('preserves canonical read invalidation after Back without another read or stale UI', async () => {
+    const pending = deferred<void>(); mockRead.mockReturnValueOnce(pending.promise);
+    let tree!: Renderer.ReactTestRenderer;
+    await act(async () => { tree = Renderer.create(<Harness ready />); });
+    await act(async () => { mockListeners.get('transitionEnd')?.({ data: { closing: false } }); });
+    await act(async () => { mockListeners.get('blur')?.({ data: { closing: false } }); });
+    await act(async () => { pending.resolve(); });
+    expect(mockRead).toHaveBeenCalledTimes(1);
+    expect(mockInvalidate).toHaveBeenCalledWith({ queryKey: ['notifications-v3', 'qa-owner'] });
+    expect(mockToast).not.toHaveBeenCalled();
+    await act(async () => tree.unmount());
+  });
+  it('keeps the newer completed receipt when an older read settles last', async () => {
+    const pending = deferred<void>(); mockRead.mockReturnValueOnce(pending.promise);
+    const newer = { ...receipt, id: 'new-notice', requestId: 'request-2' };
+    let tree!: Renderer.ReactTestRenderer;
+    await act(async () => { tree = Renderer.create(<Harness ready />); });
+    await act(async () => { mockListeners.get('transitionEnd')?.({ data: { closing: false } }); });
+    await act(async () => { tree.update(<Harness ready ownerReceipt={newer} />); });
+    await act(async () => { mockListeners.get('transitionEnd')?.({ data: { closing: false } }); });
+    expect(mockRead.mock.calls).toEqual([[receipt], [newer]]);
+    await act(async () => { pending.resolve(); });
+    await act(async () => { tree.update(<Harness ready={false} ownerReceipt={newer} />); });
+    await act(async () => { tree.update(<Harness ready ownerReceipt={newer} />); });
+    expect(mockRead.mock.calls).toEqual([[receipt], [newer]]);
+    expect(mockInvalidate).toHaveBeenCalledTimes(1);
+    await act(async () => tree.unmount());
+  });
 });
