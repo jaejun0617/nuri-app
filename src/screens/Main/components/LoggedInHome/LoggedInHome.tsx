@@ -598,19 +598,6 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
       isAutumn || isWinter || isSpring || isSummer ? styles.seasonalHeader : null,
     ]}>
       <View style={styles.brandContentStack}>
-        <View style={styles.brandLockup}>
-          <AppText style={[styles.brandWordmark, { color: foreground }]}>
-            NURI
-          </AppText>
-          <NuriSemanticIcon
-            family="material"
-            preserveOriginal
-            name="heart"
-            size={18}
-            color={foreground}
-            style={styles.brandPaw}
-          />
-        </View>
         <AppText
           testID="home-hero-season-copy"
           preset="unifiedLabel"

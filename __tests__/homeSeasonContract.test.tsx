@@ -25,8 +25,7 @@ const SEASONS: readonly SeasonKey[] = ['autumn', 'winter', 'spring', 'summer'];
 describe('approved Home season contract', () => {
   afterEach(() => jest.restoreAllMocks());
 
-  it('uses the PO-reduced white logo and caption without reducing notification touch', () => {
-    expect(homeStyles.brandWordmark).toMatchObject({ fontSize: 26, lineHeight: 32, color: '#FFFFFF' });
+  it('uses the existing caption in the logo position without reducing notification touch', () => {
     expect(homeStyles.heroSeasonCopy).toMatchObject({ fontSize: 14, lineHeight: 20, color: '#FFFFFF' });
     expect(homeStyles.headerIconBtn).toMatchObject({ width: 48, height: 48 });
   });
@@ -152,12 +151,13 @@ describe('approved Home season contract', () => {
     const header = source.slice(source.indexOf('const HomeHeaderSection'), source.indexOf('const HeroProfileAccordion'));
     expect(header).not.toContain('seasonalCopy');
     expect(header).not.toContain('greetingCopy');
-    expect(header).toContain('NURI');
+    expect(header).not.toContain('NURI');
+    expect(header).not.toContain('styles.brandLockup');
     expect(header).toContain('onPress={onPressNotifications}');
     expect(header).not.toContain('styles.petSwitcherRow');
     expect(header).not.toContain('onPressAddPet');
     expect(header).not.toContain('PetChipButton');
-    expect(header).toContain('style={[styles.brandWordmark, { color: foreground }]}');
+    expect(header).toContain('style={[styles.heroSeasonCopy, { color: foreground }]}');
     expect(header).toContain("const foreground = photoReady ? '#FFFFFF' : HOME_HERO_COLORS.ink");
     expect(header).toContain('color={foreground}');
     expect(header).not.toContain('const brandColor = SEASON_CTA');

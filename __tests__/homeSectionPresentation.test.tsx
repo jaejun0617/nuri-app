@@ -115,21 +115,24 @@ describe('Home section rhythm and material', () => {
   });
   afterEach(() => jest.restoreAllMocks());
 
-  it('aligns the compact wordmark and keeps foreground contrast tied to actual photo readiness', () => {
-    expect(homeStyles.brandWordmark).toMatchObject({
-      fontSize: 26, lineHeight: 32, color: '#FFFFFF', letterSpacing: 0,
+  it('aligns the caption with the bell and keeps foreground contrast tied to actual photo readiness', () => {
+    expect(homeStyles.heroSeasonCopy).toMatchObject({
+      fontSize: 14, lineHeight: 20, color: '#FFFFFF', marginTop: 0,
     });
     const header = source.slice(source.indexOf('const HomeHeaderSection'), source.indexOf('const HeroProfileAccordion'));
     expect(header).toContain("const foreground = photoReady ? '#FFFFFF' : HOME_HERO_COLORS.ink");
-    expect(header).toContain('style={[styles.brandWordmark, { color: foreground }]}');
-    expect(header).toMatch(/preserveOriginal\s+name="heart"\s+size=\{18\}\s+color=\{foreground\}/);
+    expect(header).toContain('style={[styles.heroSeasonCopy, { color: foreground }]}');
+    expect(header).not.toContain('styles.brandWordmark');
+    expect(header).not.toContain('name="heart"');
     expect(source).toContain('photoReady={heroPhotoReady}');
     expect(source).toContain('onPhotoStatusChange={handleHeroPhotoStatusChange}');
-    expect(homeStyles.header).toMatchObject({ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' });
+    expect(homeStyles.header).toMatchObject({ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingTop: 8 });
+    expect(homeStyles.seasonalHeader.paddingTop).toBe(8);
     expect(homeStyles.brandContentStack).toMatchObject({ flex: 1, minWidth: 0, alignItems: 'flex-start' });
     expect(homeStyles.notificationAnchor).toMatchObject({ flexShrink: 0 });
     expect(homeStyles.notificationAnchor).not.toHaveProperty('position');
     expect(homeStyles.notificationAnchor).not.toHaveProperty('top');
+    expect(homeStyles.notificationAnchor).not.toHaveProperty('marginTop');
   });
 
   it('removes notification glass while preserving the contrast-aware icon, target and badge', () => {
@@ -280,7 +283,7 @@ describe('Home section rhythm and material', () => {
     const panel = fs.readFileSync(path.join(__dirname, '../src/screens/Main/components/LoggedInHome/HomeHeroInfoPanel.tsx'), 'utf8');
     expect(panel).toContain("sheetBody: { width: '100%', paddingHorizontal: 16, backgroundColor: 'transparent' }");
     expect(panel).not.toContain('HomeFrostedGlass');
-    expect(homeStyles.brandWordmark.color).toBe('#FFFFFF');
+    expect(homeStyles.heroSeasonCopy.color).toBe('#FFFFFF');
     expect(panel).not.toContain('color={petTheme.primary}');
     expect(panel).not.toContain('color: petTheme.primary');
     expect(panel).toContain('color: colors.ink');

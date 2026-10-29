@@ -57,9 +57,9 @@ export const styles = StyleSheet.create({
     position: 'relative',
     marginBottom: 0,
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 14,
+    paddingTop: 8,
     paddingBottom: 0,
     paddingHorizontal: 22,
   },
@@ -70,21 +70,8 @@ export const styles = StyleSheet.create({
     paddingRight: 12,
   },
   seasonalHeader: {
-    paddingTop: 14,
+    paddingTop: 8,
     paddingBottom: 0,
-  },
-  brandLockup: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  brandWordmark: {
-    fontSize: 26,
-    lineHeight: 32,
-    color: '#FFFFFF',
-    fontFamily: typography.family.display,
-    fontWeight: '400',
-    letterSpacing: 0,
-    includeFontPadding: false,
   },
   heroSeasonCopy: {
     fontSize: 14,
@@ -92,16 +79,11 @@ export const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontWeight: '400',
     includeFontPadding: false,
-    marginTop: 2,
-  },
-  brandPaw: {
-    marginTop: -2,
-    marginLeft: 2,
+    marginTop: 0,
   },
   notificationAnchor: {
     flexShrink: 0,
     zIndex: 1,
-    marginTop: -6,
   },
   title: { fontSize: 16, fontWeight: '900', color: BRAND_DEEP },
   subTitle: {
