@@ -40,6 +40,7 @@ import {
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import { showToast } from '../../store/uiStore';
 import { getKstYmd, safeYmd } from '../../utils/date';
+import { useOwnerOperation } from '../../hooks/useOwnerOperation';
 
 type Props = {
   visible: boolean;
@@ -89,8 +90,27 @@ export default function WeightLogEntrySheet({
   const weightRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
   const noteRef = useRef<React.ComponentRef<typeof TextInput> | null>(null);
   const { scrollProps, revealInput } = useBoundedKeyboardScroll(visible);
+  const captureCurrent = useOwnerOperation(
+    `${petId}:${initialLog?.id ?? 'new'}:${visible}`,
+  );
+  const entryVersion = useRef(0);
+  const mutation = useRef<symbol | null>(null);
+  const captureEntry = useCallback(() => {
+    const current = captureCurrent();
+    const version = entryVersion.current;
+    return () => visible && current() && entryVersion.current === version;
+  }, [captureCurrent, visible]);
+
+  useEffect(() => {
+    entryVersion.current += 1;
+    mutation.current = null;
+    setSaving(false);
+    setDeleting(false);
+  }, [initialLog?.id, petId, visible]);
 
   const handleClose = useCallback(() => {
+    // Android Back can close before the parent commits visible=false.
+    entryVersion.current += 1;
     Keyboard.dismiss();
     onClose();
   }, [onClose]);
@@ -117,7 +137,7 @@ export default function WeightLogEntrySheet({
       safeYmd(initialLog?.measuredOn ?? initialMeasuredOn) ?? getKstYmd(),
     );
     setNote(initialLog?.note ?? '');
-  }, [initialLog, initialMeasuredOn, initialWeightKg, visible]);
+  }, [initialLog, initialMeasuredOn, initialWeightKg, petId, visible]);
 
   useEffect(() => {
     if (!visible) {
@@ -145,6 +165,10 @@ export default function WeightLogEntrySheet({
   );
 
   const handleSave = useCallback(async () => {
+    const current = captureEntry();
+    if (mutation.current || !current()) return;
+    const operation = Symbol('weight-save');
+    mutation.current = operation;
     try {
       setSaving(true);
 
@@ -155,6 +179,7 @@ export default function WeightLogEntrySheet({
         note,
         source: entrySource,
       });
+      if (!current()) return;
 
       showToast({
         tone: 'success',
@@ -164,15 +189,21 @@ export default function WeightLogEntrySheet({
       onCommitted?.(result);
       handleClose();
     } catch (error) {
+      if (!current()) return;
       const { title: errorTitle, message } = getBrandedErrorMeta(
         error,
         'pet-update',
       );
       Alert.alert(errorTitle, message);
     } finally {
-      setSaving(false);
+      if (mutation.current === operation) {
+        mutation.current = null;
+        if (captureCurrent()()) setSaving(false);
+      }
     }
   }, [
+    captureCurrent,
+    captureEntry,
     entrySource,
     handleClose,
     initialLog,
@@ -185,7 +216,8 @@ export default function WeightLogEntrySheet({
   ]);
 
   const handleDelete = useCallback(() => {
-    if (!initialLog) return;
+    const current = captureEntry();
+    if (!initialLog || mutation.current || !current()) return;
 
     Alert.alert(
       '체중 기록 삭제',
@@ -196,9 +228,13 @@ export default function WeightLogEntrySheet({
           text: '삭제',
           style: 'destructive',
           onPress: async () => {
+            if (mutation.current || !current()) return;
+            const operation = Symbol('weight-delete');
+            mutation.current = operation;
             try {
               setDeleting(true);
               const result = await deletePetWeightLog({ logId: initialLog.id });
+              if (!current()) return;
               showToast({
                 tone: 'info',
                 title: '체중 기록을 지웠어요',
@@ -207,19 +243,23 @@ export default function WeightLogEntrySheet({
               onCommitted?.(result);
               handleClose();
             } catch (error) {
+              if (!current()) return;
               const { title: errorTitle, message } = getBrandedErrorMeta(
                 error,
                 'pet-update',
               );
               Alert.alert(errorTitle, message);
             } finally {
-              setDeleting(false);
+              if (mutation.current === operation) {
+                mutation.current = null;
+                if (captureCurrent()()) setDeleting(false);
+              }
             }
           },
         },
       ],
     );
-  }, [handleClose, initialLog, onCommitted, petName]);
+  }, [captureCurrent, captureEntry, handleClose, initialLog, onCommitted, petName]);
 
   return (
     <>

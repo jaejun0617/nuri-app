@@ -281,6 +281,20 @@ async function processTask(
 ): Promise<void> {
   const uploadedPathsByKey = new Map<string, string>();
   const uploadedNewPaths: string[] = [];
+  let preserveUploadedObjects = false;
+  const retainUploadedPaths = async () => {
+    if (uploadedPathsByKey.size === 0) return;
+    await updateTask(task.taskId, stored => ({
+      ...stored,
+      finalEntries: stored.finalEntries.map(entry => {
+        const path =
+          entry.kind === 'pending'
+            ? uploadedPathsByKey.get(entry.key)
+            : undefined;
+        return path ? { kind: 'existing', path } : entry;
+      }),
+    }));
+  };
 
   try {
     await assertTaskNotSuperseded(task);
@@ -315,6 +329,12 @@ async function processTask(
 
     await assertTaskNotSuperseded(task);
     assertOwner();
+    // A lost write response does not prove rollback. Journal the exact objects
+    // before submitting references so a retry never deletes or reuploads them.
+    preserveUploadedObjects = true;
+    await retainUploadedPaths();
+    await assertTaskNotSuperseded(task);
+    assertOwner();
     await updateMemoryImagePaths({
       memoryId: task.memoryId,
       imagePaths: finalPaths,
@@ -330,19 +350,10 @@ async function processTask(
       ownerChanged = true;
     }
     if (ownerChanged) {
-      if (uploadedPathsByKey.size > 0)
-        await updateTask(task.taskId, stored => ({
-          ...stored,
-          finalEntries: stored.finalEntries.map(entry => {
-            const path =
-              entry.kind === 'pending'
-                ? uploadedPathsByKey.get(entry.key)
-                : undefined;
-            return path ? { kind: 'existing', path } : entry;
-          }),
-        }));
+      await retainUploadedPaths();
       throw new UploadOwnerChangedError();
     }
+    if (preserveUploadedObjects && !isSupersededTaskError(error)) throw error;
     await Promise.all(
       uploadedNewPaths.map(path => deleteMemoryImage(path).catch(() => null)),
     );

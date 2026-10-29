@@ -167,3 +167,95 @@ it('bounds automatic attempts without deleting the only retained photo plan', as
     expect.objectContaining({ attempts: 5, finalEntries: input.finalEntries }),
   ]);
 });
+
+it('preserves uploaded objects and their queued identity when a reference write commits but its response is lost', async () => {
+  await enqueuePendingMemoryUpload(input);
+  let serverPaths: string[] = [];
+  jest.mocked(updateMemoryImagePaths).mockImplementationOnce(async request => {
+    serverPaths = request.imagePaths;
+    throw new Error('response lost after commit');
+  });
+
+  expect((await processPendingMemoryUploads({ userId: 'A' })).failed).toBe(1);
+  expect(serverPaths).toEqual(['A/pet/memory/upload.jpg']);
+  expect(deleteMemoryImage).not.toHaveBeenCalled();
+  expect(JSON.parse(storage.get(key) ?? '[]')).toEqual([
+    expect.objectContaining({
+      attempts: 1,
+      finalEntries: [{ kind: 'existing', path: 'A/pet/memory/upload.jpg' }],
+    }),
+  ]);
+
+  expect((await processPendingMemoryUploads({ userId: 'A' })).succeeded).toBe(
+    1,
+  );
+  expect(uploadMemoryImage).toHaveBeenCalledTimes(1);
+  expect(updateMemoryImagePaths).toHaveBeenCalledTimes(2);
+  expect(JSON.parse(storage.get(key) ?? '[]')).toEqual([]);
+});
+
+it('journals uploaded paths before submitting references and retains them if queue removal fails', async () => {
+  await enqueuePendingMemoryUpload(input);
+  jest.mocked(updateMemoryImagePaths).mockImplementationOnce(async request => {
+    expect(JSON.parse(storage.get(key) ?? '[]')).toEqual([
+      expect.objectContaining({
+        finalEntries: request.imagePaths.map(path => ({
+          kind: 'existing',
+          path,
+        })),
+      }),
+    ]);
+    jest
+      .mocked(AsyncStorage.setItem)
+      .mockRejectedValueOnce(new Error('local removal failed'));
+    return { mode: 'multi', savedPaths: request.imagePaths };
+  });
+  expect((await processPendingMemoryUploads({ userId: 'A' })).failed).toBe(1);
+  expect(deleteMemoryImage).not.toHaveBeenCalled();
+  expect((await processPendingMemoryUploads({ userId: 'A' })).succeeded).toBe(
+    1,
+  );
+  expect(uploadMemoryImage).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(storage.get(key) ?? '[]')).toEqual([]);
+});
+
+it('does not delete a journaled object when the local journal response is ambiguous', async () => {
+  await enqueuePendingMemoryUpload(input);
+  jest.mocked(AsyncStorage.setItem).mockImplementationOnce(async (k, value) => {
+    storage.set(k, value);
+    throw new Error('journal response lost');
+  });
+  expect((await processPendingMemoryUploads({ userId: 'A' })).failed).toBe(1);
+  expect(updateMemoryImagePaths).not.toHaveBeenCalled();
+  expect(deleteMemoryImage).not.toHaveBeenCalled();
+  expect((await processPendingMemoryUploads({ userId: 'A' })).succeeded).toBe(
+    1,
+  );
+  expect(uploadMemoryImage).toHaveBeenCalledTimes(1);
+});
+
+it('still cleans up a partial upload before any journal or reference submission', async () => {
+  await enqueuePendingMemoryUpload({
+    ...input,
+    finalEntries: [
+      ...input.finalEntries,
+      { ...input.finalEntries[0], key: 'second', uri: 'file://second.jpg' },
+    ],
+  });
+  jest
+    .mocked(uploadMemoryImage)
+    .mockResolvedValueOnce({ path: 'A/pet/memory/first.jpg' })
+    .mockRejectedValueOnce(new Error('second upload failed'));
+  expect((await processPendingMemoryUploads({ userId: 'A' })).failed).toBe(1);
+  expect(updateMemoryImagePaths).not.toHaveBeenCalled();
+  expect(deleteMemoryImage).toHaveBeenCalledWith('A/pet/memory/first.jpg');
+  expect(JSON.parse(storage.get(key) ?? '[]')).toEqual([
+    expect.objectContaining({
+      attempts: 1,
+      finalEntries: [
+        ...input.finalEntries,
+        { ...input.finalEntries[0], key: 'second', uri: 'file://second.jpg' },
+      ],
+    }),
+  ]);
+});
