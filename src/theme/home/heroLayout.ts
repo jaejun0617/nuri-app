@@ -1,7 +1,7 @@
 import type { SeasonKey } from '../seasonal/season';
 import { formatPetCopy } from '../../utils/petDisplayName';
 
-export const HOME_SKY_BACKGROUND_GRADIENT = ['#D9EEFF', '#E8F5FF', '#D9EEFF'] as const;
+export const HOME_SKY_BACKGROUND_GRADIENT = ['#EEF5FC', '#F7FAFE', '#EEF5FC'] as const;
 export const HOME_SKY_BACKGROUND_LOCATIONS = [0, 0.5, 1] as const;
 
 // PO reference: 852 x 1061 photo, one shallow ellipse with a 104 px sag.

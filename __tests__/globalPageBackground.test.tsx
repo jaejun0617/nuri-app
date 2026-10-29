@@ -27,8 +27,8 @@ const read = (file: string) => fs.readFileSync(path.join(__dirname, '../src', fi
 describe('PO Home-only sky canvas boundary', () => {
   it.each(seasons)('%s retains its seasonal contract without recoloring Home sky or the application theme', season => {
     expect(HOME_SEASONAL_BACKGROUND_GRADIENTS[season]).toEqual(approved[season]);
-    expect(getHomeHeroColors(season).surface).toBe('#D9EEFF');
-    expect(getHomeHeroColors(season).statusBar).toBe('#D9EEFF');
+    expect(getHomeHeroColors(season).surface).toBe('#EEF5FC');
+    expect(getHomeHeroColors(season).statusBar).toBe('#EEF5FC');
     expect(getHomeHeroColors(season)).toBe(getHomeHeroColors(season));
     expect(getHomeHeroColors()).toBe(HOME_HERO_COLORS);
     expect(HOME_HERO_COLORS).toMatchObject({ surface: '#F8F7FD', statusBar: '#FFFFFF' });

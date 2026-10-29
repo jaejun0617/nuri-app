@@ -113,7 +113,7 @@ describe('PO Home-only sky background palette', () => {
     await verifyGradientCanvas(
       <HomeAmbientBubbleCanvas season={season} heroHeight={800} backgroundMode="homePalette" showDecorations />,
       'home-ambient-bubble-canvas',
-      ['#D9EEFF', '#E8F5FF', '#D9EEFF'],
+      ['#EEF5FC', '#F7FAFE', '#EEF5FC'],
       [0, 0.5, 1],
     );
   });
