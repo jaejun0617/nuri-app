@@ -353,7 +353,9 @@ async function processTask(
       await retainUploadedPaths();
       throw new UploadOwnerChangedError();
     }
-    if (preserveUploadedObjects && !isSupersededTaskError(error)) throw error;
+    // Superseding the task does not prove its journaled objects are orphaned:
+    // the replacement may already have inherited those exact paths.
+    if (preserveUploadedObjects) throw error;
     await Promise.all(
       uploadedNewPaths.map(path => deleteMemoryImage(path).catch(() => null)),
     );

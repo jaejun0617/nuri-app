@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   enqueuePendingMemoryUpload,
   processPendingMemoryUploads,
+  type PendingMemoryUploadTask,
 } from '../src/services/local/uploadQueue';
 import {
   fetchMemoryById,
@@ -258,4 +259,96 @@ it('still cleans up a partial upload before any journal or reference submission'
       ],
     }),
   ]);
+});
+
+it('preserves a journaled object inherited by a superseding task before reference submission', async () => {
+  const path = 'A/pet/memory/upload.jpg';
+  const objects = new Set<string>();
+  let serverPaths: string[] = [];
+  let inherited = false;
+  jest.mocked(uploadMemoryImage).mockImplementationOnce(async () => {
+    objects.add(path);
+    return { path };
+  });
+  jest.mocked(deleteMemoryImage).mockImplementation(async deleted => {
+    objects.delete(deleted);
+  });
+  jest.mocked(updateMemoryImagePaths).mockImplementation(async request => {
+    serverPaths = request.imagePaths;
+    return { mode: 'multi', savedPaths: request.imagePaths };
+  });
+  await enqueuePendingMemoryUpload(input);
+  jest.mocked(AsyncStorage.getItem).mockImplementation(async k => {
+    const raw = storage.get(k) ?? null;
+    const tasks = JSON.parse(raw ?? '[]') as PendingMemoryUploadTask[];
+    // Pause at the final supersede check, after the first task journals its
+    // upload. The replacement explicitly inherits that exact existing object.
+    if (
+      !inherited &&
+      k === key &&
+      tasks.some(task =>
+        task.finalEntries.some(
+          entry => entry.kind === 'existing' && entry.path === path,
+        ),
+      )
+    ) {
+      inherited = true;
+      await enqueuePendingMemoryUpload({
+        ...input,
+        mode: 'edit',
+        finalEntries: [{ kind: 'existing', path }],
+      });
+      return storage.get(k) ?? null;
+    }
+    return raw;
+  });
+
+  expect((await processPendingMemoryUploads({ userId: 'A' })).succeeded).toBe(
+    1,
+  );
+  expect(inherited).toBe(true);
+  expect(serverPaths).toEqual([path]);
+  expect(serverPaths.every(referenced => objects.has(referenced))).toBe(true);
+  expect(deleteMemoryImage).not.toHaveBeenCalled();
+  expect(uploadMemoryImage).toHaveBeenCalledTimes(1);
+  expect(updateMemoryImagePaths).toHaveBeenCalledTimes(1);
+  expect(JSON.parse(storage.get(key) ?? '[]')).toEqual([]);
+});
+
+it('preserves a committed object when a replacement arrives while its successful response is pending', async () => {
+  const path = 'A/pet/memory/upload.jpg';
+  let serverPaths: string[] = [];
+  let confirmWrite!: () => void;
+  const written = new Promise<void>(resolve => {
+    confirmWrite = resolve;
+  });
+  let releaseResponse!: () => void;
+  const response = new Promise<void>(resolve => {
+    releaseResponse = resolve;
+  });
+  jest.mocked(updateMemoryImagePaths).mockImplementationOnce(async request => {
+    serverPaths = request.imagePaths;
+    confirmWrite();
+    await response;
+    return { mode: 'multi', savedPaths: request.imagePaths };
+  });
+  await enqueuePendingMemoryUpload(input);
+  const processing = processPendingMemoryUploads({ userId: 'A' });
+  await written;
+  await enqueuePendingMemoryUpload({
+    ...input,
+    mode: 'edit',
+    finalEntries: serverPaths.map(existing => ({
+      kind: 'existing',
+      path: existing,
+    })),
+  });
+  releaseResponse();
+
+  expect((await processing).succeeded).toBe(2);
+  expect(serverPaths).toEqual([path]);
+  expect(deleteMemoryImage).not.toHaveBeenCalled();
+  expect(uploadMemoryImage).toHaveBeenCalledTimes(1);
+  expect(updateMemoryImagePaths).toHaveBeenCalledTimes(2);
+  expect(JSON.parse(storage.get(key) ?? '[]')).toEqual([]);
 });
