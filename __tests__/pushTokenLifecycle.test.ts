@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 jest.mock('../src/store/authStore', () => ({
   useAuthStore: {
     getState: () => ({
-      session: { user: { id: '11111111-1111-4111-8111-111111111111' } },
+      session: { access_token: 'fixture-captured-access', user: { id: '11111111-1111-4111-8111-111111111111' } },
     }),
   },
 }));
@@ -12,6 +12,7 @@ jest.mock('../src/services/supabase/client', () => ({
   supabase: {
     rpc: jest.fn(),
     from: jest.fn(),
+    functions: { invoke: jest.fn() },
   },
 }));
 
@@ -22,6 +23,7 @@ const { supabase } = jest.requireMock('../src/services/supabase/client') as {
       [string, Record<string, unknown>]
     >;
     from: jest.Mock;
+    functions: { invoke: jest.Mock };
   };
 };
 
@@ -46,6 +48,7 @@ describe('push token lifecycle policy', () => {
     supabase.rpc.mockResolvedValue({ data: 1, error: null });
     supabase.from.mockReturnValue({ select: mockSelect });
     mockMaybeSingle.mockResolvedValue({ data: null, error: null });
+    supabase.functions.invoke.mockResolvedValue({ data: { revoked: 1 }, error: null });
   });
 
   it('기기 연결 해제는 계정의 수신 동의를 끄지 않는다', async () => {
@@ -102,11 +105,7 @@ describe('push token lifecycle policy', () => {
     );
   });
 
-  it('opt-out은 현재 기기 token을 user_opt_out 사유로 revoke한다', async () => {
-    (AsyncStorage.getItem as jest.Mock).mockResolvedValueOnce(
-      'device-install-id',
-    );
-
+  it('opt-out uses the atomic preference revocation without a late duplicate device revoke', async () => {
     const result = await setPushNotificationOptIn(false);
 
     expect(result).toEqual({ pushOptIn: false, providerStatus: 'revoked' });
@@ -118,15 +117,8 @@ describe('push token lifecycle policy', () => {
         p_categories: {},
       },
     );
-    expect(supabase.rpc).toHaveBeenNthCalledWith(
-      2,
-      'revoke_user_push_token_v1',
-      {
-        p_device_id: 'device-install-id',
-        p_provider: null,
-        p_reason: 'user_opt_out',
-      },
-    );
+    expect(supabase.rpc).toHaveBeenCalledTimes(1);
+    expect(supabase.functions.invoke).not.toHaveBeenCalled();
   });
 
   it('logout/account deletion revoke는 device scoped RPC만 호출하고 token 원문을 다루지 않는다', async () => {
@@ -136,11 +128,11 @@ describe('push token lifecycle policy', () => {
 
     await expect(revokeCurrentDevicePushToken('user_logout')).resolves.toBe(1);
 
-    expect(supabase.rpc).toHaveBeenCalledWith('revoke_user_push_token_v1', {
-      p_device_id: 'device-install-id',
-      p_provider: null,
-      p_reason: 'user_logout',
+    expect(supabase.functions.invoke).toHaveBeenCalledWith('notification-device-v3', {
+      body: { action: 'revoke', deviceId: 'device-install-id', reason: 'user_logout' },
+      headers: { Authorization: 'Bearer fixture-captured-access' },
     });
+    expect(supabase.rpc).not.toHaveBeenCalled();
   });
 
   it('cache에 device id가 없으면 revoke RPC를 호출하지 않는다', async () => {

@@ -37,21 +37,40 @@ export async function handleNotificationDevice(request) {
       secret && Deno.env.get('NURI_FCM_SERVICE_ACCOUNT'),
     );
     if (input.action === 'status') return jsonReply({ configured });
+    if (
+      !['register', 'revoke'].includes(input.action) ||
+      typeof input.deviceId !== 'string' ||
+      input.deviceId.length < 12 || input.deviceId.length > 128
+    ) return jsonReply({ code: 'INVALID_TOKEN_REQUEST' }, 400);
+    const verified = await client.auth.getClaims(bearer);
+    const claims = verified.data?.claims;
+    if (
+      verified.error || claims?.sub !== identity.data.user.id ||
+      typeof claims.session_id !== 'string' ||
+      !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(claims.session_id)
+    ) return jsonReply({ code: 'AUTH_REQUIRED' }, 401);
+    const owner = identity.data.user.id;
+    if (input.action === 'revoke') {
+      if (!['user_logout', 'user_opt_out', 'account_deleted'].includes(input.reason))
+        return jsonReply({ code: 'INVALID_REVOKE_REQUEST' }, 400);
+      const result = await client.rpc('revoke_notification_device_v3', {
+        p_user: owner, p_device: input.deviceId,
+        p_session: claims.session_id, p_reason: input.reason,
+      });
+      if (result.error) return jsonReply({ code: 'DEVICE_REVOKE_FAILED' }, 503);
+      return jsonReply({ revoked: result.data });
+    }
     if (!configured)
       return jsonReply({ code: 'PUSH_PROVIDER_UNAVAILABLE' }, 503);
     if (
-      input.action !== 'register' ||
-      typeof input.deviceId !== 'string' ||
-      input.deviceId.length < 12 ||
-      input.deviceId.length > 128 ||
       typeof input.token !== 'string' ||
       input.token.length < 20 ||
       input.token.length > 4096
     )
       return jsonReply({ code: 'INVALID_TOKEN_REQUEST' }, 400);
-    const owner = identity.data.user.id;
     const { error } = await client.rpc('register_notification_device_v3', {
       p_user: owner,
+      p_session: claims.session_id,
       p_device: input.deviceId,
       p_hash: await fingerprint(input.token),
       p_cipher: await encryptPushToken(
@@ -61,6 +80,10 @@ export async function handleNotificationDevice(request) {
         secret,
       ),
     });
+    if (error?.message === 'NURI_NOTIFICATION_STALE_DEVICE_SESSION')
+      return jsonReply({ code: 'DEVICE_SESSION_STALE' }, 409);
+    if (error?.message === 'NURI_NOTIFICATION_SESSION_EXPIRED')
+      return jsonReply({ code: 'DEVICE_SESSION_EXPIRED' }, 401);
     if (error)
       return jsonReply(
         {

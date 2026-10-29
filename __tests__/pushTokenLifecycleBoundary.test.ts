@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Session } from '@supabase/supabase-js';
 import { Platform } from 'react-native';
-import { syncPushNotificationDevice } from '../src/services/notifications/pushTokenLifecycle';
+import { revokeCurrentDevicePushToken, syncPushNotificationDevice } from '../src/services/notifications/pushTokenLifecycle';
 
 type AuthSnapshot = { session: Session | null };
 const ownerA = '11111111-1111-4111-8111-111111111111';
@@ -144,4 +144,37 @@ it('allows B to register after an explicit A registration failure', async () => 
   await expect(outcome).resolves.toEqual(new Error('registration rejected'));
   await expect(second).resolves.toBe(true);
   expect(mockBind.mock.calls).toEqual([[ownerB]]);
+});
+
+it('a delayed logout request keeps its original credential after an account switch', async () => {
+  const started = deferred<void>();
+  const finish = deferred<{ data: { revoked: number }; error: null }>();
+  mockInvoke.mockImplementation(async () => { started.resolve(); return finish.promise; });
+  const logout = revokeCurrentDevicePushToken('user_logout');
+  await started.promise;
+  changeOwner(ownerB);
+  finish.resolve({ data: { revoked: 0 }, error: null });
+  await expect(logout).resolves.toBe(0);
+  expect(mockInvoke).toHaveBeenCalledWith('notification-device-v3', {
+    body: { action: 'revoke', deviceId: 'fixture-install-device', reason: 'user_logout' },
+    headers: { Authorization: `Bearer fixture-access-${ownerA}` },
+  });
+  expect(mockClear).toHaveBeenCalledTimes(1);
+  expect(mockClear).toHaveBeenCalledWith(ownerA);
+});
+
+it('does not dispatch a logout after account change while reading the install ID', async () => {
+  const storage = deferred<string>();
+  jest.mocked(AsyncStorage.getItem).mockReturnValueOnce(storage.promise);
+  const logout = revokeCurrentDevicePushToken('user_logout');
+  await Promise.resolve();
+  changeOwner(ownerB);
+  storage.resolve('fixture-install-device');
+  await expect(logout).resolves.toBe(0);
+  expect(mockInvoke).not.toHaveBeenCalled();
+});
+
+it('rejects an unconfirmed revoke response instead of treating it as success', async () => {
+  mockInvoke.mockResolvedValue({ data: { revoked: '1' }, error: null });
+  await expect(revokeCurrentDevicePushToken()).rejects.toThrow('NURI_NOTIFICATION_REVOKE_RESULT_INVALID');
 });

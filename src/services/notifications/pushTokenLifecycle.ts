@@ -64,7 +64,9 @@ export async function setPushNotificationOptIn(
   if (!current()) throw new Error('NURI_NOTIFICATION_ACCOUNT_CHANGED');
 
   if (!enabled) {
-    await revokeCurrentDevicePushToken('user_opt_out').catch(() => {});
+    // The preferences RPC atomically revokes this account's registrations.
+    // Do not enqueue a duplicate revoke that could overtake a later opt-in.
+    await clearNativePushOwner(owner);
     if (!current()) throw new Error('NURI_NOTIFICATION_ACCOUNT_CHANGED');
     return { pushOptIn: false, providerStatus: 'revoked' };
   }
@@ -132,18 +134,22 @@ export async function fetchPushNotificationLifecycleState(): Promise<PushTokenLi
 export async function revokeCurrentDevicePushToken(
   reason: 'user_logout' | 'user_opt_out' | 'account_deleted' = 'user_logout',
 ): Promise<number> {
-  const owner = useAuthStore.getState().session?.user.id;
+  const session = useAuthStore.getState().session;
+  const owner = session?.user.id;
   await clearNativePushOwner(owner);
   const deviceId = await AsyncStorage.getItem(DEVICE_INSTALL_ID_KEY);
-  if (!deviceId || useAuthStore.getState().session?.user.id !== owner) return 0;
+  if (!deviceId || !session?.access_token || useAuthStore.getState().session?.user.id !== owner) return 0;
 
-  const { data, error } = await supabase.rpc('revoke_user_push_token_v1', {
-    p_device_id: deviceId,
-    p_provider: null,
-    p_reason: reason,
+  // Pin the original credential: a later account must never authorize this
+  // installation's delayed logout request. Edge validates its session at commit.
+  const { data, error } = await supabase.functions.invoke('notification-device-v3', {
+    body: { action: 'revoke', deviceId, reason },
+    headers: { Authorization: `Bearer ${session.access_token}` },
   });
   if (error) throw error;
-  return typeof data === 'number' ? data : 0;
+  if (!data || typeof data.revoked !== 'number' || !Number.isSafeInteger(data.revoked) || data.revoked < 0)
+    throw new Error('NURI_NOTIFICATION_REVOKE_RESULT_INVALID');
+  return data.revoked;
 }
 
 const deviceSync = new Map<string, {
