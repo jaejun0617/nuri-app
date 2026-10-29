@@ -114,7 +114,6 @@ import {
   HomeHeroInfoPanel,
 } from './HomeHeroInfoPanel';
 import { HOME_HERO_COLORS, getHomeHeroColors, getHomeHeroMinimumHeight, getHomeHeroSeasonCopy } from '../../../../theme/home/heroLayout';
-import { HomeSectionDecorations } from './HomeSectionDecorations';
 import { HomePetSelectionSheet } from './HomePetSelectionSheet';
 import { HomePetSheetHeader } from './HomePetSheetHeader';
 import {
@@ -1839,7 +1838,7 @@ export default function LoggedInHome() {
   const { season: ambientSeason } =
     useSeasonPreference();
   const heroColors = getHomeHeroColors(ambientSeason);
-  // Keep foreground geometry stable while the selected season owns the canvas.
+  // Seasonal content stays independent of the fixed, viewport-sized sky canvas.
   const seasonalHomeVisual = useMemo(
     () => getSeasonalHomeVisual(HOME_FOREGROUND_UI_SEASON),
     [],
@@ -2757,7 +2756,6 @@ export default function LoggedInHome() {
         style={[styles.lowerHomeSectionList, styles.heroConnectedLowerSectionList]}>
         <View onLayout={ambientSectionLayoutHandlers.frequent}>
           {frequentRecordsSection}
-          <HomeSectionDecorations season={ambientSeason} zone="frequent" />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.summary}>
           <TotalSummarySection
@@ -2784,7 +2782,6 @@ export default function LoggedInHome() {
             onPressLife={onPressTotalLife}
             onPressAllRecords={onPressTotalSummaryAllRecords}
           />
-          <HomeSectionDecorations season={ambientSeason} zone="summary" />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.recent}>
           <TodayRecordsSection
@@ -2796,7 +2793,6 @@ export default function LoggedInHome() {
             accentDeepColor={NEUTRAL_UI_PALETTE.deep}
             season={ambientSeason}
           />
-          <HomeSectionDecorations season={ambientSeason} zone="recent" />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.community}>
           <CommunitySection
@@ -2808,7 +2804,6 @@ export default function LoggedInHome() {
             onPressPost={onPressCommunityPost}
             onPressAll={onPressCommunityAll}
           />
-          <HomeSectionDecorations season={ambientSeason} zone="community" />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.recommendation}>
           <RecommendationTipsSection
@@ -2822,7 +2817,6 @@ export default function LoggedInHome() {
             onPressGuide={onPressGuideDetail}
             onPressMore={onPressGuideList}
           />
-          <HomeSectionDecorations season={ambientSeason} zone="recommendation" />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.schedule}>
           <ScheduleSection
@@ -2843,7 +2837,6 @@ export default function LoggedInHome() {
             accentColor={NEUTRAL_UI_PALETTE.primary}
             accentDeepColor={NEUTRAL_UI_PALETTE.deep}
           />
-          <HomeSectionDecorations season={ambientSeason} zone="schedule" />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.health}>
           <HealthRecentActivitiesSection
@@ -2862,14 +2855,12 @@ export default function LoggedInHome() {
             accentColor={NEUTRAL_UI_PALETTE.primary}
             accentDeepColor={NEUTRAL_UI_PALETTE.deep}
           />
-          <HomeSectionDecorations season={ambientSeason} zone="health" />
         </View>
         <View onLayout={ambientSectionLayoutHandlers['today-tip']}>
           <TodayHomeTipSection
             season={ambientSeason}
             accentColor={NEUTRAL_UI_PALETTE.primary}
           />
-          <HomeSectionDecorations season={ambientSeason} zone="today-tip" />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.diary}>
           <MonthlyDiarySection
@@ -2882,7 +2873,6 @@ export default function LoggedInHome() {
             onPressRecordItem={onPressRecordItem}
             accentDeepColor={NEUTRAL_UI_PALETTE.deep}
           />
-          <HomeSectionDecorations season={ambientSeason} zone="diary" />
         </View>
       </View>
     </View>

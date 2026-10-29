@@ -22,10 +22,9 @@ import {
 import {
   getHomeAmbientVisual,
   HOME_AMBIENT_SECTION_LIGHTS,
-  HOME_SEASONAL_BACKGROUND_GRADIENTS,
-  HOME_SEASONAL_BACKGROUND_LOCATIONS,
   type HomeAmbientAnchoredField,
 } from '../../../../theme/home/seasonalAmbient';
+import { HOME_SKY_BACKGROUND_GRADIENT, HOME_SKY_BACKGROUND_LOCATIONS } from '../../../../theme/home/heroLayout';
 import type { SeasonKey } from '../../../../theme/seasonal/season';
 import { SeasonalAmbientLighting } from '../../../../components/common/SeasonalAmbientBackground';
 import { PRODUCT_CANVAS_COLOR, PRODUCT_CANVAS_GRADIENT_COLORS } from '../../../../app/theme/tokens/colors';
@@ -248,7 +247,7 @@ export const HomeAmbientBubbleCanvas = memo(
     // Flat product palettes omit all legacy images, washes and decorations.
     if (backgroundMode === 'uniform' || backgroundMode === 'homePalette') {
       const isHomePalette = backgroundMode === 'homePalette';
-      const homeColors = HOME_SEASONAL_BACKGROUND_GRADIENTS[season];
+      const homeColors = HOME_SKY_BACKGROUND_GRADIENT;
       return (
         <View
           testID="home-ambient-bubble-canvas"
@@ -269,7 +268,7 @@ export const HomeAmbientBubbleCanvas = memo(
           <LinearGradient
             testID={isHomePalette ? 'home-season-canvas-gradient' : 'product-canvas-gradient'}
             colors={isHomePalette ? [...homeColors] : [...PRODUCT_CANVAS_GRADIENT_COLORS]}
-            locations={isHomePalette ? [...HOME_SEASONAL_BACKGROUND_LOCATIONS] : [0, 1]}
+            locations={isHomePalette ? [...HOME_SKY_BACKGROUND_LOCATIONS] : [0, 1]}
             start={{ x: 0.5, y: 0 }}
             end={{ x: 0.5, y: 1 }}
             style={StyleSheet.absoluteFill}

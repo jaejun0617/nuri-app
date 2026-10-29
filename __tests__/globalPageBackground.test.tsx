@@ -24,11 +24,11 @@ const approved: Record<SeasonKey, string[]> = {
 };
 const read = (file: string) => fs.readFileSync(path.join(__dirname, '../src', file), 'utf8');
 
-describe('PO Home-only seasonal canvas boundary', () => {
-  it.each(seasons)('%s changes explicit Home paint without recoloring the application theme', season => {
+describe('PO Home-only sky canvas boundary', () => {
+  it.each(seasons)('%s retains its seasonal contract without recoloring Home sky or the application theme', season => {
     expect(HOME_SEASONAL_BACKGROUND_GRADIENTS[season]).toEqual(approved[season]);
-    expect(getHomeHeroColors(season).surface).toBe(approved[season][0]);
-    expect(getHomeHeroColors(season).statusBar).toBe(approved[season][0]);
+    expect(getHomeHeroColors(season).surface).toBe('#D9EEFF');
+    expect(getHomeHeroColors(season).statusBar).toBe('#D9EEFF');
     expect(getHomeHeroColors(season)).toBe(getHomeHeroColors(season));
     expect(getHomeHeroColors()).toBe(HOME_HERO_COLORS);
     expect(HOME_HERO_COLORS).toMatchObject({ surface: '#F8F7FD', statusBar: '#FFFFFF' });

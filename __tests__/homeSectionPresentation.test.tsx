@@ -102,9 +102,9 @@ describe('Home section rhythm and material', () => {
     },
   );
   it.each(['frequent', 'summary', 'recent', 'community', 'recommendation', 'schedule', 'health', 'today-tip', 'diary'])(
-    'adds only non-layout seasonal sparkle ornaments to the existing %s section',
+    'keeps the existing %s section free of repeated background ornaments',
     zone => {
-      expect(source.includes(`<HomeSectionDecorations season={ambientSeason} zone="${zone}" />`)).toBe(true);
+      expect(source.includes(`<HomeSectionDecorations season={ambientSeason} zone="${zone}" />`)).toBe(false);
     },
   );
 

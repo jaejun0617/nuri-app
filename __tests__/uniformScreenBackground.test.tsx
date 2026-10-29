@@ -108,17 +108,12 @@ describe('PO uniform blue-gray canvas without spheres or starlight', () => {
   });
 });
 
-describe('PO Home-only seasonal background palette', () => {
-  it.each([
-    { season: 'spring', colors: ['#FDEFF3', '#FDF3F6', '#FDEFF3'] },
-    { season: 'summer', colors: ['#EAFBFD', '#F0FBFD', '#E9FAFC'] },
-    { season: 'autumn', colors: ['#FEF2E9', '#FEF6EF', '#FEF2E8'] },
-    { season: 'winter', colors: ['#EBF5FD', '#F1F8FE', '#EAF4FD'] },
-  ] as const)('$season uses the approved subtle three-stop palette', async ({ season, colors }) => {
+describe('PO Home-only sky background palette', () => {
+  it.each(seasons)('%s keeps the approved sky palette without decorative overlays', async season => {
     await verifyGradientCanvas(
       <HomeAmbientBubbleCanvas season={season} heroHeight={800} backgroundMode="homePalette" showDecorations />,
       'home-ambient-bubble-canvas',
-      colors,
+      ['#D9EEFF', '#E8F5FF', '#D9EEFF'],
       [0, 0.5, 1],
     );
   });
