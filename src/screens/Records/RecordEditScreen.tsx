@@ -770,6 +770,7 @@ function RecordEditContent() {
         memoryId,
         mode: 'edit',
         finalEntries,
+        expectedPaths: baseImagePaths,
       });
       if (!current()) return;
       const queueResult = await processPendingMemoryUploads({ userId });

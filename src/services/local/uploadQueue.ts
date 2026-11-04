@@ -11,7 +11,11 @@ import {
   captureMonitoringException,
   captureMonitoringMessage,
 } from '../monitoring/sentry';
-import { fetchMemoryById, updateMemoryImagePaths } from '../supabase/memories';
+import {
+  cleanupRetiredMemoryImages,
+  fetchMemoryById,
+  updateMemoryImagePaths,
+} from '../supabase/memories';
 import { supabase } from '../supabase/client';
 import {
   deleteMemoryImage,
@@ -63,6 +67,7 @@ export type PendingMemoryUploadTask = {
   memoryId: string;
   mode: 'create' | 'edit';
   finalEntries: PendingMemoryUploadEntry[];
+  expectedPaths?: string[];
   attempts: number;
   createdAt: string;
   updatedAt: string;
@@ -145,6 +150,9 @@ function normalizeTask(
     memoryId,
     mode: task.mode === 'edit' ? 'edit' : 'create',
     finalEntries,
+    expectedPaths: Array.isArray(task.expectedPaths) &&
+      task.expectedPaths.every(path => typeof path === 'string')
+      ? [...task.expectedPaths] : undefined,
     attempts: Math.max(0, Number(task.attempts ?? 0)),
     createdAt: normalizeString(task.createdAt) || new Date().toISOString(),
     updatedAt: normalizeString(task.updatedAt) || new Date().toISOString(),
@@ -193,6 +201,7 @@ export async function enqueuePendingMemoryUpload(
       memoryId: input.memoryId,
       mode: input.mode,
       finalEntries: input.finalEntries.map(entry => ({ ...entry })),
+      expectedPaths: input.expectedPaths ? [...input.expectedPaths] : undefined,
       attempts: 0,
       createdAt: now,
       updatedAt: now,
@@ -283,7 +292,7 @@ async function assertTaskNotSuperseded(task: PendingMemoryUploadTask) {
 async function processTask(
   task: PendingMemoryUploadTask,
   assertOwner: () => void,
-): Promise<void> {
+): Promise<string[] | undefined> {
   const uploadedPathsByKey = new Map<string, string>();
   const uploadedNewPaths: string[] = [];
   let preserveUploadedObjects = false;
@@ -304,8 +313,18 @@ async function processTask(
   try {
     await assertTaskNotSuperseded(task);
     assertOwner();
-    await fetchMemoryById(task.memoryId);
+    const memory = await fetchMemoryById(task.memoryId);
     assertOwner();
+    if (memory.petId !== task.petId) throw new Error('MEMORY_IMAGE_PET_CHANGED');
+    const expectedPaths = task.expectedPaths ?? (task.attempts === 0 ? memory.imagePaths : undefined);
+    if (expectedPaths && !task.expectedPaths) {
+      await updateTask(task.taskId, stored => ({ ...stored, expectedPaths }));
+      await assertTaskNotSuperseded(task);
+      assertOwner();
+    }
+    if (!expectedPaths && task.finalEntries.some(entry => entry.kind === 'pending')) {
+      throw new Error('MEMORY_IMAGE_REFS_BASELINE_MISSING');
+    }
     for (const entry of task.finalEntries) {
       if (entry.kind !== 'pending') continue;
       await assertTaskNotSuperseded(task);
@@ -356,11 +375,15 @@ async function processTask(
     await retainUploadedPaths();
     await assertTaskNotSuperseded(task);
     assertOwner();
-    await updateMemoryImagePaths({
+    const result = await updateMemoryImagePaths({
       memoryId: task.memoryId,
       imagePaths: finalPaths,
+      // Older attempts without a journaled baseline may confirm, but never
+      // overwrite a different current reference set.
+      expectedPaths: expectedPaths ?? finalPaths,
     });
     assertOwner();
+    return result.retiredPaths;
   } catch (error) {
     // A different session's missing-row response does not prove deletion.
     // Retain this owner's task and known uploaded paths without using new auth.
@@ -494,9 +517,12 @@ export async function processPendingMemoryUploads(input?: {
         processed += 1;
 
         try {
-          await processTask(task, assertOwner);
+          const retiredPaths = await processTask(task, assertOwner);
           assertOwner();
           await removeTask(task.taskId);
+          if (retiredPaths?.length) {
+            await cleanupRetiredMemoryImages(task.memoryId, retiredPaths, assertOwner);
+          }
           touchedPetIds.add(task.petId);
           succeeded += 1;
           succeededTaskIds.push(task.taskId);

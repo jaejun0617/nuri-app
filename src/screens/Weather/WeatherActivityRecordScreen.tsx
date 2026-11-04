@@ -262,6 +262,7 @@ function WeatherActivityRecordContent() {
         const saveResult = await updateMemoryImagePaths({
           memoryId,
           imagePaths: [uploaded.path],
+          expectedPaths: [],
         });
         if (!current()) return;
         savedImagePaths = saveResult.savedPaths;

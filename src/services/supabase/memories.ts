@@ -118,12 +118,6 @@ type MemoryImageRow = {
   status: 'pending' | 'ready' | 'failed';
 };
 
-type LegacyMemoryImageState = {
-  imageUrl: string | null;
-  imageUrls: string[];
-  mode: 'multi' | 'single_fallback';
-};
-
 type MemoryImagesReadFailureReason = 'runtime_read_failure' | 'schema_fallback';
 
 type LegacyReadFallbackReason =
@@ -940,279 +934,55 @@ export async function updateMemoryImagePath(input: {
   if (error) throw error;
 }
 
-async function syncMemoryImages(input: {
-  memoryId: string;
-  imagePaths: string[];
-}) {
-  const nextPaths = dedupeOrderedPaths(input.imagePaths);
-
-  const { data, error } = await supabase
-    .from('memory_images')
-    .select('id,original_path,timeline_thumb_path,status')
-    .eq('memory_id', input.memoryId)
-    .order('sort_order', { ascending: true });
-
-  if (error) throw error;
-
-  const existingRows = (Array.isArray(data) ? data : []).filter(
-    (
-      row,
-    ): row is {
-      id: string;
-      original_path: string;
-      timeline_thumb_path: string | null;
-      status: 'pending' | 'ready' | 'failed';
-    } =>
-      isRecord(row) &&
-      typeof row.id === 'string' &&
-      typeof row.original_path === 'string' &&
-      (typeof row.timeline_thumb_path === 'string' ||
-        row.timeline_thumb_path === null) &&
-      isMemoryImageStatus(row.status),
-  );
-  const existingByPath = new Map(
-    existingRows.map(row => [normalizePathValue(row.original_path), row] as const),
-  );
-
-  if (nextPaths.length > 0) {
-    const payload = nextPaths.map((path, index) => {
-      const existing = existingByPath.get(path);
-      return {
-        memory_id: input.memoryId,
-        sort_order: index,
-        original_path: path,
-        timeline_thumb_path: existing?.timeline_thumb_path ?? null,
-        status: existing?.status ?? ('pending' as const),
-      };
-    });
-
-    const { error: upsertError } = await supabase
-      .from('memory_images')
-      .upsert(payload, { onConflict: 'memory_id,original_path' });
-
-    if (upsertError) throw upsertError;
-  }
-
-  const nextPathSet = new Set(nextPaths);
-  const removedRows = existingRows.filter(
-    row => !nextPathSet.has(normalizePathValue(row.original_path)),
-  );
-
-  if (removedRows.length > 0) {
-    const { error: deleteError } = await supabase
-      .from('memory_images')
-      .delete()
-      .in(
-        'id',
-        removedRows.map(row => row.id),
-      );
-
-    if (deleteError) throw deleteError;
-  }
-
-  return {
-    removedOriginalPaths: removedRows
-      .map(row => normalizePathValue(row.original_path))
-      .filter(Boolean),
-    removedThumbPaths: removedRows
-      .map(row => normalizePathValue(row.timeline_thumb_path))
-      .filter(Boolean),
-  };
-}
-
-async function restoreMemoryImagesSnapshot(input: {
-  memoryId: string;
-  rows: MemoryImageRow[];
-}) {
-  const snapshotRows = [...input.rows].sort((a, b) => a.sort_order - b.sort_order);
-  const snapshotPaths = new Set(
-    snapshotRows
-      .map(row => normalizePathValue(row.original_path))
-      .filter(Boolean),
-  );
-
-  if (snapshotRows.length > 0) {
-    const payload = snapshotRows.map(row => ({
-      memory_id: input.memoryId,
-      sort_order: row.sort_order,
-      original_path: normalizePathValue(row.original_path),
-      timeline_thumb_path: normalizePathValue(row.timeline_thumb_path) || null,
-      status: row.status,
-    }));
-
-    const { error: restoreError } = await supabase
-      .from('memory_images')
-      .upsert(payload, { onConflict: 'memory_id,original_path' });
-
-    if (restoreError) throw restoreError;
-  }
-
-  const currentRows = await fetchMemoryImagesSnapshot(input.memoryId);
-  const extraPaths = currentRows
-    .map(row => normalizePathValue(row.original_path))
-    .filter(path => path && !snapshotPaths.has(path));
-
-  if (extraPaths.length > 0) {
-    const { error: deleteError } = await supabase
-      .from('memory_images')
-      .delete()
-      .eq('memory_id', input.memoryId)
-      .in('original_path', extraPaths);
-
-    if (deleteError) throw deleteError;
-  }
-}
-
-async function cleanupMemoryStoragePaths(paths: string[]) {
-  const targets = dedupeOrderedPaths(paths);
-  if (targets.length === 0) return;
-
-  await Promise.all(
-    targets.map(async path => {
-      await deleteMemoryImage(path).catch(error => {
-        captureMonitoringException(error);
-      });
-    }),
-  );
-}
-
-async function persistLegacyMemoryImageState(input: {
-  memoryId: string;
-  nextPaths: string[];
-  preferredMode?: LegacyMemoryImageState['mode'];
-}): Promise<LegacyMemoryImageState['mode']> {
-  const nextPaths = dedupeOrderedPaths(input.nextPaths);
-  const first = nextPaths[0] ?? null;
-  const updatePayload = {
-    image_url: first,
-    image_urls: nextPaths,
-  };
-
-  if (input.preferredMode !== 'single_fallback') {
-    const { error } = await supabase
-      .from('memories')
-      .update(updatePayload)
-      .eq('id', input.memoryId);
-
-    if (!error) return 'multi';
-    if (!isMissingImageUrlsColumnError(error)) throw error;
-  }
-
-  await updateMemoryImagePath({
-    memoryId: input.memoryId,
-    imagePath: first,
-  });
-  return 'single_fallback';
-}
-
-function isMissingImageUrlsColumnError(error: unknown) {
-  if (!error || typeof error !== 'object') return false;
-  const message = 'message' in error ? String(error.message ?? '') : '';
-  const details = 'details' in error ? String(error.details ?? '') : '';
-  const code = 'code' in error ? String(error.code ?? '') : '';
-  const joined = `${code} ${message} ${details}`.toLowerCase();
-  return (
-    joined.includes('image_urls') &&
-    (joined.includes('column') ||
-      joined.includes('schema cache') ||
-      joined.includes('pgrst'))
-  );
-}
-
-async function fetchLegacyMemoryImageState(
-  memoryId: string,
-): Promise<LegacyMemoryImageState> {
-  const multiSelect = await supabase
-    .from('memories')
-    .select('image_url,image_urls')
-    .eq('id', memoryId)
-    .single();
-
-  if (!multiSelect.error) {
-    const row = multiSelect.data as {
-      image_url: string | null;
-      image_urls?: string[] | null;
-    } | null;
-    return {
-      imageUrl: row?.image_url ?? null,
-      imageUrls: Array.isArray(row?.image_urls) ? row.image_urls : [],
-      mode: 'multi',
-    };
-  }
-
-  if (!isMissingImageUrlsColumnError(multiSelect.error)) {
-    throw multiSelect.error;
-  }
-
-  const singleSelect = await supabase
-    .from('memories')
-    .select('image_url')
-    .eq('id', memoryId)
-    .single();
-  if (singleSelect.error) throw singleSelect.error;
-
-  const row = singleSelect.data as { image_url: string | null } | null;
-  const imageUrl = row?.image_url ?? null;
-  return {
-    imageUrl,
-    imageUrls: imageUrl ? [imageUrl] : [],
-    mode: 'single_fallback',
-  };
-}
-
-/* ---------------------------------------------------------
- * 4-1) Update image paths (multi-image)
- * - image_urls 컬럼이 없는 DB면 image_url 단일 저장으로 폴백
- * -------------------------------------------------------- */
+// The server confirms both ordered references and the compatibility columns.
 export async function updateMemoryImagePaths(input: {
   memoryId: string;
   imagePaths: string[];
-}): Promise<{ mode: 'multi' | 'single_fallback'; savedPaths: string[] }> {
+  expectedPaths: string[];
+}): Promise<{ mode: 'multi'; savedPaths: string[]; retiredPaths?: string[] }> {
   const nextPaths = dedupeOrderedPaths(input.imagePaths);
-  const [legacySnapshot, memoryImagesSnapshot] = await Promise.all([
-    fetchLegacyMemoryImageState(input.memoryId),
-    fetchMemoryImagesSnapshot(input.memoryId),
-  ]);
-
-  const syncResult = await syncMemoryImages({
-    memoryId: input.memoryId,
-    imagePaths: nextPaths,
+  const { data, error } = await supabase.rpc('replace_memory_image_refs', {
+    p_memory_id: input.memoryId,
+    p_expected_paths: dedupeOrderedPaths(input.expectedPaths),
+    p_paths: nextPaths,
   });
+  if (error) throw error;
+  const paths = isRecord(data) ? data.paths : null;
+  const retired = isRecord(data) ? data.retired_paths : null;
+  if (
+    !Array.isArray(paths) ||
+    paths.length !== nextPaths.length ||
+    !nextPaths.every((path, index) => path === paths[index]) ||
+    !Array.isArray(retired) ||
+    !retired.every(path => typeof path === 'string')
+  ) {
+    throw new Error('MEMORY_IMAGE_REFS_UNCONFIRMED');
+  }
+  return { mode: 'multi', savedPaths: nextPaths, retiredPaths: retired };
+}
 
+export async function cleanupRetiredMemoryImages(
+  memoryId: string,
+  paths: string[],
+  assertOwner: () => void,
+) {
   try {
-    const mode = await persistLegacyMemoryImageState({
-      memoryId: input.memoryId,
-      nextPaths,
-      preferredMode: legacySnapshot.mode,
-    });
-
-    await cleanupMemoryStoragePaths([
-      ...syncResult.removedOriginalPaths,
-      ...syncResult.removedThumbPaths,
+    assertOwner();
+    const current = await fetchMemoryImagesSnapshot(memoryId);
+    const { data, error } = await supabase
+      .from('memories').select('image_url,image_urls').eq('id', memoryId).single();
+    if (error || !data) return;
+    const referenced = new Set([
+      data.image_url,
+      ...(data.image_urls ?? []),
+      ...current.flatMap(row => [row.original_path, row.timeline_thumb_path]),
     ]);
-    return { mode, savedPaths: nextPaths };
+    for (const path of dedupeOrderedPaths(paths)) {
+      assertOwner();
+      if (!referenced.has(path)) await deleteMemoryImage(path);
+    }
   } catch (error) {
-    await restoreMemoryImagesSnapshot({
-      memoryId: input.memoryId,
-      rows: memoryImagesSnapshot,
-    }).catch(restoreError => {
-      captureMonitoringException(restoreError);
-    });
-
-    await persistLegacyMemoryImageState({
-      memoryId: input.memoryId,
-      nextPaths:
-        legacySnapshot.imageUrls.length > 0
-          ? legacySnapshot.imageUrls
-          : legacySnapshot.imageUrl
-            ? [legacySnapshot.imageUrl]
-            : [],
-      preferredMode: legacySnapshot.mode,
-    }).catch(restoreError => {
-      captureMonitoringException(restoreError);
-    });
-
-    throw error;
+    captureMonitoringException(error);
   }
 }
 

@@ -30,6 +30,7 @@ jest.mock('../src/services/supabase/client', () => ({
   supabase: { auth: { getUser: () => mockGetUser() } },
 }));
 jest.mock('../src/services/supabase/memories', () => ({
+  cleanupRetiredMemoryImages: jest.fn(),
   fetchMemoryById: jest.fn(),
   updateMemoryImagePaths: jest.fn(),
 }));
@@ -169,6 +170,7 @@ it('retains a known uploaded path across A -> B -> A and attaches it only on a n
   expect(updateMemoryImagePaths).toHaveBeenCalledWith({
     memoryId: 'memory',
     imagePaths: ['A/pet/memory/upload.jpg'],
+    expectedPaths: [],
   });
   expect(JSON.parse(storage.get(key) ?? '[]')).toEqual([]);
 });
@@ -225,6 +227,26 @@ it('preserves uploaded objects and their queued identity when a reference write 
   expect(uploadMemoryImage).toHaveBeenCalledTimes(1);
   expect(updateMemoryImagePaths).toHaveBeenCalledTimes(2);
   expect(JSON.parse(storage.get(key) ?? '[]')).toEqual([]);
+});
+
+it('keeps the original reference baseline when another edit appears before retry', async () => {
+  await enqueuePendingMemoryUpload({ ...input, expectedPaths: ['before.jpg'] });
+  jest.mocked(updateMemoryImagePaths).mockRejectedValueOnce(new Error('response lost'));
+  expect((await processPendingMemoryUploads({ userId: 'A' })).failed).toBe(1);
+  jest.mocked(fetchMemoryById).mockResolvedValueOnce({
+    id: 'memory', petId: 'pet', title: 'newer', tags: [], createdAt: '',
+    imagePaths: ['newer.jpg'],
+  });
+  jest.mocked(updateMemoryImagePaths).mockImplementationOnce(async request => {
+    expect(request.expectedPaths).toEqual(['before.jpg']);
+    throw { code: 'PT409', message: 'memory_image_refs_changed' };
+  });
+  expect((await processPendingMemoryUploads({ userId: 'A' })).failed).toBe(1);
+  expect(uploadMemoryImage).toHaveBeenCalledTimes(1);
+  expect(deleteMemoryImage).not.toHaveBeenCalled();
+  expect(JSON.parse(storage.get(key) ?? '[]')).toEqual([
+    expect.objectContaining({ expectedPaths: ['before.jpg'], attempts: 2 }),
+  ]);
 });
 
 it('journals uploaded paths before submitting references and retains them if queue removal fails', async () => {
