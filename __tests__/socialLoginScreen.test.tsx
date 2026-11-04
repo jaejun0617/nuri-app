@@ -199,7 +199,7 @@ describe('social-only seasonal login', () => {
       await render();
       await act(async () => button(provider).props.onPress());
       expect(mockState.clearPasswordRecovery).toHaveBeenCalledTimes(1);
-      expect(mockClearSession).toHaveBeenCalledTimes(1);
+      expect(mockClearSession).not.toHaveBeenCalled();
       expect(
         provider === 'google' ? mockGoogle : mockKakao,
       ).toHaveBeenCalledTimes(1);
