@@ -1,6 +1,6 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
-import { Alert } from 'react-native';
+import { Alert, TouchableOpacity } from 'react-native';
 import OAuthCallbackScreen from '../src/screens/Auth/OAuthCallbackScreen';
 import type { RootStackParamList } from '../src/navigation/RootNavigator';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
@@ -8,16 +8,50 @@ import { registerAuthTransitionOwner } from '../src/services/auth/transition';
 import { completeOAuthCallbackSession } from '../src/services/supabase/auth';
 
 jest.mock('../src/app/ui/AppText', () => jest.requireActual('react-native').Text);
+jest.mock('../src/app/providers/SeasonPreferenceProvider', () => ({
+  useEffectiveSeason: () => 'autumn',
+}));
+jest.mock('react-native-safe-area-context', () => ({
+  SafeAreaView: 'SafeAreaView',
+  useSafeAreaInsets: () => ({ top: 24, bottom: 24, left: 0, right: 0 }),
+}));
 
 jest.mock('../src/services/supabase/auth', () => ({
   completeOAuthCallbackSession: jest.fn(async () => { throw new Error('callback_not_expected'); }),
   getOAuthSignInUserMessage: jest.fn(() => 'Sign-in could not be completed.'),
+  isSocialOAuthProviderReleaseReady: () => true,
 }));
 
 type Props = NativeStackScreenProps<RootStackParamList, 'OAuthCallback'>;
 
 beforeEach(() => {
   jest.mocked(completeOAuthCallbackSession).mockReset().mockRejectedValue(new Error('callback_not_expected'));
+});
+
+it('keeps the login surface locked during exchange and ignores a completion after leaving', async () => {
+  let finish: ((value: { name: 'AppTabs'; params: undefined }) => void) | undefined;
+  jest.mocked(completeOAuthCallbackSession).mockImplementation(() => new Promise(resolve => {
+    finish = resolve;
+  }));
+  const reset = jest.fn();
+  let tree: TestRenderer.ReactTestRenderer;
+  await act(async () => {
+    tree = TestRenderer.create(<OAuthCallbackScreen
+      navigation={{ reset } as unknown as Props['navigation']}
+      route={{ key: 'waiting-callback', name: 'OAuthCallback', params: { code: 'public-fixture-waiting' } }}
+    />);
+  });
+  expect(tree!.root.findByProps({ testID: 'social-login-hero' })).toBeDefined();
+  const buttons = tree!.root.findAllByType(TouchableOpacity);
+  for (const provider of ['kakao', 'google']) {
+    expect(buttons.find(button => button.props.testID === `social-login-${provider}`)?.props.disabled).toBe(true);
+  }
+  expect(tree!.root.findByProps({ accessibilityLiveRegion: 'polite' }).props.accessibilityState.busy).toBe(true);
+  expect(reset).not.toHaveBeenCalled();
+  expect(completeOAuthCallbackSession).toHaveBeenCalledTimes(1);
+  await act(async () => tree!.unmount());
+  await act(async () => finish?.({ name: 'AppTabs', params: undefined }));
+  expect(reset).not.toHaveBeenCalled();
 });
 
 it.each(['AppTabs', 'SignIn'] as const)('recovers an unsolicited callback to the validated %s route', async target => {

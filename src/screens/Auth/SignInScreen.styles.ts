@@ -68,6 +68,13 @@ export const styles = StyleSheet.create({
     minWidth: 0,
   },
   legal: { alignItems: 'center', gap: 0 },
+  sessionProgress: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    minHeight: 24,
+  },
   legalLinks: {
     flexDirection: 'row',
     flexWrap: 'wrap',

@@ -3,7 +3,7 @@ import path from 'node:path';
 
 const read = (file: string) => fs.readFileSync(path.join(__dirname, '../src', file), 'utf8');
 const seasonalScreens = [
-  'screens/Home/HomeScreen.tsx', 'screens/Auth/SignInScreen.tsx',
+  'screens/Home/HomeScreen.tsx', 'screens/Auth/SocialLoginSurface.tsx',
   'screens/Auth/NicknameSetupScreen.tsx',
   'screens/Auth/WelcomeTransitionScreen.tsx', 'screens/Pets/PetCreateScreen.tsx',
   'screens/Pets/PetProfileEditScreen.tsx', 'screens/Pets/PetProfileEditDoneScreen.tsx',

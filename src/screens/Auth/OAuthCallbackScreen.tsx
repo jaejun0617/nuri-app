@@ -10,11 +10,9 @@
 // 수정 시 주의:
 // - password reset recovery route와 섞지 않는다. `nuri://auth/reset`은 이 화면에서 처리하지 않는다.
 
-import AppText from '../../app/ui/AppText';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, Alert, View } from 'react-native';
+import { Alert } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { SafeAreaView } from 'react-native-safe-area-context';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
@@ -23,7 +21,7 @@ import {
   type SocialOAuthProvider,
 } from '../../services/supabase/auth';
 
-import { styles } from './PasswordResetFlow.styles';
+import SocialLoginSurface from './SocialLoginSurface';
 import { consumePendingOAuth } from '../../services/auth/pendingOAuth';
 import { resolveAuthTransition, type AuthEntryRoute } from '../../services/auth/transition';
 import { recordAuthEvent } from '../../services/auth/trace';
@@ -111,16 +109,12 @@ export default function OAuthCallbackScreen({ navigation, route }: Props) {
   }, [navigation, error, errorDescription, provider, accessToken, refreshToken, code, tokenHash, verificationType]);
 
   return (
-    <SafeAreaView style={styles.screen}>
-      <View style={styles.scrollContent}>
-        <View style={styles.processingCard}>
-          <ActivityIndicator color="#6D6AF8" size="large" />
-          <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.processingTitle}>소셜 로그인을 확인하고 있어요</AppText>
-          <AppText preset="unifiedBody" style={styles.processingBody}>
-            인증 결과를 확인한 뒤 NURI 시작 화면으로 돌아갑니다.
-          </AppText>
-        </View>
-      </View>
-    </SafeAreaView>
+    <SocialLoginSurface
+      disabled
+      sessionPending
+      busyProvider={provider}
+      onProviderPress={() => {}}
+      onLegalPress={() => {}}
+    />
   );
 }
