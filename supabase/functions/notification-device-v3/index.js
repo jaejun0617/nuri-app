@@ -80,9 +80,9 @@ export async function handleNotificationDevice(request) {
         secret,
       ),
     });
-    if (error?.message === 'NURI_NOTIFICATION_STALE_DEVICE_SESSION')
+    if (error?.code === 'PT409')
       return jsonReply({ code: 'DEVICE_SESSION_STALE' }, 409);
-    if (error?.message === 'NURI_NOTIFICATION_SESSION_EXPIRED')
+    if (error?.code === '42501' && error.message === 'NURI_NOTIFICATION_SESSION_EXPIRED')
       return jsonReply({ code: 'DEVICE_SESSION_EXPIRED' }, 401);
     if (error)
       return jsonReply(

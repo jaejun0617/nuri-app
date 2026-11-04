@@ -6,7 +6,20 @@ const { PGlite } = require(process.env.NURI_PGLITE_MODULE ||
   '@electric-sql/pglite');
 
 async function main() {
-  const db = new PGlite();
+  // The optional local PostgreSQL adapter lets the same fixtures exercise PostgREST.
+  const localUrl = process.env.NURI_SESSION_TEST_DATABASE_URL;
+  let db;
+  if (localUrl) {
+    const url = new URL(localUrl);
+    assert.equal(url.hostname, '127.0.0.1');
+    assert.equal(url.pathname, '/nuri_p0_test');
+    const { Client } = require(process.env.NURI_PG_MODULE || 'pg');
+    const client = new Client({ connectionString: localUrl });
+    await client.connect();
+    db = { exec: sql => client.query(sql), query: (sql, args) => client.query(sql, args), close: () => client.end() };
+  } else {
+    db = new PGlite();
+  }
   const root = path.resolve(__dirname, '../..');
   await db.exec(`
     create role anon;create role authenticated;create role service_role;
@@ -35,6 +48,14 @@ async function main() {
       'utf8',
     ),
   );
+  const contractsBefore = (await db.query(`select oid::regprocedure::text signature, prosecdef, proconfig, proacl::text
+    from pg_proc where pronamespace='notification_private'::regnamespace
+    and proname in ('lock_device_session_v3','register_device_v3','revoke_device_session_v3') order by signature`)).rows;
+  await db.exec(fs.readFileSync(path.join(root,
+    'supabase/migrations/20261104100113_notification_device_nonretryable_conflict.sql'), 'utf8'));
+  assert.deepEqual((await db.query(`select oid::regprocedure::text signature, prosecdef, proconfig, proacl::text
+    from pg_proc where pronamespace='notification_private'::regnamespace
+    and proname in ('lock_device_session_v3','register_device_v3','revoke_device_session_v3') order by signature`)).rows, contractsBefore);
   const a = '11111111-1111-4111-8111-111111111111';
   const b = '22222222-2222-4222-8222-222222222222';
   const a1 = 'aaaaaaaa-1111-4111-8111-111111111111';
@@ -98,7 +119,7 @@ async function main() {
   await test('late A register cannot replace B; repeating B after response loss is idempotent', async () => {
     await register(a, a1);
     await register(b, b1);
-    await rejects(() => register(a, a1), '40001');
+    await rejects(() => register(a, a1), 'PT409');
     const before = await active();
     await register(b, b1);
     assert.deepEqual(await active(), before);
@@ -115,9 +136,9 @@ async function main() {
   });
   await test('logout before register leaves a tombstone across retries and restarts', async () => {
     await revoke(a, a1);
-    await rejects(() => register(a, a1), '40001');
+    await rejects(() => register(a, a1), 'PT409');
     await revoke(a, a1);
-    await rejects(() => register(a, a1), '40001');
+    await rejects(() => register(a, a1), 'PT409');
     await register(b, b1);
     assert.equal((await active()).user_id, b);
   });
@@ -126,7 +147,7 @@ async function main() {
     await db.exec(
       "update public.user_push_tokens set token_status='invalid',opt_in=false,revoke_reason='provider_invalid_token'",
     );
-    await rejects(() => register(a, a1), '40001');
+    await rejects(() => register(a, a1), 'PT409');
     await register(b, b1);
     assert.equal((await active()).user_id, b);
   });
@@ -247,6 +268,31 @@ async function main() {
       ).n,
       0,
     );
+  });
+  await test('current owner logout and fresh login preserve the new session', async () => {
+    await register(a, a1);
+    assert.equal((await revoke(a, a1)).n, 1);
+    assert.equal(await active(), undefined);
+    await rejects(() => register(a, a1), 'PT409');
+    await register(a, a2);
+    assert.equal((await active()).registration_session_id, a2);
+  });
+  await test('preference off blocks registration and owner opt-out revokes only its installation', async () => {
+    await register(a, a1);
+    await register(b, b2, 'fixture-device-second');
+    await db.query('update public.user_notification_preferences set push_opt_in=false where user_id=$1', [a]);
+    await rejects(() => register(a, a1), '42501');
+    assert.equal((await revoke(a, a1, 'fixture-device-main', 'user_opt_out')).n, 1);
+    assert.equal(await active(), undefined);
+    await db.query('update public.user_notification_preferences set push_opt_in=true where user_id=$1', [a]);
+    await register(a, a1);
+    assert.equal((await active()).user_id, a);
+  });
+  await test('real serialization failures are not swallowed as successful release', async () => {
+    await db.exec(`create or replace function notification_private.lock_device_session_v3(p_user uuid,p_device text,p_session uuid)
+      returns timestamptz language plpgsql security definer set search_path='' as $$
+      begin raise exception using errcode='40001',message='fixture serialization failure'; end;$$;`);
+    await rejects(() => revoke(a, a1), '40001');
   });
   await db.close();
   const result = {

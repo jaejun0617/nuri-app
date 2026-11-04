@@ -33,7 +33,8 @@ async function main() {
     sub = owner,
     sessionId = session,
     configured = true,
-    registrationError = null;
+    registrationError = null,
+    revokeError = null;
   const client = {
     auth: {
       getUser: async () => ({
@@ -50,7 +51,7 @@ async function main() {
       return name === 'notification_push_qa_allowed_v3'
         ? { data: configured, error: null }
         : name === 'revoke_notification_device_v3'
-        ? { data: 1, error: null }
+        ? { data: 1, error: revokeError }
         : { data: 'fixture-registration-id', error: registrationError };
     },
   };
@@ -99,6 +100,7 @@ async function main() {
     sessionId = session;
     configured = true;
     registrationError = null;
+    revokeError = null;
     await run();
     results.push({ name, pass: true });
   }
@@ -159,8 +161,8 @@ async function main() {
   });
   await test('server ordering rejection is not a retryable provider error', async () => {
     registrationError = {
-      code: '40001',
-      message: 'NURI_NOTIFICATION_STALE_DEVICE_SESSION',
+      code: 'PT409',
+      message: 'wording does not determine the business error code',
     };
     const r = await request({
       action: 'register',
@@ -169,6 +171,19 @@ async function main() {
     });
     assert.equal(r.status, 409);
     assert.equal((await r.json()).code, 'DEVICE_SESSION_STALE');
+    assert.equal(calls.filter(c => c.name === 'register_notification_device_v3').length, 1);
+  });
+  await test('serialization failure is not classified as a stale session by message alone', async () => {
+    registrationError = { code: '40001', message: 'NURI_NOTIFICATION_STALE_DEVICE_SESSION' };
+    const r = await request({ action: 'register', deviceId: 'fixture-device-main', token: 'fixture-provider-token-not-real' });
+    assert.equal(r.status, 503);
+    assert.equal((await r.json()).code, 'DEVICE_REGISTER_FAILED');
+  });
+  await test('release database failure is not converted to success', async () => {
+    revokeError = { code: '40001', message: 'serialization failure' };
+    const r = await request({ action: 'revoke', deviceId: 'fixture-device-main', reason: 'user_logout' });
+    assert.equal(r.status, 503);
+    assert.equal((await r.json()).code, 'DEVICE_REVOKE_FAILED');
   });
   await test('expired server session is reported as authentication failure', async () => {
     registrationError = {
