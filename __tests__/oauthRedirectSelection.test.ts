@@ -1,4 +1,5 @@
-import { Linking } from 'react-native';
+import { Linking, NativeModules, Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { webcrypto } from 'crypto';
 // Keep the authorization-origin contract independent of both CI and production inputs.
 jest.mock('../src/services/supabase/config', () => ({
@@ -9,6 +10,8 @@ jest.mock('../src/services/supabase/client', () => ({ supabase: { auth: { signIn
 import { supabase } from '../src/services/supabase/client';
 import { signInWithGoogle, signInWithKakao } from '../src/services/supabase/auth';
 import { AUTH_APP_LINK_CALLBACK, LEGACY_AUTH_CALLBACK } from '../src/services/auth/appLinks';
+import { markExplicitLogout, clearExplicitLogoutAfterSignIn } from '../src/services/auth/localSession';
+import { PENDING_OAUTH_KEY } from '../src/services/auth/pendingOAuth';
 
 describe('provider-specific redirect contract', () => {
   beforeEach(() => {
@@ -17,7 +20,11 @@ describe('provider-specific redirect contract', () => {
     jest.mocked(supabase.auth.signInWithOAuth).mockImplementation(async ({ provider }) => ({ data: { provider, url: `https://aaaaaaaaaaaaaaaaaaaa.supabase.co/auth/v1/authorize?provider=${provider}&code_challenge_method=s256&code_challenge=${'A'.repeat(43)}` }, error: null }));
     jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
   });
-  afterEach(() => jest.restoreAllMocks());
+  afterEach(async () => {
+    delete NativeModules.NuriOAuthBrowser;
+    await clearExplicitLogoutAfterSignIn();
+    jest.restoreAllMocks();
+  });
   it('Kakao starts Supabase OAuth with the exact HTTPS app callback', async () => {
     await signInWithKakao();
     expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({ provider: 'kakao', options: { redirectTo: AUTH_APP_LINK_CALLBACK, skipBrowserRedirect: true } });
@@ -27,6 +34,33 @@ describe('provider-specific redirect contract', () => {
     await signInWithGoogle();
     expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({ provider: 'google', options: { redirectTo: LEGACY_AUTH_CALLBACK, skipBrowserRedirect: true } });
   });
+  it('uses the provider account picker after explicit logout, without a login hint', async () => {
+    await markExplicitLogout();
+    jest.mocked(AsyncStorage.getItem).mockResolvedValueOnce('true');
+    await signInWithGoogle();
+    expect(supabase.auth.signInWithOAuth).toHaveBeenCalledWith({
+      provider: 'google',
+      options: {
+        redirectTo: LEGACY_AUTH_CALLBACK,
+        skipBrowserRedirect: true,
+        queryParams: { prompt: 'select_account' },
+      },
+    });
+  });
+  it.each(['returned', 'cancelled', 'unsupported'])(
+    'uses the Android browser result without double opening: %s',
+    async outcome => {
+      jest.replaceProperty(Platform, 'OS', 'android');
+      const open = jest.fn().mockResolvedValue(outcome);
+      NativeModules.NuriOAuthBrowser = { open };
+      await signInWithKakao();
+      expect(open).toHaveBeenCalledWith(expect.any(String), AUTH_APP_LINK_CALLBACK);
+      expect(Linking.openURL).toHaveBeenCalledTimes(outcome === 'unsupported' ? 1 : 0);
+      if (outcome === 'cancelled') {
+        expect(AsyncStorage.removeItem).toHaveBeenCalledWith(PENDING_OAUTH_KEY);
+      }
+    },
+  );
   it.each([
     'https://foreign.example.test/auth/v1/authorize?code_challenge_method=s256',
     'https://aaaaaaaaaaaaaaaaaaaa.supabase.co/auth/v1/authorize?code_challenge_method=plain',

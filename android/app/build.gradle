@@ -130,6 +130,7 @@ if (project.findProperty("nuriSecurityQa") == "true") {
 
 dependencies {
   implementation("com.facebook.react:react-android")
+  implementation("androidx.browser:browser:1.9.0")
   // Same pinned BOM as the existing RN Firebase app/Crashlytics integration.
   implementation(platform("com.google.firebase:firebase-bom:34.8.0"))
   implementation("com.google.firebase:firebase-messaging")

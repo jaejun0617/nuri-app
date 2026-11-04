@@ -11,6 +11,7 @@ import com.nuri.ui.BlurCaptureExclusionPackage
 import com.nuri.ui.LaunchPresentationPackage
 import com.nuri.qa.SecurityQaPackage
 import com.nuri.walk.WalkPackage
+import com.nuri.auth.OAuthBrowserPackage
 
 class MainApplication : Application(), ReactApplication {
 
@@ -24,6 +25,7 @@ class MainApplication : Application(), ReactApplication {
           add(LaunchPresentationPackage())
           add(SecurityQaPackage())
           add(WalkPackage())
+          add(OAuthBrowserPackage())
         },
     )
   }

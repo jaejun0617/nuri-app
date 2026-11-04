@@ -3,12 +3,12 @@
 // - Supabase Auth 래퍼 (signIn/signUp/signOut)
 // - 성공 시 session 반환 (store 반영은 화면/AppProviders에서 수행)
 
-import { Linking } from 'react-native';
+import { Linking, NativeModules, Platform } from 'react-native';
 
 import { supabase } from './client';
 import { isValidPasswordFormat } from './account';
 import { getOAuthRedirectTo } from '../auth/appLinks';
-import { clearExplicitLogoutAfterSignIn } from '../auth/localSession';
+import { clearExplicitLogoutAfterSignIn, hasExplicitLogout } from '../auth/localSession';
 import { beginPendingOAuth, clearPendingOAuth, consumePendingOAuth } from '../auth/pendingOAuth';
 import { requireS256OAuthUrl } from '../auth/pkce';
 import { SUPABASE_URL } from './config';
@@ -206,6 +206,9 @@ async function startOAuthProvider(
     options: {
       redirectTo: getOAuthRedirectTo(provider),
       skipBrowserRedirect: true,
+      ...(provider === 'google' && await hasExplicitLogout()
+        ? { queryParams: { prompt: 'select_account' } }
+        : {}),
     },
   });
 
@@ -229,7 +232,20 @@ async function startOAuthProvider(
   }
 
   try {
-    await Linking.openURL(requireS256OAuthUrl(data.url, SUPABASE_URL));
+    const url = requireS256OAuthUrl(data.url, SUPABASE_URL);
+    const browser = NativeModules.NuriOAuthBrowser as {
+      open?: (authorizationUrl: string, redirect: string) => Promise<unknown>;
+    } | undefined;
+    if (Platform.OS === 'android' && browser?.open) {
+      const outcome = await browser.open(url, getOAuthRedirectTo(provider));
+      if (outcome === 'returned') return;
+      if (outcome === 'cancelled') {
+        await clearPendingOAuth();
+        return;
+      }
+      if (outcome !== 'unsupported') throw new Error('OAUTH_BROWSER_UNKNOWN_RESULT');
+    }
+    await Linking.openURL(url);
   } catch (openError: unknown) {
     logOAuthError({ provider, stage: 'open_browser', error: openError });
     throw new OAuthSignInError({

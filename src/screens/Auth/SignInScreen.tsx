@@ -119,7 +119,7 @@ const SocialButton = memo(function SocialButtonContent({
             provider === 'kakao' ? styles.kakaoLabel : null,
           ]}
         >
-          {config.label}
+          {busy ? '로그인 중입니다' : config.label}
         </AppText>
       </View>
       <View style={styles.buttonTrailingSpace}>
@@ -223,7 +223,6 @@ export default function SignInScreen() {
       setActiveNotice(null);
       try {
         await clearPasswordRecovery();
-        await clearLocalAuthSession();
         if (provider === 'google') await signInWithGoogle();
         else await signInWithKakao();
       } catch (error: unknown) {

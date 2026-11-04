@@ -2,6 +2,7 @@ package com.nuri
 
 import android.content.Intent
 import android.graphics.Color
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import com.facebook.react.ReactActivity
@@ -10,13 +11,67 @@ import com.facebook.react.ReactApplication
 import com.facebook.react.defaults.DefaultNewArchitectureEntryPoint.fabricEnabled
 import com.facebook.react.defaults.DefaultReactActivityDelegate
 import androidx.core.view.WindowCompat
+import androidx.browser.auth.AuthTabIntent
+import androidx.browser.customtabs.CustomTabsClient
 import androidx.core.view.WindowInsetsControllerCompat
 import com.swmansion.rnscreens.fragment.restoration.RNScreensFragmentFactory
 import com.nuri.notifications.ScheduleNotificationTapStore
 import com.nuri.notifications.NuriPushModule
 import com.nuri.walk.WalkVisibility
+import com.facebook.react.bridge.Promise
 
 class MainActivity : ReactActivity() {
+  private var authTabRequest: Pair<Uri, Promise>? = null
+  private val authTabLauncher = AuthTabIntent.registerActivityResultLauncher(this) { result ->
+    val request = authTabRequest
+    authTabRequest = null
+    val callback = result.resultUri
+    if (result.resultCode == AuthTabIntent.RESULT_OK && callback != null &&
+      isOAuthReturn(callback) && (request == null ||
+        (callback.scheme == request.first.scheme && callback.encodedAuthority == request.first.encodedAuthority))
+    ) {
+      // Keep cold and warm delivery on the same existing React Native link path.
+      onNewIntent(Intent(Intent.ACTION_VIEW, callback))
+      request?.second?.resolve("returned")
+    } else if (result.resultCode == AuthTabIntent.RESULT_CANCELED) {
+      request?.second?.resolve("cancelled")
+    } else {
+      request?.second?.reject("OAUTH_BROWSER_RETURN_FAILED", "Authentication return could not be verified.")
+    }
+  }
+
+  private fun isOAuthReturn(uri: Uri): Boolean =
+    (uri.encodedPath == "/auth/callback" && uri.scheme == "https" &&
+      uri.encodedAuthority == "nuri-web-beryl.vercel.app") ||
+      (uri.encodedPath == "/callback" && uri.scheme == "nuri" && uri.encodedAuthority == "auth")
+
+  fun openOAuthTab(url: Uri, redirect: Uri, promise: Promise) {
+    if (authTabRequest != null || url.scheme != "https" ||
+      url.encodedPath != "/auth/v1/authorize" || !isOAuthReturn(redirect)
+    ) {
+      promise.reject("OAUTH_BROWSER_INVALID", "Authentication request could not be opened.")
+      return
+    }
+    val browser = CustomTabsClient.getPackageName(this, null)
+    if (browser == null || !CustomTabsClient.isAuthTabSupported(this, browser)) {
+      promise.resolve("unsupported")
+      return
+    }
+    authTabRequest = Pair(redirect, promise)
+    try {
+      val tab = AuthTabIntent.Builder().build()
+      tab.intent.setPackage(browser)
+      if (redirect.scheme == "https") {
+        tab.launch(authTabLauncher, url, "nuri-web-beryl.vercel.app", "/auth/callback")
+      } else {
+        tab.launch(authTabLauncher, url, "nuri")
+      }
+    } catch (_: RuntimeException) {
+      authTabRequest = null
+      promise.reject("OAUTH_BROWSER_OPEN_FAILED", "Authentication browser could not be opened.")
+    }
+  }
+
   private var launchContentReady = false
   private var removeLaunchView: (() -> Unit)? = null
 
