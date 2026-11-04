@@ -14,7 +14,9 @@
 // 6) ✅ prefetch rate-limit(minIntervalMs) + concurrency 제한으로 "잔여 버벅임" 제거
 
 import { Buffer } from 'buffer';
+import { sha256 } from '@noble/hashes/sha2.js';
 import RNBlobUtil from 'react-native-blob-util';
+import { createRequestId, isRequestId } from '../../utils/requestId';
 import { readFileAsBase64 } from '../files/readFileAsBase64';
 import { getImageUploadType, validateImageUploadSize } from '../media/imageUploadPolicy';
 import { isDirectMemoryImageUri } from '../records/imageSources';
@@ -326,6 +328,7 @@ type UploadMemoryImageParams = {
   memoryId: string;
   fileUri: string;
   mimeType: string | null;
+  uploadId?: string;
 };
 
 export async function uploadMemoryImage({
@@ -334,13 +337,10 @@ export async function uploadMemoryImage({
   memoryId,
   fileUri,
   mimeType,
+  uploadId = createRequestId(),
 }: UploadMemoryImageParams): Promise<{ path: string }> {
   const { extension: ext, contentType } = getImageUploadType(mimeType);
-
-  // ✅ 핵심: 매번 새로운 path (타임스탬프 + 랜덤)로 충돌 방지
-  const version = Date.now();
-  const nonce = Math.random().toString(36).slice(2, 10);
-  const path = `${userId}/${petId}/${memoryId}_${version}_${nonce}.${ext}`;
+  if (!isRequestId(uploadId)) throw new Error('MEMORY_UPLOAD_ID_INVALID');
 
   const filePath = normalizeFileUri(fileUri);
   const base64 = filePath.startsWith('content://')
@@ -348,6 +348,8 @@ export async function uploadMemoryImage({
     : await RNBlobUtil.fs.readFile(filePath, 'base64');
   const bytes = Buffer.from(base64, 'base64');
   validateImageUploadSize(bytes.byteLength);
+  const digest = Buffer.from(sha256(bytes)).toString('hex');
+  const path = `${userId}/${petId}/${memoryId}_${uploadId}_${digest}.${ext}`;
 
   // ✅ upsert=false (같은 path를 덮어쓰지 않음)
   const { error } = await supabase.storage
@@ -357,7 +359,18 @@ export async function uploadMemoryImage({
       upsert: false,
     });
 
-  if (error) throw error;
+  if (error) {
+    // An error can follow a committed upload. Read only the exact owned,
+    // content-addressed attempt; never overwrite it or accept an arbitrary 409.
+    const { data: existing, error: lookupError } = await supabase.storage
+      .from('memory-images')
+      .info(path);
+    if (
+      lookupError ||
+      existing?.size !== bytes.byteLength ||
+      existing.contentType !== contentType
+    ) throw error;
+  }
 
   return { path };
 }

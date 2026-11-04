@@ -39,6 +39,7 @@ jest.mock('../src/services/supabase/storageMemories', () => ({
 }));
 const key = 'nuri.memory-upload-queue.v1';
 const storage = new Map<string, string>();
+const attemptIdentity = expect.stringMatching(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
 const input = {
   userId: 'A',
   petId: 'pet',
@@ -85,6 +86,7 @@ beforeEach(() => {
   jest
     .mocked(uploadMemoryImage)
     .mockResolvedValue({ path: 'A/pet/memory/upload.jpg' });
+  jest.mocked(deleteMemoryImage).mockResolvedValue(undefined);
   jest
     .mocked(updateMemoryImagePaths)
     .mockResolvedValue({
@@ -93,6 +95,34 @@ beforeEach(() => {
     });
 });
 afterEach(() => expect(mockListeners.size).toBe(0));
+it('journals the upload identity before sending and reuses it after an unknown result', async () => {
+  await enqueuePendingMemoryUpload(input);
+  let firstId: string | undefined;
+  jest.mocked(uploadMemoryImage).mockImplementationOnce(async params => {
+    const persisted: PendingMemoryUploadTask[] = JSON.parse(storage.get(key) ?? '[]');
+    const entry = persisted[0].finalEntries[0];
+    expect(entry.kind).toBe('pending');
+    firstId = params.uploadId;
+    expect(firstId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(entry.kind === 'pending' && entry.uploadId).toBe(firstId);
+    throw new Error('response lost after upload');
+  });
+  expect((await processPendingMemoryUploads({ userId: 'A' })).failed).toBe(1);
+  expect(deleteMemoryImage).not.toHaveBeenCalled();
+  expect((await processPendingMemoryUploads({ userId: 'A' })).succeeded).toBe(1);
+  expect(jest.mocked(uploadMemoryImage).mock.calls[1][0].uploadId).toBe(firstId);
+  await enqueuePendingMemoryUpload(input);
+  await processPendingMemoryUploads({ userId: 'A' });
+  expect(jest.mocked(uploadMemoryImage).mock.calls[2][0].uploadId).not.toBe(firstId);
+});
+
+it('does not upload when persisting the attempt identity fails', async () => {
+  await enqueuePendingMemoryUpload(input);
+  jest.mocked(AsyncStorage.setItem).mockRejectedValueOnce(new Error('disk unavailable'));
+  expect((await processPendingMemoryUploads({ userId: 'A' })).failed).toBe(1);
+  expect(uploadMemoryImage).not.toHaveBeenCalled();
+});
+
 it('does not trust a caller-supplied previous owner after an account switch', async () => {
   await enqueuePendingMemoryUpload(input);
   owner('B');
@@ -165,7 +195,9 @@ it('bounds automatic attempts without deleting the only retained photo plan', as
     await processPendingMemoryUploads({ userId: 'A' });
   expect(uploadMemoryImage).toHaveBeenCalledTimes(5);
   expect(JSON.parse(storage.get(key) ?? '[]')).toEqual([
-    expect.objectContaining({ attempts: 5, finalEntries: input.finalEntries }),
+    expect.objectContaining({ attempts: 5, finalEntries: [
+      { ...input.finalEntries[0], uploadId: attemptIdentity },
+    ] }),
   ]);
 });
 
@@ -254,8 +286,8 @@ it('still cleans up a partial upload before any journal or reference submission'
     expect.objectContaining({
       attempts: 1,
       finalEntries: [
-        ...input.finalEntries,
-        { ...input.finalEntries[0], key: 'second', uri: 'file://second.jpg' },
+        { ...input.finalEntries[0], uploadId: attemptIdentity },
+        { ...input.finalEntries[0], key: 'second', uri: 'file://second.jpg', uploadId: attemptIdentity },
       ],
     }),
   ]);

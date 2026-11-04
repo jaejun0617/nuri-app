@@ -5,6 +5,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useAuthStore } from '../../store/authStore';
+import { createRequestId, isRequestId } from '../../utils/requestId';
 
 import {
   captureMonitoringException,
@@ -43,6 +44,7 @@ export type PendingMemoryUploadImage = {
   key: string;
   uri: string;
   mimeType: string | null;
+  uploadId?: string;
 };
 
 export type PendingMemoryUploadEntry =
@@ -110,6 +112,9 @@ function normalizePendingEntry(
     uri,
     mimeType:
       'mimeType' in entry ? normalizeString(entry.mimeType) || null : null,
+    ...('uploadId' in entry && isRequestId(entry.uploadId)
+      ? { uploadId: entry.uploadId }
+      : {}),
   };
 }
 
@@ -305,12 +310,28 @@ async function processTask(
       if (entry.kind !== 'pending') continue;
       await assertTaskNotSuperseded(task);
       assertOwner();
+      // Persist the attempt identity before Storage can commit. A lost response
+      // or process restart must reuse the same object, not allocate an orphan.
+      const uploadId = entry.uploadId ?? createRequestId();
+      if (!entry.uploadId) {
+        await updateTask(task.taskId, stored => ({
+          ...stored,
+          finalEntries: stored.finalEntries.map(item =>
+            item.kind === 'pending' && item.key === entry.key
+              ? { ...item, uploadId }
+              : item,
+          ),
+        }));
+        await assertTaskNotSuperseded(task);
+        assertOwner();
+      }
       const uploaded = await uploadMemoryImage({
         userId: task.userId,
         petId: task.petId,
         memoryId: task.memoryId,
         fileUri: entry.uri,
         mimeType: entry.mimeType,
+        uploadId,
       });
       uploadedPathsByKey.set(entry.key, uploaded.path);
       uploadedNewPaths.push(uploaded.path);
