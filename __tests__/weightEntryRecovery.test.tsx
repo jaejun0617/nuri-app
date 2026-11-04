@@ -130,6 +130,10 @@ it('locks same-tick duplicate saves and keeps a failed entry editable for retry'
   expect(upsertPetWeightLog).toHaveBeenCalledTimes(1);
   expect(committed).not.toHaveBeenCalled();
   expect(close).not.toHaveBeenCalled();
+  expect(Alert.alert).toHaveBeenCalledWith(
+    '기록 저장이 잠시 멈췄어요',
+    expect.any(String),
+  );
   expect(
     tree().root.findByProps({ testID: 'weight-entry-value' }).props.value,
   ).toBe('6.2');
@@ -175,6 +179,32 @@ it.each(['pet', 'hidden', 'unmount', 'owner'] as const)(
       ).toBe(false);
   },
 );
+
+it('reports a weight edit failure as a record update, not a profile update', async () => {
+  await render({ initialLog: log });
+  jest.mocked(upsertPetWeightLog).mockRejectedValueOnce(new Error('offline'));
+  await act(async () => save());
+  expect(Alert.alert).toHaveBeenCalledWith(
+    '기록 수정을 반영하지 못했어요',
+    expect.any(String),
+  );
+  expect(close).not.toHaveBeenCalled();
+});
+
+it('reports a weight deletion failure without claiming a profile edit failed', async () => {
+  await render({ initialLog: log });
+  act(() => tree().root.findByProps({ role: 'destructiveEntry' }).props.onPress());
+  const confirm = jest.mocked(Alert.alert).mock.calls.at(-1)?.[2]
+    ?.find(button => button.style === 'destructive')?.onPress;
+  if (!confirm) throw new Error('Delete confirmation was not shown');
+  jest.mocked(deletePetWeightLog).mockRejectedValueOnce(new Error('offline'));
+  await act(async () => { await confirm(); });
+  expect(Alert.alert).toHaveBeenLastCalledWith(
+    '기록 삭제를 완료하지 못했어요',
+    expect.any(String),
+  );
+  expect(close).not.toHaveBeenCalled();
+});
 
 it('ignores a late save error after Android Back closes the entry', async () => {
   const pending = deferred<PetWeightLogMutationResult>();

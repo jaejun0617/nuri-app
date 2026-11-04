@@ -192,7 +192,7 @@ export default function WeightLogEntrySheet({
       if (!current()) return;
       const { title: errorTitle, message } = getBrandedErrorMeta(
         error,
-        'pet-update',
+        initialLog ? 'record-update' : 'record-create',
       );
       Alert.alert(errorTitle, message);
     } finally {
@@ -246,7 +246,7 @@ export default function WeightLogEntrySheet({
               if (!current()) return;
               const { title: errorTitle, message } = getBrandedErrorMeta(
                 error,
-                'pet-update',
+                'record-delete',
               );
               Alert.alert(errorTitle, message);
             } finally {
