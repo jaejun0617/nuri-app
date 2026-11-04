@@ -6,9 +6,9 @@ jest.mock('../src/services/supabase/config', () => ({
   SUPABASE_URL: 'https://aaaaaaaaaaaaaaaaaaaa.supabase.co',
   SUPABASE_ANON_KEY: 'sb_publishable_contract_test_public_input',
 }));
-jest.mock('../src/services/supabase/client', () => ({ supabase: { auth: { signInWithOAuth: jest.fn() } } }));
+jest.mock('../src/services/supabase/client', () => ({ supabase: { auth: { signInWithOAuth: jest.fn(), exchangeCodeForSession: jest.fn() } } }));
 import { supabase } from '../src/services/supabase/client';
-import { signInWithGoogle, signInWithKakao } from '../src/services/supabase/auth';
+import { completeOAuthCallbackSession, signInWithGoogle, signInWithKakao } from '../src/services/supabase/auth';
 import { AUTH_APP_LINK_CALLBACK, LEGACY_AUTH_CALLBACK } from '../src/services/auth/appLinks';
 import { markExplicitLogout, clearExplicitLogoutAfterSignIn } from '../src/services/auth/localSession';
 import { PENDING_OAUTH_KEY } from '../src/services/auth/pendingOAuth';
@@ -23,6 +23,7 @@ describe('provider-specific redirect contract', () => {
   afterEach(async () => {
     delete NativeModules.NuriOAuthBrowser;
     await clearExplicitLogoutAfterSignIn();
+    jest.useRealTimers();
     jest.restoreAllMocks();
   });
   it('Kakao starts Supabase OAuth with the exact HTTPS app callback', async () => {
@@ -61,6 +62,23 @@ describe('provider-specific redirect contract', () => {
       }
     },
   );
+  it('accepts the callback while the native result is still pending, but blocks a second login', async () => {
+    jest.useFakeTimers();
+    jest.replaceProperty(Platform, 'OS', 'android');
+    jest.mocked(AsyncStorage.getItem).mockResolvedValueOnce(
+      JSON.stringify({ version: 1, provider: 'kakao', startedAt: Date.now() }),
+    );
+    jest.mocked(supabase.auth.exchangeCodeForSession).mockRejectedValueOnce(new Error('exchange transport'));
+    NativeModules.NuriOAuthBrowser = { open: async () => {
+      await expect(signInWithGoogle()).rejects.toMatchObject({ code: 'callback_not_expected' });
+      await expect(completeOAuthCallbackSession({ code: 'qa-browser-result' })).rejects.toThrow('exchange transport');
+      return 'returned';
+    } };
+    await signInWithKakao();
+    expect(supabase.auth.exchangeCodeForSession).toHaveBeenCalledTimes(1);
+    expect(Linking.openURL).not.toHaveBeenCalled();
+    jest.runOnlyPendingTimers();
+  });
   it.each([
     'https://foreign.example.test/auth/v1/authorize?code_challenge_method=s256',
     'https://aaaaaaaaaaaaaaaaaaaa.supabase.co/auth/v1/authorize?code_challenge_method=plain',

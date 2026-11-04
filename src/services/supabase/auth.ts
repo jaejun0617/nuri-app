@@ -159,6 +159,7 @@ export function getOAuthSignInUserMessage(error: unknown): string {
 }
 
 let oauthStartInProgress = false;
+let oauthBrowserReady = false;
 let oauthExchangeInProgress = false;
 
 export function isOAuthCompletionPending(): boolean {
@@ -184,6 +185,7 @@ export async function signInWithOAuthProvider(
     await clearPendingOAuth();
     throw error;
   } finally {
+    oauthBrowserReady = false;
     oauthStartInProgress = false;
   }
 }
@@ -233,6 +235,9 @@ async function startOAuthProvider(
 
   try {
     const url = requireS256OAuthUrl(data.url, SUPABASE_URL);
+    // Auth Tab can deliver the link before its activity-result promise settles.
+    // Only setup, not the already-armed browser wait, excludes that callback.
+    oauthBrowserReady = true;
     const browser = NativeModules.NuriOAuthBrowser as {
       open?: (authorizationUrl: string, redirect: string) => Promise<unknown>;
     } | undefined;
@@ -276,7 +281,7 @@ export function completeOAuthCallbackSession(input: OAuthCallbackSessionInput): 
   const key = JSON.stringify([code, input.provider ?? null]);
   const pending = callbackExchanges.get(key);
   if (pending) return pending.promise;
-  if (oauthStartInProgress || oauthExchangeInProgress) {
+  if ((oauthStartInProgress && !oauthBrowserReady) || oauthExchangeInProgress) {
     return Promise.reject(new OAuthSignInError({ code: 'callback_not_expected', message: '로그인을 확인 중이에요.' }));
   }
   if (callbackExchanges.size >= 4) {
