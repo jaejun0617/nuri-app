@@ -231,13 +231,22 @@ export default function SocialLoginSurface({
             accessibilityLiveRegion="polite"
             accessibilityState={{ busy: true }}
           >
-            <ActivityIndicator size="small" color="#1F1F1F" />
-            <AppText preset="unifiedLabel" style={styles.unavailableText}>
-              누리로 로그인하고 있어요
-            </AppText>
-            <AppText preset="caption" style={styles.unavailableText}>
-              잠시만 기다려 주세요
-            </AppText>
+            <Image
+              testID="social-login-progress-art"
+              accessible={false}
+              source={visual.source}
+              resizeMode="cover"
+              style={styles.progressArt}
+            />
+            <View style={styles.progressCopy}>
+              <ActivityIndicator size="small" color={styles.progressTitle.color} />
+              <AppText preset="unifiedLabel" style={styles.progressTitle}>
+                누리로 로그인하고 있어요
+              </AppText>
+              <AppText preset="caption" style={styles.progressDescription}>
+                잠시만 기다려 주세요
+              </AppText>
+            </View>
           </View>
         </View>
       ) : null}
