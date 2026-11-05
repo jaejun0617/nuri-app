@@ -224,29 +224,20 @@ export default function SocialLoginSurface({
         </View>
       </ScrollView>
       {sessionPending || busyProvider ? (
-        <View pointerEvents="none" style={styles.progressOverlay}>
+        <View testID="social-login-progress-overlay" pointerEvents="none" style={styles.progressOverlay}>
           <View
             testID="social-login-progress"
             style={styles.sessionProgress}
             accessibilityLiveRegion="polite"
             accessibilityState={{ busy: true }}
           >
-            <Image
-              testID="social-login-progress-art"
-              accessible={false}
-              source={visual.source}
-              resizeMode="cover"
-              style={styles.progressArt}
-            />
-            <View style={styles.progressCopy}>
-              <ActivityIndicator size="small" color={styles.progressTitle.color} />
-              <AppText preset="unifiedLabel" style={styles.progressTitle}>
-                누리로 로그인하고 있어요
-              </AppText>
-              <AppText preset="caption" style={styles.progressDescription}>
-                잠시만 기다려 주세요
-              </AppText>
-            </View>
+            <ActivityIndicator size="small" color={styles.progressTitle.color} />
+            <AppText preset="unifiedLabel" style={styles.progressTitle}>
+              누리에 로그인하고 있어요
+            </AppText>
+            <AppText preset="caption" style={styles.progressDescription}>
+              잠시만 기다려 주세요
+            </AppText>
           </View>
         </View>
       ) : null}
