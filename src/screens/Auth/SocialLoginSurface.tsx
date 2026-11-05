@@ -14,6 +14,7 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import AppText from '../../app/ui/AppText';
+import { HomeFloatingWidgetSurface } from '../../components/home/HomeWidgetMaterial';
 import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 import {
   getSeasonalLoginVisual,
@@ -25,7 +26,7 @@ import {
 } from '../../services/supabase/auth';
 import type { LegalDocumentId } from '../../services/legal/documents';
 import type { RecentLoginProvider } from '../../services/auth/recentLoginProvider';
-import { styles } from './SignInScreen.styles';
+import { LOGIN_PROGRESS_RADIUS, styles } from './SignInScreen.styles';
 
 const PROVIDERS = {
   kakao: {
@@ -231,6 +232,10 @@ export default function SocialLoginSurface({
             accessibilityLiveRegion="polite"
             accessibilityState={{ busy: true }}
           >
+            <HomeFloatingWidgetSurface
+              radius={LOGIN_PROGRESS_RADIUS}
+              testIDPrefix="social-login-progress-glass"
+            />
             <ActivityIndicator size="small" color={styles.progressTitle.color} />
             <AppText preset="unifiedLabel" style={styles.progressTitle}>
               누리에 로그인하고 있어요
