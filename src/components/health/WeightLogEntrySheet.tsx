@@ -8,7 +8,6 @@ import React, {
   useState,
 } from 'react';
 import {
-  Alert,
   Keyboard,
   Modal,
   Platform,
@@ -19,6 +18,7 @@ import {
   View,
   type TextInput,
 } from 'react-native';
+import { NuriAlert as Alert } from '../../app/ui/NuriAlert';
 import { KeyboardAvoidingView as KeyboardControllerAvoidingView } from 'react-native-keyboard-controller';
 import { useBoundedKeyboardScroll } from '../../hooks/useBoundedKeyboardScroll';
 import { useKeyboardBottomPadding } from '../../hooks/useKeyboardBottomPadding';
@@ -29,7 +29,9 @@ import NuriSemanticIcon from '../icons/NuriSemanticIcon';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import { healthReportColors as colors } from '../../app/theme/tokens/healthReport';
 import DatePickerModal from '../date-picker/DatePickerModal';
+import { MenuGlassSurface } from '../common/MenuGlassSurface';
 import {
   deletePetWeightLog,
   upsertPetWeightLog,
@@ -67,7 +69,7 @@ export default function WeightLogEntrySheet({
   visible,
   petId,
   petName,
-  accentColor: _accentColor,
+  accentColor,
   entrySource,
   initialLog = null,
   initialWeightKg = null,
@@ -76,6 +78,13 @@ export default function WeightLogEntrySheet({
   onCommitted,
 }: Props) {
   const theme = useTheme();
+  const healthStyle = entrySource === 'health_report';
+  const accent = healthStyle ? colors.accent : accentColor;
+  const inputInk = healthStyle ? colors.ink : theme.colors.textPrimary;
+  const fieldLabel = healthStyle ? colors.muted : undefined;
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const deleteOwner = useRef<(() => boolean) | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
   const insets = useSafeAreaInsets();
   const bottomPaddingStyle = useKeyboardBottomPadding(
     Math.max(insets.bottom, 20),
@@ -106,6 +115,9 @@ export default function WeightLogEntrySheet({
     mutation.current = null;
     setSaving(false);
     setDeleting(false);
+    setConfirmingDelete(false);
+    setDeleteError(null);
+    deleteOwner.current = null;
   }, [initialLog?.id, petId, visible]);
 
   const handleClose = useCallback(() => {
@@ -116,13 +128,19 @@ export default function WeightLogEntrySheet({
   }, [onClose]);
 
   const handleRequestClose = useCallback(() => {
+    if (confirmingDelete) {
+      if (mutation.current) return;
+      deleteOwner.current = null;
+      setConfirmingDelete(false);
+      return;
+    }
     if (keyboardVisible) {
       Keyboard.dismiss();
       return;
     }
 
     handleClose();
-  }, [handleClose, keyboardVisible]);
+  }, [confirmingDelete, handleClose, keyboardVisible]);
 
   useEffect(() => {
     if (!visible) return;
@@ -215,51 +233,73 @@ export default function WeightLogEntrySheet({
     weightText,
   ]);
 
+  const performDelete = useCallback(
+    async (current: () => boolean) => {
+      if (!initialLog || mutation.current || !current()) return;
+      const operation = Symbol('weight-delete');
+      mutation.current = operation;
+      setDeleteError(null);
+      try {
+        setDeleting(true);
+        const result = await deletePetWeightLog({ logId: initialLog.id });
+        if (!current()) return;
+        showToast({
+          tone: 'info',
+          title: '체중 기록을 지웠어요',
+          message: `${petName}의 최신 몸무게를 다시 정리했어요.`,
+        });
+        onCommitted?.(result);
+        handleClose();
+      } catch (error) {
+        if (!current()) return;
+        const { title: errorTitle, message } = getBrandedErrorMeta(
+          error,
+          'record-delete',
+        );
+        if (healthStyle) setDeleteError(message);
+        else Alert.alert(errorTitle, message);
+      } finally {
+        if (mutation.current === operation) {
+          mutation.current = null;
+          if (captureCurrent()()) setDeleting(false);
+        }
+      }
+    },
+    [
+      captureCurrent,
+      handleClose,
+      healthStyle,
+      initialLog,
+      onCommitted,
+      petName,
+    ],
+  );
+
   const handleDelete = useCallback(() => {
     const current = captureEntry();
     if (!initialLog || mutation.current || !current()) return;
-
-    Alert.alert(
-      '체중 기록 삭제',
-      '이 기록을 지우면 최신 몸무게도 다시 계산돼요.',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '삭제',
-          style: 'destructive',
-          onPress: async () => {
-            if (mutation.current || !current()) return;
-            const operation = Symbol('weight-delete');
-            mutation.current = operation;
-            try {
-              setDeleting(true);
-              const result = await deletePetWeightLog({ logId: initialLog.id });
-              if (!current()) return;
-              showToast({
-                tone: 'info',
-                title: '체중 기록을 지웠어요',
-                message: `${petName}의 최신 몸무게를 다시 정리했어요.`,
-              });
-              onCommitted?.(result);
-              handleClose();
-            } catch (error) {
-              if (!current()) return;
-              const { title: errorTitle, message } = getBrandedErrorMeta(
-                error,
-                'record-delete',
-              );
-              Alert.alert(errorTitle, message);
-            } finally {
-              if (mutation.current === operation) {
-                mutation.current = null;
-                if (captureCurrent()()) setDeleting(false);
-              }
-            }
+    if (healthStyle) {
+      Keyboard.dismiss();
+      setDeleteError(null);
+      deleteOwner.current = current;
+      setConfirmingDelete(true);
+    } else {
+      Alert.alert(
+        '체중 기록 삭제',
+        '이 기록을 지우면 최신 몸무게도 다시 계산돼요.',
+        [
+          { text: '취소', style: 'cancel' },
+          {
+            text: '삭제',
+            style: 'destructive',
+            onPress: () => performDelete(current),
           },
-        },
-      ],
-    );
-  }, [captureCurrent, captureEntry, handleClose, initialLog, onCommitted, petName]);
+        ],
+      );
+    }
+  }, [captureEntry, healthStyle, initialLog, performDelete]);
+
+  const currentDelete = deleteOwner.current;
 
   return (
     <>
@@ -280,35 +320,58 @@ export default function WeightLogEntrySheet({
         >
           <Pressable
             testID="weight-entry-backdrop"
-            style={styles.backdrop}
-            disabled={saving || deleting}
+            style={[
+              styles.backdrop,
+              healthStyle && styles.reportBackdrop,
+              confirmingDelete && styles.clearBackdrop,
+            ]}
+            disabled={saving || deleting || confirmingDelete}
             onPress={handleClose}
           />
           <Animated.View
             testID="weight-entry-sheet"
+            accessibilityElementsHidden={confirmingDelete}
+            importantForAccessibility={
+              confirmingDelete ? 'no-hide-descendants' : 'auto'
+            }
             style={[
               styles.sheet,
               {
                 backgroundColor: theme.colors.surfaceElevated,
                 borderColor: theme.colors.border,
               },
+              healthStyle && styles.reportSheet,
               bottomPaddingStyle,
             ]}
           >
             {/* Empty sheet space must not hand a touch to the dismiss backdrop. */}
+            {healthStyle ? <MenuGlassSurface radius={0} backed /> : null}
             <Pressable
               testID="weight-entry-touch-boundary"
               accessible={false}
               style={StyleSheet.absoluteFill}
               onPress={event => event.stopPropagation()}
             />
+            {healthStyle ? <View style={styles.sheetHandle} /> : null}
             <View testID="weight-entry-header" style={styles.headerRow}>
               <View style={styles.headerTextWrap}>
-                <AppText preset="unifiedTitle">{title}</AppText>
+                <AppText
+                  preset="unifiedTitle"
+                  weight="800"
+                  color={healthStyle ? colors.ink : undefined}
+                  styleOverridesPreset={healthStyle}
+                  style={healthStyle && styles.reportTitle}
+                >
+                  {title}
+                </AppText>
                 <AppText
                   preset="unifiedMeta"
-                  color={theme.colors.textMuted}
-                  style={styles.headerHelper}
+                  color={healthStyle ? colors.muted : theme.colors.textMuted}
+                  styleOverridesPreset={healthStyle}
+                  style={[
+                    styles.headerHelper,
+                    healthStyle && styles.reportLabelText,
+                  ]}
                 >
                   {petName}
                 </AppText>
@@ -320,14 +383,11 @@ export default function WeightLogEntrySheet({
                 activeOpacity={0.88}
                 disabled={saving || deleting}
                 onPress={handleClose}
-                style={[
-                  styles.closeButton,
-                  { backgroundColor: 'transparent' },
-                ]}
+                style={[styles.closeButton, { backgroundColor: 'transparent' }]}
               >
                 <NuriSemanticIcon
                   family="feather"
-                  color={theme.colors.textPrimary}
+                  color={healthStyle ? '#111111' : theme.colors.textPrimary}
                   name="x"
                   size={24}
                   preserveOriginal
@@ -343,13 +403,19 @@ export default function WeightLogEntrySheet({
               showsVerticalScrollIndicator={false}
             >
               <View style={styles.fieldBlock}>
-                <AppText preset="unifiedMeta" style={styles.label}>
+                <AppText
+                  preset="unifiedMeta"
+                  color={fieldLabel}
+                  styleOverridesPreset={healthStyle}
+                  style={[styles.label, healthStyle && styles.reportLabelText]}
+                >
                   몸무게
                 </AppText>
                 <View
                   style={[
                     styles.valueInputWrap,
                     { borderColor: theme.colors.border },
+                    healthStyle && styles.reportField,
                   ]}
                 >
                   <AppTextInput
@@ -361,45 +427,84 @@ export default function WeightLogEntrySheet({
                     placeholder="0.0"
                     placeholderTextColor="#A0A7B4"
                     keyboardType="decimal-pad"
-                    style={[styles.input, { color: theme.colors.textPrimary }]}
+                    style={[styles.input, { color: inputInk }]}
                   />
-                  <AppText preset="unifiedMeta" color={theme.colors.textMuted}>
+                  <AppText
+                    preset="unifiedMeta"
+                    color={healthStyle ? colors.muted : theme.colors.textMuted}
+                    styleOverridesPreset={healthStyle}
+                    style={healthStyle && styles.reportLabelText}
+                  >
                     kg
                   </AppText>
                 </View>
               </View>
 
               <View style={styles.fieldBlock}>
-                <AppText preset="unifiedMeta" style={styles.label}>
+                <AppText
+                  preset="unifiedMeta"
+                  color={fieldLabel}
+                  styleOverridesPreset={healthStyle}
+                  style={[styles.label, healthStyle && styles.reportLabelText]}
+                >
                   측정 날짜
                 </AppText>
                 <TouchableOpacity
                   activeOpacity={0.88}
-                  onPress={() => setDateModalVisible(true)}
+                  accessibilityRole="button"
+                  accessibilityLabel="측정 날짜 변경"
+                  onPress={() => {
+                    Keyboard.dismiss();
+                    setDateModalVisible(true);
+                  }}
                   style={[
                     styles.valueInputWrap,
                     { borderColor: theme.colors.border },
+                    healthStyle && styles.reportField,
                   ]}
                 >
-                  <AppText preset="unifiedBody">
+                  <AppText
+                    preset="unifiedBody"
+                    color={healthStyle ? colors.ink : undefined}
+                    styleOverridesPreset={healthStyle}
+                    style={healthStyle && styles.reportDateText}
+                  >
                     {measuredOn.replace(/-/g, '.')}
                   </AppText>
-                  <Feather
-                    color={theme.colors.textMuted}
-                    name="calendar"
-                    size={16}
-                  />
+                  {healthStyle ? (
+                    <AppText
+                      preset="unifiedBody"
+                      color={accent}
+                      weight="600"
+                      styleOverridesPreset
+                      style={styles.reportLabelText}
+                    >
+                      변경
+                    </AppText>
+                  ) : (
+                    <Feather
+                      color={theme.colors.textMuted}
+                      name="calendar"
+                      size={16}
+                    />
+                  )}
                 </TouchableOpacity>
               </View>
 
               <View style={styles.fieldBlock}>
-                <AppText preset="unifiedMeta" style={styles.label}>
+                <AppText
+                  preset="unifiedMeta"
+                  color={fieldLabel}
+                  styleOverridesPreset={healthStyle}
+                  style={[styles.label, healthStyle && styles.reportLabelText]}
+                >
                   메모
                 </AppText>
                 <View
                   style={[
                     styles.noteWrap,
                     { borderColor: theme.colors.border },
+                    healthStyle && styles.reportField,
                   ]}
                 >
                   <AppTextInput
@@ -412,10 +517,7 @@ export default function WeightLogEntrySheet({
                     placeholderTextColor="#A0A7B4"
                     multiline
                     maxLength={500}
-                    style={[
-                      styles.noteInput,
-                      { color: theme.colors.textPrimary },
-                    ]}
+                    style={[styles.noteInput, { color: inputInk }]}
                   />
                 </View>
               </View>
@@ -424,6 +526,7 @@ export default function WeightLogEntrySheet({
               {initialLog ? (
                 <CtaButton
                   role="destructiveEntry"
+                  testID="weight-entry-delete"
                   activeOpacity={0.88}
                   onPress={handleDelete}
                   disabled={saving || deleting}
@@ -435,21 +538,170 @@ export default function WeightLogEntrySheet({
                 </CtaButton>
               ) : null}
 
-              <CtaButton
-                role="primary"
-                loading={saving}
-                testID="weight-entry-save"
-                activeOpacity={0.9}
-                onPress={handleSave}
-                disabled={!canSubmit || saving || deleting}
-                style={[styles.primaryButton, {}]}
-              >
-                <CtaText preset="unifiedLabel">
-                  {initialLog ? '수정하기' : '기록하기'}
-                </CtaText>
-              </CtaButton>
+              {healthStyle ? (
+                <TouchableOpacity
+                  accessibilityRole="button"
+                  accessibilityState={{
+                    busy: saving,
+                    disabled: !canSubmit || saving || deleting,
+                  }}
+                  testID="weight-entry-save"
+                  onPress={handleSave}
+                  disabled={!canSubmit || saving || deleting}
+                  style={[
+                    styles.primaryButton,
+                    styles.reportPrimaryButton,
+                    (!canSubmit || saving || deleting) &&
+                      styles.reportButtonDisabled,
+                  ]}
+                >
+                  <AppText
+                    preset="unifiedLabel"
+                    color="#FFFFFF"
+                    weight="700"
+                    styleOverridesPreset
+                    style={styles.reportLabelText}
+                  >
+                    {saving ? '저장 중…' : initialLog ? '수정하기' : '기록하기'}
+                  </AppText>
+                </TouchableOpacity>
+              ) : (
+                <CtaButton
+                  role="primary"
+                  loading={saving}
+                  testID="weight-entry-save"
+                  activeOpacity={0.9}
+                  onPress={handleSave}
+                  disabled={!canSubmit || saving || deleting}
+                  style={styles.primaryButton}
+                >
+                  <CtaText preset="unifiedLabel">
+                    {initialLog ? '수정하기' : '기록하기'}
+                  </CtaText>
+                </CtaButton>
+              )}
             </View>
           </Animated.View>
+          {confirmingDelete && initialLog ? (
+            <View
+              style={[
+                styles.confirmOverlay,
+                {
+                  paddingTop: insets.top + 16,
+                  paddingBottom: insets.bottom + 16,
+                },
+              ]}
+              accessibilityViewIsModal
+            >
+              <ScrollView
+                style={styles.confirmScroll}
+                contentContainerStyle={styles.confirmScrollContent}
+                keyboardShouldPersistTaps="handled"
+                showsVerticalScrollIndicator={false}
+              >
+                <View
+                  testID="weight-delete-confirmation"
+                  style={styles.confirmPanel}
+                >
+                  <MenuGlassSurface radius={20} backed />
+                  <AppText
+                    preset="unifiedTitle"
+                    color={colors.ink}
+                    weight="800"
+                    styleOverridesPreset
+                    style={[styles.confirmTitle, styles.reportTitle]}
+                  >
+                    체중 기록을 삭제할까요?
+                  </AppText>
+                  <View style={styles.confirmSummary}>
+                    <View style={styles.headerTextWrap}>
+                      <AppText
+                        preset="unifiedBody"
+                        color={colors.ink}
+                        weight="700"
+                      >
+                        {petName}
+                      </AppText>
+                      <AppText preset="unifiedMeta" color={colors.muted}>
+                        {initialLog.measuredOn.replace(/-/g, '.')}
+                      </AppText>
+                    </View>
+                    <AppText
+                      preset="unifiedTitle"
+                      color={colors.ink}
+                      weight="800"
+                    >
+                      {initialLog.weightKg} kg
+                    </AppText>
+                  </View>
+                  <AppText
+                    preset="unifiedBody"
+                    color={colors.muted}
+                    styleOverridesPreset
+                    style={[styles.confirmTitle, styles.reportLabelText]}
+                  >
+                    이 기록을 삭제하면 최신 몸무게가 남은 기록을 기준으로 다시
+                    계산돼요.
+                  </AppText>
+                  {deleteError ? (
+                    <AppText
+                      accessibilityLiveRegion="polite"
+                      preset="unifiedMeta"
+                      color={colors.danger}
+                    >
+                      {deleteError}
+                    </AppText>
+                  ) : null}
+                  <View style={styles.actionRow}>
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      testID="weight-delete-cancel"
+                      disabled={deleting}
+                      onPress={() => {
+                        deleteOwner.current = null;
+                        setConfirmingDelete(false);
+                      }}
+                      style={[styles.confirmButton, styles.cancelButton]}
+                    >
+                      <AppText
+                        preset="unifiedLabel"
+                        color={colors.ink}
+                        weight="700"
+                      >
+                        취소
+                      </AppText>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      accessibilityRole="button"
+                      accessibilityState={{
+                        busy: deleting,
+                        disabled: deleting,
+                      }}
+                      testID="weight-delete-submit"
+                      disabled={deleting}
+                      onPress={() => {
+                        if (
+                          currentDelete &&
+                          deleteOwner.current === currentDelete
+                        ) {
+                          return performDelete(currentDelete);
+                        }
+                      }}
+                      style={[styles.confirmButton, styles.confirmDelete]}
+                    >
+                      <AppText
+                        preset="unifiedLabel"
+                        color="#FFFFFF"
+                        weight="700"
+                      >
+                        {deleting ? '삭제 중…' : '삭제하기'}
+                      </AppText>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </ScrollView>
+            </View>
+          ) : null}
         </KeyboardControllerAvoidingView>
       </Modal>
 
@@ -493,6 +745,80 @@ const styles = StyleSheet.create({
     paddingTop: 18,
     maxHeight: '82%',
   },
+  reportBackdrop: { backgroundColor: colors.dim },
+  clearBackdrop: { backgroundColor: 'transparent' },
+  reportSheet: {
+    backgroundColor: 'transparent',
+    borderColor: 'rgba(255,255,255,0.78)',
+    borderTopLeftRadius: 25,
+    borderTopRightRadius: 25,
+    paddingTop: 9,
+  },
+  sheetHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: '#C9BDE0',
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  reportField: {
+    backgroundColor: colors.field,
+    borderColor: '#DACDEC',
+    borderWidth: 1,
+    borderBottomWidth: 1,
+    borderRadius: 10,
+    paddingHorizontal: 13,
+    minHeight: 44,
+  },
+  reportPrimaryButton: {
+    backgroundColor: colors.button,
+    borderColor: colors.button,
+  },
+  reportButtonDisabled: { opacity: 0.55 },
+  reportTitle: { fontSize: 20, lineHeight: 26, letterSpacing: 0 },
+  reportLabelText: { fontSize: 14, lineHeight: 20, letterSpacing: 0 },
+  reportDateText: { fontSize: 16, lineHeight: 22, letterSpacing: 0 },
+  confirmOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: colors.dim,
+    paddingHorizontal: 24,
+  },
+  confirmScroll: { flex: 1 },
+  confirmScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    paddingVertical: 8,
+  },
+  confirmPanel: {
+    width: '100%',
+    maxWidth: 450,
+    alignSelf: 'center',
+    backgroundColor: 'transparent',
+    borderRadius: 20,
+    padding: 18,
+    gap: 14,
+  },
+  confirmTitle: { textAlign: 'center' },
+  confirmSummary: {
+    backgroundColor: colors.tint,
+    borderRadius: 11,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flexWrap: 'wrap',
+  },
+  confirmButton: {
+    flex: 1,
+    minHeight: 44,
+    borderRadius: 9,
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 6,
+  },
+  cancelButton: { backgroundColor: colors.tint },
+  confirmDelete: { backgroundColor: colors.danger },
   headerRow: {
     flexShrink: 0,
     flexDirection: 'row',

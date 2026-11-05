@@ -5,6 +5,7 @@ import Feather from '../icons/NuriFeatherIcon';
 
 import AppText from '../../app/ui/AppText';
 import { styles } from './LocationDiscovery.styles';
+import { MenuGlassSurface, MENU_GLASS_FRAME } from '../common/MenuGlassSurface';
 
 type Props = {
   value: string;
@@ -16,6 +17,7 @@ type Props = {
   onChangeText: (value: string) => void;
   onSubmit: () => void;
   onOpenFilters?: () => void;
+  surfaceVariant?: 'plain' | 'menuGlass';
 };
 
 export default function LocationDiscoverySearchBar({
@@ -28,12 +30,14 @@ export default function LocationDiscoverySearchBar({
   onChangeText,
   onSubmit,
   onOpenFilters,
+  surfaceVariant = 'plain',
 }: Props) {
   const showMetaRow = Boolean(helperText || loadingText);
 
   return (
     <View style={styles.searchWrap}>
-      <View style={styles.searchInputWrap}>
+      <View style={[styles.searchInputWrap, surfaceVariant === 'menuGlass' && MENU_GLASS_FRAME]}>
+        {surfaceVariant === 'menuGlass' ? <MenuGlassSurface radius={16} /> : null}
         <Feather name="search" size={18} color="#98A1B2" />
         <AppTextInput
           value={value}

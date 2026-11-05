@@ -1,12 +1,12 @@
 import React from 'react';
 import ReactNative, {
-  Alert,
   FlatList,
   Modal,
   SectionList,
   ScrollView,
   StyleSheet,
 } from 'react-native';
+import { NuriAlert as Alert } from '../src/app/ui/NuriAlert';
 import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';

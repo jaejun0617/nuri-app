@@ -1,3 +1,5 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import React, { useEffect, useRef } from 'react';
 import { Linking, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -134,20 +136,20 @@ export default function GuideDetailScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <SeasonalAmbientBackground season={season} appearance="light" />
-      <View style={[styles.topBar, { paddingTop: headerTopInset + 4 }]}>
+      <AppHeaderLayout subtitle="아이에게 맞는 돌봄 이야기를 살펴봐요" style={[styles.topBar, { paddingTop: headerTopInset + 4 }]}>
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel="가이드 목록으로 돌아가기"
           style={styles.headerBackButton}
           onPress={() => navigation.goBack()}
         >
-          <Feather name="arrow-left" size={20} color="#102033" />
+          <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
         </TouchableOpacity>
         <View style={styles.topBarTitleWrap}>
-          <AppText preset="unifiedTitle" style={styles.headerTitle}>집사 꿀팁 가이드</AppText>
+          <AppText styleOverridesPreset preset="unifiedTitle" style={[styles.headerTitle, APP_HEADER.title]}>집사 꿀팁 가이드</AppText>
         </View>
         <View style={styles.headerSideSlot} />
-      </View>
+      </AppHeaderLayout>
       {guideState.loading ? (
         <View style={styles.emptyCard}>
           <Feather name="loader" size={28} color={petTheme.primary} />

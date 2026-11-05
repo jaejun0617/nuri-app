@@ -1,7 +1,10 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import TimelineArtwork from '../../components/records/TimelineArtwork';
 import { useNotificationDestinationRead } from '../../hooks/useNotificationDestinationRead';
 import { useOwnerOperation } from '../../hooks/useOwnerOperation';
 import { LavenderScreenBackground } from '../../components/common/LavenderScreenBackground';
+import { MenuGlassSurface } from '../../components/common/MenuGlassSurface';
 import { TIMELINE_DESIGN as C } from '../../theme/timelineDesign';
 import CtaButton, { CtaIcon, CtaText } from '../../components/records/TimelineButton';
 import { getRecordCareLabel } from '../../services/records/metadata';
@@ -21,7 +24,6 @@ import React, {
   useState,
 } from 'react';
 import {
-  Alert,
   ActivityIndicator,
   FlatList,
   Image,
@@ -35,6 +37,7 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { NuriAlert as Alert } from '../../app/ui/NuriAlert';
 import { ToolbarHeightContext } from '../../components/navigation/ToolbarHeightContext';
 import type {
   CompositeNavigationProp,
@@ -397,6 +400,7 @@ const FeedPostCard = memo(function FeedPostCardView({
       testID="memory-detail-post-glass"
       style={styles.postCard}
     >
+      <MenuGlassSurface radius={0} />
       <View style={styles.postHeader}>
         <View style={styles.postHeaderLeft}>
           {petAvatarUrl ? (
@@ -523,7 +527,8 @@ const FeedPostCard = memo(function FeedPostCardView({
         ) : null}
 
         {item.metadata?.grooming?.careTypes.length || (priceText && (item.subCategory==='grooming'||item.subCategory==='bathing')) ? (
-          <View testID="memory-detail-care-card" style={{padding:16,borderRadius:14,borderWidth:1,borderColor:C.border,backgroundColor:C.surface,gap:12}}>
+          <View testID="memory-detail-care-card" style={{padding:16,borderRadius:14,borderWidth:1,borderColor:'rgba(255,255,255,0.78)',backgroundColor:'transparent',gap:12}}>
+            <MenuGlassSurface radius={14} />
             <AppText preset="unifiedLabel" style={{color:C.ink}}>관리 항목</AppText>
             <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>
               {item.metadata?.grooming?.careTypes.map(code=><View key={code} style={{backgroundColor:C.selected,borderRadius:20,paddingHorizontal:14,paddingVertical:8}}><AppText preset="unifiedMeta" style={{color:C.primary}}>{getRecordCareLabel(code,item.subCategory==='bathing'?'bathing':'grooming')}</AppText></View>)}
@@ -635,6 +640,7 @@ const RelatedMemoryCard = memo(function RelatedMemoryCardView({
         testID="memory-detail-related-glass"
         style={styles.relatedCard}
       >
+        <MenuGlassSurface radius={8} />
         <View
           style={[
             styles.relatedThumb,
@@ -698,7 +704,7 @@ function DetailHeader({
   onMore?: () => void;
 }) {
   return (
-    <View
+    <AppHeaderLayout subtitle="아이와 함께 남긴 순간을 돌아봐요"
       style={[styles.headerLink, { paddingTop: Math.max(topInset + 4, 12) }]}
     >
       <View style={styles.headerSideSlot}>
@@ -709,10 +715,10 @@ function DetailHeader({
           style={styles.backButton}
           onPress={onBack}
         >
-          <Feather name="arrow-left" size={20} color="#102033" />
+          <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
         </TouchableOpacity>
       </View>
-      <AppText preset="unifiedTitle" style={styles.headerLinkText}>
+      <AppText styleOverridesPreset preset="unifiedTitle" style={[styles.headerLinkText, APP_HEADER.title]}>
         {healthDetail ? '건강 기록 상세' : '추억 상세'}
       </AppText>
       <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
@@ -728,14 +734,14 @@ function DetailHeader({
             <NuriSemanticIcon
               family="feather"
               name="more-horizontal"
-              size={22}
+              size={APP_HEADER.actionIconSize}
               color={accent}
               preserveOriginal
             />
           </TouchableOpacity>
         ) : null}
       </View>
-    </View>
+    </AppHeaderLayout>
   );
 }
 
@@ -1325,12 +1331,14 @@ export default function RecordDetailScreen() {
                       : () => setRelatedRetry(current => current + 1)
                   }
                 >
+                  <MenuGlassSurface radius={18} />
                   <AppText preset="unifiedBody" style={styles.relatedEmptyText}>
                     관련 기록 다시 불러오기
                   </AppText>
                 </TouchableOpacity>
               ) : relatedRecords.length === 0 ? (
                 <View style={styles.relatedEmptyCard}>
+                  <MenuGlassSurface radius={18} />
                   <AppText preset="unifiedBody" style={styles.relatedEmptyText}>
                     아직 다른 추억은 없어요.
                   </AppText>
@@ -1379,6 +1387,7 @@ export default function RecordDetailScreen() {
         <View style={[styles.sheetBackdrop,{backgroundColor:C.overlay,justifyContent:'flex-end',paddingHorizontal:0}]}>
           <Pressable style={styles.sheetDismiss} onPress={closeActionMenu}/>
           <View accessibilityViewIsModal style={[styles.actionSheet,{maxWidth:600,paddingBottom:insets.bottom+20,borderBottomLeftRadius:0,borderBottomRightRadius:0}]}>
+            <MenuGlassSurface radius={0} backed />
             <View style={{alignSelf:'center',width:40,height:4,borderRadius:2,backgroundColor:'#CBC5DF',marginBottom:18}}/>
             <AppText preset="unifiedTitle" style={{color:C.ink,marginBottom:12}}>이 기록 관리</AppText>
             {showRemembrance ? <View style={styles.sheetActionRow} testID="memory-remembrance-control">

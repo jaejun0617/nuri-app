@@ -1,3 +1,4 @@
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 // 파일: src/screens/Weather/WeatherInsightScreen.tsx
 // 파일 목적:
 // - 현재 위치 기준 날씨/대기질/활동 인사이트를 사용자에게 상세하게 보여주는 대표 화면이다.
@@ -511,7 +512,7 @@ export default function WeatherInsightScreen() {
                 radius={20}
                 testIDPrefix="weather-back-glass"
               />
-              <Feather name="arrow-left" size={20} color={heroHeaderColor} />
+              <Feather name="chevron-left" size={APP_HEADER.backIconSize} color={heroHeaderColor} />
             </View>
           </TouchableOpacity>
         </View>

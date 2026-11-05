@@ -49,6 +49,13 @@ const source = fs.readFileSync(
 );
 
 describe('Home section rhythm and material', () => {
+  it('removes the seasonal profile copy while preserving the notification action and hero profile', () => {
+    const header = source.slice(source.indexOf('const HomeHeaderSection'), source.indexOf('const HeroProfileAccordion'));
+    expect(header).not.toContain('home-hero-season-copy');
+    expect(header).not.toContain('getHomeHeroSeasonCopy');
+    expect(header).toContain('onPress={onPressNotifications}');
+    expect(source).toContain('profilePetName={profilePetName}');
+  });
   it('removes recommendation artwork and its reserved layout while retaining the original card gap', () => {
     const section = source.slice(source.indexOf('const RecommendationTipsSection'), source.indexOf('const TodayRecordsSection'));
     expect(section).not.toContain('emphasisArtwork');
@@ -115,13 +122,11 @@ describe('Home section rhythm and material', () => {
   });
   afterEach(() => jest.restoreAllMocks());
 
-  it('aligns the caption with the bell and keeps foreground contrast tied to actual photo readiness', () => {
-    expect(homeStyles.heroSeasonCopy).toMatchObject({
-      fontSize: 14, lineHeight: 20, color: '#FFFFFF', marginTop: 0,
-    });
+  it('retains the bell alignment and photo-aware contrast without the removed caption', () => {
     const header = source.slice(source.indexOf('const HomeHeaderSection'), source.indexOf('const HeroProfileAccordion'));
     expect(header).toContain("const foreground = photoReady ? '#FFFFFF' : HOME_HERO_COLORS.ink");
-    expect(header).toContain('style={[styles.heroSeasonCopy, { color: foreground }]}');
+    expect(header).toContain('color={foreground}');
+    expect(header).not.toContain('styles.heroSeasonCopy');
     expect(header).not.toContain('styles.brandWordmark');
     expect(header).not.toContain('name="heart"');
     expect(source).toContain('photoReady={heroPhotoReady}');
@@ -160,7 +165,7 @@ describe('Home section rhythm and material', () => {
     expect(header).toMatch(/<NuriIcon\s+testID="home-notification-icon"\s+name="bell"\s+size=\{26\}\s+color=\{foreground\}\s+colorMode="theme"\s+variant="outline"/);
     expect(header).toContain('<HomeNotificationBadge count={notificationUnreadCount} />');
     const openInbox = source.slice(source.indexOf('const openHomeNotifications'), source.indexOf('const closeHomeNotifications'));
-    expect(openInbox).toContain("navigation.navigate('HomeQuickNotifications')");
+    expect(openInbox).toContain("navigation.navigate('UserNotifications', { entrySource: 'home' })");
     expect(openInbox).not.toContain('setNotificationModalVisible(true)');
   });
 

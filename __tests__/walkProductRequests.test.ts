@@ -129,6 +129,9 @@ describe('Walk selected and pinned lifecycle fencing', () => {
   });
 });
 describe('exact Walk display', () => {
+  it.each([['999','999 m'],['1000','1 km'],['1100','1.1 km']])('formats the distance boundary %s as %s', (input, expected) => {
+    expect(walkDistance(input)).toBe(expected);
+  });
   it('does not narrow unbounded lifetime/level quantities to number', () => {
     expect(walkDistance('18446744073709551614')).toBe('18446744073709551.6 km');
     expect(walkDistance('0')).toBe('0 m');

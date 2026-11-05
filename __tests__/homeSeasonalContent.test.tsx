@@ -34,10 +34,10 @@ jest.mock('@react-navigation/native', () => ({
 }));
 
 const COLORS = {
-  spring: '#62505A',
-  summer: '#405A56',
-  autumn: '#625448',
-  winter: '#4A5968',
+  spring: '#221351',
+  summer: '#221351',
+  autumn: '#221351',
+  winter: '#221351',
 } as const;
 const guide: PetCareGuide = {
   id: 'qa-guide',
@@ -241,7 +241,7 @@ describe('Home muted seasonal content, not a global body or CTA tint', () => {
         const texts = together.findAll(node => String(node.type) === 'AppText');
         expect(texts).toHaveLength(2);
         expect(StyleSheet.flatten(texts[0].props.style).color).toBe(HOME_HERO_COLORS.muted);
-        expect(StyleSheet.flatten(texts[1].props.style).color).toBe(HOME_HERO_ACCENT.primary);
+        expect(StyleSheet.flatten(texts[1].props.style).color).toBe(HOME_HERO_COLORS.ink);
         expect(color(renderer, TODAY_HOME_TIP.title)).toBe(COLORS[season]);
         expect(color(renderer, '누리 더 알아보기')).toBe(HOME_HERO_COLORS.ink);
       }

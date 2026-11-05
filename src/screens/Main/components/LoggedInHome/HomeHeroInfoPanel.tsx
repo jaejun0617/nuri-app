@@ -79,7 +79,7 @@ export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
       {dayLabel !== null ? (
         <View testID="home-hero-together" accessible accessibilityLabel={`함께한 시간 ${dayLabel}일`} style={styles.together}>
           <AppText testID="home-hero-together-label" preset="unifiedMeta" styleOverridesPreset style={[styles.togetherText, { color: colors.muted, fontSize: type.labelSize }]}>함께한 시간</AppText>
-          <AppText testID="home-hero-day-value" preset="unifiedMeta" styleOverridesPreset style={[styles.days, { color: HOME_HERO_ACCENT.primary, fontSize: type.valueSize }]}>{dayLabel}일</AppText>
+          <AppText testID="home-hero-day-value" preset="unifiedMeta" styleOverridesPreset style={[styles.days, { color: colors.ink, fontSize: type.valueSize }]}>{dayLabel}일</AppText>
         </View>
       ) : null}
       <View testID="home-hero-profile-actions" style={[styles.profileActions, { marginHorizontal: type.actionInset }]}>

@@ -215,6 +215,9 @@ describe('activity and title presentation', () => {
     await press(tree, 'activity-tab-vault');
     expect(host(tree, 'activity-earned-WK01')).toBeDefined();
     expect(text(tree)).not.toContain('activity-title-category-X');
+    expect(tree.root.findAll(n => n.props.testID === 'activity-title-category-GD')).toHaveLength(0);
+    await press(tree, 'activity-title-category-picker');
+    expect(host(tree, 'activity-title-category-HC')).toBeDefined();
     await press(tree, 'activity-title-category-GD');
     expect(text(tree)).toContain('GPS 평생 거리');
     expect(text(tree)).not.toContain('activity-earned-WK01');
@@ -255,7 +258,7 @@ describe('activity and title presentation', () => {
     expect(loadActivityDashboard).toHaveBeenCalledTimes(1);
     await act(async () => tree.unmount());
   });
-  it('applies the PO minus-3sp adjustment only through the screen styles', async () => {
+  it('enlarges supporting type by 3sp while preserving headlines and the growth level', async () => {
     const tree = await render();
     expect(
       ReactNative.StyleSheet.flatten(
@@ -265,7 +268,10 @@ describe('activity and title presentation', () => {
     expect(
       ReactNative.StyleSheet.flatten(host(tree, 'activity-user-xp').props.style)
         .fontSize,
-    ).toBe(8);
+    ).toBe(11);
+    expect(host(tree, 'activity-growth-title-art').props.source).toBe(
+      require('../src/services/activity/titleArtwork').getTitleArtwork(fixture().representativeTitleKey),
+    );
     const title = tree.root.findAll(
       n => typeof n.type === 'string' && n.children.includes('활동·칭호'),
     )[0];
@@ -274,7 +280,7 @@ describe('activity and title presentation', () => {
     const name = tree.root.findAll(
       n => typeof n.type === 'string' && n.children.includes('첫 건강 기록'),
     )[0];
-    expect(ReactNative.StyleSheet.flatten(name.props.style).fontSize).toBe(11);
+    expect(ReactNative.StyleSheet.flatten(name.props.style).fontSize).toBe(14);
     await act(async () => tree.unmount());
   });
   it('uses Home Bevel Glass with reflections for every card and centers common icon/value groups', async () => {
@@ -301,11 +307,10 @@ describe('activity and title presentation', () => {
         ReactNative.StyleSheet.flatten(control.props.style).justifyContent,
       ).toBe('center');
     }
-    expect(host(tree, 'activity-walk-brand').props.source).toBe(
-      require('../src/assets/logo/logo_v2.png'),
-    );
-    expect(host(tree, 'activity-category-walk-brand').props.source).toBe(
-      require('../src/assets/logo/logo_v2.png'),
+    expect(tree.root.findAll(n => n.props.testID === 'activity-walk-brand')).toHaveLength(0);
+    expect(tree.root.findAll(n => n.props.testID === 'activity-category-walk-brand')).toHaveLength(0);
+    expect(host(tree, 'activity-growth-art').props.source).toBe(
+      require('../src/assets/activity/growth-companion.png'),
     );
     await press(tree, 'activity-tab-vault');
     expect(fills()).toHaveLength(3);
@@ -381,6 +386,9 @@ describe('activity and title presentation', () => {
           n.props.testID === 'activity-earned-pet_routine_sprout',
       ),
     ).toHaveLength(0);
+    await press(tree, 'activity-tab-summary');
+    expect(host(tree, 'activity-growth-title').props.children).toBe('첫 건강 기록');
+    expect(host(tree, 'activity-growth-title-art').props.source).toBe(ACHIEVEMENT_ART.pet_first_health_record);
     await act(async () => tree.unmount());
   });
   it('retains the previous representative title and offers retry after storage failure', async () => {

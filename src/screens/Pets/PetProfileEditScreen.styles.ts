@@ -1,3 +1,4 @@
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import { StyleSheet } from 'react-native';
 import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 
@@ -8,7 +9,6 @@ const BRAND_DEEP = '#5753E6';
 const TEXT = '#352B25';
 const MUTED_TEXT = '#786B61';
 const INPUT_SURFACE = 'rgba(255, 253, 249, 0.78)';
-const GLASS_SURFACE = 'rgba(255, 252, 246, 0.70)';
 
 export const styles = StyleSheet.create({
   screen: {
@@ -42,19 +42,11 @@ export const styles = StyleSheet.create({
     gap: 16,
   },
   header: {
-    minHeight: 56,
-    paddingHorizontal: 18,
-    paddingTop: 8,
-    paddingBottom: 8,
-    marginTop: 12,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
     zIndex: 4,
   },
   headerSideSlot: {
-    width: 40,
-    minHeight: 40,
+    width: APP_HEADER.targetSize,
+    minHeight: APP_HEADER.targetSize,
     justifyContent: 'center',
     alignItems: 'flex-start',
   },
@@ -62,18 +54,16 @@ export const styles = StyleSheet.create({
     alignItems: 'flex-end',
   },
   backButton: {
-    width: 40,
-    height: 40,
+    width: APP_HEADER.targetSize,
+    height: APP_HEADER.targetSize,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 252, 247, 0.54)',
   },
   headerTitle: {
     flex: 1,
+    minWidth: 0,
     textAlign: 'center',
-    color: '#273241',
-    fontWeight: '900',
+    ...APP_HEADER.title,
   },
   avatarSection: {
     marginTop: 6,
@@ -158,7 +148,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 17,
     paddingVertical: 17,
     gap: 14,
-    backgroundColor: GLASS_SURFACE,
+    backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.72)',
     overflow: 'hidden',

@@ -18,12 +18,12 @@ import AppTextInput from '../../app/ui/AppTextInput';
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   type LayoutChangeEvent,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { NuriAlert as Alert } from '../../app/ui/NuriAlert';
 import {
   KeyboardStickyView,
   KeyboardAwareScrollView,

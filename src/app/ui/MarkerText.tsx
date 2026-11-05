@@ -1,23 +1,25 @@
 import React, { useCallback, useState } from 'react';
 import { View, type TextProps } from 'react-native';
 import AppText from './AppText';
-import { useEffectiveSeason } from '../providers/SeasonPreferenceProvider';
-import { SEASON_CTA } from '../theme/ctaPalette';
+import { PRODUCT_ACCENT } from '../theme/tokens/productAccent';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 
 type Line = { x: number; y: number; width: number; height: number };
 
 /** Measure native text lines so the marker follows wrapping and the user's font. */
 export default function MarkerText({
   markerColor,
+  petColor,
   variant = 'underline',
   onTextLayout: onLayout,
   ...props
 }: React.ComponentProps<typeof AppText> & {
   markerColor?: string;
+  petColor?: string | null;
   variant?: 'underline' | 'wash';
 }) {
-  const season = useEffectiveSeason();
-  const resolvedMarkerColor = markerColor ?? SEASON_CTA[season].border;
+  const resolvedMarkerColor = markerColor ??
+    (petColor !== undefined ? buildPetThemePalette(petColor).tint : PRODUCT_ACCENT.marker);
   const [lines, setLines] = useState<Line[]>([]);
   const onTextLayout = useCallback<NonNullable<TextProps['onTextLayout']>>(
     event => {

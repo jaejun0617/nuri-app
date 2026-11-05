@@ -1,3 +1,4 @@
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import { StyleSheet } from 'react-native';
 
 const TEXT = '#0B1220';
@@ -36,9 +37,8 @@ export const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    color: TEXT,
-    fontWeight: '900',
-  },
+
+     ...APP_HEADER.title },
   searchToggleButton: {
     width: 48,
     height: 48,

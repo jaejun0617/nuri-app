@@ -1,6 +1,5 @@
 import React from 'react';
 import {
-  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -8,6 +7,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { NuriAlert as Alert } from '../src/app/ui/NuriAlert';
 import TestRenderer, { act } from 'react-test-renderer';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import fs from 'node:fs';

@@ -10,7 +10,7 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 24, bottom: 18, left: 0, right: 0 }),
 }));
 
-it('paints the same static lavender stops without owning layout, gestures, or focus', async () => {
+it('paints the More menu canvas without owning layout, gestures, or focus', async () => {
   let tree!: TestRenderer.ReactTestRenderer;
   await act(async () => {
     tree = TestRenderer.create(<LavenderScreenBackground testID="canvas" />);
@@ -18,7 +18,7 @@ it('paints the same static lavender stops without owning layout, gestures, or fo
   const layer = tree.root.findAll(
     n => typeof n.type === 'string' && n.props.testID === 'canvas',
   )[0];
-  expect(layer.props.colors).toEqual(['#F8F7FD', '#ECE7F5', '#F4EEF7']);
+  expect(layer.props.colors).toEqual(['#F1F5F8', '#F1F5F8', '#F1F5F8']);
   expect(layer.props.locations).toBe(LAVENDER_CANVAS.locations);
   expect(layer.props.pointerEvents).toBe('none');
   expect(layer.props.accessible).toBe(false);
@@ -35,7 +35,7 @@ it('paints the same static lavender stops without owning layout, gestures, or fo
   )[0];
   expect(StyleSheet.flatten(statusBar.props.style)).toMatchObject({
     height: 24,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: '#F1F5F8',
   });
   await act(async () =>
     tree.update(

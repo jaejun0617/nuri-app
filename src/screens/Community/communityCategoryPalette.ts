@@ -1,4 +1,15 @@
 import type { CommunityPostCategory } from '../../types/community';
+import { PRODUCT_ACCENT } from '../../app/theme/tokens/productAccent';
+
+export const COMMUNITY_LIST_COLORS = {
+  title: PRODUCT_ACCENT.ink,
+  readTitle: '#687181',
+  secondary: '#667080',
+  divider: '#DDE3EB',
+  categoryFill: '#EEEAF5',
+  categoryText: '#655D78',
+  railFill: 'rgba(255,255,255,0.16)',
+} as const;
 
 type CommunityCategoryPalette = {
   text: string;
@@ -6,12 +17,12 @@ type CommunityCategoryPalette = {
   onSelected: string;
 };
 
-// Category identity stays stable across seasons; action priority remains seasonal.
+// Labels carry category identity; only the active filter uses the product accent.
 export const COMMUNITY_CATEGORY_PALETTE = {
-  question: { text: '#315F9B', subtle: '#EAF2FF', onSelected: '#FFFFFF' },
-  info: { text: '#21695E', subtle: '#E4F3F0', onSelected: '#FFFFFF' },
-  daily: { text: '#9B4B16', subtle: '#FFF0E4', onSelected: '#FFFFFF' },
-  free: { text: '#6B4D91', subtle: '#F0EBF8', onSelected: '#FFFFFF' },
+  question: { text: COMMUNITY_LIST_COLORS.categoryText, subtle: COMMUNITY_LIST_COLORS.categoryFill, onSelected: '#FFFFFF' },
+  info: { text: COMMUNITY_LIST_COLORS.categoryText, subtle: COMMUNITY_LIST_COLORS.categoryFill, onSelected: '#FFFFFF' },
+  daily: { text: COMMUNITY_LIST_COLORS.categoryText, subtle: COMMUNITY_LIST_COLORS.categoryFill, onSelected: '#FFFFFF' },
+  free: { text: COMMUNITY_LIST_COLORS.categoryText, subtle: COMMUNITY_LIST_COLORS.categoryFill, onSelected: '#FFFFFF' },
 } as const satisfies Record<CommunityPostCategory, CommunityCategoryPalette>;
 
 const UNCLASSIFIED_PALETTE: CommunityCategoryPalette = {

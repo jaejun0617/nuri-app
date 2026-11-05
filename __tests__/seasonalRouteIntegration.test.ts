@@ -13,13 +13,13 @@ const seasonalScreens = [
 describe('seasonal route ownership', () => {
   it.each(seasonalScreens)('%s respects page canvas and global seasonal-accent ownership', file => {
     const source = read(file);
-    if (file === 'screens/Auth/NicknameSetupScreen.tsx' || file === 'screens/Auth/WelcomeTransitionScreen.tsx') {
+    if (file === 'screens/Auth/NicknameSetupScreen.tsx') {
       expect(source).toContain('PRODUCT_CANVAS_COLOR');
       expect(source).not.toContain('style={styles.backgroundImage}');
       expect(source).not.toContain('style={styles.readabilityVeil}');
     } else if (file === 'screens/Pets/PetProfileEditDoneScreen.tsx') {
-      // Latest PO profile-completion reference explicitly owns this lavender surface.
-      expect(source).toContain("colors={['#FCFAFF', '#F7F2FF', '#FCFAFF']}");
+      // Latest PO unifies the app-owned page canvas with the More menu.
+      expect(source).toContain('colors={[...PRODUCT_CANVAS_GRADIENT_COLORS]}');
       expect(source).not.toContain('useEffectiveSeason');
     } else {
       expect(source).toContain('useEffectiveSeason()');

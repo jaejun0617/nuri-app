@@ -1,6 +1,6 @@
 // Social entry only. OAuth callbacks and onboarding remain owned by the auth bootstrap.
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert } from 'react-native';
+import { NuriAlert as Alert } from '../../app/ui/NuriAlert';
 import {
   useFocusEffect,
   useNavigation,

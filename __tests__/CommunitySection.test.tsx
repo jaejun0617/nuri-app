@@ -4,7 +4,7 @@ import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 
 import { createTheme } from '../src/app/theme/theme';
-import { SEASON_CTA } from '../src/app/theme/ctaPalette';
+import { PRODUCT_ACCENT, PRODUCT_CTA } from '../src/app/theme/tokens/productAccent';
 import { HomeSeasonProvider } from '../src/components/home/HomeSeasonContext';
 import * as fontPreference from '../src/app/providers/AppFontPreferenceProvider';
 import CommunitySection from '../src/screens/Main/components/LoggedInHome/CommunitySection';
@@ -103,9 +103,9 @@ function serialized(renderer: TestRenderer.ReactTestRenderer) {
 
 describe('CommunitySection', () => {
   it.each([
-    ['spring', '#62505A'], ['summer', '#405A56'],
-    ['autumn', '#625448'], ['winter', '#4A5968'],
-  ] as const)('uses %s muted charcoal for post titles without recoloring chips or metadata', async (season, color) => {
+    ['spring', PRODUCT_ACCENT.ink], ['summer', PRODUCT_ACCENT.ink],
+    ['autumn', PRODUCT_ACCENT.ink], ['winter', PRODUCT_ACCENT.ink],
+  ] as const)('uses fixed product ink in %s without recoloring metadata', async (season, color) => {
     mockedGetHomeCommunityHighlightsCache.mockReturnValue({
       items: [makePost('tone', '계절빛 게시글')], fetchedAt: Date.now(), isFresh: true,
     });
@@ -126,7 +126,7 @@ describe('CommunitySection', () => {
   });
 
   it.each(['spring', 'summer', 'autumn', 'winter'] as const)(
-    '%s uses seasonal selected chips and unselected borders without changing their geometry or neutral text',
+    '%s uses fixed product selection without changing chip geometry or neutral text',
     async season => {
       mockedGetHomeCommunityHighlightsCache.mockReturnValue({
         items: [makePost('cached')], fetchedAt: Date.now(), isFresh: true,
@@ -147,8 +147,8 @@ describe('CommunitySection', () => {
           expect(StyleSheet.flatten(tab.props.style)).toEqual(communityStyles.pillTouch);
           expect(StyleSheet.flatten(visual?.props.style)).toEqual({
             ...communityStyles.pillVisual,
-            backgroundColor: active ? SEASON_CTA[season].primary : createTheme('light').colors.surfaceElevated,
-            borderColor: active ? SEASON_CTA[season].primary : SEASON_CTA[season].border,
+            backgroundColor: active ? PRODUCT_CTA.primary : createTheme('light').colors.surfaceElevated,
+            borderColor: active ? PRODUCT_CTA.primary : PRODUCT_CTA.border,
           });
           const text = tab.findAllByType(Text).find(node => typeof node.props.children === 'string');
           expect(StyleSheet.flatten(text?.props.style).color).toBe(active ? '#FFFFFF' : createTheme('light').colors.textPrimary);
@@ -198,7 +198,7 @@ describe('CommunitySection', () => {
         expect(typeof node.props.children).not.toBe('function');
         expect(node.props.android_ripple).toBeUndefined();
         const visual = node.findAllByType(View).find(value => StyleSheet.flatten(value.props.style)?.backgroundColor);
-        expect(StyleSheet.flatten(visual?.props.style).backgroundColor).toBe(node.props.accessibilityState.selected ? SEASON_CTA.autumn.primary : createTheme('light').colors.surfaceElevated);
+        expect(StyleSheet.flatten(visual?.props.style).backgroundColor).toBe(node.props.accessibilityState.selected ? PRODUCT_CTA.primary : createTheme('light').colors.surfaceElevated);
       }
     }
     await act(async () => renderer.unmount());

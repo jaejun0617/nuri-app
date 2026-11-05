@@ -1,12 +1,12 @@
 import { StyleSheet } from 'react-native';
-import { PRODUCT_CANVAS_COLOR, lightColors } from '../../app/theme/tokens/colors';
 
+const SURFACE_DEEP = '#090A21';
 const DISPLAY_FONT = 'insungitCutelivelyjisu';
 
 export const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: PRODUCT_CANVAS_COLOR,
+    backgroundColor: SURFACE_DEEP,
   },
   backgroundImage: {
     position: 'absolute',
@@ -31,8 +31,7 @@ export const styles = StyleSheet.create({
   content: {
     flex: 1,
     alignItems: 'center',
-    paddingHorizontal: 24,
-    paddingTop: 76,
+    justifyContent: 'center',
   },
   brandBlock: {
     width: 142,
@@ -52,45 +51,21 @@ export const styles = StyleSheet.create({
     tintColor: '#FFE8CF',
     opacity: 0.96,
   },
-  wordmark: {
-    marginTop: 10,
-    color: lightColors.textPrimary,
-    fontFamily: DISPLAY_FONT,
-    fontSize: 36,
-    lineHeight: 44,
-    textAlign: 'center',
-    textShadowColor: 'rgba(255, 184, 148, 0.42)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 12,
-  },
-  divider: {
-    width: 154,
-    height: StyleSheet.hairlineWidth,
-    marginTop: 20,
-    backgroundColor: 'rgba(239, 187, 180, 0.38)',
-  },
   copyBlock: {
     width: '100%',
     alignItems: 'center',
-    marginTop: 25,
+    marginTop: 10,
   },
   headline: {
-    color: lightColors.textPrimary,
-    fontFamily: DISPLAY_FONT,
-    fontSize: 25,
-    lineHeight: 34,
-    textAlign: 'center',
-    textShadowColor: 'rgba(255, 177, 150, 0.26)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 9,
-  },
-  description: {
-    marginTop: 8,
-    color: lightColors.textSecondary,
+    width: '100%',
+    color: '#F9E4D3',
     fontFamily: DISPLAY_FONT,
     fontSize: 15,
     lineHeight: 22,
     textAlign: 'center',
+    textShadowColor: 'rgba(255, 177, 150, 0.26)',
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 9,
   },
   dotRow: {
     flexDirection: 'row',

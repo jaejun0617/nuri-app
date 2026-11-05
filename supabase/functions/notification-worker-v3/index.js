@@ -7,6 +7,7 @@ import {
   collapseGroup,
   decryptPushToken,
   jsonReply,
+  inboxBadgeData,
 } from '../_shared/notification-transport.js';
 
 export async function handleNotificationWorker(request) {
@@ -92,14 +93,12 @@ export async function handleNotificationWorker(request) {
                     'get_notification_delivery_devices_v3',
                     { p_id: delivery.id, p_lease: delivery.leaseToken },
                   );
+                  const currentDevice = Array.isArray(fresh.data) ? fresh.data.find(
+                    t => t.id === device.id && t.fingerprint === device.fingerprint,
+                  ) : null;
                   if (
                     fresh.error ||
-                    !Array.isArray(fresh.data) ||
-                    !fresh.data.some(
-                      t =>
-                        t.id === device.id &&
-                        t.fingerprint === device.fingerprint,
-                    )
+                    !currentDevice
                   ) {
                     promote('transient');
                     continue;
@@ -117,6 +116,7 @@ export async function handleNotificationWorker(request) {
                         message: {
                           token,
                           data: {
+                            ...inboxBadgeData(currentDevice.badge),
                             notificationId: delivery.notificationId,
                             notificationSource: delivery.source,
                             recipientUserId: delivery.recipientUserId,

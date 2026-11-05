@@ -1,3 +1,4 @@
+import { APP_HEADER } from '../navigation/headerAppearance';
 import { StyleSheet } from 'react-native';
 import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 
@@ -36,9 +37,8 @@ export const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    color: '#0B1220',
-    fontWeight: '900',
-  },
+
+     ...APP_HEADER.title },
   searchWrap: {
     gap: 8,
     marginTop: 10,

@@ -7,6 +7,7 @@ type NativePush = {
   consumeInitialTap: () => Promise<unknown>;
   getChannelStates: () => Promise<unknown>;
   getChannelStatusDetails?: () => Promise<unknown>;
+  syncInboxBadge?: (owner: string, count: number, observedAt: number, validUntil: number) => Promise<string>;
 };
 function bridge(): NativePush | null {
   const raw: unknown = NativeModules.NuriPushNotifications;
@@ -30,7 +31,7 @@ export type NotificationTap = {
   id: string;
   source: 'user' | 'announcement';
   recipientUserId: string;
-};
+} | { id: 'inbox'; source: 'inbox'; recipientUserId: string };
 const uuid =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 export function parseNotificationTap(raw: unknown): NotificationTap | null {
@@ -42,6 +43,8 @@ export function parseNotificationTap(raw: unknown): NotificationTap | null {
     !('recipientUserId' in raw)
   )
     return null;
+  if (raw.id === 'inbox' && raw.source === 'inbox' && typeof raw.recipientUserId === 'string' && uuid.test(raw.recipientUserId))
+    return { id: 'inbox', source: 'inbox', recipientUserId: raw.recipientUserId };
   if (
     typeof raw.id !== 'string' ||
     !uuid.test(raw.id) ||
@@ -64,6 +67,14 @@ export async function bindNativePushOwner(owner: string) {
 }
 export async function clearNativePushOwner(expectedOwner?: string | null) {
   await bridge()?.clearOwner(expectedOwner ?? null);
+}
+export async function syncNativeInboxBadge(owner: string, count: number, observedAt: number, validUntil: number | null = null): Promise<string> {
+  if (!uuid.test(owner) || !Number.isSafeInteger(count) || count < 0 || !Number.isSafeInteger(observedAt) || observedAt <= 0)
+    throw new Error('NURI_NOTIFICATION_BADGE_INVALID');
+  if (validUntil !== null && (!Number.isSafeInteger(validUntil) || validUntil <= observedAt))
+    throw new Error('NURI_NOTIFICATION_BADGE_INVALID');
+  if ((count === 0) !== (validUntil === null)) throw new Error('NURI_NOTIFICATION_BADGE_INVALID');
+  return bridge()?.syncInboxBadge?.(owner, count, observedAt, validUntil ?? 0) ?? 'unsupported';
 }
 export async function consumeInitialNotificationTap() {
   return parseNotificationTap(await bridge()?.consumeInitialTap());

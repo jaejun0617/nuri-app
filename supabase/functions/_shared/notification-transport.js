@@ -121,3 +121,10 @@ export function collapseGroup(category, availableAt, id) {
     ? category + ':' + Math.floor(timestamp / 120000)
     : id;
 }
+/** Optional additive metadata: old mobile candidates ignore these keys. */
+export function inboxBadgeData(value) {
+  if (!value || !Number.isSafeInteger(value.count) || value.count < 0 || value.count > 2147483647 ||
+    !Number.isSafeInteger(value.observedAt) || value.observedAt <= 0 ||
+    !Number.isSafeInteger(value.validUntil) || value.validUntil <= value.observedAt) return {};
+  return { inboxUnreadCount: String(value.count), inboxObservedAt: String(value.observedAt), inboxValidUntil: String(value.validUntil) };
+}

@@ -1,3 +1,4 @@
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import { StyleSheet } from 'react-native';
 import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 
@@ -7,6 +8,7 @@ const BG = PRODUCT_CANVAS_COLOR;
 const SURFACE = 'rgba(255,255,255,0.7)';
 const BORDER = 'rgba(0,0,0,0.06)';
 const BRAND = '#263445';
+const SELECTED_COLOR_INK = '#6548B8';
 
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: BG },
@@ -44,9 +46,8 @@ export const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    color: TEXT,
-    fontWeight: '900',
-  },
+
+     ...APP_HEADER.title },
   headerDoneBtn: {
     minWidth: 44,
     height: 34,
@@ -238,6 +239,23 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
+  createColorItem: {
+    minHeight: 48,
+    gap: 4,
+  },
+  colorRing: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  colorRingActive: {
+    backgroundColor: '#FFFFFF',
+    borderColor: SELECTED_COLOR_INK,
+  },
   colorDot: {
     width: 24,
     height: 24,
@@ -251,6 +269,7 @@ export const styles = StyleSheet.create({
     color: MUTED,
     fontWeight: '700',
   },
+  colorLabelActive: { color: SELECTED_COLOR_INK },
 
   primaryBtn: {
     height: 52,

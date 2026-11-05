@@ -22,6 +22,7 @@ export default function RecordChoiceGrid<Key extends string>({
   columns: requestedColumns,
   surfaceVariant = 'plain',
   renderIcon,
+  textOnly = false,
 }: {
   options: ReadonlyArray<{ key: Key; label: string }>;
   selected: readonly Key[];
@@ -32,6 +33,7 @@ export default function RecordChoiceGrid<Key extends string>({
   columns?: 3 | 4;
   surfaceVariant?: RecordSurfaceVariant;
   renderIcon?: (key: Key, selected: boolean) => React.ReactNode;
+  textOnly?: boolean;
 }) {
   const { fontScale, width } = useWindowDimensions();
   const columns = fontScale >= 1.3 || width < 360 ? 2 : requestedColumns ?? 3;
@@ -62,6 +64,7 @@ export default function RecordChoiceGrid<Key extends string>({
               <View
                 style={[
                   styles.chip,
+                  textOnly && styles.textOnlyChip,
                   {
                     backgroundColor: surfaceVariant === 'homeGlass' ? 'transparent' : active ? C.selected : C.surface,
                     borderColor: surfaceVariant === 'homeGlass' ? 'transparent' : active ? C.primary : C.border,
@@ -77,7 +80,7 @@ export default function RecordChoiceGrid<Key extends string>({
                         style={styles.checkGlyph} accessible={false} />
                     ) : null}
                   </View>
-                ) : renderIcon ? renderIcon(option.key, active) : (
+                ) : textOnly ? null : renderIcon ? renderIcon(option.key, active) : (
                   <TimelineArtwork name={option.key} color={active ? C.primary : C.muted} />
                 )}
                 <AppText
@@ -85,6 +88,7 @@ export default function RecordChoiceGrid<Key extends string>({
                   styleOverridesPreset
                   style={[
                     styles.label,
+                    textOnly && styles.textOnlyLabel,
                     {
                       color: active ? C.primary : C.muted,
                     },
@@ -138,6 +142,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
   },
+  textOnlyChip: { minHeight: 48 },
+  textOnlyLabel: { fontSize: 13, lineHeight: 18 },
   clear: {
     minHeight: 48,
     minWidth: 48,

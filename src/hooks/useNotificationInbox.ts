@@ -7,7 +7,7 @@ import { useCallback } from 'react';
 import { useAuthStore } from '../store/authStore';
 import {
   fetchNotificationPage,
-  fetchUserNotificationUnreadCount,
+  fetchNotificationBadgeSnapshot,
   markAllNotificationsRead,
   dismissUserNotification,
   dismissAllUserNotifications,
@@ -20,7 +20,7 @@ export const notificationKeys = {
   list: (userId: string | null) =>
     ['notifications-v3', userId, 'list'] as const,
   unread: (userId: string | null) =>
-    ['notifications-v3', userId, 'unread'] as const,
+    ['notifications-v3', userId, 'unread', 'snapshot-v1'] as const,
   preview: (userId: string | null) =>
     ['notifications-v3', userId, 'preview'] as const,
 };
@@ -61,8 +61,9 @@ export function useNotificationUnreadCount() {
     queryKey: notificationKeys.unread(userId),
     queryFn: () => {
       requireNotificationOwner(userId);
-      return fetchUserNotificationUnreadCount();
+      return fetchNotificationBadgeSnapshot();
     },
+    select: snapshot => snapshot.count,
     enabled: Boolean(userId),
     staleTime: 15_000,
     refetchOnMount: true,

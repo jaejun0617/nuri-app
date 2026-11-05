@@ -6,7 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppText from '../../../app/ui/AppText';
 import AppTextInput from '../../../app/ui/AppTextInput';
 import NuriSemanticIcon from '../../../components/icons/NuriSemanticIcon';
-import { LavenderScreenBackground } from '../../../components/common/LavenderScreenBackground';
+import { MenuGlassSurface } from '../../../components/common/MenuGlassSurface';
 import { RecordFieldGlass } from '../../../components/records/TimelineFormSurface';
 import TimelineButton, { CtaText } from '../../../components/records/TimelineButton';
 import { useKeyboardBottomPadding } from '../../../hooks/useKeyboardBottomPadding';
@@ -76,7 +76,7 @@ export default function RecordTagModal({
         accessibilityViewIsModal
         importantForAccessibility="yes"
       >
-        <LavenderScreenBackground statusBarInset={0} testID="record-tag-sheet-background" />
+        <MenuGlassSurface radius={0} backed testID="record-tag-sheet-background" />
         <View style={s.handle} pointerEvents="none" accessible={false} />
         <View style={s.header}>
           <AppText preset="unifiedTitle" accessibilityRole="header" style={s.title}>태그 추가</AppText>

@@ -26,9 +26,9 @@ function luminance(hex: string) {
 }
 const whiteContrast = (hex: string) => 1.05 / (luminance(hex) + 0.05);
 describe('approved CTA role palette', () => {
-  it('uses the PO burnt orange, never the rejected terracotta', () => {
-    expect(palette('primary').background).toBe('#B95000');
-    expect(palette('primary', 'autumn', 'pressed').background).toBe('#963F00');
+  it('uses fixed product lavender independently of legacy seasonal tokens', () => {
+    expect(palette('primary').background).toBe('#7D5CE4');
+    expect(palette('primary', 'autumn', 'pressed').background).toBe('#6345BE');
     expect(JSON.stringify(SEASON_CTA)).not.toContain('#A84B2F');
   });
   it.each(seasons)('%s default and pressed primary meet 4.5:1', season => {

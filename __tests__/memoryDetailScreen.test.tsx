@@ -344,7 +344,9 @@ describe('memory detail rendered contract', () => {
     for (const frame of related) expect(StyleSheet.flatten(frame.props.style)).toMatchObject({
       backgroundColor: 'transparent', borderRadius: 8, marginTop: 0, padding: 6,
     });
-    expect(main[0].findAll(node => node.props.testID === 'home-reflective-fill')).toHaveLength(0);
+    const glass = main[0].findAll(node => typeof node.type === 'string' && node.props.testID === 'home-reflective-fill');
+    expect(glass).toHaveLength(1);
+    expect(StyleSheet.flatten(glass[0].props.style).backgroundColor).toBe('rgba(255, 255, 255, 0.26)');
     expect(styles.postCard.backgroundColor).not.toBe('#FFFFFF');
     expect(styles.postAvatar).toMatchObject({ width: 48, height: 48, borderRadius: 24 });
     expect(styles.relatedThumb).toMatchObject({ width: 72, height: 80 });
@@ -379,7 +381,7 @@ describe('memory detail rendered contract', () => {
       expect(StyleSheet.flatten(style)?.color).toBe('#716A9C');
     }
     expect(styles.relatedTime.color).toBe(lightColors.textSecondary);
-    expect(styles.tagText.color).toBe('#7D4DFA');
+    expect(styles.tagText.color).toBe('#7D5CE4');
     expect(styles.postContentText.fontSize).toBe(T.body.fontSize);
     expect(styles.tagText.fontSize).toBe(T.meta.fontSize);
     expect(styles.relatedTitle.fontSize).toBe(12);

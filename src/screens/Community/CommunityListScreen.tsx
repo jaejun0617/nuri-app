@@ -1,5 +1,6 @@
-import { usePetDisplayName } from '../../hooks/usePetDisplayName';
-import { formatPetCopy } from '../../utils/petDisplayName';
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, {
   memo,
@@ -17,8 +18,6 @@ import {
   Easing,
   FlatList,
   Keyboard,
-  Image,
-  type LayoutChangeEvent,
   NativeScrollEvent,
   NativeSyntheticEvent,
   Platform,
@@ -27,11 +26,9 @@ import {
   ScrollView,
   TouchableOpacity,
   TextInput,
-  useWindowDimensions,
   View,
   type ListRenderItem,
 } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
 import {
   useFocusEffect,
   useNavigation,
@@ -45,20 +42,13 @@ import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
+import { MenuGlassSurface } from '../../components/common/MenuGlassSurface';
 import { useCommunityAuth } from '../../hooks/useCommunityAuth';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
-import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
-import { SEASON_CTA } from '../../app/theme/ctaPalette';
+import { PRODUCT_CTA } from '../../app/theme/tokens/productAccent';
 import { ToolbarHeightContext } from '../../components/navigation/ToolbarHeightContext';
-import {
-  COMMUNITY_HERO_ACCESSIBILITY_LABEL,
-  COMMUNITY_HERO_ASPECT_RATIO,
-  COMMUNITY_HERO_IMAGES,
-  COMMUNITY_HERO_PANEL_OVERLAP_RATIO,
-  COMMUNITY_HERO_SURFACES,
-} from '../../theme/seasonal/community';
 import { useCommunityStore } from '../../store/communityStore';
 import { openMoreDrawer } from '../../store/uiStore';
 import { scheduleIdleTask } from '../../utils/scheduleIdleTask';
@@ -71,7 +61,7 @@ import { COMMUNITY_PAGE_SIZE_OPTIONS } from '../../types/community';
 import { COMMUNITY_SEARCH_MAX_LENGTH } from '../../services/community/search';
 import { styles } from './CommunityListScreen.styles';
 import CommunityPostListItem from './components/CommunityPostListItem';
-import { COMMUNITY_CATEGORY_PALETTE } from './communityCategoryPalette';
+import { COMMUNITY_LIST_COLORS } from './communityCategoryPalette';
 import {
   canCreateCommunityPost,
   COMMUNITY_CATEGORY_OPTIONS,
@@ -210,35 +200,13 @@ const CategoryChipButton = memo(function CategoryChipButtonComponent({
 });
 
 export default function CommunityListScreen() {
-  const petName = usePetDisplayName();
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const season = useEffectiveSeason();
-  const seasonal = SEASON_CTA[season];
-  const heroSurface = COMMUNITY_HERO_SURFACES[season];
+  const seasonal = PRODUCT_CTA;
   const toolbarHeight = useContext(ToolbarHeightContext);
-  const { width: windowWidth } = useWindowDimensions();
-  const [listWidth, setListWidth] = useState<number | null>(null);
-  const heroWidth = listWidth ?? windowWidth;
-  // Override both intrinsic asset dimensions; percentage width can expand a list header.
-  const heroSize = {
-    width: heroWidth,
-    height: heroWidth / COMMUNITY_HERO_ASPECT_RATIO,
-  };
-  const handleListLayout = useCallback((event: LayoutChangeEvent) => {
-    const width = event.nativeEvent.layout.width;
-    if (Number.isFinite(width) && width > 0) setListWidth(width);
-  }, []);
   const flatListRef = useRef<FlatList<string> | null>(null);
-  const [heroFailedSeason, setHeroFailedSeason] = useState<
-    typeof season | null
-  >(null);
-  const heroPanelOverlap =
-    heroFailedSeason === season
-      ? 0
-      : heroWidth * COMMUNITY_HERO_PANEL_OVERLAP_RATIO;
 
   const posts = useCommunityStore(s => s.posts);
   const listStatus = useCommunityStore(s => s.listStatus);
@@ -333,7 +301,7 @@ export default function CommunityListScreen() {
         onPress={handlePressBack}
         hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
       >
-        <Feather name="arrow-left" size={20} color="#243042" />
+        <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#243042" />
       </TouchableOpacity>
     ),
     [handlePressBack],
@@ -469,10 +437,7 @@ export default function CommunityListScreen() {
     () => (
       <View
         testID="community-list-panel"
-        style={[
-          styles.categoryHeader,
-          { marginTop: -styles.heroTail.height - heroPanelOverlap },
-        ]}
+        style={styles.categoryHeader}
       >
         <View style={styles.filterBarRow}>
           <ScrollView
@@ -582,16 +547,8 @@ export default function CommunityListScreen() {
                   key={option.key}
                   option={option}
                   isActive={option.key === activeCategory}
-                  activeColor={
-                    option.key === 'all'
-                      ? seasonal.primary
-                      : COMMUNITY_CATEGORY_PALETTE[option.key].text
-                  }
-                  inactiveColor={
-                    option.key === 'all'
-                      ? '#566271'
-                      : COMMUNITY_CATEGORY_PALETTE[option.key].text
-                  }
+                  activeColor={seasonal.primary}
+                  inactiveColor={COMMUNITY_LIST_COLORS.secondary}
                   onPress={handlePressCategory}
                 />
               ))}
@@ -605,7 +562,6 @@ export default function CommunityListScreen() {
       activeCategory,
       handlePressCategory,
       handlePressFilter,
-      heroPanelOverlap,
       isListBusy,
       pageSize,
       seasonal.primary,
@@ -772,8 +728,8 @@ export default function CommunityListScreen() {
       <View
         testID="community-list-viewport"
         style={styles.listWrap}
-        onLayout={handleListLayout}
       >
+        <MenuGlassSurface radius={0} testID="community-list-glass" />
         <Profiler id="community-list" onRender={handleListRender}>
           <FlatList
             ref={flatListRef}
@@ -794,62 +750,11 @@ export default function CommunityListScreen() {
             showsVerticalScrollIndicator={false}
             ListHeaderComponent={
               <View>
-                <View testID="community-hero-frame" style={styles.heroFrame}>
-                  <View
-                    testID="community-hero-canvas"
-                    style={[styles.heroCanvas, heroSize]}
-                  >
-                    {heroFailedSeason === season ? (
-                      <View style={[styles.heroFallback, heroSize]}>
-                        <AppText
-                          preset="headline"
-                          style={{ color: seasonal.primary }}
-                        >
-                          {formatPetCopy('우리 아이들의 이야기', petName)}
-                        </AppText>
-                        <AppText preset="body" style={styles.emptyBody}>
-                          누리에서 소중한 이야기를 나눠보세요.
-                        </AppText>
-                      </View>
-                    ) : (
-                      <Image
-                        testID="community-seasonal-hero"
-                        accessibilityRole="image"
-                        accessibilityLabel={COMMUNITY_HERO_ACCESSIBILITY_LABEL}
-                        source={COMMUNITY_HERO_IMAGES[season]}
-                        resizeMode="contain"
-                        style={[styles.heroImage, heroSize]}
-                        onError={() => setHeroFailedSeason(season)}
-                      />
-                    )}
-                  </View>
-                  <LinearGradient
-                    pointerEvents="none"
-                    accessible={false}
-                    importantForAccessibility="no-hide-descendants"
-                    testID="community-hero-tail"
-                    colors={[...heroSurface.tail]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 0 }}
-                    style={styles.heroTail}
-                  />
-                  <View
-                    testID="community-hero-overlay-header"
-                    style={[
-                      styles.header,
-                      {
-                        paddingTop: 8,
-                        paddingLeft: insets.left,
-                        paddingRight: 20 + insets.right,
-                      },
-                    ]}
-                  >
-                    <View style={[styles.headerSide, styles.headerLeft]}>
-                      {renderHeaderLeft()}
-                    </View>
-                    <View style={styles.headerSide} pointerEvents="none" />
-                  </View>
-                </View>
+                <AppHeaderLayout testID="community-list-header" subtitle="함께 돌보는 일상의 이야기를 나눠요" style={styles.headerSurface}>
+                  {renderHeaderLeft()}
+                  <AppText preset="unifiedTitle" styleOverridesPreset style={styles.headerTitle}>커뮤니티</AppText>
+                  <HeaderHelpButton topic="community" />
+                </AppHeaderLayout>
                 {categoryHeader}
                 {isInlineListLoading ? (
                   <View style={styles.inlineListLoading}>

@@ -1,3 +1,5 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import AppTextInput from '../../app/ui/AppTextInput';
 import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import React, {
@@ -117,18 +119,18 @@ export default function GuideAdminListScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
-      <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
+      <AppHeaderLayout subtitle="아이와의 일상에 닿을 가이드를 관리해요" style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
             activeOpacity={0.88}
             style={styles.headerBackButton}
             onPress={onPressBack}
           >
-            <Feather name="arrow-left" size={20} color="#102033" />
+            <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
           </TouchableOpacity>
         </View>
 
-        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText styleOverridesPreset typographyRole="screenTitle" preset="unifiedTitle" style={[styles.headerTitle, APP_HEADER.title]}>
           가이드 운영
         </AppText>
 
@@ -143,7 +145,7 @@ export default function GuideAdminListScreen() {
         ) : (
           <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
         )}
-      </View>
+      </AppHeaderLayout>
 
       {!isGuideAdmin ? (
         <View style={styles.emptyCard}>
@@ -282,8 +284,9 @@ const styles = {
   headerTitle: {
     flex: 1,
     textAlign: 'center' as const,
-    color: '#0B1220',
-    fontWeight: '900' as const,
+
+
+    ...APP_HEADER.title,
   },
   createButton: {
     width: 34,

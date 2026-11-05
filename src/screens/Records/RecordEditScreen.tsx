@@ -1,3 +1,5 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../components/records/TimelineButton';
 import RecordPhotoStrip from '../../components/records/RecordPhotoStrip';
 import TimelineArtwork from '../../components/records/TimelineArtwork';
@@ -38,11 +40,11 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Image,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { NuriAlert as Alert } from '../../app/ui/NuriAlert';
 import type { CompositeNavigationProp } from '@react-navigation/native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -966,7 +968,7 @@ function RecordEditContent() {
   return (
     <SafeAreaView style={styles.screen} edges={['top', 'left', 'right']}>
       <SeasonalFormBackground uniform />
-      <View style={styles.header}>
+      <AppHeaderLayout subtitle="남겨둔 순간에 이야기를 더해요" style={styles.header}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
             activeOpacity={0.88}
@@ -975,14 +977,14 @@ function RecordEditContent() {
             disabled={saving}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
-            <Feather name="arrow-left" size={20} color="#102033" />
+            <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
           </TouchableOpacity>
         </View>
 
-        <AppText
+        <AppText styleOverridesPreset
           typographyRole="screenTitle"
           preset="unifiedTitle"
-          style={styles.headerTitle}
+          style={[styles.headerTitle, APP_HEADER.title]}
         >
           {isHealthEntry ? '건강 기록 수정' : '기록 수정'}
         </AppText>
@@ -990,7 +992,7 @@ function RecordEditContent() {
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
           {dirty ? <AppText preset="unifiedMeta">수정 중</AppText> : null}
         </View>
-      </View>
+      </AppHeaderLayout>
 
       {walkSource && <AppText preset="unifiedMeta" style={{ paddingHorizontal: 18, paddingVertical: 8 }}>{walkSourceCopy(walkSource)} · 아이·분류·날짜는 변경할 수 없어요.</AppText>}
       {walkSources.isError && <TouchableOpacity onPress={() => { walkSources.refetch().catch(() => undefined); }}><AppText preset="unifiedMeta">산책 연결 정보를 다시 확인</AppText></TouchableOpacity>}
@@ -1265,6 +1267,7 @@ function RecordEditContent() {
 
       {tagModalVisible && <RecordTagModal visible tagDraft={tagDraft} selectedTags={visibleTags} onClose={()=>setTagModalVisible(false)} onChangeTagDraft={setTagDraft} onSubmitDraftTag={()=>{if(!tagDraft.trim())return;setDirty(true);setTagsText(Array.from(new Set(parseRecordTags([...visibleTags,tagDraft].join(' ')))).join(' '));setTagDraft('');}} onRemoveTag={tag=>{setDirty(true);setTagsText(visibleTags.filter(value=>value!==tag).join(' '));}} />}
       {successModalVisible && <PremiumNoticeModal
+        surfaceVariant="menuGlass"
         confirmRole="primary"
         visible
         typographyMode="unified"

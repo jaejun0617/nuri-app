@@ -1,3 +1,4 @@
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import { StyleSheet } from 'react-native';
 import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 
@@ -38,9 +39,8 @@ export const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   headerTitle: {
-    color: TEXT,
-    fontWeight: '900',
-  },
+
+     ...APP_HEADER.title },
   topBarTitleWrap: {
     flex: 1,
     alignItems: 'center',

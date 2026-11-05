@@ -1,3 +1,4 @@
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import { TIMELINE_DESIGN as C, TIMELINE_TYPE as T } from '../../theme/timelineDesign';
 import { LAVENDER_CANVAS } from '../../theme/lavenderCanvas';
 // 파일: src/screens/Records/RecordEditScreen.styles.ts
@@ -49,9 +50,8 @@ const baseStyles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    color: TEXT,
-    fontWeight: '900',
-  },
+
+     ...APP_HEADER.title },
 
   card: {
     marginHorizontal: 16,
@@ -360,7 +360,7 @@ export const styles = StyleSheet.create({
   ...baseStyles,
   screen:{flex:1,backgroundColor:LAVENDER_CANVAS.base},
   header:{...baseStyles.header,paddingHorizontal:16,borderBottomWidth:0},
-  headerTitle:{...baseStyles.headerTitle,...T.screen,color:C.ink},
+  headerTitle:{...baseStyles.headerTitle,...T.screen, ...APP_HEADER.title },
   headerSideSlot:{...baseStyles.headerSideSlot,width:56},
   scrollContent:{paddingHorizontal:16,paddingTop:8},
   card:{marginHorizontal:0,marginBottom:0,padding:0,backgroundColor:'transparent'},

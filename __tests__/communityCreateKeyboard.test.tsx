@@ -6,6 +6,7 @@ import { ThemeProvider } from 'styled-components/native';
 
 import { createTheme } from '../src/app/theme/theme';
 import { SEASON_CTA } from '../src/app/theme/ctaPalette';
+import { PRODUCT_CTA } from '../src/app/theme/tokens/productAccent';
 import ConfirmDialog from '../src/components/common/ConfirmDialog';
 import CommunityCreateScreen from '../src/screens/Community/CommunityCreateScreen';
 import { runCommunityCreateSubmitFlow } from '../src/screens/Community/communityPostSubmit.shared';
@@ -257,7 +258,7 @@ describe('CommunityCreate keyboard visibility contract', () => {
         StyleSheet.flatten(
           buttons[1].findByProps({ children: '등록' }).props.style,
         ).color,
-      ).toBe(SEASON_CTA[season].primary);
+      ).toBe(PRODUCT_CTA.primary);
       TestRenderer.act(() => header.unmount());
     },
   );

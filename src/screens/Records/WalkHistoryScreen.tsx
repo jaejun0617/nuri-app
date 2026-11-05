@@ -1,3 +1,6 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import React from 'react';
 import {
   ActivityIndicator,
@@ -85,18 +88,18 @@ export default function WalkHistoryScreen() {
       ]}
     >
       <SeasonalFormBackground />
-      <View style={styles.header}>
+      <AppHeaderLayout subtitle="함께 걸었던 시간을 다시 돌아봐요" style={styles.header}>
         <Pressable
           accessibilityRole="button"
           accessibilityLabel="뒤로"
           style={styles.back}
           onPress={() => navigation.goBack()}
         >
-          <Feather name="arrow-left" size={20} color="#102033" />
+          <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
         </Pressable>
-        <AppText preset="unifiedTitle" style={styles.title}>산책 이력</AppText>
-        <View style={styles.back} />
-      </View>
+        <AppText styleOverridesPreset preset="unifiedTitle" style={[styles.title, APP_HEADER.title]}>산책 이력</AppText>
+        <HeaderHelpButton topic="walkHistory" />
+      </AppHeaderLayout>
       {!scope && (
         <AppText preset="unifiedBody">이 산책의 아이를 선택해 주세요.</AppText>
       )}
@@ -183,7 +186,7 @@ export default function WalkHistoryScreen() {
 }
 const styles = StyleSheet.create({
   back: { width: 44, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  title: { flex: 1, textAlign: 'center' },
+  title: { flex: 1, textAlign: 'center', ...APP_HEADER.title },
   screen: { flex: 1 },
   header: {
     paddingHorizontal: 18,

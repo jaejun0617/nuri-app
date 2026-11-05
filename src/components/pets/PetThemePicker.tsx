@@ -1,7 +1,7 @@
 // 파일: src/components/pets/PetThemePicker.tsx
 // 역할:
 // - 펫 프로필 생성/수정 화면에서 공용으로 쓰는 테마 선택 UI
-// - 자동 추천 색을 초기값으로 삼되, 사용자가 직접 고를 수 있게 유지
+// - 저장된 아이 색상을 보존하고, 미지정 상태는 라벤더로 표시
 
 import AppText from '../../app/ui/AppText';
 import React, { memo } from 'react';
@@ -12,6 +12,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import Feather from '../icons/NuriFeatherIcon';
+import { PRODUCT_ACCENT } from '../../app/theme/tokens/productAccent';
 import {
   PET_THEME_OPTIONS,
   buildPetThemePalette,
@@ -28,8 +29,8 @@ type Props = {
 
 export default memo(function PetThemePicker({
   selectedColor,
-  title = '테마 선택',
-  helperText = '홈 강조색과 프로필 분위기에 반영돼요.',
+  title = '아이 포인트색',
+  helperText = '아이 사진 테두리와 선택 표시, 아이를 소개하는 강조에 반영돼요.',
   embedded = false,
   containerStyle,
   onSelectColor,
@@ -54,7 +55,7 @@ export default memo(function PetThemePicker({
         style={{
           fontSize: embedded ? 18 : 13,
           fontWeight: '800',
-          color: embedded ? '#352B25' : preview.deep,
+          color: PRODUCT_ACCENT.ink,
         }}
       >
         {title}

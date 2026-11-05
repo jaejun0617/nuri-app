@@ -1,7 +1,6 @@
 import React from 'react';
 import {
   FlatList,
-  Dimensions,
   Image,
   Text,
   StyleSheet,
@@ -16,12 +15,13 @@ import path from 'node:path';
 import { createHash } from 'node:crypto';
 
 import { createTheme } from '../src/app/theme/theme';
-import { SEASON_CTA } from '../src/app/theme/ctaPalette';
+import { PRODUCT_CTA } from '../src/app/theme/tokens/productAccent';
+import { PRODUCT_CANVAS_COLOR } from '../src/app/theme/tokens/colors';
+import { APP_HEADER } from '../src/components/navigation/headerAppearance';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 import {
   COMMUNITY_HERO_ASPECT_RATIO,
   COMMUNITY_HERO_IMAGES,
-  COMMUNITY_HERO_PANEL_OVERLAP_RATIO,
   COMMUNITY_HERO_SURFACES,
 } from '../src/theme/seasonal/community';
 import CommunityStackHeader from '../src/navigation/CommunityStackHeader';
@@ -124,14 +124,6 @@ function categoryFace(node: TestRenderer.ReactTestInstance | undefined) {
     );
 }
 
-function heroImage(renderer: TestRenderer.ReactTestRenderer) {
-  const hero = renderer.root
-    .findAllByType(Image)
-    .find(node => node.props.testID === 'community-seasonal-hero');
-  if (!hero) throw new Error('Expected the complete hero canvas');
-  return hero;
-}
-
 function tree(toolbarHeight: number | null = 80) {
   return (
     <ThemeProvider theme={createTheme('light')}>
@@ -187,143 +179,29 @@ describe('community seasonal list candidate', () => {
     infoSpy.mockRestore();
   });
 
-  it.each(['autumn', 'winter', 'spring', 'summer'] as const)(
-    'uses the global %s artwork and seasonal accent, independent of pet theme',
-    async season => {
-      mockSeason = season;
-      await TestRenderer.act(async () => {
-        usePetStore.setState({
-          pets: [{ id: 'pet', name: '누리', themeColor: '#6741D9' }],
-          selectedPetId: 'pet',
-        });
-        renderer.update(tree());
-      });
-      const hero = heroImage(renderer);
-      expect(hero.props.source).toEqual(COMMUNITY_HERO_IMAGES[season]);
-      expect(hero.props.resizeMode).toBe('contain');
-      expect(StyleSheet.flatten(hero.props.style)).toMatchObject({
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        width: Dimensions.get('window').width,
-        height: Dimensions.get('window').width / COMMUNITY_HERO_ASPECT_RATIO,
-      });
-      expect(hero.props.accessibilityLabel).toContain('우리 아이들의 이야기');
-      const category = renderer.root
-        .findAllByType(TouchableOpacity)
-        .find(
-          node =>
-            node.props.accessibilityRole === 'tab' &&
-            node.props.style === styles.categoryChip &&
-            node.props.accessibilityState.selected,
-        );
-      expect(category?.props.accessibilityState).toEqual({ selected: true });
-      expect(
-        StyleSheet.flatten(categoryFace(category)?.props.style).backgroundColor,
-      ).toBe(SEASON_CTA[season].primary);
-      const overlay = renderer.root.findAllByProps({
-        testID: 'community-hero-overlay-header',
-      })[0];
-      expect(StyleSheet.flatten(overlay.props.style)).toMatchObject({
-        position: 'absolute',
-        top: 0,
-        paddingTop: 8,
-        paddingLeft: 0,
-        paddingRight: 20,
-      });
-      expect(
-        StyleSheet.flatten(overlay.props.style).backgroundColor,
-      ).toBeUndefined();
-      expect(renderer.root.findAllByType(Image)).toHaveLength(1);
-      const create = renderer.root
-        .findAll(node => typeof node.props.style === 'function')
-        .find(node => node.props.testID === 'community-fixed-create');
-      expect(
-        StyleSheet.flatten(create?.props.style({ pressed: false })),
-      ).toMatchObject({
-        backgroundColor: SEASON_CTA[season].primary,
-        width: 48,
-        minHeight: 48,
-      });
-      expect(create?.findByType(NativeFeather).props).toMatchObject({
-        name: 'plus',
-        color: '#FFFFFF',
-      });
-      expect(
-        create?.findAllByProps({ name: 'plus', color: '#FFFFFF' }).length,
-      ).toBeGreaterThan(0);
-      expect(create?.findAllByProps({ children: '글쓰기' })).toHaveLength(0);
-      expect(
-        renderer.root.findAllByProps({
-          testID: 'community-hero-header-artwork',
-        }),
-      ).toHaveLength(0);
-      expect(mockNavigation.setOptions).not.toHaveBeenCalled();
-      expect(
-        renderer.root.findAllByProps({
-          testID: 'community-hero-top-blend',
-        }),
-      ).toHaveLength(0);
-      const tail = renderer.root.findAllByProps({
-        testID: 'community-hero-tail',
-      })[0];
-      expect(tail.props.colors).toEqual([
-        ...COMMUNITY_HERO_SURFACES[season].tail,
-      ]);
-      const panel = renderer.root.findAllByProps({
-        testID: 'community-list-panel',
-      })[0];
-      expect(StyleSheet.flatten(panel.props.style).marginTop).toBeCloseTo(
-        -styles.heroTail.height -
-          Dimensions.get('window').width * COMMUNITY_HERO_PANEL_OVERLAP_RATIO,
-      );
-      expect(mockFetch).not.toHaveBeenCalled();
-    },
-  );
+it.each(['autumn', 'winter', 'spring', 'summer'] as const)('keeps the standard header and product accent across %s and pet choices', async season => {
+  mockSeason = season;
+  await TestRenderer.act(async () => { usePetStore.setState({pets: [{id: 'pet', name: '누리', themeColor: '#F97316'}], selectedPetId: 'pet'}); renderer.update(tree()); });
+  expect(renderer.root.findAllByProps({testID: 'community-seasonal-hero'})).toHaveLength(0);
+  const header = renderer.root.findAllByProps({testID: 'community-list-header'}).at(-1)!;
+  expect(header.findAllByType(Text).some(n => n.props.children === '커뮤니티')).toBe(true);
+  expect(StyleSheet.flatten(header.props.style)).toMatchObject({paddingTop: 4, paddingHorizontal: 12, paddingBottom: 7});
+  const category = renderer.root.findAllByType(TouchableOpacity).find(n => n.props.style === styles.categoryChip && n.props.accessibilityState.selected);
+  expect(StyleSheet.flatten(categoryFace(category)?.props.style).backgroundColor).toBe(PRODUCT_CTA.primary);
+  const create = renderer.root.findAll(n => typeof n.props.style === 'function').find(n => n.props.testID === 'community-fixed-create')!;
+  expect(StyleSheet.flatten(create.props.style({pressed:false}))).toMatchObject({backgroundColor: PRODUCT_CTA.primary, width:48, minHeight:48});
+  expect(mockFetch).not.toHaveBeenCalled();
+});
 
-  it('switches the remaining seasons without resetting the page, filter, or approved layout', async () => {
-    await TestRenderer.act(async () => {
-      useCommunityStore.setState({
-        currentPage: 2,
-        activeCategory: 'question',
-        hasPreviousPage: true,
-      });
-    });
-    const originalHero = StyleSheet.flatten(heroImage(renderer).props.style);
-    const originalPanel = StyleSheet.flatten(
-      renderer.root.findAllByProps({ testID: 'community-list-panel' })[0].props
-        .style,
-    );
-    for (const season of ['winter', 'spring', 'summer', 'autumn'] as const) {
-      mockSeason = season;
-      await TestRenderer.act(async () => {
-        renderer.update(tree());
-      });
-      expect(heroImage(renderer).props.source).toEqual(
-        COMMUNITY_HERO_IMAGES[season],
-      );
-      expect(StyleSheet.flatten(heroImage(renderer).props.style)).toEqual(
-        originalHero,
-      );
-      expect(
-        StyleSheet.flatten(
-          renderer.root.findAllByProps({ testID: 'community-list-panel' })[0]
-            .props.style,
-        ),
-      ).toEqual(originalPanel);
-      expect(useCommunityStore.getState()).toMatchObject({
-        currentPage: 2,
-        activeCategory: 'question',
-        activeFilter: 'all',
-        pageSize: 30,
-        posts: [post],
-      });
-    }
-    expect(mockFetch).not.toHaveBeenCalled();
-    expect(mockCategory).not.toHaveBeenCalled();
-    expect(mockSize).not.toHaveBeenCalled();
-    expect(mockRefresh).not.toHaveBeenCalled();
-  });
+it('preserves page, filter and post state when the selected pet or season changes', async () => {
+  await TestRenderer.act(async () => { useCommunityStore.setState({currentPage:2, activeCategory:'question', hasPreviousPage:true}); });
+  for (const season of ['winter','spring','summer','autumn'] as const) {
+    mockSeason=season; await TestRenderer.act(async () => renderer.update(tree()));
+    expect(useCommunityStore.getState()).toMatchObject({currentPage:2, activeCategory:'question', activeFilter:'all', pageSize:30, posts:[post]});
+    expect(renderer.root.findAllByProps({testID:'community-seasonal-hero'})).toHaveLength(0);
+  }
+  expect(mockFetch).not.toHaveBeenCalled(); expect(mockCategory).not.toHaveBeenCalled(); expect(mockRefresh).not.toHaveBeenCalled();
+});
 
   it('places pagination after the final row inside the scrolling list', async () => {
     const list = renderer.root.findByType(FlatList);
@@ -343,7 +221,7 @@ describe('community seasonal list candidate', () => {
     const root = renderer.root.findByType(CommunityListScreen).children[0];
     if (typeof root === 'string') throw new Error('screen root must be a view');
     expect(StyleSheet.flatten(root.props.style)).toMatchObject({
-      backgroundColor: '#FFFFFF',
+      backgroundColor: PRODUCT_CANVAS_COLOR,
       paddingTop: 24,
       paddingBottom: 80,
     });
@@ -357,105 +235,26 @@ describe('community seasonal list candidate', () => {
     expect(StyleSheet.flatten(root.props.style).paddingBottom).toBe(24);
   });
 
-  it('anchors the single original canvas below the status bar without a separate header band', async () => {
-    const header = renderer.root.findAllByProps({
-      testID: 'community-hero-overlay-header',
-    })[0];
-    const frame = renderer.root.findAllByProps({
-      testID: 'community-hero-frame',
-    })[0];
-    expect(
-      frame
-        .findAllByProps({ testID: 'community-hero-overlay-header' })
-        .some(node => node === header),
-    ).toBe(true);
-    const canvas = frame.findAllByProps({
-      testID: 'community-hero-canvas',
-    })[0];
-    expect(StyleSheet.flatten(canvas.props.style)).toMatchObject({
-      position: 'relative',
-      width: Dimensions.get('window').width,
-      height: Dimensions.get('window').width / COMMUNITY_HERO_ASPECT_RATIO,
-    });
-    for (const node of [frame, canvas]) {
-      const bounds = StyleSheet.flatten(node.props.style);
-      for (const property of ['paddingTop', 'marginTop', 'top']) {
-        expect(bounds[property]).toBeUndefined();
-      }
-    }
-    expect(frame.findAllByType(Image)).toHaveLength(1);
-    expect(StyleSheet.flatten(heroImage(renderer).props.style)).toMatchObject({
-      position: 'absolute',
-      top: 0,
-      left: 0,
-    });
-    expect(StyleSheet.flatten(header.props.style)).toMatchObject({
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      paddingTop: 8,
-    });
-    // Unequal inner columns balance the right gutter without pushing back into artwork copy.
-    expect(styles.headerLeft.width).toBe(
-      styles.headerSide.width + styles.header.paddingHorizontal,
-    );
-    const back = header
-      .findAllByType(TouchableOpacity)
-      .find(node => node.props.accessibilityLabel === '뒤로가기');
-    await TestRenderer.act(async () => back?.props.onPress());
-    expect(mockNavigation.goBack).toHaveBeenCalledTimes(1);
-    expect(header.props.onLayout).toBeUndefined();
-  });
+it('keeps back and help actions in the common header without a hero or overlap', async () => {
+  const header=renderer.root.findAllByProps({testID:'community-list-header'}).at(-1)!;
+  expect(StyleSheet.flatten(header.props.style).backgroundColor).toBe(PRODUCT_CANVAS_COLOR);
+  const back=header.findAllByType(TouchableOpacity).find(n => n.props.accessibilityLabel==='뒤로가기')!;
+  expect(StyleSheet.flatten(back.props.style)).toMatchObject({width:48,height:48});
+  await TestRenderer.act(async () => back.props.onPress()); expect(mockNavigation.goBack).toHaveBeenCalledTimes(1);
+  expect(renderer.root.findAllByProps({testID:'header-help-community'}).length).toBeGreaterThan(0);
+  const panel=renderer.root.findAllByProps({testID:'community-list-panel'}).at(-1)!;
+  expect(StyleSheet.flatten(panel.props.style).marginTop).toBeGreaterThanOrEqual(0);
+});
 
-  it.each(['spring', 'summer', 'autumn', 'winter'] as const)(
-    'omits the central list title in %s while preserving the back action and hero',
-    async season => {
-      mockSeason = season;
-      await TestRenderer.act(async () => renderer.update(tree()));
-      const header = renderer.root.findAllByProps({
-        testID: 'community-hero-overlay-header',
-      })[0];
-      expect(
-        header.findAllByType(Text).some(node => node.props.children === '커뮤니티'),
-      ).toBe(false);
-      const back = header
-        .findAllByType(TouchableOpacity)
-        .find(node => node.props.accessibilityLabel === '뒤로가기');
-      expect(back).toBeDefined();
-      await TestRenderer.act(async () => back?.props.onPress());
-      expect(mockNavigation.goBack).toHaveBeenCalledTimes(1);
-      expect(heroImage(renderer).props.source).toBe(COMMUNITY_HERO_IMAGES[season]);
-    },
-  );
 
-  it.each([0, 24, 48])(
-    'reserves the %s dp status-bar inset once without changing the artwork bounds',
-    async top => {
-      mockInsets = { top, bottom: 24, left: 0, right: 0 };
-      await TestRenderer.act(async () => renderer.update(tree()));
-      const root = renderer.root.findAllByProps({
-        testID: 'community-screen',
-      })[0];
-      const header = renderer.root.findAllByProps({
-        testID: 'community-hero-overlay-header',
-      })[0];
-      expect(StyleSheet.flatten(root.props.style)).toMatchObject({
-        paddingTop: top,
-        backgroundColor: '#FFFFFF',
-      });
-      expect(StyleSheet.flatten(header.props.style)).toMatchObject({
-        top: 0,
-        paddingTop: 8,
-      });
-      expect(StyleSheet.flatten(heroImage(renderer).props.style)).toMatchObject(
-        {
-          top: 0,
-          height: Dimensions.get('window').width / COMMUNITY_HERO_ASPECT_RATIO,
-        },
-      );
-    },
-  );
+it.each([0,24,48])('reserves the %s dp status inset once above the shared header', async top => {
+  mockInsets={top,bottom:24,left:0,right:0}; await TestRenderer.act(async () => renderer.update(tree()));
+  const root=renderer.root.findAllByProps({testID:'community-screen'}).at(-1)!;
+  expect(StyleSheet.flatten(root.props.style)).toMatchObject({paddingTop:top,backgroundColor:PRODUCT_CANVAS_COLOR});
+  const header=renderer.root.findAllByProps({testID:'community-list-header'}).at(-1)!;
+  expect(StyleSheet.flatten(header.props.style)).toMatchObject({paddingTop:4,paddingHorizontal:12});
+  expect(StyleSheet.flatten(header.props.style).height).toBe('auto');
+});
 
   it('keeps the fixed compose action separate from pagination, list content and scroll-to-top', async () => {
     const list = renderer.root.findByType(FlatList);
@@ -656,85 +455,7 @@ describe('community seasonal list candidate', () => {
     );
   });
 
-  it.each([360, 384, 400, 430, 768])(
-    'overrides native intrinsic asset dimensions with the measured %s dp list width',
-    async width => {
-      const viewport = renderer.root.findAllByProps({
-        testID: 'community-list-viewport',
-      })[0];
-      await TestRenderer.act(async () => {
-        viewport.props.onLayout({
-          nativeEvent: { layout: { x: 0, y: 0, width, height: 600 } },
-        });
-      });
-      const hero = heroImage(renderer);
-      // React Native Image prepends asset width/height before the caller's style.
-      const nativeStyle = StyleSheet.flatten([
-        { width: 883, height: 439 },
-        hero.props.style,
-      ]);
-      expect(nativeStyle.width).toBe(width);
-      expect(nativeStyle).toMatchObject({ top: 0, left: 0 });
-      expect(nativeStyle.height).toBeCloseTo(
-        width / COMMUNITY_HERO_ASPECT_RATIO,
-      );
-      expect(nativeStyle.height).not.toBe(439);
-      const canvas = renderer.root.findAllByProps({
-        testID: 'community-hero-canvas',
-      })[0];
-      expect(StyleSheet.flatten(canvas.props.style)).toMatchObject({
-        width,
-        height: width / COMMUNITY_HERO_ASPECT_RATIO,
-      });
-      const panel = renderer.root.findAllByProps({
-        testID: 'community-list-panel',
-      })[0];
-      const panelTop =
-        nativeStyle.height +
-        styles.heroTail.height +
-        StyleSheet.flatten(panel.props.style).marginTop;
-      expect(panelTop).toBeCloseTo((410 * width) / 883);
-      await TestRenderer.act(async () => {
-        hero.props.onError();
-      });
-      const fallbackView = renderer.root.findAll(
-        node =>
-          Array.isArray(node.props.style) &&
-          node.props.style[0] === styles.heroFallback,
-      )[0];
-      expect(StyleSheet.flatten(fallbackView.props.style)).toMatchObject({
-        width,
-        height: width / COMMUNITY_HERO_ASPECT_RATIO,
-      });
-      expect(StyleSheet.flatten(panel.props.style).marginTop).toBe(
-        -styles.heroTail.height,
-      );
-    },
-  );
 
-  it('remeasures a resized list and ignores invalid layout widths', async () => {
-    const viewport = renderer.root.findAllByProps({
-      testID: 'community-list-viewport',
-    })[0];
-    for (const width of [
-      384,
-      430,
-      0,
-      -1,
-      Number.NaN,
-      Number.POSITIVE_INFINITY,
-    ]) {
-      await TestRenderer.act(async () => {
-        viewport.props.onLayout({
-          nativeEvent: { layout: { x: 0, y: 0, width, height: 600 } },
-        });
-      });
-      const expected = width === 384 ? 384 : 430;
-      expect(StyleSheet.flatten(heroImage(renderer).props.style).width).toBe(
-        expected,
-      );
-    }
-  });
 
   it('keeps all three filters and five category chips with gray inactive fills', async () => {
     const tabs = renderer.root
@@ -765,7 +486,7 @@ describe('community seasonal list candidate', () => {
   });
 
   it.each(['question', 'info', 'daily', 'free'] as const)(
-    'keeps %s identity on filter and post badges independently of the season',
+    'keeps %s labels with a shared neutral badge and lavender selected filter',
     async category => {
       const classified = { ...post, category };
       await TestRenderer.act(async () => {
@@ -789,7 +510,7 @@ describe('community seasonal list candidate', () => {
         expect(
           StyleSheet.flatten(categoryFace(selected)?.props.style)
             .backgroundColor,
-        ).toBe(palette.text);
+        ).toBe(PRODUCT_CTA.primary);
         const badge = renderer.root.findAllByProps({
           testID: 'community-post-category-badge',
         })[0];
@@ -819,7 +540,7 @@ describe('community seasonal list candidate', () => {
       width: 44,
       height: 44,
       borderRadius: 22,
-      backgroundColor: SEASON_CTA.autumn.subtle,
+      backgroundColor: PRODUCT_CTA.subtle,
     });
     expect(
       StyleSheet.flatten(top?.props.style({ pressed: false })),
@@ -868,7 +589,7 @@ describe('community seasonal list candidate', () => {
       postId: post.id,
     });
     const header = renderer.root.findAllByProps({
-      testID: 'community-hero-overlay-header',
+      testID: 'community-list-header',
     })[0];
     expect(
       header.findAllByType(Text).some(node => node.props.children === '글쓰기'),
@@ -1012,9 +733,8 @@ describe('community seasonal list candidate', () => {
           listStatus: status,
         });
       });
-      expect(heroImage(renderer).props.source).toEqual(
-        COMMUNITY_HERO_IMAGES.autumn,
-      );
+      expect(renderer.root.findAllByProps({ testID: 'community-seasonal-hero' })).toHaveLength(0);
+      expect(renderer.root.findAllByProps({ testID: 'community-list-header' }).length).toBeGreaterThan(0);
       expect(
         renderer.root
           .findAllByType(TouchableOpacity)
@@ -1035,33 +755,10 @@ describe('community seasonal list candidate', () => {
     },
   );
 
-  it('falls back without losing navigation when an image cannot decode', async () => {
-    await TestRenderer.act(async () => {
-      usePetStore.setState({ pets: [{ id: 'qa-pet', name: '누리' }], selectedPetId: 'qa-pet' });
-      heroImage(renderer).props.onError();
-    });
-    expect(renderer.root.findAllByType(Image)).toHaveLength(0);
-    expect(
-      renderer.root
-        .findAllByType(Text)
-        .some(node => node.props.children === '누리의 이야기'),
-    ).toBe(true);
-    expect(
-      renderer.root.findAllByProps({ testID: 'community-list-pagination' })
-        .length,
-    ).toBeGreaterThan(0);
-    mockSeason = 'winter';
-    await TestRenderer.act(async () => {
-      renderer.update(tree());
-    });
-    expect(heroImage(renderer).props.source).toEqual(
-      COMMUNITY_HERO_IMAGES.winter,
-    );
-  });
 });
 
 describe('community seasonal artwork and responsive source contract', () => {
-  it('owns four distinct legible category palettes and preserves unclassified data', () => {
+  it('uses one legible category palette without losing category labels', () => {
     const luminance = (hex: string) => {
       const channels = [1, 3, 5].map(index => {
         const channel = Number.parseInt(hex.slice(index, index + 2), 16) / 255;
@@ -1077,8 +774,8 @@ describe('community seasonal artwork and responsive source contract', () => {
       return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
     };
     const palettes = Object.values(COMMUNITY_CATEGORY_PALETTE);
-    expect(new Set(palettes.map(item => item.text)).size).toBe(4);
-    expect(new Set(palettes.map(item => item.subtle)).size).toBe(4);
+    expect(new Set(palettes.map(item => item.text)).size).toBe(1);
+    expect(new Set(palettes.map(item => item.subtle)).size).toBe(1);
     for (const palette of palettes) {
       expect(contrast(palette.text, palette.subtle)).toBeGreaterThanOrEqual(
         4.5,
@@ -1147,11 +844,10 @@ describe('community seasonal artwork and responsive source contract', () => {
     },
   );
   it.each([360, 384, 400, 430, 768])(
-    'keeps the complete hero canvas at %s dp',
+    'retains archived artwork dimensions and responsive list controls at %s dp',
     width => {
       const height = width / COMMUNITY_HERO_ASPECT_RATIO;
       expect(height / width).toBeCloseTo(439 / 883);
-      expect(styles.heroImage).not.toHaveProperty('width');
       expect(styles.filterBarRow).not.toHaveProperty('height');
       expect(styles.secondaryCategoryRow).not.toHaveProperty('height');
       expect(styles.categoryChip.minHeight).toBeGreaterThanOrEqual(44);
@@ -1216,9 +912,9 @@ describe('community header opt-in composition', () => {
       backgroundColor: '#FFFFFF',
     });
     expect(
-      StyleSheet.flatten(renderer.root.findByType(Text).props.style).color,
-    ).toBe(theme.colors.textPrimary);
-    expect(renderer.root.findAllByType(View)).toHaveLength(3);
+      StyleSheet.flatten(renderer.root.findAllByType(Text).find(n => n.props.children === '게시글')!.props.style).color,
+    ).toBe(APP_HEADER.titleColor);
+    expect(renderer.root.findAllByProps({ testID: 'app-header-subtitle' }).length).toBeGreaterThan(0);
     await TestRenderer.act(async () => renderer.unmount());
   });
 
@@ -1252,8 +948,8 @@ describe('community header opt-in composition', () => {
       backgroundColor: COMMUNITY_HERO_SURFACES.autumn.header,
     });
     expect(
-      StyleSheet.flatten(renderer.root.findByType(Text).props.style),
-    ).toMatchObject({ color: '#243042', fontSize: 18, fontWeight: '600' });
+      StyleSheet.flatten(renderer.root.findAllByType(Text).find(n => n.props.children === '커뮤니티')!.props.style),
+    ).toMatchObject(APP_HEADER.title);
     const background = renderer.root.findAllByProps({
       testID: 'community-seasonal-header-surface',
     })[0];

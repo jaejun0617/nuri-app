@@ -29,10 +29,10 @@ describe('opt-in action component', () => {
   const style = (pressed = false) =>
     StyleSheet.flatten(button().props.style({ pressed }));
   it.each([
-    ['autumn', '#B95000'],
-    ['winter', '#3B6398'],
-    ['spring', '#B84066'],
-    ['summer', '#247264'],
+    ['autumn', '#7D5CE4'],
+    ['winter', '#7D5CE4'],
+    ['spring', '#7D5CE4'],
+    ['summer', '#7D5CE4'],
   ])(
     'uses global %s even when caller and pet palette disagree',
     (season, color) => {
@@ -71,7 +71,7 @@ describe('opt-in action component', () => {
         ),
       );
     });
-    expect(style(true).backgroundColor).toBe('#963F00');
+    expect(style(true).backgroundColor).toBe('#6345BE');
     act(() =>
       renderer.update(
         wrap(
@@ -92,7 +92,7 @@ describe('opt-in action component', () => {
         ),
       ),
     );
-    expect(style().backgroundColor).toBe('#B95000');
+    expect(style().backgroundColor).toBe('#7D5CE4');
     expect(button().props.disabled).toBe(true);
     expect(button().props.accessibilityState).toMatchObject({
       busy: true,

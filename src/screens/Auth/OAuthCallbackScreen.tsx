@@ -11,7 +11,7 @@
 // - password reset recovery route와 섞지 않는다. `nuri://auth/reset`은 이 화면에서 처리하지 않는다.
 
 import React, { useEffect, useState } from 'react';
-import { Alert } from 'react-native';
+import { NuriAlert as Alert } from '../../app/ui/NuriAlert';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import type { RootStackParamList } from '../../navigation/RootNavigator';

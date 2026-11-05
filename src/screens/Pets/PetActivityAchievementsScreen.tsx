@@ -1,3 +1,6 @@
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { ACTIVITY_BASE_TYPE, ACTIVITY_READING_INCREASE } from '../../theme/activityTypography';
 import React, {
   memo,
   useCallback,
@@ -28,12 +31,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppText from '../../app/ui/AppText';
 import MarkerText from '../../app/ui/MarkerText';
 import Feather from 'react-native-vector-icons/Feather';
-import MaterialIcon from 'react-native-vector-icons/MaterialCommunityIcons';
 import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { LavenderScreenBackground } from '../../components/common/LavenderScreenBackground';
 import PetAvatar from '../../components/pets/PetAvatar';
 import { HomeReflectiveGlass } from '../../components/home/HomeReflectiveGlass';
+import { MenuGlassSurface } from '../../components/common/MenuGlassSurface';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
@@ -60,6 +63,7 @@ import {
   getWalkActivityCount,
 } from './activityAchievementsPresentation';
 import { getTitleArtwork } from '../../services/activity/titleArtwork';
+import type { HomeTitleBadgeIdentity } from '../../services/activity/homeTitleBadge';
 import { TITLE_VAULT_CATEGORIES } from '../../services/activity/titleVaultV2';
 
 type Nav = NativeStackNavigationProp<
@@ -68,7 +72,6 @@ type Nav = NativeStackNavigationProp<
 >;
 type Tab = 'summary' | 'vault';
 const fmt = (value: number) => value.toLocaleString('ko-KR');
-const NURI_BRAND = require('../../assets/logo/logo_v2.png');
 
 /** Home's AppText owns the real family and single-weight jisu mapping. */
 const Copy = memo(function ActivityCopy({
@@ -83,6 +86,11 @@ const Copy = memo(function ActivityCopy({
   testID?: string;
 }) {
   const textStyle = kind === 'section' ? s.sectionTitle : s[kind];
+  const overrides = StyleSheet.flatten(style);
+  const enlarged = kind !== 'title' && kind !== 'section' ? {
+    fontSize: (overrides?.fontSize ?? textStyle.fontSize) + ACTIVITY_READING_INCREASE,
+    lineHeight: (overrides?.lineHeight ?? textStyle.lineHeight) + ACTIVITY_READING_INCREASE,
+  } : undefined;
   return (
     <AppText
       testID={testID}
@@ -94,7 +102,7 @@ const Copy = memo(function ActivityCopy({
           : 'unifiedTitle'
       }
       styleOverridesPreset
-      style={[s.copy, textStyle, style]}
+      style={[s.copy, textStyle, style, enlarged]}
     >
       {children}
     </AppText>
@@ -151,16 +159,27 @@ function SectionHeading({ title, detail }: { title: string; detail?: string }) {
 function GrowthCard({
   dashboard,
   stack,
+  selectedTitle,
 }: {
   dashboard: ActivityDashboardData;
   stack: boolean;
+  selectedTitle?: HomeTitleBadgeIdentity | null;
 }) {
   const level = dashboard.levelSummary;
+  const titleKey = selectedTitle?.titleKey ?? dashboard.representativeTitleKey;
+  const titleName = selectedTitle?.titleName ?? dashboard.representativeTitle;
+  const titleArtwork = getTitleArtwork(titleKey);
   return (
     <Glass testID="activity-growth" style={s.growth}>
-      <Copy kind="label" style={s.muted}>
-        나의 활동 성장
-      </Copy>
+      <View style={s.growthHeading}>
+        <Copy kind="label" style={s.muted}>나의 활동 성장</Copy>
+        {titleKey ? <Copy style={s.muted}>·</Copy> : null}
+        <View style={s.titleBubble}>
+          {titleArtwork ? <Image testID="activity-growth-title-art" source={titleArtwork}
+            style={{ width: 28, height: 28, flexShrink: 0 }} resizeMode="contain" accessible={false} /> : null}
+          <Copy testID="activity-growth-title" style={s.titleBubbleText}>{titleName}</Copy>
+        </View>
+      </View>
       <View style={[s.growthMiddle, stack && s.growthStack]}>
         <View style={s.growthCopy}>
           <AppText
@@ -171,12 +190,6 @@ function GrowthCard({
           >
             Lv.{level.level}
           </AppText>
-          <View style={s.titleBubble}>
-            <MaterialIcon name="heart" size={17} color={C.accent} />
-            <Copy style={s.titleBubbleText}>
-              {dashboard.representativeTitle}
-            </Copy>
-          </View>
         </View>
         <Image
           testID="activity-growth-art"
@@ -304,6 +317,7 @@ function Summary({
   onSelect,
   stack,
   petCardWidth,
+  selectedTitle,
 }: {
   dashboard: ActivityDashboardData;
   pet: PetActivityDashboardSummary | null;
@@ -312,6 +326,7 @@ function Summary({
   onSelect: (id: string) => void;
   stack: boolean;
   petCardWidth: number;
+  selectedTitle?: HomeTitleBadgeIdentity | null;
 }) {
   const categoryItems = [
     { key: 'walk', label: '산책', icon: 'paw' },
@@ -321,7 +336,7 @@ function Summary({
   ] as const;
   return (
     <>
-      <GrowthCard dashboard={dashboard} stack={stack} />
+      <GrowthCard dashboard={dashboard} stack={stack} selectedTitle={selectedTitle} />
       <View style={s.section}>
         <SectionHeading title="아이별 성장 기록" />
         {dashboard.petSummaries.length ? (
@@ -351,6 +366,7 @@ function Summary({
                     key={photos.get(item.petId) ?? item.petId}
                     uri={photos.get(item.petId) ?? null}
                     fallbackLabel={item.petName}
+                    accentColor={item.themeColor}
                     size={48}
                   />
                   <View style={s.petCopy}>
@@ -403,17 +419,6 @@ function Summary({
                   key={item.label}
                   style={[s.metric, index > 0 && s.divider]}
                 >
-                  {item.icon === 'paw' ? (
-                    <Image
-                      testID="activity-walk-brand"
-                      source={NURI_BRAND}
-                      resizeMode="contain"
-                      style={s.walkBrand}
-                      accessible={false}
-                    />
-                  ) : (
-                    <MaterialIcon name={item.icon} size={24} color={C.accent} />
-                  )}
                   <Copy kind="label" style={s.metricLabel}>
                     {item.label}
                   </Copy>
@@ -441,21 +446,6 @@ function Summary({
                   ]}
                 >
                   <View style={[s.categoryLabel, stack && s.wrap]}>
-                    {item.key === 'walk' ? (
-                      <Image
-                        testID="activity-category-walk-brand"
-                        source={NURI_BRAND}
-                        resizeMode="contain"
-                        style={s.categoryWalkBrand}
-                        accessible={false}
-                      />
-                    ) : (
-                      <MaterialIcon
-                        name={item.icon}
-                        size={19}
-                        color={C.accent}
-                      />
-                    )}
                     <Copy style={s.muted}>{item.label}</Copy>
                   </View>
                   <Copy kind="number" style={s.categoryValue}>
@@ -489,7 +479,6 @@ function Summary({
               testID={`activity-common-${item.icon}`}
               style={[s.commonMetric, index > 0 && !stack && s.divider]}
             >
-              <Feather name={item.icon} size={29} color={C.accent} />
               <View style={s.commonCopy}>
                 <Copy kind="label" style={[s.muted, s.centered]}>
                   {item.label}
@@ -536,10 +525,12 @@ export default function PetActivityAchievementsScreen() {
   const [error, setError] = useState(false);
   const [info, setInfo] = useState(false);
   const [picker, setPicker] = useState(false);
+  const [categoryPicker, setCategoryPicker] = useState(false);
   const [selection, setSelection] = useState<{
     ownerId: string;
     petId: string;
     key: string | null;
+    name: string | null;
   } | null>(null);
   const [savingTitle, setSavingTitle] = useState(false);
   const [selectionError, setSelectionError] = useState<string | null>(null);
@@ -603,6 +594,10 @@ export default function PetActivityAchievementsScreen() {
     selection?.ownerId === ownerId && selection?.petId === pet?.petId
       ? selection?.key
       : null;
+  const selectedTitleIdentity =
+    selection?.ownerId === ownerId && selection?.petId === pet?.petId && selection.name
+      ? { titleKey: selection.key, titleName: selection.name }
+      : null;
   const activeTitlePrompt =
     titlePrompt?.ownerId === ownerId && titlePrompt?.petId === pet?.petId
       ? titlePrompt
@@ -622,7 +617,7 @@ export default function PetActivityAchievementsScreen() {
     loadHomeTitleSelection({ userId: ownerId, petId })
       .then(value => {
         if (!cancelled && request === titleReads.current)
-          setSelection({ ownerId, petId, key: value?.titleKey ?? null });
+          setSelection({ ownerId, petId, key: value?.titleKey ?? null, name: value?.titleName ?? null });
       })
       .catch(() => {
         if (!cancelled && request === titleReads.current)
@@ -669,7 +664,7 @@ export default function PetActivityAchievementsScreen() {
         dashboard,
       });
       if (current()) {
-        setSelection({ ownerId, petId, key: chosen.titleKey });
+        setSelection({ ownerId, petId, key: chosen.titleKey, name: chosen.titleName });
         setTitlePrompt(null);
       }
     } catch {
@@ -754,8 +749,7 @@ export default function PetActivityAchievementsScreen() {
           picker || info || activeTitlePrompt ? 'no-hide-descendants' : 'auto'
         }
       >
-        <View style={[s.header, { paddingTop: insets.top + 4 }]}>
-          <View style={s.headerRow}>
+        <AppHeaderLayout subtitle="함께한 순간이 차곡차곡 쌓여요" topInset={insets.top} style={s.header}>
             <Pressable
               testID="activity-back"
               accessibilityRole="button"
@@ -763,9 +757,9 @@ export default function PetActivityAchievementsScreen() {
               style={s.iconButton}
               onPress={onBack}
             >
-              <Feather name="chevron-left" size={28} color={C.ink} />
+              <Feather name="chevron-left" size={APP_HEADER.backIconSize} color={C.ink} />
             </Pressable>
-            <Copy kind="title" style={s.headerTitle}>
+            <Copy kind="title" style={[s.headerTitle, APP_HEADER.title]}>
               활동·칭호
             </Copy>
             <Pressable
@@ -775,11 +769,9 @@ export default function PetActivityAchievementsScreen() {
               style={s.iconButton}
               onPress={() => setInfo(true)}
             >
-              <Feather name="info" size={24} color={C.ink} />
+              <Feather name="info" size={APP_HEADER.actionIconSize} color={C.ink} />
             </Pressable>
-          </View>
-          <Copy style={s.subtitle}>함께한 순간이 차곡차곡 쌓여요</Copy>
-        </View>
+        </AppHeaderLayout>
         <View style={s.tabs} accessibilityRole="tablist">
           {(
             [
@@ -876,6 +868,7 @@ export default function PetActivityAchievementsScreen() {
               onSelect={selectPet}
               stack={layout.stack}
               petCardWidth={(width - layout.inset * 2 - 10) / 2}
+              selectedTitle={selectedTitleIdentity}
             />
           ) : null}
           {dashboard && vault && tab === 'vault' ? (
@@ -893,6 +886,7 @@ export default function PetActivityAchievementsScreen() {
                     key={photos.get(pet?.petId ?? '') ?? pet?.petId ?? 'empty'}
                     uri={photos.get(pet?.petId ?? '') ?? null}
                     fallbackLabel={pet?.petName}
+                    accentColor={pet?.themeColor ?? null}
                     size={44}
                   />
                   <Copy kind="label" style={s.flex}>
@@ -901,22 +895,18 @@ export default function PetActivityAchievementsScreen() {
                   <Feather name="chevron-down" size={20} color={C.ink} />
                 </Pressable>
                 <View style={s.commonHint}>
-                  <Feather name="link" size={19} color={C.muted} />
                   <Copy style={s.muted}>공통 칭호 함께 표시</Copy>
                 </View>
               </Glass>
               {hasCatalog ? (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={s.vaultCategories} testID="activity-title-categories">
-                  {vaultCategories.map(category => (
-                    <Pressable key={category.key} testID={`activity-title-category-${category.key}`}
-                      accessibilityRole="tab" accessibilityState={{ selected: activeVaultCategory === category.key }}
-                      onPress={() => setVaultCategory(category.key)}
-                      style={[s.vaultCategory, activeVaultCategory === category.key && s.vaultCategorySelected]}>
-                      <Copy kind="label" style={activeVaultCategory === category.key ? s.activeText : s.muted}>{category.label}</Copy>
-                    </Pressable>
-                  ))}
-                </ScrollView>
+                <Pressable testID="activity-title-category-picker" accessibilityRole="button"
+                  accessibilityLabel={`칭호 분류 선택, ${vaultCategories.find(category => category.key === activeVaultCategory)?.label ?? ''}`}
+                  accessibilityState={{ expanded: categoryPicker }}
+                  onPress={() => setCategoryPicker(true)} style={s.categorySelector}>
+                  <Copy kind="label" style={s.muted}>분류</Copy>
+                  <Copy kind="label" style={[s.activeText, s.flex]}>{vaultCategories.find(category => category.key === activeVaultCategory)?.label}</Copy>
+                  <Feather name="chevron-down" size={20} color={C.ink} />
+                </Pressable>
               ) : null}
               <View style={s.section}>
                 <SectionHeading
@@ -1039,6 +1029,33 @@ export default function PetActivityAchievementsScreen() {
           ) : null}
         </ScrollView>
       </View>
+      {categoryPicker ? (
+        <Modal transparent visible animationType="fade" onRequestClose={() => setCategoryPicker(false)}>
+          <View style={s.modalRoot}>
+            <Pressable accessibilityRole="button" accessibilityLabel="칭호 분류 닫기"
+              style={StyleSheet.absoluteFill} onPress={() => setCategoryPicker(false)} />
+            <View style={[s.pickerSheet, { paddingBottom: insets.bottom + 20, maxHeight: '75%' }]} accessibilityViewIsModal>
+              <MenuGlassSurface radius={22} backed />
+              <View style={s.sectionHeading}>
+                <Copy kind="section" style={s.flex}>칭호 분류</Copy>
+                <Pressable accessibilityRole="button" accessibilityLabel="칭호 분류 선택 닫기" style={s.iconButton} onPress={() => setCategoryPicker(false)}>
+                  <Feather name="x" size={22} color={C.ink} />
+                </Pressable>
+              </View>
+              <ScrollView contentContainerStyle={s.categoryOptions} showsVerticalScrollIndicator>
+                {vaultCategories.map(category => (
+                  <Pressable key={category.key} testID={`activity-title-category-${category.key}`}
+                    accessibilityRole="radio" accessibilityState={{ checked: activeVaultCategory === category.key }}
+                    onPress={() => { setVaultCategory(category.key); setCategoryPicker(false); }}
+                    style={[s.categoryOption, activeVaultCategory === category.key && s.vaultCategorySelected]}>
+                    <Copy kind="label" style={activeVaultCategory === category.key ? s.activeText : s.muted}>{category.label}</Copy>
+                  </Pressable>
+                ))}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
+      ) : null}
       {picker ? (
         <Modal
           transparent
@@ -1060,6 +1077,7 @@ export default function PetActivityAchievementsScreen() {
               ]}
               accessibilityViewIsModal
             >
+              <MenuGlassSurface radius={22} backed />
               <View style={s.sectionHeading}>
                 <Copy kind="section" style={s.flex}>
                   아이 선택
@@ -1088,6 +1106,7 @@ export default function PetActivityAchievementsScreen() {
                       key={item.avatarUrl ?? item.id}
                       uri={item.avatarUrl ?? null}
                       fallbackLabel={item.name}
+                      accentColor={item.themeColor ?? null}
                       size={40}
                     />
                     <Copy kind="label" style={s.flex}>
@@ -1109,6 +1128,7 @@ export default function PetActivityAchievementsScreen() {
       ) : null}
       {activeTitlePrompt ? (
         <ConfirmDialog
+          surfaceVariant="menuGlass"
           visible
           title={`${activeTitlePrompt.name} 칭호로 바꿀까요?`}
           titleContent={
@@ -1152,6 +1172,7 @@ export default function PetActivityAchievementsScreen() {
       ) : null}
       {info ? (
         <PremiumNoticeModal
+          surfaceVariant="menuGlass"
           visible
           eyebrow="NURI"
           iconName="shield"
@@ -1178,11 +1199,11 @@ const s = StyleSheet.create({
     includeFontPadding: false,
     flexShrink: 1,
   },
-  body: { fontSize: 8, lineHeight: 17 },
-  caption: { fontSize: 8, lineHeight: 17 },
-  label: { fontSize: 11, lineHeight: 18, fontWeight: '500' },
-  title: { fontSize: 17, lineHeight: 24, fontWeight: '700' },
-  sectionTitle: { fontSize: 17, lineHeight: 28, fontWeight: '700' },
+  body: ACTIVITY_BASE_TYPE.body,
+  caption: ACTIVITY_BASE_TYPE.body,
+  label: ACTIVITY_BASE_TYPE.label,
+  title: ACTIVITY_BASE_TYPE.title,
+  sectionTitle: ACTIVITY_BASE_TYPE.section,
   number: {
     fontSize: 21,
     lineHeight: 32,
@@ -1192,7 +1213,7 @@ const s = StyleSheet.create({
   muted: { color: C.muted },
   header: { paddingHorizontal: 12, paddingBottom: 7 },
   headerRow: { flexDirection: 'row', alignItems: 'center', minHeight: 48 },
-  headerTitle: { flex: 1, textAlign: 'center' },
+  headerTitle: { flex: 1, textAlign: 'center', ...APP_HEADER.title },
   iconButton: {
     minWidth: 48,
     minHeight: 48,
@@ -1254,15 +1275,12 @@ const s = StyleSheet.create({
     color: C.ink,
   },
   growthArt: { width: 92, height: 73 },
+  growthHeading: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6 },
   titleBubble: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    borderWidth: 1,
-    borderColor: C.accent,
-    borderRadius: 14,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    flexShrink: 1,
     maxWidth: '100%',
   },
   titleBubbleText: { fontSize: 8, lineHeight: 17 },
@@ -1387,7 +1405,7 @@ const s = StyleSheet.create({
   earnedArt: { width: '100%', height: 62 },
   earnedName: { textAlign: 'center', fontSize: 11, lineHeight: 18 },
   selectionMark: {
-    height: 17,
+    minHeight: 20,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1402,6 +1420,9 @@ const s = StyleSheet.create({
   vaultCategories: { gap: 8, paddingVertical: 12 },
   vaultCategory: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 8 },
   vaultCategorySelected: { backgroundColor: C.tint },
+  categorySelector: { flexDirection: 'row', alignItems: 'center', minHeight: 48, gap: 12, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: C.border },
+  categoryOptions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingTop: 12, paddingBottom: 8 },
+  categoryOption: { width: '48%', minHeight: 48, justifyContent: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 8 },
   challenge: {
     flexDirection: 'row',
     alignItems: 'center',

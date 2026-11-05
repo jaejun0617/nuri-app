@@ -24,14 +24,14 @@ const approved: Record<SeasonKey, string[]> = {
 };
 const read = (file: string) => fs.readFileSync(path.join(__dirname, '../src', file), 'utf8');
 
-describe('PO Home-only sky canvas boundary', () => {
+describe('PO Home and More-menu canvas boundary', () => {
   it.each(seasons)('%s retains its seasonal contract without recoloring Home sky or the application theme', season => {
     expect(HOME_SEASONAL_BACKGROUND_GRADIENTS[season]).toEqual(approved[season]);
-    expect(getHomeHeroColors(season).surface).toBe('#EEF5FC');
-    expect(getHomeHeroColors(season).statusBar).toBe('#EEF5FC');
+    expect(getHomeHeroColors(season).surface).toBe(PRODUCT_CANVAS_COLOR);
+    expect(getHomeHeroColors(season).statusBar).toBe(PRODUCT_CANVAS_COLOR);
     expect(getHomeHeroColors(season)).toBe(getHomeHeroColors(season));
     expect(getHomeHeroColors()).toBe(HOME_HERO_COLORS);
-    expect(HOME_HERO_COLORS).toMatchObject({ surface: '#F8F7FD', statusBar: '#FFFFFF' });
+    expect(HOME_HERO_COLORS).toMatchObject({ surface: PRODUCT_CANVAS_COLOR, statusBar: PRODUCT_CANVAS_COLOR });
     expect(PRODUCT_CANVAS_COLOR).toBe('#F1F5F8');
     expect(createTheme('light').colors).toMatchObject({ background: '#F1F5F8', surface: '#F6F7FB', surfaceElevated: '#FFFFFF' });
     expect(createTheme('dark').colors.background).toBe('#0B1F3A');
@@ -45,8 +45,8 @@ describe('PO Home-only sky canvas boundary', () => {
     expect(tree.root.findAllByType(Image)).toHaveLength(0);
     await act(async () => tree.unmount());
     await act(async () => { tree = Renderer.create(<LavenderScreenBackground statusBarInset={24} />); });
-    expect(tree.root.findAllByType(LinearGradient)[0].props.colors).toEqual(['#F8F7FD', '#ECE7F5', '#F4EEF7']);
-    expect(LAVENDER_CANVAS.statusBar).toBe('#FFFFFF');
+    expect(tree.root.findAllByType(LinearGradient)[0].props.colors).toEqual([PRODUCT_CANVAS_COLOR, PRODUCT_CANVAS_COLOR, PRODUCT_CANVAS_COLOR]);
+    expect(LAVENDER_CANVAS.statusBar).toBe(PRODUCT_CANVAS_COLOR);
     await act(async () => tree.unmount());
   });
 

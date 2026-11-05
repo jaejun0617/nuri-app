@@ -77,3 +77,19 @@ it('does not create duplicate strokes when native measurement reports the same l
   expect(strokes(tree)).toHaveLength(1);
   await act(async () => tree.unmount());
 });
+it('ignores legacy pet color changes and preserves explicit semantic color overrides', async () => {
+  let tree!: TestRenderer.ReactTestRenderer;
+  const renderScope = (petColor: string, markerColor?: string) => <MarkerText testID="pet-marker" variant="wash" petColor={petColor} markerColor={markerColor}>누리의 소개</MarkerText>;
+  await act(async () => { tree = TestRenderer.create(renderScope('#F97316')); });
+  const measure = async () => {
+    const text = tree.root.findAll(n => typeof n.type === 'string' && n.props.testID === 'pet-marker')[0];
+    await act(async () => text.props.onTextLayout({ nativeEvent: { lines: [{x:0,y:0,width:120,height:24}] } }));
+  };
+  await measure();
+  const orange = StyleSheet.flatten(strokes(tree)[0].props.style).backgroundColor;
+  await act(async () => tree.update(renderScope('#14B8A6')));
+  expect(StyleSheet.flatten(strokes(tree)[0].props.style).backgroundColor).toBe(orange);
+  await act(async () => tree.update(renderScope('#14B8A6', '#FBE3DF')));
+  expect(StyleSheet.flatten(strokes(tree)[0].props.style).backgroundColor).toBe('#FBE3DF');
+  await act(async () => tree.unmount());
+});

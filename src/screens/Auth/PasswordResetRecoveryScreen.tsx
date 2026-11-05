@@ -1,6 +1,7 @@
 import AppText from '../../app/ui/AppText';
 import React, { useEffect } from 'react';
-import { ActivityIndicator, Alert, View } from 'react-native';
+import { ActivityIndicator, View } from 'react-native';
+import { NuriAlert as Alert } from '../../app/ui/NuriAlert';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 

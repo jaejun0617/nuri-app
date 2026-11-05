@@ -26,10 +26,9 @@ import {
 } from '../src/theme/home/ambientMesh';
 import {
   HOME_AMBIENT_SECTION_LIGHTS,
-  HOME_SEASONAL_HEADING_COLORS,
-  HOME_SEASONAL_CONTENT_COLORS,
 } from '../src/theme/home/seasonalAmbient';
 import { HomeSeasonProvider } from '../src/components/home/HomeSeasonContext';
+import { PRODUCT_ACCENT } from '../src/app/theme/tokens/productAccent';
 
 jest.mock('../src/app/ui/AppText', () => 'AppText');
 
@@ -85,7 +84,7 @@ describe('Total Summary seasonal concept', () => {
   afterEach(() => jest.restoreAllMocks());
 
   it.each(SEASONS)(
-    '%s keeps the total in its deep heading tone and secondary metrics in the muted seasonal charcoal',
+    '%s keeps headings and totals in fixed product ink without changing metrics',
     async season => {
       let renderer!: TestRenderer.ReactTestRenderer;
       await act(async () => {
@@ -107,24 +106,24 @@ describe('Total Summary seasonal concept', () => {
       const label = renderer.root.find(
         node => String(node.type) === 'AppText' && node.props.children === '전체 기록',
       );
-      expect(RN.StyleSheet.flatten(title.props.style).color).toBe(HOME_SEASONAL_HEADING_COLORS[season]);
+      expect(RN.StyleSheet.flatten(title.props.style).color).toBe(PRODUCT_ACCENT.ink);
       expect(RN.StyleSheet.flatten(total.props.style)).toEqual({
         ...styles.totalValue,
-        color: HOME_SEASONAL_HEADING_COLORS[season],
+        color: PRODUCT_ACCENT.ink,
         fontSize: resolveSummaryCountFontSize(5),
         lineHeight: resolveSummaryCountFontSize(5) + 10,
       });
       expect(RN.StyleSheet.flatten(unit.props.style)).toEqual({
         ...styles.totalUnit,
-        color: HOME_SEASONAL_HEADING_COLORS[season],
+        color: PRODUCT_ACCENT.ink,
       });
       expect(RN.StyleSheet.flatten(label.props.style)).toEqual({
-        ...styles.totalLabel, color: HOME_SEASONAL_CONTENT_COLORS[season],
+        ...styles.totalLabel, color: PRODUCT_ACCENT.ink,
       });
       for (const key of ['walk', 'meal', 'life', 'days']) {
         expect(RN.StyleSheet.flatten(renderer.root.findByProps({
           testID: `home-summary-${key}-value`,
-        }).props.style).color).toBe(HOME_SEASONAL_CONTENT_COLORS[season]);
+        }).props.style).color).toBe(PRODUCT_ACCENT.ink);
       }
       expect(total.props.children[0]).toBe(5);
       await act(async () => renderer.unmount());

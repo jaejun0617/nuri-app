@@ -1,3 +1,4 @@
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -12,13 +13,10 @@ export const styles = StyleSheet.create({
   headerBackButton: {
     width: 44,
     height: 44,
-    borderRadius: 22,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.8)',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { flex: 1, minWidth: 0, textAlign: 'center' },
+  headerTitle: { flex: 1, minWidth: 0, textAlign: 'center', ...APP_HEADER.title },
   scroll: { flex: 1 },
   scrollContent: { paddingHorizontal: 20, paddingBottom: 32 },
   subtitle: { marginTop: 8, marginBottom: 14 },

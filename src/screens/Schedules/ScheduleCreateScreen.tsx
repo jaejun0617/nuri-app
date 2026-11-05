@@ -1,3 +1,5 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // 파일: src/screens/Schedules/ScheduleCreateScreen.tsx
 // 역할:
@@ -198,7 +200,7 @@ export default function ScheduleCreateScreen() {
       edges={keyboardVisible ? ['left', 'right'] : ['left', 'right', 'bottom']}
     >
       <SeasonalFormBackground uniform />
-      <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
+      <AppHeaderLayout subtitle="아이와의 다음 일정을 준비해요" style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
             activeOpacity={0.88}
@@ -206,14 +208,14 @@ export default function ScheduleCreateScreen() {
             onPress={onPressBack}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
-            <Feather name="arrow-left" size={20} color="#102033" />
+            <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
           </TouchableOpacity>
         </View>
 
-        <AppText
+        <AppText styleOverridesPreset
           typographyRole="screenTitle"
           preset="unifiedTitle"
-          style={styles.headerTitle}
+          style={[styles.headerTitle, APP_HEADER.title]}
         >
           일정 추가
         </AppText>
@@ -230,7 +232,7 @@ export default function ScheduleCreateScreen() {
             onPress={onSubmit}
           />
         </View>
-      </View>
+      </AppHeaderLayout>
 
       <KeyboardAwareScrollView
         ref={scrollRef}
@@ -400,13 +402,16 @@ export default function ScheduleCreateScreen() {
           <AppText preset="unifiedMeta" style={styles.label}>
             아이콘
           </AppText>
-          <View style={styles.iconGrid}>
+          <View style={styles.iconGrid} accessibilityRole="radiogroup">
             {SCHEDULE_ICON_OPTIONS.map(option => {
               const active = iconKey === option.key;
               return (
                 <TouchableOpacity
                   key={option.key}
                   activeOpacity={0.9}
+                  accessibilityRole="radio"
+                  accessibilityLabel={`${option.label} 아이콘`}
+                  accessibilityState={{ checked: active }}
                   style={[
                     styles.iconCard,
                     active ? styles.iconCardActive : null,
@@ -422,19 +427,10 @@ export default function ScheduleCreateScreen() {
                   <NuriSemanticIcon
                     family="material"
                     name={option.icon}
-                    size={16}
+                    size={22}
                     color={active ? petTheme.primary : '#556070'}
+                    accessible={false}
                   />
-                  <AppText
-                    preset="unifiedMeta"
-                    style={[
-                      styles.iconLabel,
-                      active ? styles.iconLabelActive : null,
-                      active ? { color: petTheme.primary } : null,
-                    ]}
-                  >
-                    {option.label}
-                  </AppText>
                 </TouchableOpacity>
               );
             })}
@@ -450,18 +446,22 @@ export default function ScheduleCreateScreen() {
                 <TouchableOpacity
                   key={option.key}
                   activeOpacity={0.9}
-                  style={styles.colorItem}
+                  accessibilityRole="radio"
+                  accessibilityLabel={option.label}
+                  accessibilityState={{ checked: active }}
+                  style={[styles.colorItem, styles.createColorItem]}
                   onPress={() => setColorKey(option.key)}
                 >
                   <View
-                    style={[
-                      styles.colorDot,
-                      { backgroundColor: option.color },
-                      active ? styles.colorDotActive : null,
-                      active ? { borderColor: petTheme.border } : null,
-                    ]}
-                  />
-                  <AppText preset="unifiedMeta" style={styles.colorLabel}>
+                    style={[styles.colorRing, active && styles.colorRingActive]}
+                  >
+                    <View style={[styles.colorDot, { backgroundColor: option.color }]} />
+                  </View>
+                  <AppText
+                    preset="unifiedMeta"
+                    weight={active ? '700' : undefined}
+                    style={[styles.colorLabel, active && styles.colorLabelActive]}
+                  >
                     {option.label}
                   </AppText>
                 </TouchableOpacity>

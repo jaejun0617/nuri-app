@@ -6,6 +6,7 @@ import { buildAnimalHospitalCardViewModel } from '../../domains/animalHospital/p
 import type { AnimalHospitalPublicHospital } from '../../domains/animalHospital/types';
 import WalkingTravelMetaRow from '../locationDiscovery/WalkingTravelMetaRow';
 import { styles } from '../locationDiscovery/LocationDiscovery.styles';
+import { MenuGlassSurface, MENU_GLASS_FRAME } from '../common/MenuGlassSurface';
 
 type Props = {
   item: AnimalHospitalPublicHospital;
@@ -32,7 +33,8 @@ function AnimalHospitalCard({ item, onOpenDetail }: Props) {
       : styles.animalHospitalOperatingBadgeTextClosed;
 
   return (
-    <View style={styles.card}>
+    <View testID="hospital-card-glass" style={[styles.card, MENU_GLASS_FRAME]}>
+      <MenuGlassSurface radius={22} />
       <TouchableOpacity
         activeOpacity={0.92}
         style={styles.cardPressableAreaCompact}

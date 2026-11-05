@@ -5,10 +5,12 @@ import { useAuthStore } from '../../store/authStore';
 import { syncPushNotificationDevice } from './pushTokenLifecycle';
 import { clearNativePushOwner } from './nativePush';
 import { syncAccountScheduleNotificationPreference } from '../schedules/preferenceSync';
+import { observeInboxBadge } from './inboxBadgeSync';
 
 /** One account-scoped invalidation owner; Realtime is not an OS push channel. */
 export function observeNotificationChanges(userId: string): () => void {
-  syncPushNotificationDevice().catch(() => {});
+  const badge = observeInboxBadge(userId);
+  syncPushNotificationDevice().then(badge.syncAfterOwnerBound).catch(() => {});
   syncAccountScheduleNotificationPreference(userId).catch(() => {});
   let active = true;
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -63,12 +65,13 @@ export function observeNotificationChanges(userId: string): () => void {
   const listener = AppState.addEventListener('change', state => {
     if (state === 'active') {
       invalidate();
-      syncPushNotificationDevice().catch(() => {});
+      syncPushNotificationDevice().then(badge.syncAfterOwnerBound).catch(() => {});
       syncAccountScheduleNotificationPreference(userId).catch(() => {});
     }
   });
   return () => {
     active = false;
+    badge.stop();
     if (timer) clearTimeout(timer);
     listener.remove();
     clearNativePushOwner(userId).catch(() => {});

@@ -108,12 +108,12 @@ describe('PO uniform blue-gray canvas without spheres or starlight', () => {
   });
 });
 
-describe('PO Home-only sky background palette', () => {
-  it.each(seasons)('%s keeps the approved sky palette without decorative overlays', async season => {
+describe('PO Home and More-menu shared background palette', () => {
+  it.each(seasons)('%s uses the menu palette without decorative overlays', async season => {
     await verifyGradientCanvas(
       <HomeAmbientBubbleCanvas season={season} heroHeight={800} backgroundMode="homePalette" showDecorations />,
       'home-ambient-bubble-canvas',
-      ['#EEF5FC', '#F7FAFE', '#EEF5FC'],
+      ['#F1F5F8', '#F1F5F8', '#F1F5F8'],
       [0, 0.5, 1],
     );
   });

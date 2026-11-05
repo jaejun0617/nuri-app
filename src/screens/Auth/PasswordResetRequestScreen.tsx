@@ -2,13 +2,13 @@ import AppTextInput from '../../app/ui/AppTextInput';
 import AppText from '../../app/ui/AppText';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { NuriAlert as Alert } from '../../app/ui/NuriAlert';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { SafeAreaView } from 'react-native-safe-area-context';
 

@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import { View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import AnimalHospitalCard from '../src/components/animalHospital/AnimalHospitalCard';
 import AnimalHospitalDetailScreen from '../src/screens/AnimalHospital/AnimalHospitalDetailScreen';
@@ -23,6 +23,9 @@ jest.mock('@react-navigation/native', () => ({
   }),
   useRoute: () => ({ params: mockRouteParams }),
   useFocusEffect: () => undefined,
+}));
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 24, bottom: 24, left: 0, right: 0 }),
 }));
 
 jest.mock('styled-components/native', () => ({
@@ -298,13 +301,12 @@ describe('NURI-08 place media and initial loading', () => {
   });
 
   it('Walk compact card는 이미지 데이터와 무관하게 미디어 영역을 렌더하지 않는다', async () => {
+    const onPress = jest.fn();
+    const item = { ...walkItem, thumbnailUrl: 'https://cdn.example.test/walk.jpg' };
     const renderer = await renderElement(
       <LocationDiscoveryCard
-        item={{
-          ...walkItem,
-          thumbnailUrl: 'https://cdn.example.test/walk.jpg',
-        }}
-        onPress={jest.fn()}
+        item={item}
+        onPress={onPress}
         layout="compact"
       />,
     );
@@ -312,6 +314,13 @@ describe('NURI-08 place media and initial loading', () => {
     expect(countMediaImages(renderer)).toBe(0);
     expect(serialized(renderer)).toContain('도보 약 5분 · 320m');
     expect(serialized(renderer)).not.toContain('walk.jpg');
+    const card = renderer.root.findByProps({ testID: 'walk-place-card-glass' });
+    expect(StyleSheet.flatten(card.props.style)).toMatchObject({
+      backgroundColor: 'transparent', shadowOpacity: 0, elevation: 0,
+    });
+    expect(card.findAll(node => node.type === View && node.props.testID === 'home-reflective-fill')).toHaveLength(1);
+    await ReactTestRenderer.act(async () => card.findByType(TouchableOpacity).props.onPress());
+    expect(onPress).toHaveBeenCalledWith(item);
   });
 
   it('Walk related card도 빈 이미지 슬롯 없이 이동 정보를 같은 row에 유지한다', async () => {
@@ -339,12 +348,20 @@ describe('NURI-08 place media and initial loading', () => {
   });
 
   it('photo 없는 Hospital card는 회색 placeholder를 예약하지 않는다', async () => {
+    const onOpenDetail = jest.fn();
     const renderer = await renderElement(
-      <AnimalHospitalCard item={hospital} onOpenDetail={jest.fn()} />,
+      <AnimalHospitalCard item={hospital} onOpenDetail={onOpenDetail} />,
     );
 
     expect(countMediaImages(renderer)).toBe(0);
     expect(serialized(renderer)).not.toContain('shield');
+    const card = renderer.root.findByProps({ testID: 'hospital-card-glass' });
+    expect(StyleSheet.flatten(card.props.style)).toMatchObject({
+      backgroundColor: 'transparent', shadowOpacity: 0, elevation: 0,
+    });
+    expect(card.findAll(node => node.type === View && node.props.testID === 'home-reflective-fill')).toHaveLength(1);
+    await ReactTestRenderer.act(async () => card.findByType(TouchableOpacity).props.onPress());
+    expect(onOpenDetail).toHaveBeenCalledWith(hospital);
   });
 
   it('Hospital card는 유효한 이미지 URI가 있어도 정보형 레이아웃만 렌더한다', async () => {
@@ -408,6 +425,10 @@ describe('NURI-08 place media and initial loading', () => {
     expect(output).toContain('병원 목록을 준비하고 있어요');
     expect(output).not.toContain('병원을 찾지 못했어요');
     expect(output).toContain('불러오는 중');
+    const header = renderer.root.findAll(node => node.type === View && node.props.testID === 'hospital-list-header')[0];
+    expect(StyleSheet.flatten(header.props.style)).toMatchObject({ paddingTop: 28, paddingHorizontal: 12, paddingBottom: 7 });
+    const back = header.findAll(node => node.type === TouchableOpacity && node.props.accessibilityLabel === '뒤로가기')[0];
+    expect(StyleSheet.flatten(back.props.style)).toMatchObject({ width: 48, height: 48 });
   });
 
   it('Hospital loaded row는 refreshing 중에도 기존 결과를 유지한다', async () => {

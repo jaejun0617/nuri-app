@@ -13,6 +13,8 @@ import AppText from '../src/app/ui/AppText';
 import { HomePetSelectionSheet } from '../src/screens/Main/components/LoggedInHome/HomePetSelectionSheet';
 import { HomePetSheetHeader } from '../src/screens/Main/components/LoggedInHome/HomePetSheetHeader';
 import { HOME_HERO_COLORS, HOME_HERO_ACCENT } from '../src/theme/home/heroLayout';
+import { buildPetThemePalette } from '../src/services/pets/themePalette';
+import { PRODUCT_ACCENT } from '../src/app/theme/tokens/productAccent';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 
 jest.mock('../src/app/ui/AppText', () => 'AppText');
@@ -129,6 +131,17 @@ describe('Home pet selection and contextual editing', () => {
     expect(
       rows.every(row => StyleSheet.flatten(row.props.style).minHeight >= 48),
     ).toBe(true);
+  });
+  it('uses lavender for all pet indicators without changing saved colors', async () => {
+    const coloredPets = [{...pets[0], themeColor:'#22C55E'}, {...pets[1], themeColor:'#EC4899'}];
+    const baseline = JSON.stringify(coloredPets);
+    const renderer = await renderSheet({pets:coloredPets});
+    const indicator = renderer.root.findAllByProps({testID:'home-pet-selection-indicator-pet-one'}).at(-1)!;
+    expect(StyleSheet.flatten(indicator.props.style)).toMatchObject({backgroundColor:PRODUCT_ACCENT.primary,borderColor:PRODUCT_ACCENT.primary});
+    const check = renderer.root.findAllByProps({testID:'home-pet-selection-check'}).at(-1)!;
+    expect(check.props.color).toBe(buildPetThemePalette('#22C55E').onPrimary);
+    expect(JSON.stringify(coloredPets)).toBe(baseline);
+    expect(onSelect).not.toHaveBeenCalled();
   });
 
   it('dismisses before one context switch and ignores repeated taps', async () => {

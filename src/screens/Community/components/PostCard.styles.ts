@@ -1,6 +1,7 @@
 import { StyleSheet } from 'react-native';
 
 import { typography } from '../../../app/theme/tokens/typography';
+import { COMMUNITY_LIST_COLORS } from '../communityCategoryPalette';
 
 export const styles = StyleSheet.create({
   row: {
@@ -68,7 +69,7 @@ export const styles = StyleSheet.create({
     fontWeight: '800',
   },
   title: {
-    color: '#243042',
+    color: COMMUNITY_LIST_COLORS.title,
     flex: 1,
     minWidth: 0,
     ...typography.role.bodyStrong,
@@ -83,7 +84,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
   },
   metaText: {
-    color: '#566271',
+    color: COMMUNITY_LIST_COLORS.secondary,
     flex: 1,
     minWidth: 0,
     ...typography.role.caption,

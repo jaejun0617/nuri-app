@@ -1,3 +1,5 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../components/records/TimelineButton';
 import { RecordFieldGlass, SeasonalFormBackground, SeasonalFormPanel } from '../../components/records/TimelineFormSurface';
 import MedicalRecordFields from '../../components/records/MedicalRecordFields';
@@ -25,11 +27,11 @@ import React, {
   useState,
 } from 'react';
 import {
-  Alert,
   BackHandler,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { NuriAlert as Alert } from '../../app/ui/NuriAlert';
 import type { RouteProp } from '@react-navigation/native';
 import {
   useFocusEffect,
@@ -1355,7 +1357,7 @@ function RecordCreateContent() {
   return (
     <View style={styles.screen}>
       <SeasonalFormBackground uniform />
-      <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
+      <AppHeaderLayout subtitle="오늘의 순간을 아이의 기록으로 남겨요" style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
             activeOpacity={0.88}
@@ -1363,14 +1365,14 @@ function RecordCreateContent() {
             onPress={onPressCancel}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
-            <Feather name="arrow-left" size={20} color="#102033" />
+            <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
           </TouchableOpacity>
         </View>
 
-        <AppText
+        <AppText styleOverridesPreset
           typographyRole="screenTitle"
           preset="unifiedTitle"
-          style={styles.headerTitle}
+          style={[styles.headerTitle, APP_HEADER.title]}
         >
           {isHealthCategory ? '건강 기록하기' : '기록하기'}
         </AppText>
@@ -1378,7 +1380,7 @@ function RecordCreateContent() {
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
           <View />
         </View>
-      </View>
+      </AppHeaderLayout>
 
       <KeyboardAwareScrollView
         ref={scrollRef}
@@ -1410,19 +1412,9 @@ function RecordCreateContent() {
           onPress={onOpenDateModal}
         >
           <RecordFieldGlass />
-          <View style={styles.dateLeft}>
-            <View style={styles.dateIconWrap}>
-              <NuriSemanticIcon
-                family="feather"
-                name="calendar"
-                size={16}
-                color={petTheme.primary}
-              />
-            </View>
-            <AppText preset="unifiedLabel" style={styles.dateText}>
-              {isGps && !gps.ready ? '산책 날짜 확인 중' : formattedDate}
-            </AppText>
-          </View>
+          <AppText preset="unifiedLabel" style={styles.dateText}>
+            {isGps && !gps.ready ? '산책 날짜 확인 중' : formattedDate}
+          </AppText>
           <NuriSemanticIcon family="feather" name="chevron-right" preserveOriginal
             testID="record-date-chevron" size={18} color="#000000" accessible={false} />
         </TouchableOpacity>
@@ -1430,8 +1422,8 @@ function RecordCreateContent() {
         <RecordPhotoStrip surfaceVariant="homeGlass" items={selectedImages} onAdd={pickImage} onRemove={removeActiveImage} disabled={saving} />
 
         {!isGps && <View style={styles.field}>
-          <AppText preset="unifiedLabel" style={styles.fieldLabel}>어떤 기록인가요?</AppText>
-          <RecordChoiceGrid surfaceVariant="homeGlass" renderIcon={renderRecordCategoryIcon} options={RECORD_WRITE_MAIN_CATEGORIES} selected={mainCategoryKey ? [mainCategoryKey] : []} columns={4} onSelect={onSelectMainCategory} disabled={saving} />
+          <AppText preset="unifiedLabel" styleOverridesPreset style={[styles.fieldLabel, styles.categoryHeading]}>어떤 기록인가요?</AppText>
+          <RecordChoiceGrid surfaceVariant="homeGlass" textOnly options={RECORD_WRITE_MAIN_CATEGORIES} selected={mainCategoryKey ? [mainCategoryKey] : []} columns={4} onSelect={onSelectMainCategory} disabled={saving} />
         </View>}
 
         {mainCategoryKey === 'other' ? (
@@ -1806,6 +1798,7 @@ function RecordCreateContent() {
         onRemoveTag={onRemoveTag}
       />
       <ConfirmDialog
+        surfaceVariant="menuGlass"
         confirmRole="neutral"
         cancelRole="primary"
         visible={exitConfirmVisible}

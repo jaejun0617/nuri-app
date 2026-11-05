@@ -1,6 +1,7 @@
 import React from 'react';
+import { StyleSheet, View } from 'react-native';
 import Renderer, { act } from 'react-test-renderer';
-import { Alert } from 'react-native';
+import { NuriAlert as Alert } from '../src/app/ui/NuriAlert';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import PetProfileEditScreen from '../src/screens/Pets/PetProfileEditScreen';
 import PhotoAddCard from '../src/components/media/PhotoAddCard';
@@ -10,8 +11,10 @@ import { usePetStore, type Pet } from '../src/store/petStore';
 import { fetchMyPets, updatePet } from '../src/services/supabase/pets';
 import { uploadPetAvatar } from '../src/services/supabase/storagePets';
 import { pickPhotoAssets } from '../src/services/media/photoPicker';
-import { recommendPetThemeColor } from '../src/services/pets/themePalette';
 import { captureSavedPetProfile } from '../src/screens/Pets/profileCompletionPresentation';
+import { AppHeaderLayout } from '../src/components/navigation/AppHeaderLayout';
+import { HeaderHelpButton } from '../src/components/navigation/HeaderHelpButton';
+import { APP_HEADER } from '../src/components/navigation/headerAppearance';
 
 const mockNavigation = { replace: jest.fn(), goBack: jest.fn(), reset: jest.fn() };
 let mockPetId = 'qa-pet-a';
@@ -57,9 +60,10 @@ describe('profile photo draft and confirmed snapshot handoff', () => {
     if (!tree) throw Error('PROFILE_NOT_MOUNTED');
     return tree.root.findByType(PhotoAddCard);
   };
-  const theme = () => {
+  const expectNoColorPicker = () => {
     if (!tree) throw Error('PROFILE_NOT_MOUNTED');
-    return tree.root.findByType(PetThemePicker);
+    expect(tree.root.findAllByType(PetThemePicker)).toHaveLength(0);
+    expect(StyleSheet.flatten(photo().props.containerStyle).borderColor).toBe('#D5CBF6');
   };
   beforeEach(() => {
     jest.clearAllMocks();
@@ -76,15 +80,44 @@ describe('profile photo draft and confirmed snapshot handoff', () => {
     tree = undefined;
     usePetStore.setState(originalStore);
   });
-  it('does not rehydrate an active photo and color draft when the same pet cache is invalidated', async () => {
+  it('uses menu glass and the shared header without modifying the profile', async () => {
+    await mount();
+    if (!tree) throw Error('PROFILE_NOT_MOUNTED');
+    expect(tree.root.findByType(AppHeaderLayout).props.topInset).toBe(24);
+    expect(tree.root.findByType(HeaderHelpButton).props.topic).toBe('petEdit');
+    expect(StyleSheet.flatten(tree.root.findByProps({ testID: 'pet-edit-back' }).props.style)).toMatchObject({ width: APP_HEADER.targetSize, height: APP_HEADER.targetSize });
+    const cards = tree.root.findAllByType(View).filter(node => node.props.testID === 'pet-edit-card-glass');
+    expect(cards).toHaveLength(4);
+    cards.forEach(node => {
+      expect(StyleSheet.flatten(node.props.style).borderRadius).toBe(22);
+      expect(node.props.pointerEvents).toBe('none');
+      let card = node.parent;
+      while (card && !card.props.style) card = card.parent;
+      expect(StyleSheet.flatten(card?.props.style)).toMatchObject({ backgroundColor: 'transparent', borderColor: 'rgba(255,255,255,0.78)' });
+    });
+    expect(updatePet).not.toHaveBeenCalled();
+    expect(usePetStore.getState().pets[0]).toEqual(pet);
+  });
+  it('does not rehydrate an active photo and keeps the removed color control absent on cache invalidation', async () => {
     await mount();
     await act(async () => photo().props.onPress());
-    const selectedColor = theme().props.selectedColor;
-    expect(selectedColor).toBe(recommendPetThemeColor({ imageBase64: 'aW1hZ2U=', name: pet.name, petId: pet.id }));
+    expectNoColorPicker();
     expect(photo().props.imageUri).toBe(localUri);
     await act(async () => usePetStore.getState().invalidatePetAvatar(pet.id, { userId: mockUserId, persist: false }));
     expect(photo().props.imageUri).toBe(localUri);
-    expect(theme().props.selectedColor).toBe(selectedColor);
+    expectNoColorPicker();
+    expect(usePetStore.getState().pets[0].themeColor).toBe(pet.themeColor);
+  });
+  it('shows lavender for an unset color without writing it during an unrelated profile save', async () => {
+    const uncolored = { ...pet, themeColor: null };
+    usePetStore.setState({ pets: [uncolored], selectedPetId: pet.id });
+    jest.mocked(fetchMyPets).mockResolvedValueOnce([uncolored]);
+    await mount();
+    expectNoColorPicker();
+    await act(async () => photo().props.onPress());
+    expectNoColorPicker();
+    await act(async () => tree?.root.findByType(CtaButton).props.onPress());
+    expect(updatePet).toHaveBeenCalledWith(expect.objectContaining({ themeColor: null }));
   });
   it('keeps the selected local preview until the confirmed server snapshot is ready without publishing an empty avatar', async () => {
     let resolvePets: ((pets: Pet[]) => void) | undefined;
@@ -98,7 +131,7 @@ describe('profile photo draft and confirmed snapshot handoff', () => {
     expect(fetchMyPets).toHaveBeenCalledTimes(1);
     expect(photo().props.imageUri).toBe(localUri);
     expect(usePetStore.getState().pets[0].avatarUrl).toBe(pet.avatarUrl);
-    const selectedColor = recommendPetThemeColor({ imageBase64: 'aW1hZ2U=', name: pet.name, petId: pet.id });
+    const selectedColor = pet.themeColor;
     expect(updatePet).toHaveBeenCalledWith(expect.objectContaining({ themeColor: selectedColor, avatarPath: 'qa/new-immutable.jpg' }));
     expect(jest.mocked(updatePet).mock.calls[0]?.[0]).not.toHaveProperty('speciesKey');
     if (!resolvePets) throw Error('SERVER_READ_NOT_STARTED');
@@ -123,18 +156,18 @@ describe('profile photo draft and confirmed snapshot handoff', () => {
     });
     expect(photo().props.imageUri).toBe('https://example.test/b.jpg');
   });
-  it('preserves the selected photo and explicit color after an upload failure without publishing success', async () => {
+  it('preserves the photo and legacy saved value after upload failure without exposing a color editor', async () => {
     const alert = jest.spyOn(Alert, 'alert').mockImplementation(() => undefined);
     jest.mocked(uploadPetAvatar).mockRejectedValueOnce(new Error('QA_UPLOAD_FAILURE'));
     try {
       await mount();
       await act(async () => photo().props.onPress());
-      await act(async () => theme().props.onSelectColor('#663399'));
       if (!tree) throw Error('PROFILE_NOT_MOUNTED');
       const button = tree.root.findByType(CtaButton);
       await act(async () => button.props.onPress());
       expect(photo().props.imageUri).toBe(localUri);
-      expect(theme().props.selectedColor).toBe('#663399');
+      expectNoColorPicker();
+      expect(usePetStore.getState().pets[0].themeColor).toBe(pet.themeColor);
       expect(usePetStore.getState().pets[0].avatarUrl).toBe(pet.avatarUrl);
       expect(updatePet).not.toHaveBeenCalled();
       expect(mockNavigation.replace).not.toHaveBeenCalled();

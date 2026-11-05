@@ -23,6 +23,7 @@ import type { SeasonKey } from '../../theme/seasonal/season';
 import { ScheduleCalendarSheet } from './ScheduleCalendarSheet';
 import { HomeReflectiveGlass } from './HomeReflectiveGlass';
 import { useHomeHeadingColor, useHomeContentTextStyle } from './HomeSeasonContext';
+import { PRODUCT_ACCENT } from '../../app/theme/tokens/productAccent';
 import {
   buildHomeScheduleCalendar,
   homeCalendarDayLabel,
@@ -203,7 +204,7 @@ export const HomeScheduleCalendar = memo(function HomeScheduleCalendarView({
         {!(canConfirmEmpty && items.length === 0) ? (
           <SectionHeaderAction
             label="전체 일정"
-            color={headingColor ?? accentDeepColor}
+            color={PRODUCT_ACCENT.primary}
             onPress={onPressAll}
             accessibilityLabel="전체 일정 목록 보기"
             size="compact"

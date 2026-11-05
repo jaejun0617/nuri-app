@@ -1,4 +1,5 @@
-import { resolveCtaPalette, SEASON_CTA } from '../../app/theme/ctaPalette';
+import { resolveCtaPalette } from '../../app/theme/ctaPalette';
+import { PRODUCT_CTA } from '../../app/theme/tokens/productAccent';
 import type { AppTheme } from '../../app/theme/theme';
 import type { SeasonKey } from '../../theme/seasonal/season';
 
@@ -27,8 +28,8 @@ export function isMoreMenuStacked(width: number, fontScale: number) {
 export function getMoreMenuColors(theme: AppTheme, season: SeasonKey) {
   return {
     ...theme.colors,
-    accent: SEASON_CTA[season].primary,
-    accentSurface: SEASON_CTA[season].subtle,
+    accent: PRODUCT_CTA.primary,
+    accentSurface: PRODUCT_CTA.subtle,
     destructive: resolveCtaPalette({
       role: 'destructiveEntry',
       season,

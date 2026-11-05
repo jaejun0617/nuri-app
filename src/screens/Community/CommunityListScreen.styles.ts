@@ -1,5 +1,8 @@
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import { StyleSheet } from 'react-native';
 import { typography } from '../../app/theme/tokens/typography';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
+import { COMMUNITY_LIST_COLORS } from './communityCategoryPalette';
 
 export const styles = StyleSheet.create({
   searchIconButton: {
@@ -32,33 +35,11 @@ export const styles = StyleSheet.create({
   },
   screen: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
-  },
-  header: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingBottom: 12,
-  },
-  headerSide: {
-    width: 72,
-    minHeight: 44,
-    alignItems: 'flex-start',
-    justifyContent: 'center',
-    zIndex: 2,
-    elevation: 2,
-  },
-  headerLeft: {
-    width: 92,
+    backgroundColor: PRODUCT_CANVAS_COLOR,
   },
   backButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 18,
+    width: APP_HEADER.targetSize,
+    height: APP_HEADER.targetSize,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -71,7 +52,10 @@ export const styles = StyleSheet.create({
   },
   headerTitle: {
     flex: 1,
-    textAlign: 'center',
+    textAlign: 'center', ...APP_HEADER.title },
+  headerSurface: {
+    paddingTop: APP_HEADER.topGap,
+    backgroundColor: PRODUCT_CANVAS_COLOR,
   },
   centerState: {
     minHeight: 180,
@@ -111,37 +95,15 @@ export const styles = StyleSheet.create({
   postList: {
     flex: 1,
   },
-  heroImage: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    backgroundColor: '#F1F3F6',
-  },
-  heroFrame: {
-    position: 'relative',
-  },
-  heroCanvas: {
-    position: 'relative',
-  },
-  heroTail: {
-    height: 12,
-  },
-  heroFallback: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 20,
-    gap: 8,
-    backgroundColor: '#F1F3F6',
-  },
   categoryHeader: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     zIndex: 2,
     borderTopLeftRadius: 12,
     borderTopRightRadius: 12,
-    marginTop: -12,
+    marginTop: 8,
     overflow: 'hidden',
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#E6E8F0',
+    borderBottomColor: COMMUNITY_LIST_COLORS.divider,
   },
   filterBarRow: {
     minHeight: 48,
@@ -277,7 +239,7 @@ export const styles = StyleSheet.create({
   },
   paginationFooter: {
     marginTop: 8,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -324,7 +286,7 @@ export const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   paginationButtonText: {
-    color: '#243042',
+    color: COMMUNITY_LIST_COLORS.secondary,
     includeFontPadding: false,
     fontSize: 13,
     lineHeight: 18,

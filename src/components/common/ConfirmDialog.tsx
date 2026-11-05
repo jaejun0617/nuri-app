@@ -18,6 +18,7 @@ import { shouldStackCtaPair, type CtaRole } from '../../app/theme/ctaPalette';
 import { useOptionalSafeAreaInsets } from '../../hooks/useOptionalSafeAreaInsets';
 import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
 import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
+import { MenuGlassSurface } from './MenuGlassSurface';
 
 
 type ConfirmDialogTone = 'default' | 'warning' | 'danger';
@@ -33,6 +34,7 @@ type Props = {
   accentColor?: string;
   children?: React.ReactNode;
   hideActions?: boolean;
+  customActions?: React.ReactNode;
   confirmDisabled?: boolean;
   onConfirm: () => void;
   onCancel: () => void;
@@ -42,6 +44,7 @@ type Props = {
   confirmRole?: CtaRole;
   cancelRole?: CtaRole;
   confirmLoading?: boolean;
+  surfaceVariant?: 'default' | 'menuGlass';
 };
 
 function resolveToneMeta(
@@ -86,6 +89,7 @@ function ConfirmDialogBase({
   accentColor,
   children,
   hideActions = false,
+  customActions,
   confirmDisabled = false,
   onConfirm,
   onCancel,
@@ -95,6 +99,7 @@ function ConfirmDialogBase({
   confirmRole,
   cancelRole,
   confirmLoading = false,
+  surfaceVariant = 'default',
 }: Props) {
   const theme = useTheme();
   const insets = useOptionalSafeAreaInsets();
@@ -152,8 +157,10 @@ function ConfirmDialogBase({
             borderColor: theme.colors.border,
             maxHeight: maxCardHeight,
           },
+          surfaceVariant === 'menuGlass' && { backgroundColor: 'transparent', borderColor: 'rgba(255,255,255,0.78)', shadowOpacity: 0, elevation: 0 },
         ]}
       >
+        {surfaceVariant === 'menuGlass' ? <MenuGlassSurface radius={24} backed /> : null}
         <ScrollView
           style={styles.cardScroll}
           contentContainerStyle={styles.cardContent}
@@ -172,7 +179,7 @@ function ConfirmDialogBase({
               {title}
             </AppText>}
 
-            <View style={styles.messageBlock}>
+            {message || !customActions ? <View style={styles.messageBlock}>
               {lines.map((line, index) =>
                 line.trim().length > 0 ? (
                   <AppText
@@ -190,14 +197,14 @@ function ConfirmDialogBase({
                   <View key={`spacer-${index}`} style={styles.messageSpacer} />
                 ),
               )}
-            </View>
+            </View> : null}
           </View>
 
           {children ? (
             <View style={styles.extraContent}>{children}</View>
           ) : null}
         </ScrollView>
-        {!hideActions ? (
+        {customActions ?? (!hideActions ? (
           <View
             testID="confirm-dialog-actions"
             style={[
@@ -299,7 +306,7 @@ function ConfirmDialogBase({
               </TouchableOpacity>
             )}
           </View>
-        ) : null}
+        ) : null)}
       </View>
     </KeyboardControllerAvoidingView>
   );

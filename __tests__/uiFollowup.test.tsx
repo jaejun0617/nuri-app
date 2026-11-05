@@ -5,7 +5,7 @@ import TestRenderer, { act } from 'react-test-renderer';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
-import { SEASON_CTA } from '../src/app/theme/ctaPalette';
+import { PRODUCT_ACCENT, PRODUCT_CTA } from '../src/app/theme/tokens/productAccent';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 import MarkerText from '../src/app/ui/MarkerText';
 import HeaderTextActionButton from '../src/components/navigation/HeaderTextActionButton';
@@ -115,7 +115,7 @@ describe('compact controls and seasonal emphasis', () => {
         .findAllByType(View)
         .find(node => node.props.pointerEvents === 'none');
       expect(StyleSheet.flatten(paint?.props.style).backgroundColor).toBe(
-        SEASON_CTA[season].border,
+        PRODUCT_ACCENT.marker,
       );
       const button = tree.root.findByType(TouchableOpacity);
       expect(StyleSheet.flatten(button.props.style)).toMatchObject({
@@ -127,7 +127,7 @@ describe('compact controls and seasonal emphasis', () => {
       });
       expect(
         StyleSheet.flatten(button.findByType(Text).props.style).color,
-      ).toBe(SEASON_CTA[season].primary);
+      ).toBe(PRODUCT_CTA.primary);
       act(() => button.props.onPress());
       expect(onPress).toHaveBeenCalledTimes(1);
     },

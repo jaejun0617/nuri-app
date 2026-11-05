@@ -1,9 +1,11 @@
 import { typography } from '../app/theme/tokens/typography';
+import { PRODUCT_CANVAS_COLOR } from '../app/theme/tokens/colors';
+import { PRODUCT_ACCENT } from '../app/theme/tokens/productAccent';
 
 /** Timeline-only reference palette: seasonal artwork never recolors controls. */
 export const TIMELINE_DESIGN = {
-  canvas: '#F8F7FD', surface: '#FFFFFF', ink: '#161331', muted: '#716A9C',
-  primary: '#7D4DFA', pressed: '#6936DF', selected: '#EEE8FF',
+  canvas: PRODUCT_CANVAS_COLOR, surface: '#FFFFFF', ink: PRODUCT_ACCENT.ink, muted: '#716A9C',
+  primary: PRODUCT_ACCENT.primary, pressed: PRODUCT_ACCENT.pressed, selected: PRODUCT_ACCENT.tint,
   border: '#E7E1FA', disabled: '#DDD9EF', disabledText: '#9B95BA',
   danger: '#DF3036', dangerSurface: '#FCE1E4', highlight: '#FBE3DF', overlay: 'rgba(20,18,38,0.46)',
 } as const;

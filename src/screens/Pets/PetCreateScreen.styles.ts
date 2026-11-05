@@ -1,3 +1,4 @@
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import { StyleSheet } from 'react-native';
 import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 
@@ -39,11 +40,13 @@ export const styles = StyleSheet.create({
     zIndex: 4,
   },
   header: {
-    minHeight: 48,
-    paddingHorizontal: 18,
-    flexDirection: 'row',
+    zIndex: 4,
+  },
+  headerSideSlot: {
+    width: APP_HEADER.targetSize,
+    height: APP_HEADER.targetSize,
     alignItems: 'center',
-    marginTop: 0,
+    justifyContent: 'center',
   },
   headerAction: {
     minWidth: 40,
@@ -72,13 +75,9 @@ export const styles = StyleSheet.create({
   },
   headerTitle: {
     flex: 1,
+    minWidth: 0,
     textAlign: 'center',
-    color: '#273241',
-    fontSize: 16,
-    fontWeight: '900',
-    textShadowColor: 'rgba(255, 255, 255, 0.72)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 5,
+    ...APP_HEADER.title,
   },
   scroll: {
     flex: 1,
@@ -189,7 +188,11 @@ export const styles = StyleSheet.create({
     gap: 7,
   },
   avatarPlaceholderText: {
+    width: '100%',
+    textAlign: 'center',
     fontSize: 12,
+    lineHeight: 18,
+    includeFontPadding: false,
     fontWeight: '800',
   },
   avatarImage: {
@@ -249,7 +252,7 @@ export const styles = StyleSheet.create({
     paddingHorizontal: 17,
     paddingVertical: 17,
     gap: 14,
-    backgroundColor: 'rgba(255, 252, 246, 0.70)',
+    backgroundColor: 'transparent',
     borderWidth: 1,
     borderColor: 'rgba(255, 255, 255, 0.72)',
     overflow: 'hidden',

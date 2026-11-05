@@ -49,6 +49,15 @@ test('fixed threshold values and uncapped level stay decimal strings', () => {
     decodePetWalkProgression(wire(500n * level * (level - 1n)), pet).level,
   ).toBe(level.toString());
 });
+test('accepts an exact cumulative activity duration without changing level or distance', () => {
+  expect(decodePetWalkProgression({ ...wire(1000n), lifetimeActiveDurationMs: '1260000' }, pet)).toEqual({
+    ...wire(1000n), lifetimeActiveDurationMs: '1260000',
+  });
+  expect(decodePetWalkProgression(wire(1000n), pet).lifetimeActiveDurationMs).toBeUndefined();
+});
+test.each([null, -1, '-1', '01', '1.5', 'NaN'])('rejects invalid cumulative activity duration %s', duration => {
+  expect(() => decodePetWalkProgression({ ...wire(0n), lifetimeActiveDurationMs: duration }, pet)).toThrow('WALK_INVALID_PROGRESSION_RESPONSE');
+});
 test('historical milestone remains valid after live distance falls to zero', () => {
   const value = decodePetWalkProgression(
     { ...wire(0n), milestones: [history] },

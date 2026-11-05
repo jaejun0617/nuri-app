@@ -1,14 +1,16 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import AppTextInput from '../../app/ui/AppTextInput';
 import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Alert,
   Pressable,
   StyleSheet,
   Switch,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { NuriAlert as Alert } from '../../app/ui/NuriAlert';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useQueryClient } from '@tanstack/react-query';
@@ -259,23 +261,23 @@ export default function GuideAdminEditorScreen() {
           { paddingTop: headerTopInset + 4, paddingBottom: keyboardVisible ? 12 : insets.bottom + 32 },
         ]}
       >
-        <View style={styles.header}>
+        <AppHeaderLayout subtitle="전하고 싶은 돌봄 이야기를 정리해요" style={styles.header}>
           <View style={styles.headerSideSlot}>
             <TouchableOpacity
               activeOpacity={0.88}
               style={styles.headerBackButton}
               onPress={() => navigation.goBack()}
             >
-              <Feather name="arrow-left" size={20} color="#102033" />
+              <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
             </TouchableOpacity>
           </View>
 
-          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText styleOverridesPreset typographyRole="screenTitle" preset="unifiedTitle" style={[styles.headerTitle, APP_HEADER.title]}>
             {route.params.mode === 'create' ? '가이드 등록' : '가이드 편집'}
           </AppText>
 
           <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
-        </View>
+        </AppHeaderLayout>
 
         <View style={styles.heroCard}>
           <AppText typographyRole="heroCopy" preset="unifiedTitle" style={styles.heroTitle}>
@@ -697,9 +699,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    color: '#0B1220',
-    fontWeight: '900',
-  },
+
+     ...APP_HEADER.title },
   heroCard: {
     borderRadius: 24,
     paddingHorizontal: 18,

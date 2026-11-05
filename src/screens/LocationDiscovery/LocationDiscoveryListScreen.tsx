@@ -1,3 +1,7 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
+import { MenuGlassSurface, MENU_GLASS_FRAME } from '../../components/common/MenuGlassSurface';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
@@ -8,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from '../../components/icons/NuriFeatherIcon';
 
@@ -97,7 +102,8 @@ function WalkLoadingSkeleton() {
   return (
     <View style={styles.resultsLoadingWrap}>
       {[0, 1, 2].map(index => (
-        <View key={`walk-loading-${index}`} style={styles.resultsLoadingCard}>
+        <View key={`walk-loading-${index}`} style={[styles.resultsLoadingCard, MENU_GLASS_FRAME]}>
+          <MenuGlassSurface radius={18} />
           <View style={styles.resultsLoadingBody}>
             <View
               style={[
@@ -125,6 +131,7 @@ function WalkLoadingSkeleton() {
 export default function LocationDiscoveryListScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<WalkRoute>();
+  const insets = useSafeAreaInsets();
 
 
   const recentSearches = useRecentPersonalSearches('walk');
@@ -241,7 +248,8 @@ export default function LocationDiscoveryListScreen() {
 
   const listHeader = (
     <View style={styles.resultsListIntro}>
-      <View style={styles.locationInfoCard}>
+      <View style={[styles.locationInfoCard, MENU_GLASS_FRAME]}>
+        <MenuGlassSurface radius={18} />
         <View
           style={[styles.locationIconWrap, { backgroundColor: petTheme.tint }]}
         >
@@ -325,30 +333,33 @@ export default function LocationDiscoveryListScreen() {
   );
 
   return (
-    <Screen style={styles.screen}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <View style={styles.headerSideSlot}>
+    <Screen noTopInset style={styles.screen}>
+        <AppHeaderLayout testID="walk-place-list-header" topInset={insets.top} subtitle="아이와 걸어볼 주변 장소를 살펴봐요">
+          <View style={{ width: APP_HEADER.targetSize }}>
             <TouchableOpacity
               activeOpacity={0.88}
-              style={styles.backButton}
+              style={{ width: APP_HEADER.targetSize, height: APP_HEADER.targetSize, alignItems: 'center', justifyContent: 'center' }}
+              accessibilityRole="button"
+              accessibilityLabel="뒤로가기"
               onPress={onPressBack}
               hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
             >
-              <Feather name="arrow-left" size={20} color="#102033" />
+              <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
             </TouchableOpacity>
           </View>
-          <AppText
+          <AppText styleOverridesPreset
             typographyRole="screenTitle"
             preset="unifiedTitle"
-            style={styles.headerTitle}
+            style={[styles.headerTitle, APP_HEADER.title]}
           >
             우리동네 산책 리스트
           </AppText>
-          <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
-        </View>
+          <HeaderHelpButton topic="walkPlaces" />
+        </AppHeaderLayout>
 
+      <View style={styles.container}>
         <LocationDiscoverySearchBar
+          surfaceVariant="menuGlass"
           value={searchInput}
           onChangeText={handleChangeSearchInput}
           onSubmit={handleSubmitSearch}
@@ -420,7 +431,7 @@ export default function LocationDiscoveryListScreen() {
               <WalkLoadingSkeleton />
             ) : discoveryState.error && sortedItems.length === 0 ? (
               <View style={styles.resultsEmptyWrap}>
-                <LocationDiscoveryStatusCard
+                <LocationDiscoveryStatusCard surfaceVariant="menuGlass"
                   icon="alert-circle"
                   title="산책 장소를 불러오지 못했어요"
                   body={discoveryState.error}
@@ -429,18 +440,18 @@ export default function LocationDiscoveryListScreen() {
             ) : sortedItems.length === 0 ? (
               <View style={styles.resultsEmptyWrap}>
                 {submittedQuery.trim().length >= 2 ? (
-                  <LocationDiscoveryStatusCard
+                  <LocationDiscoveryStatusCard surfaceVariant="menuGlass"
                     icon="search"
                     title="검색 결과가 없어요"
                     body="검색어를 조금 바꾸거나 지역명과 함께 다시 검색해 보세요."
                   />
                 ) : discoveryState.permission !== 'granted' ? (
-                  <LocationDiscoveryStatusCard
+                  <LocationDiscoveryStatusCard surfaceVariant="menuGlass"
                     icon="map-pin"
                     {...buildLocationPermissionCopy(discoveryState.permission)}
                   />
                 ) : (
-                  <LocationDiscoveryStatusCard
+                  <LocationDiscoveryStatusCard surfaceVariant="menuGlass"
                     icon="map"
                     title="현재 위치 주변 산책 장소를 아직 찾지 못했어요"
                     body="현재 위치를 다시 확인하거나 검색으로 직접 산책 장소를 찾아보세요."

@@ -1,3 +1,5 @@
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
 import React, { memo } from 'react';
 import {
   ActivityIndicator,
@@ -10,6 +12,11 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import {
+  PRODUCT_CANVAS_COLOR,
+  PRODUCT_CANVAS_GRADIENT_COLORS,
+} from '../../app/theme/tokens/colors';
+import { MenuGlassSurface } from '../../components/common/MenuGlassSurface';
 import styled from 'styled-components/native';
 import AppText from '../../app/ui/AppText';
 import Feather from '../../components/icons/NuriFeatherIcon';
@@ -27,7 +34,7 @@ export const notificationColors = {
   muted: '#8C889E',
   purple: '#8057DB',
   border: '#EAE3FC',
-  background: '#F9F7FD',
+  background: PRODUCT_CANVAS_COLOR,
 } as const;
 export const notificationArt = {
   empty: require('../../assets/notifications/empty-inbox.png'),
@@ -69,8 +76,7 @@ export function NotificationCanvas({
       <StatusBar barStyle="dark-content" />
       <LinearGradient
         pointerEvents="none"
-        colors={['#FBF9FE', '#F8F6FD', '#FBF9FE']}
-        locations={[0, 0.52, 1]}
+        colors={[...PRODUCT_CANVAS_GRADIENT_COLORS]}
         style={StyleSheet.absoluteFill}
       />
       {children}
@@ -89,37 +95,39 @@ export function NotificationHeader({
   count?: number;
 }) {
   return (
-    <View style={[styles.header, empty && styles.emptyHeader]}>
+    <AppHeaderLayout
+      subtitle={
+        empty
+          ? `읽지 않은 알림 ${count}개`
+          : title === '알림 상세'
+          ? '도착한 소식의 내용을 확인해요'
+          : '아이와 누리의 새로운 소식을 모았어요'
+      }
+    >
       <TouchableOpacity
         accessibilityRole="button"
         accessibilityLabel="뒤로가기"
         onPress={onBack}
-        style={[styles.back, empty && styles.emptyBack]}
+        style={styles.back}
       >
-        <Feather name="arrow-left" size={24} color={notificationColors.ink} />
+        <Feather
+          name="chevron-left"
+          size={APP_HEADER.backIconSize}
+          color={notificationColors.ink}
+        />
       </TouchableOpacity>
-      <View
+      <AppText
+        styleOverridesPreset
+        preset="screenTitle"
         style={[
-          empty || title === '알림 상세'
-            ? styles.leftHeading
-            : styles.centerHeading,
-          empty && styles.emptyHeading,
+          [styles.headerTitle, { flex: 1, textAlign: 'center' }],
+          APP_HEADER.title,
         ]}
-        pointerEvents="none"
       >
-        <AppText
-          preset="screenTitle"
-          style={[styles.headerTitle, empty && styles.emptyHeaderTitle]}
-        >
-          {title}
-        </AppText>
-        {empty ? (
-          <AppText preset="bodySm" style={styles.emptySummary}>
-            읽지 않은 알림 {count}개
-          </AppText>
-        ) : null}
-      </View>
-    </View>
+        {title}
+      </AppText>
+      <View style={styles.back} />
+    </AppHeaderLayout>
   );
 }
 export function EmptyNotificationInbox() {
@@ -148,7 +156,7 @@ export const NotificationGroup = memo(function NotificationGroupView({
   now,
   timeZone,
   onPress,
-  onManage,
+  onDelete,
   disabled = false,
 }: {
   label: string;
@@ -156,7 +164,7 @@ export const NotificationGroup = memo(function NotificationGroupView({
   now: Date;
   timeZone: string;
   onPress: (item: UserNotificationItem) => void;
-  onManage?: (item: UserNotificationItem) => void;
+  onDelete?: (item: UserNotificationItem) => void;
   disabled?: boolean;
 }) {
   return (
@@ -170,77 +178,86 @@ export const NotificationGroup = memo(function NotificationGroupView({
           items.some(item => !item.readAt) && styles.unreadCard,
         ]}
       >
+        <MenuGlassSurface radius={20} />
         {items.map((item, index) => {
           const category = item.category ?? 'news';
           return (
-            <TouchableOpacity
-              key={`${item.source}:${item.id}`}
-              accessibilityRole="button"
-              accessibilityLabel={`${categoryLabels[category]}, ${item.title}${
-                item.readAt ? '' : ', 읽지 않음'
-              }`}
-              activeOpacity={0.75}
-              disabled={disabled}
-              accessibilityState={{ disabled }}
-              accessibilityActions={
-                onManage
-                  ? [{ name: 'longpress', label: '알림 관리' }]
-                  : undefined
-              }
-              onAccessibilityAction={event => {
-                if (event.nativeEvent.actionName === 'longpress')
-                  onManage?.(item);
-              }}
-              onPress={() => onPress(item)}
-              onLongPress={onManage ? () => onManage(item) : undefined}
-              style={styles.row}
-            >
-              <Image
-                source={notificationArt[category]}
-                style={styles.categoryArt}
-                resizeMode="contain"
-              />
-              <View style={styles.rowText}>
-                <AppText preset="caption" style={styles.meta}>
-                  <AppText
-                    preset="caption"
-                    style={[styles.meta, { color: categoryColors[category] }]}
-                  >
-                    {categoryLabels[category]}
+            <View key={`${item.source}:${item.id}`} style={styles.rowContainer}>
+              <TouchableOpacity
+                accessibilityRole="button"
+                accessibilityLabel={`${categoryLabels[category]}, ${
+                  item.title
+                }${item.readAt ? '' : ', 읽지 않음'}`}
+                activeOpacity={0.75}
+                disabled={disabled}
+                accessibilityState={{ disabled }}
+                onPress={() => onPress(item)}
+                style={styles.row}
+              >
+                <Image
+                  source={notificationArt[category]}
+                  style={styles.categoryArt}
+                  resizeMode="contain"
+                />
+                <View style={styles.rowText}>
+                  <AppText preset="caption" style={styles.meta}>
+                    <AppText
+                      preset="caption"
+                      style={[styles.meta, { color: categoryColors[category] }]}
+                    >
+                      {categoryLabels[category]}
+                    </AppText>
+                    {'  ·  '}
+                    {notificationRelativeTime(
+                      item.availableAt ?? item.createdAt,
+                      now,
+                      timeZone,
+                    )}
                   </AppText>
-                  {'  ·  '}
-                  {notificationRelativeTime(
-                    item.availableAt ?? item.createdAt,
-                    now,
-                    timeZone,
-                  )}
-                </AppText>
-                <AppText preset="bodyStrong" style={styles.rowTitle}>
-                  {item.title}
-                </AppText>
-                {item.body ? (
-                  <AppText
-                    preset="bodySm"
-                    style={styles.preview}
-                    numberOfLines={2}
-                  >
-                    {item.body}
+                  <AppText preset="bodyStrong" style={styles.rowTitle}>
+                    {item.title}
                   </AppText>
-                ) : null}
-              </View>
-              <View style={styles.rowTrailing}>
-                {!item.readAt ? (
-                  <View
-                    accessibilityLabel="읽지 않음"
-                    style={styles.unreadDot}
+                  {item.body ? (
+                    <AppText
+                      preset="bodySm"
+                      style={styles.preview}
+                      numberOfLines={2}
+                    >
+                      {item.body}
+                    </AppText>
+                  ) : null}
+                </View>
+                <View style={styles.rowTrailing}>
+                  {!item.readAt ? (
+                    <View
+                      accessibilityLabel="읽지 않음"
+                      style={styles.unreadDot}
+                    />
+                  ) : null}
+                  <Feather name="chevron-right" size={20} color="#A5A0B7" />
+                </View>
+              </TouchableOpacity>
+              {onDelete ? (
+                <TouchableOpacity
+                  testID={`notification-delete-${item.source}-${item.id}`}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${item.title}, 알림 삭제`}
+                  accessibilityState={{ disabled }}
+                  disabled={disabled}
+                  onPress={() => onDelete(item)}
+                  style={styles.deleteAction}
+                >
+                  <Feather
+                    name="trash-2"
+                    size={19}
+                    color={notificationColors.muted}
                   />
-                ) : null}
-                <Feather name="chevron-right" size={20} color="#A5A0B7" />
-              </View>
+                </TouchableOpacity>
+              ) : null}
               {index < items.length - 1 ? (
                 <View style={styles.divider} />
               ) : null}
-            </TouchableOpacity>
+            </View>
           );
         })}
       </View>
@@ -333,6 +350,7 @@ export function NotificationDetailDesign({
       </AppText>
       <View style={styles.detailRule} />
       <View style={styles.bodyCard}>
+        <MenuGlassSurface radius={24} />
         {monthly ? (
           <>
             <Image
@@ -393,12 +411,18 @@ export function NotificationDetailDesign({
       ) : null}
       {available ? (
         <TouchableOpacity
+          testID="notification-detail-confirm"
           accessibilityRole="button"
           disabled={busy}
+          accessibilityState={{ disabled: Boolean(busy), busy: Boolean(busy) }}
           onPress={onAction}
           style={styles.cta}
         >
-          <AppText preset="sectionTitle" color="#33205C">
+          <AppText
+            preset="sectionTitle"
+            color="#33205C"
+            style={{ textAlign: 'center' }}
+          >
             {busy
               ? '확인 중'
               : monthly
@@ -407,7 +431,6 @@ export function NotificationDetailDesign({
               ? '확인'
               : '관련 내용 보기'}
           </AppText>
-          <Feather name="chevron-right" size={22} color="#33205C" />
         </TouchableOpacity>
       ) : (
         <AppText preset="bodySm" style={styles.stateText}>
@@ -422,9 +445,9 @@ const styles = StyleSheet.create({
   emptyHeader: { height: 86 },
   emptyBack: { position: 'absolute', top: 3 },
   emptyHeading: { top: 12 },
-  emptyHeaderTitle: { fontSize: 18, lineHeight: 24 },
+  emptyHeaderTitle: { ...APP_HEADER.title },
   back: {
-    width: 44,
+    width: 48,
     height: 48,
     justifyContent: 'center',
     alignItems: 'center',
@@ -437,7 +460,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   leftHeading: { position: 'absolute', left: 54, right: 0 },
-  headerTitle: { fontSize: 22, lineHeight: 30, letterSpacing: 0 },
+  headerTitle: { ...APP_HEADER.title },
   emptySummary: {
     fontSize: 12,
     lineHeight: 18,
@@ -475,18 +498,22 @@ const styles = StyleSheet.create({
     color: notificationColors.ink,
   },
   groupCard: {
-    backgroundColor: 'rgba(255,255,255,.85)',
+    backgroundColor: 'transparent',
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: notificationColors.border,
-    shadowColor: '#9379CD',
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 1,
+    borderColor: 'rgba(255,255,255,0.78)',
   },
-  unreadCard: { backgroundColor: '#F9F5FF' },
+  unreadCard: { borderColor: notificationColors.purple },
+  rowContainer: { flexDirection: 'row', alignItems: 'center' },
+  deleteAction: {
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 4,
+  },
   row: {
+    flex: 1,
     paddingHorizontal: 16,
     paddingVertical: 14,
     minHeight: 83,
@@ -516,8 +543,10 @@ const styles = StyleSheet.create({
   },
   rowTrailing: {
     width: 22,
+    minHeight: 44,
+    alignSelf: 'center',
+    justifyContent: 'center',
     alignItems: 'flex-end',
-    paddingTop: 14,
     marginLeft: 8,
   },
   unreadDot: {
@@ -575,8 +604,8 @@ const styles = StyleSheet.create({
   },
   bodyCard: {
     borderWidth: 1,
-    borderColor: '#F0EAFD',
-    backgroundColor: 'rgba(255,255,255,.72)',
+    borderColor: 'rgba(255,255,255,0.78)',
+    backgroundColor: 'transparent',
     borderRadius: 24,
     padding: 22,
     minHeight: 318,

@@ -19,6 +19,7 @@ export type PetWalkProgression = ReturnType<typeof toProgressionWire> &
   Readonly<{
     petId: string;
     eligibleSessionCount: string;
+    lifetimeActiveDurationMs?: string;
     milestones: readonly WalkHistoricalMilestone[];
   }>;
 const fail = (): never => {
@@ -29,9 +30,12 @@ function record(input: unknown): Record<string, unknown> {
     return fail();
   return input as Record<string, unknown>;
 }
-function decimal(input: unknown): string {
+function decimal(
+  input: unknown,
+  unit: 'DISTANCE' | 'DURATION' = 'DISTANCE',
+): string {
   try {
-    const n = parseWalkInteger(input, 'DISTANCE');
+    const n = parseWalkInteger(input, unit);
     if (n.toString() !== input) return fail();
     return n.toString();
   } catch {
@@ -101,7 +105,21 @@ export function decodePetWalkProgression(
     return fail();
   // Historical receipts may exceed CURRENT distance after a session deletion.
   // Reconstruct only validated fields; future additive fields stay unconsumed.
-  return { ...expected, petId, eligibleSessionCount, milestones };
+  return {
+    ...expected,
+    petId,
+    eligibleSessionCount,
+    milestones,
+    // Older cached/server responses remain readable without inventing zero time.
+    ...(v.lifetimeActiveDurationMs === undefined
+      ? {}
+      : {
+          lifetimeActiveDurationMs: decimal(
+            v.lifetimeActiveDurationMs,
+            'DURATION',
+          ),
+        }),
+  };
 }
 export function createWalkProgressionRepository(transport: WalkRpcTransport) {
   return {

@@ -7,6 +7,7 @@ import Feather from '../icons/NuriFeatherIcon';
 import AppText from '../../app/ui/AppText';
 import type { LocationPermissionStatus } from '../../services/location/permission';
 import { styles } from './LocationDiscovery.styles';
+import { MenuGlassSurface, MENU_GLASS_FRAME } from '../common/MenuGlassSurface';
 
 type Props = {
   title: string;
@@ -16,6 +17,7 @@ type Props = {
   actionLabel?: string;
   onPressAction?: () => void;
   actionRole?: CtaRole;
+  surfaceVariant?: 'plain' | 'menuGlass';
 };
 
 export function LocationDiscoveryStatusCard({
@@ -26,9 +28,11 @@ export function LocationDiscoveryStatusCard({
   actionLabel,
   onPressAction,
   actionRole = 'primary',
+  surfaceVariant = 'plain',
 }: Props) {
   return (
-    <View style={styles.emptyCard}>
+    <View style={[styles.emptyCard, surfaceVariant === 'menuGlass' && MENU_GLASS_FRAME]}>
+      {surfaceVariant === 'menuGlass' ? <MenuGlassSurface radius={22} /> : null}
       {loading ? (
         <ActivityIndicator size="small" color="#6D6AF8" />
       ) : (

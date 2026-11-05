@@ -1,3 +1,4 @@
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import { TIMELINE_DESIGN as C, TIMELINE_TYPE as T } from '../../theme/timelineDesign';
 // 파일: src/screens/Records/RecordDetailScreen.styles.ts
 // 역할:
@@ -20,10 +21,9 @@ const baseStyles = StyleSheet.create({
     alignItems: 'center',
   },
   headerTitle: {
-    color: '#111827',
-    fontWeight: '800',
-    textAlign: 'center',
-  },
+
+
+    textAlign: 'center', ...APP_HEADER.title },
   headerLink: {
     minHeight: 56,
     paddingHorizontal: 18,
@@ -51,10 +51,9 @@ const baseStyles = StyleSheet.create({
   },
   headerLinkText: {
     flex: 1,
-    color: '#111827',
-    fontWeight: '800',
-    textAlign: 'center',
-  },
+
+
+    textAlign: 'center', ...APP_HEADER.title },
   scroll: {
     flex: 1,
   },
@@ -107,7 +106,7 @@ const baseStyles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: '#E8EBF2',
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     paddingVertical: 18,
     paddingHorizontal: 14,
     alignItems: 'center',
@@ -501,7 +500,7 @@ export const styles = StyleSheet.create({
   ...baseStyles,
   screen:{flex:1,backgroundColor:C.canvas},
   headerLink:{...baseStyles.headerLink,backgroundColor:'transparent',paddingHorizontal:16},
-  headerLinkText:{...baseStyles.headerLinkText,...T.screen,color:C.ink},
+  headerLinkText:{...baseStyles.headerLinkText,...T.screen, ...APP_HEADER.title },
   body:{...baseStyles.body,paddingTop:8},
   postCard:{marginHorizontal:16,padding:0,backgroundColor:'transparent'},
   postAvatar:{width:48,height:48,borderRadius:24},
@@ -516,7 +515,7 @@ export const styles = StyleSheet.create({
   relatedSection:{...baseStyles.relatedSection,marginTop:20,paddingTop:20,borderTopColor:C.border},
   relatedSectionTitle:{...T.section,color:C.ink},relatedSectionCount:{...T.meta,color:C.muted},
   sheetBackdrop:{...baseStyles.sheetBackdrop,backgroundColor:C.overlay},
-  actionSheet:{...baseStyles.actionSheet,borderTopLeftRadius:20,borderTopRightRadius:20,padding:16,backgroundColor:C.surface,gap:0},
+  actionSheet:{...baseStyles.actionSheet,borderTopLeftRadius:20,borderTopRightRadius:20,padding:16,backgroundColor:'transparent',gap:0},
   sheetActionRow:{minHeight:64,flexDirection:'row',alignItems:'center',gap:16,borderBottomWidth:1,borderBottomColor:C.border},
   sheetActionText:{...T.card,color:C.ink,flex:1},sheetActionDeleteText:{...T.card,color:C.ink,flex:1},
 

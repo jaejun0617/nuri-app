@@ -5,15 +5,16 @@
 // - 일정 시간이 지나면 AppTabs HomeTab으로 reset 이동해 온보딩 플로우를 마무리
 
 import AppText from '../../app/ui/AppText';
-import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import React, { memo, useEffect, useRef } from 'react';
-import { Animated, Easing, StatusBar, View } from 'react-native';
+import { Animated, Easing, Image, StatusBar, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import { formatPetCopy } from '../../utils/petDisplayName';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 
 import { ASSETS } from '../../assets';
+import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
+import { getSeasonalOnboardingVisual } from '../../theme/seasonal/onboarding';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { styles } from './WelcomeTransitionScreen.styles';
 
@@ -74,8 +75,14 @@ const LoadingDot = memo(function LoadingDotView({
   );
 });
 
-export default function WelcomeTransitionScreen() {
+type Props = { holdForDesignReview?: boolean; petName?: string };
+
+export default function WelcomeTransitionScreen({ holdForDesignReview = false, petName }: Props = {}) {
   const route = useRoute<RouteProp<RootStackParamList, 'WelcomeTransition'>>();
+  const season = useEffectiveSeason();
+  const seasonalVisual = getSeasonalOnboardingVisual(season);
+  const holdPreview = __DEV__ && holdForDesignReview;
+  const loadingTitle = formatPetCopy('우리 아이를 위한 첫 화면을 만들고 있어요', petName ?? route.params?.petName);
   const navigation = useNavigation<Nav>();
   const entranceProgress = useRef(new Animated.Value(0)).current;
   const dotProgress = useRef(new Animated.Value(0)).current;
@@ -118,7 +125,7 @@ export default function WelcomeTransitionScreen() {
     dotAnimation.start();
     pulseAnimation.start();
 
-    const timeoutId = setTimeout(() => {
+    const timeoutId = holdPreview ? undefined : setTimeout(() => {
       navigation.reset({
         index: 0,
         routes: [{ name: 'AppTabs', params: { screen: 'HomeTab' } }],
@@ -126,7 +133,7 @@ export default function WelcomeTransitionScreen() {
     }, TRANSITION_DURATION_MS);
 
     return () => {
-      clearTimeout(timeoutId);
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
       entranceAnimation.stop();
       dotAnimation.stop();
       pulseAnimation.stop();
@@ -134,7 +141,7 @@ export default function WelcomeTransitionScreen() {
       dotProgress.stopAnimation();
       symbolPulse.stopAnimation();
     };
-  }, [dotProgress, entranceProgress, navigation, symbolPulse]);
+  }, [dotProgress, entranceProgress, holdPreview, navigation, symbolPulse]);
 
   const entranceOpacity = entranceProgress.interpolate({
     inputRange: [0, 1],
@@ -154,8 +161,16 @@ export default function WelcomeTransitionScreen() {
   });
 
   return (
-    <View style={[styles.screen, { backgroundColor: PRODUCT_CANVAS_COLOR }]}>
-      <StatusBar barStyle="dark-content" />
+    <View style={styles.screen}>
+      <StatusBar barStyle="light-content" />
+      <Image
+        accessibilityIgnoresInvertColors
+        pointerEvents="none"
+        resizeMode="cover"
+        source={seasonalVisual.loadingBackground}
+        style={styles.backgroundImage}
+      />
+      <View pointerEvents="none" style={styles.readabilityVeil} />
 
       <SafeAreaView style={styles.safeArea} edges={['top', 'bottom']}>
         <Animated.View
@@ -168,7 +183,7 @@ export default function WelcomeTransitionScreen() {
           ]}
         >
           <View
-            accessibilityLabel="NURI"
+            accessibilityLabel="누리"
             accessibilityRole="image"
             style={styles.brandBlock}
           >
@@ -194,22 +209,21 @@ export default function WelcomeTransitionScreen() {
             />
           </View>
 
-          <AppText accessibilityRole="header" style={styles.wordmark}>
-            N U R I
-          </AppText>
-          <View pointerEvents="none" style={styles.divider} />
-
           <View style={styles.copyBlock}>
-            <AppText accessibilityRole="header" style={styles.headline}>
-              누리의 공간을 준비하고 있어요
-            </AppText>
-            <AppText style={styles.description}>
-              {formatPetCopy('우리 아이를 위한 첫 화면을 만들고 있어요', route.params?.petName)}
+            <AppText
+              testID="post-registration-loading-title"
+              accessibilityRole="header"
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              minimumFontScale={0.1}
+              style={styles.headline}
+            >
+              {loadingTitle}
             </AppText>
           </View>
 
           <View
-            accessibilityLabel="누리의 공간을 준비하고 있습니다"
+            accessibilityLabel={loadingTitle}
             accessibilityRole="progressbar"
             style={styles.dotRow}
           >

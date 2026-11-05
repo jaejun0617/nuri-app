@@ -60,6 +60,8 @@ async function main() {
     '20261025094515_notification_event_preference_key.sql',
     '20261025095926_notification_preference_realtime.sql',
     '20261028031925_notification_memorial_birthday.sql',
+    '20261105072331_notification_inbox_30_day_retention.sql',
+    '20261105100451_notification_inbox_badge_snapshot.sql',
   ]) {
     try {
       await db.exec(
@@ -119,6 +121,75 @@ async function main() {
       await db.exec('rollback');
     }
   }
+  await test('inbox retention uses availability rather than creation, read time or push TTL', async () => {
+    await db.query(`insert into public.user_notifications(user_id,title,created_at,available_at,read_at,expires_at) values
+      ($1,'scheduled',now()-interval '40 days',now()-interval '1 hour',null,now()-interval '1 second'),
+      ($1,'expired',now(),now()-interval '721 hours',now(),null),
+      ($1,'future',now()-interval '40 days',now()+interval '1 hour',null,null),
+      ($1,'retained',now(),now()-interval '719 hours',now(),null)`, [a]);
+    assert.deepEqual((await db.query('select title from notification_private.inbox_v3($1) order by title', [a])).rows.map(r=>r.title), ['retained','scheduled']);
+    const result = (await one('select notification_private.purge_expired_inbox_v3() r')).r;
+    assert.equal(result.notifications, 1);
+    assert.equal(await count(), 3);
+    assert.equal((await one('select notification_private.purge_expired_inbox_v3() r')).r.notifications, 0);
+  });
+  await test('retention deadline is exactly 720 elapsed hours, including a DST session timezone', async () => {
+    await db.exec("set local time zone 'America/New_York'");
+    const result = await one(`with added as (
+      insert into public.user_notifications(user_id,title,available_at)
+      values($1,'boundary',statement_timestamp()-interval '720 hours') returning id
+    ) select id from added`, [a]);
+    assert.equal((await one('select count(*)::int n from notification_private.inbox_v3($1) where notification_id=$2', [a,result.id])).n, 0);
+    assert.equal((await one('select notification_private.purge_expired_inbox_v3() r')).r.notifications, 1);
+  });
+  await test('announcement expiration hides inbox copies but preserves publication originals and reissues', async () => {
+    const old = crypto.randomUUID(), reissued = crypto.randomUUID();
+    // Seed historical publication timestamps only in this isolated fixture.
+    await db.exec('alter table public.announcements disable trigger notification_publication_v3');
+    await db.query(`insert into public.announcements(id,title,created_at,published_at) values
+      ($1,'old',now()-interval '721 hours',now()-interval '721 hours'),
+      ($2,'reissued',now()-interval '721 hours',now())`, [old,reissued]);
+    await db.exec('alter table public.announcements enable trigger notification_publication_v3');
+    await db.query('insert into public.user_notification_reads(user_id,announcement_id,read_at) values($1,$2,now()),($1,$3,now())', [a,old,reissued]);
+    await db.query('insert into public.user_notification_dismissals(user_id,announcement_id,dismissed_at,dismissed_version) values($1,$2,now(),1)', [a,old]);
+    assert.deepEqual((await db.query('select title from notification_private.inbox_v3($1)', [a])).rows.map(r=>r.title), ['reissued']);
+    assert.deepEqual((await one('select notification_private.purge_expired_inbox_v3() r')).r, { notifications:0, reads:1, dismissals:1 });
+    assert.equal((await one('select count(*)::int n from public.announcements')).n, 2);
+    assert.equal((await one('select count(*)::int n from public.user_notification_reads')).n, 1);
+  });
+  await test('purge is bounded and cannot be called by an ordinary client', async () => {
+    await db.query("insert into public.user_notifications(user_id,title,available_at) select $1,'expired',now()-interval '721 hours' from generate_series(1,1001)", [a]);
+    assert.equal((await one("select has_function_privilege('authenticated','notification_private.purge_expired_inbox_v3()','execute') allowed")).allowed, false);
+    assert.equal((await one("select has_function_privilege('anon','notification_private.purge_expired_inbox_v3()','execute') allowed")).allowed, false);
+    assert.equal((await one('select notification_private.purge_expired_inbox_v3() r')).r.notifications, 1000);
+    assert.equal(await count(), 1);
+    assert.equal((await one('select notification_private.purge_expired_inbox_v3() r')).r.notifications, 1);
+  });
+  await test('page, unread, detail, mark and dismissal share the same retention boundary', async () => {
+    const expired = crypto.randomUUID(), current = crypto.randomUUID();
+    await db.query(`insert into public.user_notifications(id,user_id,title,available_at) values
+      ($1,$3,'expired',now()-interval '721 hours'),($2,$3,'current',now()-interval '1 hour')`, [expired,current,a]);
+    assert.equal((await one('select public.get_user_notifications_v3() p')).p.items.length, 1);
+    assert.equal((await one('select public.get_user_notification_unread_count_v1() n')).n, 1);
+    await db.query(`do $$begin
+      perform public.get_user_notification_detail_v3('${expired}','user');
+      raise exception 'EXPIRED_DETAIL_WAS_VISIBLE';
+      exception when no_data_found then null;
+    end$$`);
+    await db.query("select public.mark_user_notification_read_v1($1,'user')", [expired]);
+    assert.equal((await one('select read_at from public.user_notifications where id=$1', [expired])).read_at, null);
+    await db.query('select public.dismiss_all_user_notifications_v1()');
+    assert.equal((await one('select dismissed_at from public.user_notifications where id=$1', [expired])).dismissed_at, null);
+    assert.ok((await one('select dismissed_at from public.user_notifications where id=$1', [current])).dismissed_at);
+  });
+  await test('retained inbox content does not revive an expired push delivery', async () => {
+    const id = crypto.randomUUID();
+    await db.query("insert into public.user_notifications(id,user_id,title,available_at,expires_at) values($1,$2,'push TTL',now()-interval '1 hour',now()-interval '1 second')", [id,a]);
+    await db.query("insert into notification_private.delivery_v3(notification_id,recipient_user_id,dedupe_key,category,available_at,expires_at) values($1,$2,'retention-ttl','news',now()-interval '1 hour',now()-interval '1 second')", [id,a]);
+    assert.equal((await one('select count(*)::int n from notification_private.inbox_v3($1)', [a])).n, 1);
+    assert.deepEqual((await one('select public.claim_notification_deliveries_v3(10) q')).q, []);
+    assert.equal((await one("select state from notification_private.delivery_v3 where dedupe_key='retention-ttl'")).state, 'expired');
+  });
   await test('preference realtime keeps RLS and does not add client privileges', async () => {
     assert.equal((await one("select relrowsecurity enabled from pg_class where oid='public.user_notification_preferences'::regclass")).enabled, true);
     assert.equal((await one("select count(*)::int n from pg_publication_tables where pubname='supabase_realtime' and schemaname='public' and tablename='user_notification_preferences'")).n, 1);
@@ -414,6 +485,8 @@ async function main() {
     await db.query("select public.manage_user_notification_preferences_v3('{\"anniversary\":false,\"record\":true}')");
     await db.query('select notification_private.scheduler_user_v3($1,$2)', [a, birthdayNow]);
     assert.equal(await count(), 2);
+    // This fixture tests opt-out, independently of the historical birthday TTL.
+    await db.exec("update notification_private.delivery_v3 set available_at=statement_timestamp(),expires_at=statement_timestamp()+interval '1 day'");
     assert.deepEqual((await one('select public.claim_notification_deliveries_v3(10) q')).q, []);
     assert.equal((await one("select count(*)::int n from notification_private.delivery_v3 where state='suppressed'")).n, 2);
   });
@@ -681,6 +754,36 @@ async function main() {
       ).q[0],
     };
   };
+  await test('badge snapshot matches the full inbox and decreases 3 -> 2 -> 0 after actual read operations', async () => {
+    const { delivery } = await leaseWithDevice();
+    const extra = (await db.query("insert into public.user_notifications(user_id,title,body) values($1,'badge-two','body'),($1,'badge-three','body') returning id", [a])).rows;
+    const snapshot = async () => (await one('select public.get_user_notification_badge_v3() b')).b;
+    let badge = await snapshot();
+    assert.equal(badge.count, 3);
+    assert.equal(badge.count, (await one('select public.get_user_notification_unread_count_v1() n')).n);
+    assert.ok(Number.isSafeInteger(badge.observedAt) && badge.validUntil > badge.observedAt);
+    let devices = (await one('select public.get_notification_delivery_devices_v3($1,$2) q', [delivery.id,delivery.leaseToken])).q;
+    assert.equal(devices[0].badge.count, 3);
+    await db.query("select public.mark_user_notification_read_v1($1,'user')", [extra[0].id]);
+    assert.equal((await snapshot()).count, 2);
+    devices = (await one('select public.get_notification_delivery_devices_v3($1,$2) q', [delivery.id,delivery.leaseToken])).q;
+    assert.equal(devices[0].badge.count, 2);
+    await db.query('select public.mark_all_user_notifications_read_v3()');
+    badge = await snapshot();
+    assert.equal(badge.count, 0);
+    assert.equal(badge.validUntil, null);
+    assert.deepEqual((await one('select public.get_notification_delivery_devices_v3($1,$2) q', [delivery.id,delivery.leaseToken])).q, []);
+  });
+  await test('badge snapshot excludes future, expired, dismissed and other-owner rows', async () => {
+    await db.query(`insert into public.user_notifications(user_id,title,body,available_at,dismissed_at) values
+      ($1,'visible','body',now(),null),($1,'future','body',now()+interval '1 hour',null),
+      ($1,'old','body',now()-interval '721 hours',null),($1,'dismissed','body',now(),now()),
+      ($2,'other','body',now(),null)`, [a,b]);
+    assert.equal((await one('select public.get_user_notification_badge_v3() b')).b.count, 1);
+    assert.equal((await one("select has_function_privilege('anon','public.get_user_notification_badge_v3()','execute') allowed")).allowed, false);
+    assert.equal((await one("select has_function_privilege('authenticated','notification_private.badge_snapshot_v3(uuid)','execute') allowed")).allowed, false);
+    assert.equal((await one("select has_function_privilege('authenticated','public.get_user_notification_badge_v3()','execute') allowed")).allowed, true);
+  });
   for (const [event, key] of [['pet.birthday', 'anniversary'], ['pet.memorial', 'memorial']]) {
     await test(`${event} uses its own ON preference while record is OFF at lease and send`, async () => {
       await db.query('select public.manage_user_notification_preferences_v3($1::jsonb)', [JSON.stringify({ [key]: true, record: false })]);

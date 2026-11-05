@@ -1,3 +1,5 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import AppTextInput from '../../app/ui/AppTextInput';
 import React, {
   startTransition,
@@ -321,18 +323,18 @@ export default function GuideListScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <SeasonalAmbientBackground season={season} appearance="light" />
-      <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
+      <AppHeaderLayout subtitle="아이와의 일상에 필요한 이야기를 살펴봐요" style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
             activeOpacity={0.88}
             style={styles.headerBackButton}
             onPress={onPressBack}
           >
-            <Feather name="arrow-left" size={20} color="#102033" />
+            <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
           </TouchableOpacity>
         </View>
 
-        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText styleOverridesPreset typographyRole="screenTitle" preset="unifiedTitle" style={[styles.headerTitle, APP_HEADER.title]}>
           집사 꿀팁 가이드
         </AppText>
 
@@ -347,10 +349,10 @@ export default function GuideListScreen() {
               });
             }}
           >
-            <Feather name="search" size={18} color={petTheme.primary} />
+            <Feather name="search" size={APP_HEADER.actionIconSize} color={petTheme.primary} />
           </Pressable>
         </View>
-      </View>
+      </AppHeaderLayout>
 
       {searchVisible ? (
         <HomeFrostedGlass season={season} borderRadius={20} style={styles.searchCard}>

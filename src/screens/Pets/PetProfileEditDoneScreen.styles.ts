@@ -1,7 +1,8 @@
 import { StyleSheet } from 'react-native';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 
 export const PROFILE_COMPLETION_COLORS = {
-  background: '#FCFAFF',
+  background: PRODUCT_CANVAS_COLOR,
   ink: '#100B24',
   muted: '#7E759E',
   border: '#E4D9FF',
@@ -37,12 +38,11 @@ export const styles = StyleSheet.create({
     marginTop: 16,
     borderRadius: 20,
     borderWidth: 0.8,
-    borderColor: c.border,
-    backgroundColor: 'rgba(255,255,255,0.52)',
+    borderColor: 'rgba(255,255,255,0.78)',
+    backgroundColor: 'transparent',
     paddingHorizontal: 15,
     paddingTop: 13,
     paddingBottom: 6,
-    boxShadow: '0px 7px 20px rgba(169, 143, 226, 0.10)',
     overflow: 'hidden',
   },
   cardTop: {

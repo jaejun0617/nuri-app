@@ -1,3 +1,4 @@
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 // 파일: src/screens/Records/TimelineScreen.styles.ts
 
 import { StyleSheet } from 'react-native';
@@ -74,9 +75,8 @@ export const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    color: TEXT,
-    fontWeight: '900',
-  },
+
+     ...APP_HEADER.title },
 
   createBtn: {
     width: 36,

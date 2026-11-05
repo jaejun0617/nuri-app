@@ -71,6 +71,12 @@ async function main() {
     ),
     { action: 'status' },
   );
+  assert.deepEqual(t.inboxBadgeData({ count:3, observedAt:100, validUntil:200 }), {
+    inboxUnreadCount:'3', inboxObservedAt:'100', inboxValidUntil:'200',
+  });
+  for (const invalid of [null, {count:3}, {count:-1,observedAt:100,validUntil:200},
+    {count:1.5,observedAt:100,validUntil:200}, {count:3,observedAt:100,validUntil:100},
+    {count:3,observedAt:Number.NaN,validUntil:200}]) assert.deepEqual(t.inboxBadgeData(invalid), {});
   await assert.rejects(
     t.boundedJson(
       new Request('https://example.invalid', {
@@ -88,7 +94,7 @@ async function main() {
   );
   console.log(
     JSON.stringify({
-      passed: 17,
+      passed: 24,
       scope: 'transport primitives; no provider HTTP or production tokens',
     }),
   );

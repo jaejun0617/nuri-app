@@ -157,7 +157,7 @@ describe('approved Home season contract', () => {
     expect(header).not.toContain('styles.petSwitcherRow');
     expect(header).not.toContain('onPressAddPet');
     expect(header).not.toContain('PetChipButton');
-    expect(header).toContain('style={[styles.heroSeasonCopy, { color: foreground }]}');
+    expect(header).not.toContain('styles.heroSeasonCopy');
     expect(header).toContain("const foreground = photoReady ? '#FFFFFF' : HOME_HERO_COLORS.ink");
     expect(header).toContain('color={foreground}');
     expect(header).not.toContain('const brandColor = SEASON_CTA');
@@ -166,7 +166,7 @@ describe('approved Home season contract', () => {
       'getSeasonalHomeVisual(HOME_FOREGROUND_UI_SEASON)',
     );
     expect(source).toContain('season={ambientSeason}');
-    expect(source).toContain('getHomeHeroSeasonCopy(petName, season');
+    expect(source).not.toContain('getHomeHeroSeasonCopy(petName, season');
     expect(source).toContain(
       'season={HOME_FOREGROUND_UI_SEASON}',
     );

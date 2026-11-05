@@ -11,9 +11,9 @@ import {
 } from 'react-native';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
-import { SEASON_CTA } from '../src/app/theme/ctaPalette';
+import { PRODUCT_CTA } from '../src/app/theme/tokens/productAccent';
 import { getSeasonalWeatherVisualTheme } from '../src/theme/seasonal/weather';
-import { buildPetThemePalette } from '../src/services/pets/themePalette';
+import { buildAccentPalette } from '../src/services/pets/themePalette';
 import WalkView from '../src/screens/DevTest/walkPresentation/WalkView';
 
 let mockDimensions = { width: 384, height: 832, scale: 3, fontScale: 1 };
@@ -292,7 +292,7 @@ describe('approved pre-walk illustration and entrance', () => {
       expect(
         StyleSheet.flatten(host('walk-pre-subtitle-text-0').props.style).color,
       ).toBe('#556070');
-      const smallAccent = buildPetThemePalette(accent).deep;
+      const smallAccent = buildAccentPalette(accent).deep;
       for (const [id, word] of [
         ['walk-pre-emphasis-together', '함께'],
         ['walk-pre-emphasis-0', seasonalPresentation[season].word],
@@ -317,21 +317,21 @@ describe('approved pre-walk illustration and entrance', () => {
   );
 
   it.each(['spring', 'summer', 'autumn', 'winter'] as const)(
-    'keeps %s canonical start colors and starts only on press',
+    'keeps the fixed product CTA with %s semantic artwork and starts only on press',
     async season => {
       await mount({ season });
       expect(onPrimary).not.toHaveBeenCalled();
       expect(
         StyleSheet.flatten(button().props.style({ pressed: false })),
       ).toMatchObject({
-        backgroundColor: SEASON_CTA[season].primary,
+        backgroundColor: PRODUCT_CTA.primary,
         minHeight: 52,
         borderRadius: 16,
       });
       expect(
         StyleSheet.flatten(button().props.style({ pressed: true }))
           .backgroundColor,
-      ).toBe(SEASON_CTA[season].pressed);
+      ).toBe(PRODUCT_CTA.pressed);
       expect(
         StyleSheet.flatten(host('walk-primary-label').props.style),
       ).toMatchObject({ fontSize: 15, lineHeight: 21, textAlign: 'center' });

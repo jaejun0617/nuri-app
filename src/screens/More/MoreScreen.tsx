@@ -9,12 +9,12 @@ import AppText from '../../app/ui/AppText';
 import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import React, { useMemo, useState } from 'react';
 import {
-  Alert,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { NuriAlert as Alert } from '../../app/ui/NuriAlert';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 

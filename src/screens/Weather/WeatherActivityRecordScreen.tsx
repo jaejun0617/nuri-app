@@ -1,3 +1,5 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 // 파일: src/screens/Weather/WeatherActivityRecordScreen.tsx
 // 역할:
 // - 실내 활동 완료 후 빠르게 감정/메모/태그를 남기는 전용 기록 화면
@@ -6,13 +8,13 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import {
-  Alert,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { NuriAlert as Alert } from '../../app/ui/NuriAlert';
 import {
   KeyboardAwareScrollView,
   useKeyboardState,
@@ -351,7 +353,7 @@ function WeatherActivityRecordContent() {
     <SafeAreaView testID="weather-activity-record-screen" style={styles.safe} edges={keyboardVisible ? ['top', 'left', 'right'] : ['top', 'left', 'right', 'bottom']}>
       <SeasonalFormBackground />
       <View style={styles.keyboardContent}>
-        <View style={styles.header}>
+        <AppHeaderLayout subtitle="함께한 활동을 오늘의 기록으로 남겨요" style={styles.header}>
           <View style={styles.headerSideSlot}>
             <TouchableOpacity
               activeOpacity={0.88}
@@ -359,12 +361,12 @@ function WeatherActivityRecordContent() {
               onPress={onPressBack}
               hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
             >
-              <Feather name="arrow-left" size={20} color="#102033" />
+              <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
             </TouchableOpacity>
           </View>
-          <Text style={styles.headerTitle}>기록하기</Text>
+          <Text style={[styles.headerTitle, APP_HEADER.title]}>기록하기</Text>
           <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
-        </View>
+        </AppHeaderLayout>
 
         <KeyboardAwareScrollView
           ref={scrollRef}
@@ -623,11 +625,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 17,
-    lineHeight: 22,
-    color: '#0B1220',
-    fontWeight: '900',
-  },
+
+
+
+     ...APP_HEADER.title },
   scroll: {
     flex: 1,
   },

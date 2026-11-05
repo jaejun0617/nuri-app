@@ -1,3 +1,8 @@
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
+import { PRODUCT_ACCENT } from '../../app/theme/tokens/productAccent';
+import { MenuGlassSurface } from '../../components/common/MenuGlassSurface';
 import React, { memo } from 'react';
 import {
   Image,
@@ -26,16 +31,10 @@ import {
 import type { TotalSummary } from '../../services/home/weeklySummary';
 import type { DailyStreakStatus } from '../../services/activity/dailyStreak';
 import type { SeasonKey } from '../../theme/seasonal/season';
-import {
-  TIMELINE_HERO_ASPECT_RATIO,
-  TIMELINE_HERO_IMAGES,
-  TIMELINE_SEASON_COLORS,
-} from '../../theme/seasonal/timeline';
 import { appendKoreanParticle } from '../../utils/koreanParticle';
 
 export const TimelineSeasonalControls = memo(
   function TimelineSeasonalControlsView({
-    season,
     sortLabel,
     monthLabel,
     mainCategory,
@@ -57,7 +56,6 @@ export const TimelineSeasonalControls = memo(
     onOpenMonth: () => void;
     onPressCategory: (category: MemoryMainCategory) => void;
   }) {
-    const colors = TIMELINE_SEASON_COLORS[season];
     return (
       <View style={s.controls} testID="timeline-seasonal-controls">
         <View style={s.controlRow}>
@@ -137,8 +135,8 @@ export const TimelineSeasonalControls = memo(
                     s.category,
                     active
                       ? {
-                          backgroundColor: colors.selectedCategory,
-                          borderColor: colors.selectedCategory,
+                          backgroundColor: PRODUCT_ACCENT.primary,
+                          borderColor: PRODUCT_ACCENT.primary,
                         }
                       : null,
                   ]}
@@ -177,7 +175,6 @@ export const TimelineSeasonalControls = memo(
 );
 
 export default memo(function TimelineSeasonalHeader({
-  season,
   width,
   fontScale,
   level,
@@ -200,49 +197,29 @@ export default memo(function TimelineSeasonalHeader({
   showWalkStatus: boolean;
   onPressBack: () => void;
 }>) {
-  const colors = TIMELINE_SEASON_COLORS[season];
-  const heroHeight = width / TIMELINE_HERO_ASPECT_RATIO;
   const stack = width < 380 || fontScale >= 1.3;
   const progress = level ? getProgressWithinLevel(level) : 0;
   const maxLevel = level !== null && level.level >= MAX_ACTIVITY_LEVEL;
   return (
     <View testID="timeline-seasonal-header">
-      <View
-        style={[
-          s.hero,
-          {
-            width,
-            height: heroHeight,
-            backgroundColor: colors.surface,
-          },
-        ]}
-      >
-        <Image
-          testID="timeline-seasonal-hero"
-          source={TIMELINE_HERO_IMAGES[season]}
-          resizeMode="contain"
-          accessible
-          accessibilityRole="image"
-          accessibilityLabel="타임라인, 소중한 순간을 모으는 기록"
-          style={{ width, height: heroHeight }}
-        />
-        <View style={s.heroNavigation} pointerEvents="box-none">
+      <AppHeaderLayout subtitle="아이와 함께한 순간을 차곡차곡 모아요" style={s.header}>
           <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel="타임라인 뒤로가기"
             onPress={onPressBack}
-            style={s.heroBack}
+            style={s.headerTool}
           >
             <NuriSemanticIcon
               family="feather"
-              name="arrow-left"
-              size={18}
-              color={colors.heroText}
+              name="chevron-left"
+              size={APP_HEADER.backIconSize}
+              color={APP_HEADER.titleColor}
               preserveOriginal
             />
           </TouchableOpacity>
-        </View>
-      </View>
+          <AppText preset="unifiedTitle" styleOverridesPreset style={s.headerTitle}>타임라인</AppText>
+          <HeaderHelpButton topic="timeline" />
+      </AppHeaderLayout>
       <View
         testID="timeline-statistics"
         style={[
@@ -250,6 +227,7 @@ export default memo(function TimelineSeasonalHeader({
           stack ? s.statsStack : null,
         ]}
       >
+        <MenuGlassSurface radius={8} testID="timeline-statistics-glass" />
         <View style={s.growth}>
           <View style={s.growthTop}>
             <AppText preset="unifiedTitle" styleOverridesPreset style={s.level}>
@@ -274,7 +252,7 @@ export default memo(function TimelineSeasonalHeader({
                 <AppText
                   preset="unifiedMeta"
                   styleOverridesPreset
-                  style={[s.xp, { color: colors.statsValue }]}
+                  style={[s.xp, { color: PRODUCT_ACCENT.ink }]}
                 >
                   {level ? level.totalXp.toLocaleString() : '—'}
                 </AppText>
@@ -302,7 +280,7 @@ export default memo(function TimelineSeasonalHeader({
           >
             <LinearGradient
               testID="timeline-progress-gradient"
-              colors={[colors.statsGradientStart, colors.statsGradientEnd]}
+              colors={[PRODUCT_ACCENT.primary, PRODUCT_ACCENT.primary]}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={[s.fill, { width: `${Math.round(progress * 100)}%` }]}
@@ -359,9 +337,9 @@ export default memo(function TimelineSeasonalHeader({
 });
 
 const s = StyleSheet.create({
-  hero: { position: 'relative' },
-  heroNavigation: { position: 'absolute', left: 12, top: 4 },
-  heroBack: { width: 44, minHeight: 44, justifyContent: 'center' },
+  header: { paddingTop: APP_HEADER.topGap },
+  headerTool: { width: APP_HEADER.targetSize, minHeight: APP_HEADER.targetSize, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { flex: 1, textAlign: 'center', ...APP_HEADER.title },
   stats: {
     marginTop: 12,
     marginBottom: 4,
@@ -369,9 +347,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 8,
-    backgroundColor: 'rgba(255,255,255,0.65)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.85)',
+    backgroundColor: 'transparent',
     flexDirection: 'row',
     gap: 12,
   },

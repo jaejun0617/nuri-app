@@ -11,7 +11,6 @@ import TimelineSeasonalHeader, {
   TimelineSeasonalControls,
 } from '../src/screens/Records/TimelineSeasonalHeader';
 import {
-  TIMELINE_HERO_IMAGES,
   TIMELINE_SEASON_COLORS,
 } from '../src/theme/seasonal/timeline';
 import type { SeasonKey } from '../src/theme/seasonal/season';
@@ -105,7 +104,7 @@ describe('Timeline seasonal design', () => {
     mockEffectiveSeason = 'autumn';
   });
   it.each(Object.keys(expected) as SeasonKey[])(
-    '%s renders separate exact tokens, original hero and white selected chip contents',
+    '%s preserves historical assets but renders a standard header and fixed lavender controls',
     season => {
       const palette = TIMELINE_SEASON_COLORS[season];
       expect([
@@ -116,19 +115,12 @@ describe('Timeline seasonal design', () => {
         palette.selectedCategory,
       ]).toEqual(expected[season]);
       const tree = render(header(season));
-      const image = tree.root
-        .findAllByType(Image)
-        .find(node => node.props.testID === 'timeline-seasonal-hero')!;
-      expect(image.props.source).toBe(TIMELINE_HERO_IMAGES[season]);
-      expect(image.props.resizeMode).toBe('contain');
-      expect(StyleSheet.flatten(image.props.style)).toMatchObject({
-        width: 384,
-        height: 192,
-      });
+      expect(tree.root.findAllByProps({ testID: 'timeline-seasonal-hero' })).toHaveLength(0);
+      expect(tree.root.findAllByProps({ testID: 'header-help-timeline' }).length).toBeGreaterThan(0);
       const gradient = tree.root
         .findAll(node => node.props.testID === 'timeline-progress-gradient')
         .at(-1)!;
-      expect(gradient.props.colors).toEqual(expected[season].slice(0, 2));
+      expect(gradient.props.colors).toEqual(['#7D5CE4', '#7D5CE4']);
       expect(StyleSheet.flatten(gradient.props.style).width).toBe('7%');
       expect(
         tree.root
@@ -138,21 +130,19 @@ describe('Timeline seasonal design', () => {
       expect(tree.root.findAll(node => node.props.name === 'paw')).toHaveLength(
         0,
       );
-      expect(text(tree)).not.toContain('타임라인');
+      expect(text(tree)).toContain('타임라인');
       expect(text(tree)).not.toContain('너와 함께');
       const stats = tree.root
         .findAll(node => node.props.testID === 'timeline-statistics')
         .at(-1)!;
       expect(StyleSheet.flatten(stats.props.style)).toMatchObject({
         paddingVertical: 8,
-        backgroundColor: 'rgba(255,255,255,0.65)',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.85)',
+        backgroundColor: 'transparent',
         marginTop: 12,
         marginBottom: 4,
       });
       expect(stats.props.blurAmount).toBeUndefined();
-      expect(tree.root.findAllByProps({ testID: 'home-reflective-fill' })).toHaveLength(0);
+      expect(tree.root.findAllByProps({ testID: 'timeline-statistics-glass' }).length).toBeGreaterThan(0);
       const titleXp = tree.root
         .findAll(node => node.props.testID === 'timeline-title-xp-row')
         .at(-1)!;
@@ -166,7 +156,7 @@ describe('Timeline seasonal design', () => {
       expect(StyleSheet.flatten(xp.props.style).color).toBe('#243042');
       expect(
         StyleSheet.flatten(xp.findAllByType(Text).at(-1)!.props.style).color,
-      ).toBe(palette.statsValue);
+      ).toBe('#221351');
       const counts = buildTimelineCategoryCounts([record]);
       const controls = render(
         <TimelineSeasonalControls
@@ -189,7 +179,7 @@ describe('Timeline seasonal design', () => {
         .findAll(node => node.props.testID === 'timeline-category-surface-all')
         .at(-1)!;
       expect(StyleSheet.flatten(surface.props.style).backgroundColor).toBe(
-        expected[season][4],
+        '#7D5CE4',
       );
       expect(selected.props.accessibilityState).toEqual({ selected: true });
       expect(
@@ -229,17 +219,10 @@ describe('Timeline seasonal design', () => {
   );
 
   it.each([360, 384, 430])(
-    'uses exact hero ratio and flexible stats at %idp with enlarged text',
+    'uses no hero or fixed header height and retains flexible stats at %idp with enlarged text',
     width => {
       const tree = render(header('autumn', width, 1.5));
-      expect(
-        StyleSheet.flatten(
-          tree.root
-            .findAllByType(Image)
-            .find(node => node.props.testID === 'timeline-seasonal-hero')!.props
-            .style,
-        ),
-      ).toEqual({ width, height: width / 2 });
+      expect(tree.root.findAllByProps({ testID: 'timeline-seasonal-hero' })).toHaveLength(0);
       const stats = tree.root
         .findAll(node => node.props.testID === 'timeline-statistics')
         .at(-1)!;

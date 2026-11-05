@@ -47,7 +47,12 @@ export default function MedicalRecordFields({
             accessibilityLabel={kind.label}
             accessibilityState={{ checked: value.kind === kind.key, disabled }}
             onPress={() => onChange({ ...value, kind: kind.key })}
-            style={[styles.kind, value.kind === kind.key && styles.selected, surfaceVariant === 'homeGlass' && styles.glassKind, surfaceVariant === 'homeGlass' && disabled && styles.disabled]}
+            style={[
+              styles.kind,
+              surfaceVariant === 'plain' && value.kind === kind.key && styles.selected,
+              surfaceVariant === 'homeGlass' && styles.glassKind,
+              surfaceVariant === 'homeGlass' && disabled && styles.disabled,
+            ]}
           >
             {surfaceVariant === 'homeGlass' ? <RecordFieldGlass selected={value.kind === kind.key} borderRadius={8} /> : null}
             <AppText preset="unifiedBody" color="#303840">
@@ -93,6 +98,8 @@ const styles = StyleSheet.create({
   kinds: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    gap: 12,
+    paddingBottom: 12,
     borderBottomWidth: 1,
     borderColor: '#D1D6DC',
   },

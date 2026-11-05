@@ -1,3 +1,5 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import { useNotificationDestinationRead } from '../../hooks/useNotificationDestinationRead';
 import { shouldStackCtaPair } from '../../app/theme/ctaPalette';
@@ -586,7 +588,7 @@ export default function ScheduleDetailScreen() {
           decorationMode="reading"
         />
       </View>
-      <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
+      <AppHeaderLayout subtitle="일정과 알림 내용을 한눈에 확인해요" style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
             accessibilityRole="button"
@@ -597,21 +599,21 @@ export default function ScheduleDetailScreen() {
             onPress={() => navigation.goBack()}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
-            <Feather name="arrow-left" size={20} color={petTheme.deep} />
+            <Feather name="chevron-left" size={APP_HEADER.backIconSize} color={petTheme.deep} />
           </TouchableOpacity>
         </View>
 
-        <AppText
+        <AppText styleOverridesPreset
           typographyRole="screenTitle"
           preset="unifiedTitle"
-          color={theme.colors.textPrimary}
-          style={styles.headerTitle}
+          color={APP_HEADER.titleColor}
+          style={[styles.headerTitle, APP_HEADER.title]}
         >
           일정 상세
         </AppText>
 
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
-      </View>
+      </AppHeaderLayout>
 
       <ScrollView
         style={styles.scroll}

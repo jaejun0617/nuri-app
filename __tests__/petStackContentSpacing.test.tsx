@@ -171,7 +171,7 @@ describe('pet stack content-end spacing', () => {
     expect(renderer.root.findAll(node => node.props.children === '누리')).not.toHaveLength(0);
     expect(renderer.root.findAll(node => node.props.children === 'KakaoPet')).not.toHaveLength(0);
     expect(
-      renderer.root.findAll(node => node.props.children === '+ 아이 등록하기'),
+      renderer.root.findAll(node => node.props.children === '새로운 아이 소개하기'),
     ).not.toHaveLength(0);
   });
 });

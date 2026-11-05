@@ -17,6 +17,7 @@ import {
   deriveCanonicalPetSpeciesKey,
 } from '../../services/pets/species';
 import type { Pet } from '../../store/petStore';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 import {
   PET_MANAGEMENT_COLORS as colors,
   PET_MANAGEMENT_TYPE as type,
@@ -28,7 +29,7 @@ import {
   formatYmdToDots,
 } from '../../utils/date';
 import { getPetDisplayName } from '../../utils/petDisplayName';
-import { HomeFloatingWidgetSurface } from '../home/HomeWidgetMaterial';
+import { MenuGlassSurface } from '../common/MenuGlassSurface';
 import NuriSemanticIcon from '../icons/NuriSemanticIcon';
 
 type Props = {
@@ -45,17 +46,19 @@ const Photo = memo(function PetManagementPhoto({
   name,
   petId,
   size,
+  accentColor,
 }: {
   uri: string | null;
   name: string;
   petId: string;
   size: number;
+  accentColor: string;
 }) {
   const [failed, setFailed] = useState(false);
   return (
     <View
       testID={`pet-photo-frame-${petId}`}
-      style={[styles.photoFrame, { width: size, height: size }]}
+      style={[styles.photoFrame, { width: size, height: size, borderWidth: 2, borderColor: accentColor }]}
     >
       {uri && !failed ? (
         <Image
@@ -90,25 +93,27 @@ function CardActionContent({
   size,
   testID,
   accent = false,
+  identityColor,
 }: {
   label: string;
   icon?: 'edit-2' | 'check';
   size: number;
   testID: string;
   accent?: boolean;
+  identityColor?: string | null;
 }) {
   // Restore the icon slot; equal side widths keep the label itself centered.
   return (
     <View style={styles.actionRow}>
       <View style={styles.iconSlot}>
         {icon === 'check' ? (
-          <View style={styles.selectedCheck}>
+          <View style={[styles.selectedCheck, { backgroundColor: buildPetThemePalette(identityColor).primary }]}>
             <NuriSemanticIcon
               family="feather"
               name="check"
               preserveOriginal
               size={size}
-              color={colors.white}
+              color={buildPetThemePalette(identityColor).onPrimary}
             />
           </View>
         ) : icon ? (
@@ -232,9 +237,9 @@ function PetManagementCard({
         },
       ]}
     >
-      <HomeFloatingWidgetSurface
+      <MenuGlassSurface
         radius={layout.cardRadius}
-        testIDPrefix="pet-management-glass"
+        testID="pet-management-glass"
       />
       <View
         testID={`pet-content-${pet.id}`}
@@ -246,6 +251,7 @@ function PetManagementCard({
           name={name}
           petId={pet.id}
           size={layout.photoSize}
+          accentColor={buildPetThemePalette(pet.themeColor).primary}
         />
         <View testID={`pet-info-${pet.id}`} style={styles.info}>
           <View style={styles.nameRow}>
@@ -319,7 +325,6 @@ function PetManagementCard({
             style={[
               styles.stat,
               index > 0 && styles.statDivider,
-              { paddingLeft: index > 0 ? (layout.compact ? 12 : 20) : 0 },
             ]}
           >
             <AppText preset="caption" style={styles.statLabel}>
@@ -358,6 +363,7 @@ function PetManagementCard({
               icon="check"
               size={layout.actionSize}
               testID={`pet-selected-label-${pet.id}`}
+              identityColor={pet.themeColor}
               accent
             />
           </View>
@@ -406,6 +412,7 @@ function PetManagementCard({
             },
           ]}
         >
+          <MenuGlassSurface radius={14} backed />
           <TouchableOpacity
             testID={`pet-delete-entry-${pet.id}`}
             accessibilityRole="button"
@@ -432,7 +439,7 @@ const styles = StyleSheet.create({
   card: {
     borderWidth: 1,
     borderRadius: 18,
-    backgroundColor: colors.glass,
+    backgroundColor: 'transparent',
     overflow: 'hidden',
   },
   content: {
@@ -489,10 +496,10 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     flexDirection: 'row',
   },
-  stat: { flex: 1, minWidth: 0, paddingRight: 6, gap: 4 },
+  stat: { flex: 1, minWidth: 0, paddingHorizontal: 6, gap: 4, alignItems: 'center' },
   statDivider: { borderLeftWidth: 1, borderLeftColor: colors.quietBorder },
-  statLabel: { ...type.label, color: colors.muted },
-  statValue: { ...type.value, color: colors.ink },
+  statLabel: { ...type.label, color: colors.muted, width: '100%', textAlign: 'center' },
+  statValue: { ...type.value, color: colors.ink, width: '100%', textAlign: 'center' },
   actions: {
     marginTop: 20,
     flexDirection: 'row',
@@ -547,8 +554,8 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.border,
-    backgroundColor: colors.surface,
-    elevation: 4,
+    backgroundColor: 'transparent',
+    elevation: 0,
   },
   menuAction: {
     minHeight: 48,

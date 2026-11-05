@@ -17,8 +17,7 @@ import {
 import Feather from 'react-native-vector-icons/Feather';
 import LinearGradient from 'react-native-linear-gradient';
 
-import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
-import { SEASON_CTA } from '../../app/theme/ctaPalette';
+import { PRODUCT_ACCENT } from '../../app/theme/tokens/productAccent';
 import { HomeReflectiveGlass } from '../home/HomeReflectiveGlass';
 import { resolveWeatherMetricLayout } from './weatherMetricLayout';
 
@@ -188,7 +187,7 @@ export default React.memo(function WeatherGuideHomeCard({
   onPress,
 }: Props) {
   const { width, fontScale } = useWindowDimensions();
-  const ctaTextColor = SEASON_CTA[useEffectiveSeason()].primary;
+  const ctaTextColor = PRODUCT_ACCENT.primary;
   const enlarged = fontScale > 1;
   const metricLayout = resolveWeatherMetricLayout({
     width,

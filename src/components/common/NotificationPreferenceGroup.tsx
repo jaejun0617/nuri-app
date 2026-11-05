@@ -2,10 +2,12 @@ import React from 'react';
 import { ActivityIndicator, Image, Pressable, StyleSheet, View } from 'react-native';
 
 import AppText from '../../app/ui/AppText';
+import { ACTIVITY_READING_TYPE as TYPE } from '../../theme/activityTypography';
 import { useNotificationPreferences, type NotificationPreferenceKey } from '../../hooks/useNotificationPreferences';
 import { notificationSettingArt, notificationSurface as C } from '../../screens/Notifications/NotificationSurfaceTokens';
 import { showToast } from '../../store/uiStore';
 import { NotificationToggle } from './NotificationToggle';
+import { MenuGlassSurface } from './MenuGlassSurface';
 
 const rows: readonly { key: NotificationPreferenceKey; label: string; art: keyof typeof notificationSettingArt }[] = [
   { key: 'service', label: '누리 소식', art: 'news' },
@@ -22,7 +24,7 @@ export function NotificationPreferenceGroup() {
       {query.isPending ? <ActivityIndicator color={C.purple} /> : <Pressable accessibilityRole="button" onPress={() => { query.refetch().catch(() => {}); }}><AppText preset="bodySm" style={styles.helper}>설정을 불러오지 못했어요. 다시 확인</AppText></Pressable>}
     </View>
   );
-  return <View style={styles.card}>{rows.map((row, index) => (
+  return <View style={styles.card}><MenuGlassSurface radius={16} />{rows.map((row, index) => (
     <View key={row.key} style={[styles.row, index < rows.length - 1 && styles.divider]}>
       <Image source={notificationSettingArt[row.art]} style={styles.icon} resizeMode="contain" />
       <AppText preset="bodyStrong" style={styles.label}>{row.label}</AppText>
@@ -37,11 +39,11 @@ export function NotificationPreferenceGroup() {
   ))}</View>;
 }
 const styles = StyleSheet.create({
-  card: { borderWidth: 1, borderColor: C.border, borderRadius: 16, paddingHorizontal: 16, backgroundColor: 'rgba(255,255,255,0.55)' },
+  card: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.78)', borderRadius: 16, paddingHorizontal: 16, backgroundColor: 'transparent' },
   row: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 68, paddingVertical: 12 },
   divider: { borderBottomColor: C.divider, borderBottomWidth: StyleSheet.hairlineWidth },
   icon: { width: 44, height: 44, flexShrink: 0 },
-  label: { color: C.ink, fontSize: 16, lineHeight: 23, flex: 1, minWidth: 0 },
-  helper: { color: C.muted, fontSize: 13, lineHeight: 20 },
+  label: { color: C.ink, ...TYPE.label, fontWeight: '700', flex: 1, minWidth: 0 },
+  helper: { color: C.muted, ...TYPE.body },
   pending: { minHeight: 408, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: C.border, borderRadius: 16 },
 });

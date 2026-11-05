@@ -3,7 +3,7 @@ import * as RN from 'react-native';
 import TestRenderer from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
-import { SEASON_CTA } from '../src/app/theme/ctaPalette';
+import { PRODUCT_CTA } from '../src/app/theme/tokens/productAccent';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 import type { AppFontMode } from '../src/app/typography/appFontMode';
 import {
@@ -101,7 +101,7 @@ describe('More presentation contracts (not native pixel QA)', () => {
         <MoreMenuSection title="빠른 이동" items={quickItems} quick />,
       );
       expect(getMoreMenuColors(createTheme('light'), season).accent).toBe(
-        SEASON_CTA[season].primary,
+        PRODUCT_CTA.primary,
       );
       const boxes = tree.root.findAll(
         node => {

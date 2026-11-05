@@ -1,3 +1,5 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import React from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -71,7 +73,7 @@ export default function PolicyDetailScreen() {
       style={[styles.safe, { backgroundColor: theme.colors.background }]}
       edges={['top']}
     >
-      <View
+      <AppHeaderLayout subtitle="서비스 이용에 필요한 내용을 확인해요"
         style={[
           styles.header,
           {
@@ -89,17 +91,17 @@ export default function PolicyDetailScreen() {
           onPress={onBack}
           style={styles.backButton}
         >
-          <Feather name="arrow-left" size={21} color={theme.colors.textPrimary} />
+          <Feather name="chevron-left" size={APP_HEADER.backIconSize} color={theme.colors.textPrimary} />
         </TouchableOpacity>
-        <AppText typographyRole="screenTitle"
+        <AppText styleOverridesPreset typographyRole="screenTitle"
           preset="unifiedTitle"
           numberOfLines={1}
-          style={[styles.headerTitle, { color: petTheme.deep }]}
+          style={[[styles.headerTitle, { color: petTheme.deep }], APP_HEADER.title]}
         >
           {document?.title ?? '정책 안내'}
         </AppText>
         <View style={styles.headerSide} />
-      </View>
+      </AppHeaderLayout>
 
       <ScrollView
         testID="policy-detail-scroll"
@@ -235,10 +237,9 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 17,
-    lineHeight: 24,
-    fontWeight: '900',
-  },
+
+
+     ...APP_HEADER.title },
   headerSide: { width: 44 },
   content: { paddingHorizontal: 20, paddingTop: 24 },
   titleBlock: { gap: 8 },

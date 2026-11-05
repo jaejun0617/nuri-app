@@ -1,3 +1,4 @@
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import { StyleSheet } from 'react-native';
 
 export const styles = StyleSheet.create({
@@ -28,7 +29,7 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerTitle: { flex: 1, minWidth: 0, textAlign: 'center' },
+  headerTitle: { flex: 1, minWidth: 0, textAlign: 'center', ...APP_HEADER.title },
   emptyCard: { paddingVertical: 24, alignItems: 'center', gap: 12 },
   hero: {
     flexDirection: 'row',

@@ -304,6 +304,18 @@ export async function fetchUserNotificationUnreadCount(): Promise<number> {
   return data;
 }
 
+export type NotificationBadgeSnapshot = { count: number; observedAt: number; validUntil: number | null };
+export async function fetchNotificationBadgeSnapshot(): Promise<NotificationBadgeSnapshot> {
+  const { data, error } = await supabase.rpc('get_user_notification_badge_v3');
+  if (error) throw error;
+  if (!isRecord(data) || typeof data.observedAt !== 'number' || !Number.isSafeInteger(data.observedAt) || data.observedAt <= 0 ||
+    (data.validUntil !== null && (typeof data.validUntil !== 'number' || !Number.isSafeInteger(data.validUntil) || data.validUntil <= data.observedAt)))
+    throw new Error('NURI_NOTIFICATION_RESPONSE_INVALID');
+  const count = unreadCount(data.count);
+  if ((count === 0) !== (data.validUntil === null)) throw new Error('NURI_NOTIFICATION_RESPONSE_INVALID');
+  return { count, observedAt: data.observedAt, validUntil: data.validUntil };
+}
+
 export async function markUserNotificationRead(input: {
   id: string;
   source: UserNotificationSource;

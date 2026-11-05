@@ -384,7 +384,8 @@ describe('NURI custom icon candidate', () => {
       path.join(root, 'src/screens/More/MoreDrawerContent.tsx'),
       'utf8',
     );
-    expect(more).toContain("nuriIcon: 'palette'");
+    expect(more).not.toContain("nuriIcon: 'palette'");
+    expect(more).toContain("nuriIcon: 'calendar'");
     expect(more).not.toContain('iconEmoji');
     const menuColors = more.slice(
       more.indexOf('const menuThemeColors'),

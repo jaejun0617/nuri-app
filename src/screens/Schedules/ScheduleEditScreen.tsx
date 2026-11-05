@@ -1,3 +1,5 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // 파일: src/screens/Schedules/ScheduleEditScreen.tsx
 // 역할:
@@ -7,7 +9,8 @@ import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 
 import AppTextInput from '../../app/ui/AppTextInput';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Alert, BackHandler, TouchableOpacity, View } from 'react-native';
+import { BackHandler, TouchableOpacity, View } from 'react-native';
+import { NuriAlert as Alert } from '../../app/ui/NuriAlert';
 import {
   useFocusEffect,
   useNavigation,
@@ -506,7 +509,7 @@ export default function ScheduleEditScreen() {
       edges={keyboardVisible ? ['left', 'right'] : ['left', 'right', 'bottom']}
     >
       <SeasonalFormBackground uniform />
-      <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
+      <AppHeaderLayout subtitle="바뀐 일정을 아이의 하루에 맞춰 정리해요" style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
             activeOpacity={0.88}
@@ -514,13 +517,13 @@ export default function ScheduleEditScreen() {
             onPress={onPressBack}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
-            <Feather name="arrow-left" size={20} color="#102033" />
+            <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
           </TouchableOpacity>
         </View>
-        <AppText
+        <AppText styleOverridesPreset
           typographyRole="screenTitle"
           preset="unifiedTitle"
-          style={styles.headerTitle}
+          style={[styles.headerTitle, APP_HEADER.title]}
         >
           일정 수정
         </AppText>
@@ -536,7 +539,7 @@ export default function ScheduleEditScreen() {
             onPress={onSubmit}
           />
         </View>
-      </View>
+      </AppHeaderLayout>
 
       <KeyboardAwareScrollView
         style={styles.scroll}

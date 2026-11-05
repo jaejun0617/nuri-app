@@ -18,6 +18,7 @@ import { isSecurityQaEnabled } from '../../services/securityQa/config';
 import AppTextInput from '../../app/ui/AppTextInput';
 import { useSeasonPreference } from '../../app/providers/SeasonPreferenceProvider';
 import { SeasonReviewControls } from '../../components/common/SeasonReviewControls';
+import PostRegistrationLoadingReview from '../Auth/PostRegistrationLoadingReview';
 import type { SeasonKey } from '../../theme/seasonal/season';
 import { captureMonitoringException } from '../../services/monitoring/sentry';
 import SeasonalAmbientBackground from '../../components/common/SeasonalAmbientBackground';
@@ -35,7 +36,6 @@ import React, {
   useState,
 } from 'react';
 import {
-  Alert,
   AppState,
   FlatList,
   Keyboard,
@@ -46,11 +46,11 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  useWindowDimensions,
   View,
   type LayoutChangeEvent,
   type ListRenderItemInfo,
 } from 'react-native';
+import { NuriAlert as Alert } from '../../app/ui/NuriAlert';
 import { KeyboardAvoidingView as KeyboardControllerAvoidingView } from 'react-native-keyboard-controller';
 import { useBoundedKeyboardScroll } from '../../hooks/useBoundedKeyboardScroll';
 import { useKeyboardBottomPadding } from '../../hooks/useKeyboardBottomPadding';
@@ -76,7 +76,6 @@ import MoreMonthlyExpenseSummary from '../../components/MoreDrawer/MoreMonthlyEx
 import AppNavigationToolbar, { type ActiveTabKey } from '../../components/navigation/AppNavigationToolbar';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
-import PetThemePicker from '../../components/pets/PetThemePicker';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
   canChangeNickname,
@@ -86,7 +85,6 @@ import {
 } from '../../services/local/accountPreferences';
 import { formatDateLabelFromDate } from '../../utils/date';
 import { getBrandedErrorMeta } from '../../services/app/errors';
-import { getResponsiveBottomSheetMaxHeight } from '../../services/app/responsiveLayout';
 import {
   ACCOUNT_DELETION_CONFIRMATION_TEXT,
   isAccountDeletionConfirmationValid,
@@ -101,7 +99,6 @@ import {
   performAccountDeletion,
   performLogout,
 } from '../../services/auth/session';
-import { fetchMyPets, updatePet } from '../../services/supabase/pets';
 import {
   checkNicknameAvailabilityDetailed,
   fetchMyProfile,
@@ -167,19 +164,6 @@ type ProfileEditModalProps = {
   accentColor: string;
   onClose: () => void;
   onChangeNickname: (value: string) => void;
-  onSubmit: () => void;
-};
-
-type ThemeSettingsModalProps = {
-  visible: boolean;
-  bottomInset: number;
-  petName: string | null;
-  helperText: string;
-  selectedColor: string;
-  accentColor: string;
-  saving: boolean;
-  onClose: () => void;
-  onSelectColor: (color: string) => void;
   onSubmit: () => void;
 };
 
@@ -424,126 +408,6 @@ export const PasswordChangeModal = memo(function PasswordChangeModal({
           </AnimatedPressable>
         </View>
       </KeyboardControllerAvoidingView>
-    </Modal>
-  );
-});
-
-const ThemeSettingsModal = memo(function ThemeSettingsModal({
-  visible,
-  bottomInset,
-  petName,
-  helperText,
-  selectedColor,
-  accentColor: _accentColor,
-  saving,
-  onClose,
-  onSelectColor,
-  onSubmit,
-}: ThemeSettingsModalProps) {
-  const theme = useTheme();
-  const { height: windowHeight } = useWindowDimensions();
-  const maxSheetHeight = getResponsiveBottomSheetMaxHeight({
-    windowHeight,
-    bottomInset,
-  });
-
-  return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-    >
-      <View
-        style={[
-          styles.modalBackdrop,
-          { backgroundColor: theme.colors.overlay },
-        ]}
-      >
-        <Pressable style={styles.modalScrim} onPress={onClose} />
-        <View
-          style={[
-            styles.sheetCard,
-            {
-              backgroundColor: theme.colors.surfaceElevated,
-              paddingBottom: Math.max(bottomInset + 18, 26),
-              maxHeight: maxSheetHeight,
-            },
-          ]}
-        >
-          <View style={styles.sheetHeader}>
-            <AppText
-              typographyRole="sectionTitle"
-              preset="unifiedTitle"
-              style={[styles.sheetTitle, { color: theme.colors.textPrimary }]}
-            >
-              테마 설정
-            </AppText>
-            <TouchableOpacity
-              activeOpacity={0.85}
-              style={[
-                styles.sheetClose,
-                { backgroundColor: theme.colors.surface },
-              ]}
-              onPress={onClose}
-            >
-              <Feather name="x" size={20} color={theme.colors.textMuted} />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView
-            style={styles.themeSettingsScroll}
-            contentContainerStyle={styles.themeSettingsContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.themeInfoBlock}>
-              <AppText
-                preset="unifiedTitle"
-                style={[
-                  styles.themeInfoTitle,
-                  { color: theme.colors.textPrimary },
-                ]}
-              >
-                {petName
-                  ? `${petName}의 테마를 바꿔볼까요?`
-                  : '현재 아이의 테마를 바꿔볼까요?'}
-              </AppText>
-              <AppText
-                preset="unifiedBody"
-                style={[
-                  styles.themeInfoBody,
-                  { color: theme.colors.textSecondary },
-                ]}
-              >
-                {helperText}
-              </AppText>
-            </View>
-
-            <PetThemePicker
-              selectedColor={selectedColor}
-              helperText="홈 카드, 기록, 일정, 더보기의 강조색에 함께 반영돼요."
-              onSelectColor={onSelectColor}
-            />
-
-            <CtaButton
-              role="primary"
-              loading={saving}
-              activeOpacity={0.9}
-              style={[
-                styles.primaryButton,
-                {},
-                saving ? styles.disabledButton : null,
-              ]}
-              onPress={onSubmit}
-              disabled={saving}
-            >
-              <CtaText preset="unifiedLabel" style={styles.primaryButtonText}>
-                {saving ? '저장 중...' : '테마 적용하기'}
-              </CtaText>
-            </CtaButton>
-          </ScrollView>
-        </View>
-      </View>
     </Modal>
   );
 });
@@ -818,7 +682,6 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, o
   const setProfileSyncState = useAuthStore(s => s.setProfileSyncState);
   const pets = usePetStore(s => s.pets);
   const selectedPetId = usePetStore(s => s.selectedPetId);
-  const setPets = usePetStore(s => s.setPets);
   const moreDrawerScrollOffset = useUiStore(s => s.moreDrawerScrollOffset);
   const moreDrawerRestorePending = useUiStore(s => s.moreDrawerRestorePending);
   const menuScrollRef = useRef<FlatList<MenuSectionSpec> | null>(
@@ -834,7 +697,6 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, o
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [profileModalVisible, setProfileModalVisible] = useState(false);
-  const [themeModalVisible, setThemeModalVisible] = useState(false);
   const [fontSettingsModalVisible, setFontSettingsModalVisible] =
     useState(false);
   const [notificationModalVisible, setNotificationModalVisible] =
@@ -975,9 +837,7 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, o
     return null;
   }, [accountStatusNotice]);
   const [profileSaving, setProfileSaving] = useState(false);
-  const [themeSaving, setThemeSaving] = useState(false);
   const [draftNickname, setDraftNickname] = useState('');
-  const [draftThemeColor, setDraftThemeColor] = useState<string | null>(null);
   const [nicknameChangedAt, setNicknameChangedAt] = useState<string | null>(
     null,
   );
@@ -1206,26 +1066,6 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, o
     setProfileModalVisible(false);
     setDraftNickname(nickname ?? '');
   }, [nickname]);
-
-  const openThemeModal = useCallback(() => {
-    if (!selectedPet) {
-      showToast({
-        tone: 'info',
-        title: '먼저 아이를 등록해 주세요',
-        message: '테마 설정은 반려동물 프로필이 있어야 적용할 수 있어요.',
-      });
-      return;
-    }
-
-    setDraftThemeColor(selectedPet.themeColor ?? petTheme.primary);
-    setThemeModalVisible(true);
-  }, [petTheme.primary, selectedPet]);
-
-  const closeThemeModal = useCallback(() => {
-    if (themeSaving) return;
-    setThemeModalVisible(false);
-    setDraftThemeColor(null);
-  }, [themeSaving]);
 
   const refreshNotificationSettings = useCallback(async () => {
     const owner = useAuthStore.getState().session?.user.id;
@@ -1487,71 +1327,6 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, o
     closeAndNavigate(() => navigation.navigate('SignIn'));
   }, [closeAndNavigate, navigation]);
 
-  const onSubmitTheme = useCallback(async () => {
-    if (!selectedPet || themeSaving) return;
-
-    const nextThemeColor =
-      draftThemeColor ?? selectedPet.themeColor ?? petTheme.primary;
-    if (nextThemeColor === (selectedPet.themeColor ?? null)) {
-      setThemeModalVisible(false);
-      return;
-    }
-
-    try {
-      setThemeSaving(true);
-
-      await updatePet({
-        petId: selectedPet.id,
-        name: selectedPet.name,
-        species: selectedPet.species ?? 'other',
-        speciesDetailKey: selectedPet.speciesDetailKey ?? null,
-        speciesDisplayName: selectedPet.speciesDisplayName ?? null,
-        themeColor: nextThemeColor,
-        birthDate: selectedPet.birthDate ?? null,
-        adoptionDate: selectedPet.adoptionDate ?? null,
-        deathDate: selectedPet.deathDate ?? null,
-        weightKg: selectedPet.weightKg ?? null,
-        breed: selectedPet.breed ?? null,
-        gender: selectedPet.gender ?? 'unknown',
-        neutered: selectedPet.neutered ?? null,
-        hobbies: selectedPet.hobbies ?? [],
-        likes: selectedPet.likes ?? [],
-        dislikes: selectedPet.dislikes ?? [],
-        tags: selectedPet.tags ?? [],
-        avatarPath: selectedPet.avatarPath ?? null,
-      });
-
-      const userId = session?.user?.id ?? null;
-      const refreshedPets = await fetchMyPets(userId ?? undefined);
-      setPets(refreshedPets, { userId, preferredPetId: selectedPet.id });
-
-      setThemeModalVisible(false);
-      setDraftThemeColor(null);
-      showToast({
-        tone: 'success',
-        title: '테마 적용 완료',
-        message: '현재 아이의 강조색을 새 테마로 바꿨어요.',
-      });
-    } catch (error) {
-      const { title, message } = getBrandedErrorMeta(error, 'pet-update');
-      showToast({
-        tone: 'error',
-        title,
-        message,
-        durationMs: 3200,
-      });
-    } finally {
-      setThemeSaving(false);
-    }
-  }, [
-    draftThemeColor,
-    petTheme.primary,
-    setPets,
-    selectedPet,
-    session?.user?.id,
-    themeSaving,
-  ]);
-
   const openIndoorActivities = useCallback(() => {
     closeAndNavigate(() =>
       navigation.navigate('IndoorActivityRecommendations', {
@@ -1688,14 +1463,6 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, o
   const settingItems = useMemo<MenuItemSpec[]>(
     () => [
       {
-        key: 'theme',
-        label: '펫 강조색',
-        icon: 'palette',
-        nuriIcon: 'palette',
-        swatch: petTheme.primary,
-        onPress: openThemeModal,
-      },
-      {
         key: 'app-font',
         label: '앱 글꼴',
         valueLabel: getAppFontModeLabel(appFontMode),
@@ -1718,8 +1485,6 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, o
     ],
     [
       appFontMode,
-      petTheme.primary,
-      openThemeModal,
       openNotificationModal,
       openUserNotifications,
       userNotificationUnreadCount,
@@ -1876,6 +1641,7 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, o
           {isLoggedIn ? (
             <SeasonReviewControls season={season} onChange={setReviewSeason} />
           ) : null}
+          {__DEV__ ? <PostRegistrationLoadingReview petName={selectedPet?.name} /> : null}
           </View>}
         />
 
@@ -1902,24 +1668,6 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, o
       />
       </LazySettingsModal>
 
-      <LazySettingsModal visible={themeModalVisible}>
-      <ThemeSettingsModal
-        visible={themeModalVisible}
-        bottomInset={Math.max(insets.bottom, 6)}
-        petName={selectedPet?.name ?? null}
-        helperText="현재 선택한 아이의 프로필 링, 이름과 프로필 정보에 적용돼요."
-        selectedColor={
-          draftThemeColor ?? selectedPet?.themeColor ?? petTheme.primary
-        }
-        accentColor={NEUTRAL_UI_PALETTE.primary}
-        saving={themeSaving}
-        onClose={closeThemeModal}
-        onSelectColor={setDraftThemeColor}
-        onSubmit={() => {
-          onSubmitTheme().catch(() => {});
-        }}
-      />
-      </LazySettingsModal>
       <LazySettingsModal visible={fontSettingsModalVisible}>
       <AppFontSettingsModal
         visible={fontSettingsModalVisible}
@@ -2232,13 +1980,6 @@ const styles = StyleSheet.create({
     paddingBottom: 26,
     gap: 18,
   },
-  themeSettingsScroll: {
-    flexGrow: 0,
-  },
-  themeSettingsContent: {
-    gap: 18,
-    paddingBottom: 2,
-  },
   notificationSettingsScroll: {
     flexGrow: 0,
   },
@@ -2414,21 +2155,8 @@ const styles = StyleSheet.create({
   profileHelperSuccess: {
     color: '#7A57E8',
   },
-  themeInfoBlock: {
-    gap: 6,
-  },
   notificationInfoBlock: {
     gap: 6,
-  },
-  themeInfoTitle: {
-    fontSize: 15,
-    lineHeight: 22,
-    fontWeight: '800',
-  },
-  themeInfoBody: {
-    fontSize: 13,
-    lineHeight: 20,
-    fontWeight: '500',
   },
   primaryButton: {
     minHeight: 52,

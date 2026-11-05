@@ -68,8 +68,8 @@ describe('modal keyboard-space ownership', () => {
         renderer.root.findByProps({ testID: 'weight-entry-sheet' }).props.style,
       ),
     ).toMatchObject({
-      borderTopLeftRadius: 8,
-      borderTopRightRadius: 8,
+      borderTopLeftRadius: 25,
+      borderTopRightRadius: 25,
       overflow: 'hidden',
       paddingBottom: progress ? 12 : 24,
     });

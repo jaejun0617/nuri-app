@@ -1,3 +1,7 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
+import { MenuGlassSurface, MENU_GLASS_FRAME } from '../../components/common/MenuGlassSurface';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
@@ -9,6 +13,7 @@ import {
   View,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from '../../components/icons/NuriFeatherIcon';
 import { useTheme } from 'styled-components/native';
@@ -42,6 +47,7 @@ export default function AnimalHospitalListScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
 
 
   const [searchInput, setSearchInput] = useState('');
@@ -115,7 +121,8 @@ export default function AnimalHospitalListScreen() {
 
   const listHeader = (
     <View style={styles.resultsListIntro}>
-      <View style={styles.locationInfoCard}>
+      <View style={[styles.locationInfoCard, MENU_GLASS_FRAME]}>
+        <MenuGlassSurface radius={18} />
         <View
           style={[styles.locationIconWrap, { backgroundColor: petTheme.tint }]}
         >
@@ -147,7 +154,7 @@ export default function AnimalHospitalListScreen() {
       </View>
       {discoveryState.permission === 'granted' &&
       discoveryState.permissionAccuracy === 'approximate' ? (
-        <LocationDiscoveryStatusCard
+        <LocationDiscoveryStatusCard surfaceVariant="menuGlass"
           icon="crosshair"
           title="정확한 위치 권한이 필요해요"
           body="현재 Android가 대략 위치만 허용하고 있어요. 앱에서 정확한 위치를 다시 요청할게요. 계속 대략 위치면 설정에서 정확한 위치를 켜 주세요."
@@ -167,7 +174,7 @@ export default function AnimalHospitalListScreen() {
         />
       ) : discoveryState.permission === 'granted' &&
         discoveryState.hasWeakLocationSignal ? (
-        <LocationDiscoveryStatusCard
+        <LocationDiscoveryStatusCard surfaceVariant="menuGlass"
           icon="navigation"
           title="GPS 신호가 약해요"
           body="최근 좌표로 먼저 병원을 보여주고 있어요. 실외나 창가에서 새로고침하면 가까운순 정확도가 올라가요."
@@ -177,7 +184,7 @@ export default function AnimalHospitalListScreen() {
           }}
         />
       ) : discoveryState.usingStaleLocation ? (
-        <LocationDiscoveryStatusCard
+        <LocationDiscoveryStatusCard surfaceVariant="menuGlass"
           icon="clock"
           title="새 위치를 다시 확인해 주세요"
           body="저장된 이전 좌표는 거리 계산에 사용하지 않아요. 현재 위치가 확인되면 거리와 순서를 갱신해요."
@@ -191,34 +198,37 @@ export default function AnimalHospitalListScreen() {
   );
 
   return (
-    <Screen style={styles.screen}>
-      <View style={styles.container}>
-        <View style={styles.header}>
-          <View style={styles.headerSideSlot}>
+    <Screen noTopInset style={styles.screen}>
+        <AppHeaderLayout testID="hospital-list-header" topInset={insets.top} subtitle="아이와 방문할 주변 동물병원을 살펴봐요">
+          <View style={{ width: APP_HEADER.targetSize }}>
             <TouchableOpacity
               activeOpacity={0.88}
-              style={styles.backButton}
+              style={{ width: APP_HEADER.targetSize, height: APP_HEADER.targetSize, alignItems: 'center', justifyContent: 'center' }}
+              accessibilityRole="button"
+              accessibilityLabel="뒤로가기"
               onPress={onPressBack}
               hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
             >
               <Feather
-                name="arrow-left"
-                size={20}
+                name="chevron-left"
+                size={APP_HEADER.backIconSize}
                 color={theme.colors.textPrimary}
               />
             </TouchableOpacity>
           </View>
-          <AppText
+          <AppText styleOverridesPreset
             typographyRole="screenTitle"
             preset="unifiedTitle"
-            style={styles.headerTitle}
+            style={[styles.headerTitle, APP_HEADER.title]}
           >
             우리동네 동물병원
           </AppText>
-          <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
-        </View>
+          <HeaderHelpButton topic="hospital" />
+        </AppHeaderLayout>
 
+      <View style={styles.container}>
         <LocationDiscoverySearchBar
+          surfaceVariant="menuGlass"
           value={searchInput}
           onChangeText={handleChangeSearchInput}
           onSubmit={handleSubmitSearch}
@@ -238,7 +248,7 @@ export default function AnimalHospitalListScreen() {
           <View style={styles.resultsPanel}>
             {discoveryState.loading && discoveryState.items.length === 0 ? (
               <View style={styles.resultsEmptyWrap}>
-                <LocationDiscoveryStatusCard
+                <LocationDiscoveryStatusCard surfaceVariant="menuGlass"
                   icon="clock"
                   loading
                   title="병원 목록을 준비하고 있어요"
@@ -248,7 +258,7 @@ export default function AnimalHospitalListScreen() {
             ) : discoveryState.searching &&
               discoveryState.items.length === 0 ? (
               <View style={styles.resultsEmptyWrap}>
-                <LocationDiscoveryStatusCard
+                <LocationDiscoveryStatusCard surfaceVariant="menuGlass"
                   icon="search"
                   loading
                   title="병원을 검색하고 있어요"
@@ -257,7 +267,7 @@ export default function AnimalHospitalListScreen() {
               </View>
             ) : discoveryState.error && discoveryState.items.length === 0 ? (
               <View style={styles.resultsEmptyWrap}>
-                <LocationDiscoveryStatusCard
+                <LocationDiscoveryStatusCard surfaceVariant="menuGlass"
                   icon="alert-circle"
                   title="병원 후보를 불러오지 못했어요"
                   body={discoveryState.error}
@@ -266,18 +276,18 @@ export default function AnimalHospitalListScreen() {
             ) : discoveryState.items.length === 0 ? (
               <View style={styles.resultsEmptyWrap}>
                 {submittedQuery.trim().length >= 2 ? (
-                  <LocationDiscoveryStatusCard
+                  <LocationDiscoveryStatusCard surfaceVariant="menuGlass"
                     icon="search"
                     title="검색 결과가 없어요"
                     body="병원명이나 지역명을 조금 바꿔 다시 검색해 보세요."
                   />
                 ) : discoveryState.permission !== 'granted' ? (
-                  <LocationDiscoveryStatusCard
+                  <LocationDiscoveryStatusCard surfaceVariant="menuGlass"
                     icon="map-pin"
                     {...buildLocationPermissionCopy(discoveryState.permission)}
                   />
                 ) : (
-                  <LocationDiscoveryStatusCard
+                  <LocationDiscoveryStatusCard surfaceVariant="menuGlass"
                     icon="map"
                     title="병원을 찾지 못했어요"
                     body="지역명으로 다시 검색해 보세요."
@@ -286,7 +296,7 @@ export default function AnimalHospitalListScreen() {
               </View>
             ) : visibleItems.length === 0 ? (
               <View style={styles.resultsEmptyWrap}>
-                <LocationDiscoveryStatusCard
+                <LocationDiscoveryStatusCard surfaceVariant="menuGlass"
                   icon="search"
                   title="조건에 맞는 병원이 없어요"
                   body="현재 위치 기준 가까운 병원을 다시 확인해 보세요."

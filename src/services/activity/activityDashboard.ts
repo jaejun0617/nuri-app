@@ -110,6 +110,7 @@ export type ActivityDashboardData = {
   levelProgress: number;
   maxLevel: number;
   representativeTitle: string;
+  representativeTitleKey?: string | null;
   earnedTitles: ActivityDashboardTitle[];
   petSummaries: PetActivityDashboardSummary[];
   commonSummary: CommonActivityDashboardSummary;
@@ -530,13 +531,16 @@ export function buildActivityDashboard(
   };
 
   const policyTitleNames = new Set(TITLE_POLICIES.map(item => item.name));
-  const representativeTitle =
+  const representativeAchievement =
     input.titleVault?.filter(item => item.achieved).sort((a, b) =>
       (b.earnedAt ?? '').localeCompare(a.earnedAt ?? '') || a.key.localeCompare(b.key),
-    )[0]?.name ??
-    input.titles.find(title => policyTitleNames.has(title.titleName))?.titleName ??
-    input.titles[0]?.titleName ??
-    '첫 추억 기록 준비 중';
+    )[0];
+  const representativeLegacyTitle =
+    input.titles.find(title => policyTitleNames.has(title.titleName)) ?? input.titles[0];
+  const representativeTitle = representativeAchievement?.name ??
+    representativeLegacyTitle?.titleName ?? '첫 추억 기록 준비 중';
+  const representativeTitleKey = representativeAchievement?.key ??
+    representativeLegacyTitle?.titleKey ?? null;
   const normalizedLevel = calculateLevel(input.levelSummary.totalXp);
   const normalizedLevelSummary: UserLevelSummary = {
     ...input.levelSummary,
@@ -550,6 +554,7 @@ export function buildActivityDashboard(
     levelProgress: getProgressWithinLevel(normalizedLevelSummary),
     maxLevel: LEVEL_THRESHOLDS[LEVEL_THRESHOLDS.length - 1]?.level ?? 10,
     representativeTitle,
+    representativeTitleKey,
     earnedTitles: input.titles,
     petSummaries,
     commonSummary,

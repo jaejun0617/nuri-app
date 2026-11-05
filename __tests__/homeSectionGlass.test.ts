@@ -3,6 +3,7 @@ import * as ReactNative from 'react-native';
 import ReactTestRenderer from 'react-test-renderer';
 import { BlurView } from '@sbaiahmed1/react-native-blur';
 import { HOME_FLOATING_WIDGET_MATERIAL } from '../src/components/home/HomeWidgetMaterial';
+import { HomeFrostedGlass } from '../src/components/home/HomeFrostedGlass';
 
 import {
   HOME_SECTION_GLASS_MATERIAL_STYLE,
@@ -23,6 +24,25 @@ import { getSeasonalWeatherVisualTheme } from '../src/theme/seasonal/weather';
 describe('Home section glass', () => {
   afterEach(() => {
     jest.restoreAllMocks();
+  });
+  it('shares the exact menu glass fill and reflections without replacing card geometry', async () => {
+    let tree!: ReactTestRenderer.ReactTestRenderer;
+    await ReactTestRenderer.act(async () => {
+      tree = ReactTestRenderer.create(React.createElement(ReactNative.View, null,
+        React.createElement(HomeSectionGlass, { testID:'home-material', style:{padding:16} }),
+        React.createElement(HomeFrostedGlass, { testID:'menu-material', season:'autumn', borderRadius:8, style:{padding:8} }),
+      ));
+    });
+    const paint = (id:string) => {
+      const root = tree.root.findAll(node=>node.type===ReactNative.View && node.props.testID===id)[0];
+      const fill = root.findAll(node=>node.type===ReactNative.View && node.props.testID==='home-reflective-fill')[0];
+      const style = ReactNative.StyleSheet.flatten(fill.props.style);
+      expect(style).toMatchObject(HOME_FLOATING_WIDGET_MATERIAL);
+      return root.findAll(node=>typeof node.type==='string' && node.props.testID==='home-reflective-glass-reflection')[0]?.props.colors;
+    };
+    const home = paint('home-material'), menu = paint('menu-material');
+    expect(home).toBeDefined(); expect(home).toEqual(menu);
+    await ReactTestRenderer.act(async () => tree.unmount());
   });
 
   it.each<SeasonKey>(['winter', 'spring', 'summer'])(

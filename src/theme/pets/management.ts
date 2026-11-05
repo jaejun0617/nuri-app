@@ -1,8 +1,9 @@
 import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 
 // PO 2026-10-21: fixed reference colors, independent of pet and season themes.
 export const PET_MANAGEMENT_COLORS = {
-  canvas: '#F9F7FE',
+  canvas: PRODUCT_CANVAS_COLOR,
   surface: '#FFFFFF',
   glass: 'rgba(255,255,255,0.65)',
   ink: '#19152F',

@@ -1,3 +1,6 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
+import { buildPetThemePalette } from '../../services/pets/themePalette';
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, Modal, Pressable, ScrollView, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -11,7 +14,7 @@ import AppText from '../../app/ui/AppText';
 import { ASSETS } from '../../assets';
 import Feather from '../../components/icons/NuriFeatherIcon';
 import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
-import { HomeFloatingWidgetSurface } from '../../components/home/HomeWidgetMaterial';
+import { MenuGlassSurface } from '../../components/common/MenuGlassSurface';
 import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
 import { LavenderScreenBackground } from '../../components/common/LavenderScreenBackground';
 import { useMonthlyExpenses } from '../../hooks/useMonthlyExpenses';
@@ -41,7 +44,9 @@ export default function MonthlyExpensesScreen() {
   const [petPickerOpen, setPetPickerOpen] = useState(false);
   const [infoOpen, setInfoOpen] = useState(false);
   const pets = usePetStore(state => state.pets);
-  const availablePets = preview ? MONTHLY_EXPENSE_PREVIEW_PETS : pets;
+  const availablePets = preview
+    ? MONTHLY_EXPENSE_PREVIEW_PETS.map(pet => ({ ...pet, themeColor: null }))
+    : pets;
   // Removing a pet falls back locally; this filter never changes Home's selected pet.
   const validPetId = availablePets.some(pet => pet.id === petId) ? petId : null;
   const selectedPet = availablePets.find(pet => pet.id === validPetId);
@@ -103,15 +108,15 @@ export default function MonthlyExpensesScreen() {
   );
   return <SafeAreaView testID={preview ? 'monthly-expenses-preview' : 'monthly-expenses-live'} style={styles.screen} edges={['top', 'left', 'right']}>
     <LavenderScreenBackground testID="monthly-expenses-background-gradient" />
-    <View style={styles.header}>
+    <AppHeaderLayout subtitle="아이를 위해 기록한 지출을 모아봐요" style={styles.header}>
       <TouchableOpacity accessibilityRole="button" accessibilityLabel="뒤로" style={styles.tool} onPress={onBack}>
-        <NuriSemanticIcon family="feather" name="arrow-left" size={24} color={colors.ink} preserveOriginal />
+        <NuriSemanticIcon family="feather" name="chevron-left" size={APP_HEADER.backIconSize} color={colors.ink} preserveOriginal />
       </TouchableOpacity>
-      <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.heading}>월별 지출</AppText>
+      <AppText styleOverridesPreset typographyRole="screenTitle" preset="unifiedTitle" style={[styles.heading, APP_HEADER.title]}>월별 지출</AppText>
       <TouchableOpacity accessibilityRole="button" accessibilityLabel="월별 지출 안내" style={styles.tool} onPress={() => setInfoOpen(true)}>
-        <NuriSemanticIcon family="feather" name="info" size={23} color="#706A8A" preserveOriginal />
+        <NuriSemanticIcon family="feather" name="info" size={APP_HEADER.actionIconSize} color="#706A8A" preserveOriginal />
       </TouchableOpacity>
-    </View>
+    </AppHeaderLayout>
     <FlatList ref={listRef} data={error || loading ? [] : view.rows} keyExtractor={row => row.key} renderItem={renderItem}
       contentContainerStyle={[styles.content, { paddingHorizontal: layout.gutter, paddingBottom: (toolbarHeight ?? insets.bottom) + 24 }]}
       refreshing={!preview && query.isFetching} onRefresh={() => { if (!preview) query.refetch(); }}
@@ -122,7 +127,7 @@ export default function MonthlyExpensesScreen() {
           <TouchableOpacity accessibilityRole="button" accessibilityLabel="다음 달" style={styles.tool} onPress={() => changeMonth(1)}><Feather name="chevron-right" size={24} color={colors.ink} /></TouchableOpacity>
         </View>
         <View style={[styles.glass, styles.summary]} testID="expense-month-summary">
-          <HomeFloatingWidgetSurface radius={16} testIDPrefix="expense-summary-glass" />
+          <MenuGlassSurface radius={16} testID="expense-summary-glass" />
           <View style={styles.summaryHeading}>
             <AppText styleOverridesPreset style={styles.label}>이달 기록한 지출</AppText>
             <TouchableOpacity accessibilityRole="button" accessibilityLabel="아이 필터" style={styles.petSelector} onPress={() => setPetPickerOpen(true)}>
@@ -163,6 +168,7 @@ export default function MonthlyExpensesScreen() {
         {view.summary.legacyDateCount > 0 && !error && dataReady && <AppText styleOverridesPreset style={styles.footerText}>날짜가 없는 {view.summary.legacyDateCount}건은 등록일 기준이에요.</AppText>}
       </>}
       ListEmptyComponent={<View style={[styles.glass, styles.status]}>
+        <MenuGlassSurface radius={16} />
         {loading ? <><ActivityIndicator color={colors.accent} /><AppText styleOverridesPreset style={styles.description}>지출을 불러오고 있어요</AppText></> : error ? <>
           <AppText styleOverridesPreset style={styles.emptyTitle}>지출을 불러오지 못했어요</AppText>
           <TouchableOpacity accessibilityRole="button" accessibilityLabel="지출 다시 시도" style={styles.retry} onPress={() => query.refetch()}><AppText styleOverridesPreset style={styles.retryText}>다시 시도</AppText></TouchableOpacity>
@@ -170,14 +176,14 @@ export default function MonthlyExpensesScreen() {
       </View>}
       ListFooterComponent={<View style={styles.footer}><NuriSemanticIcon family="feather" name="info" size={14} color="#9A91B5" preserveOriginal /><AppText styleOverridesPreset style={styles.footerText}>타임라인에 기록한 지출만 표시돼요</AppText></View>}
     />
-    <PremiumNoticeModal visible={infoOpen} eyebrow="NURI" iconName="shield" titleLines={['월별 지출 안내']}
+    <PremiumNoticeModal surfaceVariant="menuGlass" visible={infoOpen} eyebrow="NURI" iconName="shield" titleLines={['월별 지출 안내']}
       bodyLines={['선택한 월과 아이의 타임라인에 기록한 비용을 모아요.', '병원·건강, 미용, 생활·용품을 포함해요.', '미용에는 목욕·위생에 기록한 비용도 포함해요.', '관리 항목이 여러 개여도 한 기록의 비용은 한 번만 합산해요.', ...(preview ? ['현재 화면은 디자인 검증용 데이터이며 실제 기록과 합산하지 않아요.'] : [])]}
       confirmLabel="알겠어요" accentColor={colors.accent} typographyMode="unified" onClose={() => setInfoOpen(false)} />
     <Modal testID="expense-pet-picker-modal" visible={petPickerOpen} transparent statusBarTranslucent navigationBarTranslucent animationType="fade" onRequestClose={() => setPetPickerOpen(false)}>
       <View style={styles.overlay}>
         <Pressable testID="expense-pet-picker-overlay" accessible={false} style={styles.pickerScrim} onPress={() => setPetPickerOpen(false)} />
         <View testID="expense-pet-picker" style={styles.sheet} accessibilityViewIsModal>
-        <HomeFloatingWidgetSurface radius={20} testIDPrefix="expense-pet-picker-glass" />
+        <MenuGlassSurface radius={20} backed testID="expense-pet-picker-glass" />
         <View style={styles.pickerHeader}>
           <Image accessible={false} source={require('../../assets/records/monthly-expense-pets.png')} style={styles.petScopeIcon} resizeMode="contain" />
           <View style={styles.pickerHeadingCopy}>
@@ -189,8 +195,8 @@ export default function MonthlyExpensesScreen() {
           </TouchableOpacity>
         </View>
         <ScrollView>
-          {[{ id: null, name: '전체 아이' }, ...availablePets].map((pet, index) => <TouchableOpacity key={pet.id ?? 'all'} accessibilityRole="radio"
-            testID={'expense-pet-option-' + index} accessibilityLabel={pet.name} accessibilityState={{ checked: validPetId === pet.id, selected: validPetId === pet.id }} style={[styles.petOption, validPetId === pet.id && styles.petOptionSelected]}
+          {[{ id: null, name: '전체 아이', themeColor: null }, ...availablePets].map((pet, index) => <TouchableOpacity key={pet.id ?? 'all'} accessibilityRole="radio"
+            testID={'expense-pet-option-' + index} accessibilityLabel={pet.name} accessibilityState={{ checked: validPetId === pet.id, selected: validPetId === pet.id }} style={[styles.petOption, validPetId === pet.id && { backgroundColor: buildPetThemePalette(pet.themeColor).tint, borderColor: buildPetThemePalette(pet.themeColor).primary }]}
             onPress={() => { setPetId(pet.id); setPetPickerOpen(false); listRef.current?.scrollToOffset({ offset: 0, animated: false }); }}>
             <View style={styles.pickerOptionIcon}>
               {pet.id === null ? <Image accessible={false} source={require('../../assets/records/monthly-expense-pets.png')} style={styles.petScopeIcon} resizeMode="contain" />
@@ -200,8 +206,8 @@ export default function MonthlyExpensesScreen() {
               <AppText styleOverridesPreset style={[styles.rowTitle, validPetId === pet.id && styles.petOptionLabelSelected]}>{pet.name}</AppText>
               <AppText styleOverridesPreset style={styles.pickerOptionDescription}>{pet.id === null ? '모든 아이의 지출 모아보기' : '이 아이의 지출만 보기'}</AppText>
             </View>
-            <View style={[styles.pickerRadio, validPetId === pet.id && styles.pickerRadioSelected]}>
-              {validPetId === pet.id && <NuriSemanticIcon family="feather" name="check" size={14} color="#FFFFFF" preserveOriginal />}
+            <View style={[styles.pickerRadio, validPetId === pet.id && { backgroundColor: buildPetThemePalette(pet.themeColor).primary, borderColor: buildPetThemePalette(pet.themeColor).primary }]}>
+              {validPetId === pet.id && <NuriSemanticIcon family="feather" name="check" size={14} color={buildPetThemePalette(pet.themeColor).onPrimary} preserveOriginal />}
             </View>
           </TouchableOpacity>)}
         </ScrollView>

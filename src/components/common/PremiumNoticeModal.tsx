@@ -18,6 +18,7 @@ import type { CtaRole } from '../../app/theme/ctaPalette';
 import { useOptionalSafeAreaInsets } from '../../hooks/useOptionalSafeAreaInsets';
 import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
 import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
+import { MenuGlassSurface } from './MenuGlassSurface';
 import { premiumNoticeBody, premiumNoticeCardLayout, premiumNoticeTitle } from './PremiumNoticeModal.layout';
 
 
@@ -45,6 +46,7 @@ type Props = {
   onConfirm?: () => void;
   typographyMode?: 'legacy' | 'unified';
   confirmRole?: CtaRole;
+  surfaceVariant?: 'default' | 'menuGlass';
 };
 
 function withoutDecorativeEmoji(line: string) {
@@ -75,6 +77,7 @@ function PremiumNoticeModalBase({
   onConfirm,
   typographyMode = 'legacy',
   confirmRole,
+  surfaceVariant = 'default',
 }: Props) {
   const theme = useTheme();
   const insets = useOptionalSafeAreaInsets();
@@ -147,8 +150,10 @@ function PremiumNoticeModalBase({
               borderColor: theme.colors.border,
               maxHeight: maxCardHeight,
             },
+            surfaceVariant === 'menuGlass' && { backgroundColor: 'transparent', borderColor: 'rgba(255,255,255,0.78)', shadowOpacity: 0, elevation: 0 },
           ]}
         >
+          {surfaceVariant === 'menuGlass' ? <MenuGlassSurface radius={28} backed /> : null}
           <ScrollView
             style={styles.cardScroll}
             contentContainerStyle={styles.cardContent}

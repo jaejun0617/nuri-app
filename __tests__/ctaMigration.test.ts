@@ -120,6 +120,13 @@ describe('CTA source safety guards', () => {
       'src/screens/Pets/PetCreateScreen.tsx',
       'src/screens/LocationDiscovery/WalkPoiAdminReadOnlyScreen.tsx',
     ]) {
+      if (file === 'src/screens/Auth/PostRegistrationLoadingReview.tsx') {
+        const preview = read(file);
+        expect(preview).toContain('if (!__DEV__) return null');
+        expect(preview).toContain('holdForDesignReview');
+        expect(preview).not.toMatch(/services\/supabase|createPet\(|updatePet\(/);
+        continue;
+      }
       expect(read(file)).not.toMatch(
         /CtaButton|confirmRole=|cancelRole=|roleBasedActions/,
       );
@@ -134,7 +141,7 @@ describe('CTA source safety guards', () => {
       /usePetStore|getMonth\(|new Date\(/,
     );
   });
-  it('keeps personalized navigation and swatch paths outside action resolution', () => {
+  it('keeps navigation fixed and removes point-color editors without changing save compatibility', () => {
     expect(read('src/navigation/AppTabsNavigator.tsx')).not.toContain(
       'CtaButton',
     );
@@ -144,9 +151,14 @@ describe('CTA source safety guards', () => {
     expect(managementCard).toContain('colors.ink');
     expect(managementCard).toContain('colors.subtle');
     expect(managementCard).not.toContain('useEffectiveSeason()');
-    expect(managementCard).not.toContain('buildPetThemePalette');
+    expect(managementCard).toContain('buildPetThemePalette');
     expect(read('src/screens/Pets/PetProfileEditScreen.tsx')).toContain(
       'buildPetThemePalette(selectedThemeColor)',
     );
+    for (const file of ['src/screens/Pets/PetProfileEditScreen.tsx','src/screens/Pets/PetCreateScreen.tsx','src/screens/More/MoreDrawerContent.tsx']) {
+      expect(read(file)).not.toContain('PetThemePicker');
+    }
+    expect(read('src/screens/Pets/PetProfileEditScreen.tsx')).toContain('themeColor,');
+    expect(read('src/screens/More/MoreDrawerContent.tsx')).not.toContain("key: 'theme'");
   });
 });

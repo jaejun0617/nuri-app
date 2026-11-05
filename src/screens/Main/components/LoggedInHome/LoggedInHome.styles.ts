@@ -8,6 +8,7 @@
 import { StyleSheet } from 'react-native';
 import { SCREEN_TOP_SPACING } from '../../../../theme/layout';
 import { typography } from '../../../../app/theme/tokens/typography';
+import { PRODUCT_CANVAS_COLOR } from '../../../../app/theme/tokens/colors';
 
 const BRAND = '#6D6AF8';
 const BRAND_DEEP = '#5753E6';
@@ -16,7 +17,7 @@ const TEXT = '#0B1220';
 const MUTED = '#556070';
 const MUTED2 = 'rgba(85,96,112,0.70)';
 
-export const HOME_BASE_BACKGROUND_COLOR = '#FFFFFF';
+export const HOME_BASE_BACKGROUND_COLOR = PRODUCT_CANVAS_COLOR;
 
 const SURFACE = HOME_BASE_BACKGROUND_COLOR;
 const SURFACE_SOFT = '#F6F7FB';

@@ -7,6 +7,7 @@ import AppText from '../../app/ui/AppText';
 import type { LocationDiscoveryItem } from '../../services/locationDiscovery/types';
 import WalkingTravelMetaRow from './WalkingTravelMetaRow';
 import { styles } from './LocationDiscovery.styles';
+import { MenuGlassSurface, MENU_GLASS_FRAME } from '../common/MenuGlassSurface';
 
 type Props = {
   item: LocationDiscoveryItem;
@@ -39,7 +40,8 @@ function LocationDiscoveryCard({
   };
 
   return (
-    <View style={[styles.card, selected ? styles.cardSelected : null]}>
+    <View testID="walk-place-card-glass" style={[styles.card, MENU_GLASS_FRAME, selected ? styles.cardSelected : null, { shadowOpacity: 0, elevation: 0 }]}>
+      <MenuGlassSurface radius={22} />
       <TouchableOpacity
         activeOpacity={0.92}
         style={[

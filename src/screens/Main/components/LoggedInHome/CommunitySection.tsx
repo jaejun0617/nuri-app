@@ -18,7 +18,7 @@ import Feather from '../../../../components/icons/NuriFeatherIcon';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../../app/ui/AppText';
-import { SEASON_CTA } from '../../../../app/theme/ctaPalette';
+import { PRODUCT_CTA } from '../../../../app/theme/tokens/productAccent';
 import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
 import { HomeSectionHeader } from '../../../../components/home/HomeSectionHeader';
 import { useHomeContentTextStyle } from '../../../../components/home/HomeSeasonContext';
@@ -233,7 +233,7 @@ const CommunitySection = memo(function CommunitySection({
   onPressAll,
 }: CommunitySectionProps) {
   const theme = useTheme();
-  const chipPalette = SEASON_CTA[season];
+  const chipPalette = PRODUCT_CTA;
   const [activeTab, setActiveTab] = useState<HomeCommunityTab>('popular');
   const [state, setState] = useState<CommunitySectionState>(() => {
     const cached = getHomeCommunityHighlightsCache('popular');

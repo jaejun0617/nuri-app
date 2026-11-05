@@ -5,7 +5,7 @@ import { StyleSheet } from 'react-native';
 import Renderer, { act } from 'react-test-renderer';
 import { HomeHeroInfoPanel, HomeHeroContentSheet } from '../src/screens/Main/components/LoggedInHome/HomeHeroInfoPanel';
 import { buildPetThemePalette } from '../src/services/pets/themePalette';
-import { getHomeHeroColors, getHomeHeroSeasonCopy, getHomeHeroTypography, HOME_HERO_COLORS, HOME_HERO_ACCENT } from '../src/theme/home/heroLayout';
+import { getHomeHeroColors, getHomeHeroSeasonCopy, getHomeHeroTypography, HOME_HERO_COLORS } from '../src/theme/home/heroLayout';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 
 jest.mock('../src/app/ui/AppText', () => 'AppText');
@@ -36,7 +36,7 @@ describe('approved open Home Hero information', () => {
     expect(StyleSheet.flatten(node('home-hero-pet-name').props.style)).toMatchObject({ fontSize: 33, lineHeight: 44, includeFontPadding: false });
     expect(StyleSheet.flatten(node('home-hero-together-label').props.style)).toMatchObject({ fontSize: 14, lineHeight: 20 });
     expect(StyleSheet.flatten(node('home-hero-profile-info-label').props.style)).toMatchObject({ fontSize: 14, lineHeight: 20, textAlign: 'center' });
-    expect(StyleSheet.flatten(node('home-hero-day-value').props.style)).toMatchObject({ fontSize: 25, lineHeight: 32, color: HOME_HERO_ACCENT.primary });
+    expect(StyleSheet.flatten(node('home-hero-day-value').props.style)).toMatchObject({ fontSize: 25, lineHeight: 32, color: HOME_HERO_COLORS.ink });
     expect(StyleSheet.flatten(node('home-hero-name-balance').props.style)).toMatchObject({ width: 36, flexShrink: 0 });
     expect(StyleSheet.flatten(node('home-hero-pet-selector').props.style)).toMatchObject({ alignSelf: 'stretch', justifyContent: 'center' });
     expect(StyleSheet.flatten(node('home-hero-profile-edit').props.style)).toMatchObject({ borderWidth: 0, width: 54, minHeight: 51 });
@@ -136,7 +136,7 @@ describe('approved open Home Hero information', () => {
     expect(getHomeHeroSeasonCopy('몽실', season)).toContain('몽실과');
     expect(getHomeHeroTypography(426, '누리')).toEqual(getHomeHeroTypography(426, '누리'));
     await act(async () => renderer.update(<HomeHeroContentSheet season={season}><HomeHeroInfoPanel containerWidth={426} petTheme={buildPetThemePalette('#22C55E')} profilePetName="누리" titleBadge="실제 칭호" togetherDays={8} hasMultiplePets={false} onPressPetSelect={select} onPressProfileInfo={info} onPressPetProfileEdit={edit} /></HomeHeroContentSheet>));
-    expect(StyleSheet.flatten(node('home-hero-day-value').props.style).color).toBe(HOME_HERO_ACCENT.primary);
+    expect(StyleSheet.flatten(node('home-hero-day-value').props.style).color).toBe(HOME_HERO_COLORS.ink);
     expect(StyleSheet.flatten(node('home-hero-content-sheet').props.style).backgroundColor).toBe('transparent');
     expect(StyleSheet.flatten(node('home-hero-info').props.style).backgroundColor).toBe('transparent');
     expect(node('home-hero-pet-selector').props.disabled).toBe(true);

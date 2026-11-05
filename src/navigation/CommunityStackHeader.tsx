@@ -1,3 +1,5 @@
+import { APP_HEADER } from '../components/navigation/headerAppearance';
+import { AppHeaderLayout } from '../components/navigation/AppHeaderLayout';
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import type { NativeStackHeaderProps } from '@react-navigation/native-stack';
@@ -32,7 +34,9 @@ export default function CommunityStackHeader({
   });
 
   return (
-    <View
+    <AppHeaderLayout
+      background={headerBackground ? <View pointerEvents="none" importantForAccessibility="no-hide-descendants" accessibilityElementsHidden style={StyleSheet.absoluteFill}>{headerBackground}</View> : null}
+      subtitle={route.name === 'CommunityCreate' ? '나누고 싶은 이야기를 남겨요' : route.name === 'CommunityEdit' ? '나눴던 이야기를 다시 정리해요' : route.name === 'CommunityBlockedUsers' ? '내가 차단한 사용자를 확인해요' : route.name === 'CommunityComments' ? '이야기에 이어진 댓글을 살펴봐요' : '함께 돌보는 일상의 이야기를 나눠요'}
       style={[
         styles.header,
         {
@@ -45,18 +49,8 @@ export default function CommunityStackHeader({
         },
       ]}
     >
-      {headerBackground ? (
-        <View
-          pointerEvents="none"
-          importantForAccessibility="no-hide-descendants"
-          accessibilityElementsHidden
-          style={StyleSheet.absoluteFill}
-        >
-          {headerBackground}
-        </View>
-      ) : null}
       <View style={styles.headerSide}>{headerLeft}</View>
-      <AppText
+      <AppText styleOverridesPreset
         preset="titleSm"
         maxFontSizeMultiplier={1.6}
         numberOfLines={1}
@@ -64,12 +58,13 @@ export default function CommunityStackHeader({
           styles.headerTitle,
           { color: headerColor },
           options.headerTitleStyle,
+          APP_HEADER.title,
         ]}
       >
         {headerTitle}
       </AppText>
       <View style={[styles.headerSide, styles.headerRight]}>{headerRight}</View>
-    </View>
+    </AppHeaderLayout>
   );
 }
 
@@ -90,6 +85,5 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     flex: 1,
-    textAlign: 'center',
-  },
+    textAlign: 'center', ...APP_HEADER.title },
 });

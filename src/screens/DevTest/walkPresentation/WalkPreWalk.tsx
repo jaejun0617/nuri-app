@@ -17,7 +17,7 @@ import { resolveCtaPalette } from '../../../app/theme/ctaPalette';
 import { lightColors } from '../../../app/theme/tokens/colors';
 import type { SeasonKey } from '../../../theme/seasonal/season';
 import { getSeasonalWeatherVisualTheme } from '../../../theme/seasonal/weather';
-import { buildPetThemePalette } from '../../../services/pets/themePalette';
+import { buildAccentPalette } from '../../../services/pets/themePalette';
 import { appendKoreanParticle } from '../../../utils/koreanParticle';
 import { formatPetCopy } from '../../../utils/petDisplayName';
 
@@ -156,7 +156,7 @@ export default function WalkPreWalk(props: Props) {
   const greetingAccent = getSeasonalWeatherVisualTheme(props.season)?.card.accent;
   // The existing deep tone keeps small inline accents readable on white paper.
   const copyAccent = greetingAccent
-    ? buildPetThemePalette(greetingAccent).deep
+    ? buildAccentPalette(greetingAccent).deep
     : lightColors.textSecondary;
   const seasonal = SEASONAL_PRESENTATION[props.season];
   const emotionalLines = [

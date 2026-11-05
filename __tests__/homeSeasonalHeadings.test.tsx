@@ -19,10 +19,10 @@ jest.mock('../src/components/home/ScheduleCalendarSheet', () => ({
 }));
 
 const HEADINGS = {
-  spring: '#7A4654',
-  summer: '#205D62',
-  autumn: '#704C33',
-  winter: '#35556B',
+  spring: '#221351',
+  summer: '#221351',
+  autumn: '#221351',
+  winter: '#221351',
 } as const satisfies Record<SeasonKey, string>;
 const SEASONS: readonly SeasonKey[] = ['spring', 'summer', 'autumn', 'winter'];
 const ACTION_COLOR = '#243044';
@@ -171,7 +171,7 @@ describe('Home-only seasonal headline tint', () => {
       )[0];
       expect(action.props.onPress).toBe(onPress);
       const label = action.findAll(node => String(node.type) === 'AppText')[0];
-      expect(headingColor(label)).toBe(HEADINGS[season]);
+      expect(headingColor(label)).toBe('#7D5CE4');
     }
     await act(async () => renderer.unmount());
   });
@@ -202,7 +202,7 @@ describe('Home-only seasonal headline tint', () => {
           node => String(node.type) === 'AppText',
         )[0];
         expect(StyleSheet.flatten(label.props.style)).toMatchObject({
-          color: HEADINGS[season],
+          color: '#7D5CE4',
           fontSize: 14,
           lineHeight: 20,
           fontWeight: '500',
@@ -215,7 +215,7 @@ describe('Home-only seasonal headline tint', () => {
         expect(arrows.length).toBeGreaterThan(0);
         for (const arrow of arrows) {
           expect(arrow.props).toMatchObject({
-            color: HEADINGS[season],
+            color: '#7D5CE4',
             size: 15,
             preserveOriginal: true,
           });

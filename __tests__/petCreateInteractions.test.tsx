@@ -1,5 +1,10 @@
 import React from 'react';
-import { Keyboard, TextInput, TouchableOpacity, View } from 'react-native';
+import PetThemePicker from '../src/components/pets/PetThemePicker';
+import { Keyboard, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { AppHeaderLayout } from '../src/components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../src/components/navigation/headerAppearance';
+import ConfirmDialog from '../src/components/common/ConfirmDialog';
+import { createPet } from '../src/services/supabase/pets';
 import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 
@@ -136,6 +141,48 @@ describe('pet registration interactions', () => {
 
   afterEach(() => jest.restoreAllMocks());
 
+  it('centers the photo instruction across the circle instead of shrink-wrapping the label', async () => {
+    const renderer = await renderScreen();
+    const photo = renderer.root.findByProps({ placeholderText: '사진 추가' });
+    expect(photo.props.placeholderText).toBe('사진 추가');
+    expect(StyleSheet.flatten(photo.props.placeholderStyle)).toMatchObject({
+      width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', gap: 7,
+    });
+    expect(StyleSheet.flatten(photo.props.placeholderTextStyle)).toMatchObject({
+      width: '100%', textAlign: 'center', fontSize: 12, lineHeight: 18, includeFontPadding: false,
+    });
+    expect(StyleSheet.flatten(photo.props.imageStyle)).toMatchObject({ width: '100%', height: '100%' });
+    expect(createPet).not.toHaveBeenCalled();
+    await act(async () => renderer.unmount());
+  });
+
+  it('keeps menu glass in both registration steps and uses the guarded header back without submitting', async () => {
+    const renderer = await renderScreen();
+    const header = renderer.root.findByType(AppHeaderLayout);
+    expect(header.props.topInset).toBe(24);
+    expect(header.props.subtitle).toBe('함께할 아이의 이야기를 시작해요');
+    const glass = () => renderer.root.findAllByType(View).filter(node => node.props.testID === 'pet-create-card-glass');
+    const back = () => renderer.root.findAllByType(TouchableOpacity).find(node => node.props.testID === 'pet-create-back');
+    expect(glass()).toHaveLength(3);
+    glass().forEach(node => {
+      expect(StyleSheet.flatten(node.props.style).borderRadius).toBe(22);
+      expect(node.props.pointerEvents).toBe('none');
+      let card = node.parent;
+      while (card && !card.props.style) card = card.parent;
+      expect(StyleSheet.flatten(card?.props.style)).toMatchObject({ backgroundColor: 'transparent', borderColor: 'rgba(255,255,255,0.78)' });
+    });
+    expect(StyleSheet.flatten(back()?.props.style)).toMatchObject({ width: APP_HEADER.targetSize, height: APP_HEADER.targetSize });
+    await act(async () => back()?.props.onPress());
+    expect(renderer.root.findByType(ConfirmDialog).props.visible).toBe(true);
+    await act(async () => renderer.root.findByType(ConfirmDialog).props.onCancel());
+    await goToDetails(renderer);
+    expect(glass()).toHaveLength(2);
+    await act(async () => back()?.props.onPress());
+    expect(renderer.root.findAllByType(TextInput).find(node => node.props.placeholder === '이름을 입력해 주세요')?.props.value).toBe('QA Nuri');
+    expect(createPet).not.toHaveBeenCalled();
+    await act(async () => renderer.unmount());
+  });
+
   it.each(['좋아하는 것 (최소 1개)', '싫어하는 것 (최소 1개)', '취미 (최소 1개)'])(
     '%s adds a normalized chip and refocuses the cleared input',
     async label => {
@@ -195,6 +242,7 @@ describe('pet registration interactions', () => {
     const renderer = await renderScreen();
     for (const step of [1, 2]) {
       if (step === 2) await goToDetails(renderer);
+      expect(renderer.root.findAllByType(PetThemePicker)).toHaveLength(0);
       const action = renderer.root.findAllByType(TouchableOpacity).find(
         node => node.props.testID === 'pet-create-font-settings',
       );

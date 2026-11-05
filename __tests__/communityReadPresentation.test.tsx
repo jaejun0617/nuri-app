@@ -9,6 +9,7 @@ import { useCommunityStore } from '../src/store/communityStore';
 import { fetchCommunityPostById } from '../src/services/supabase/community';
 import { useCommunityReadStore } from '../src/store/communityReadStore';
 import type { CommunityPost } from '../src/types/community';
+import { COMMUNITY_LIST_COLORS } from '../src/screens/Community/communityCategoryPalette';
 
 let mockViewer = 'reader-a';
 jest.mock('../src/services/supabase/community', () => ({
@@ -71,27 +72,27 @@ it('changes only the visited title and accessibility label, retaining the row an
         node.props.accessibilityRole === 'button' &&
         typeof node.props.onPress === 'function',
     )[0];
-  expect(StyleSheet.flatten(title().props.style).color).toBe('#243042');
+  expect(StyleSheet.flatten(title().props.style).color).toBe(COMMUNITY_LIST_COLORS.title);
   await TestRenderer.act(async () => {
     card().props.onPress();
   });
   expect(onPress).toHaveBeenCalledWith(post.id);
-  expect(StyleSheet.flatten(title().props.style).color).toBe('#243042');
+  expect(StyleSheet.flatten(title().props.style).color).toBe(COMMUNITY_LIST_COLORS.title);
   await TestRenderer.act(async () => {
     await useCommunityReadStore.getState().markRead(mockViewer, post.id);
   });
-  expect(StyleSheet.flatten(title().props.style).color).toBe('#7E22CE');
+  expect(StyleSheet.flatten(title().props.style).color).toBe(COMMUNITY_LIST_COLORS.readTitle);
   expect(title().props.children).toBe(post.title);
   expect(card().props.accessibilityLabel).toContain('읽은 게시글');
   await TestRenderer.act(async () => {
     tree.update(render('#247264'));
   });
-  expect(StyleSheet.flatten(title().props.style).color).toBe('#7E22CE');
+  expect(StyleSheet.flatten(title().props.style).color).toBe(COMMUNITY_LIST_COLORS.readTitle);
   mockViewer = 'reader-b';
   await TestRenderer.act(async () => {
     tree.update(render('#3B6398'));
   });
-  expect(StyleSheet.flatten(title().props.style).color).toBe('#243042');
+  expect(StyleSheet.flatten(title().props.style).color).toBe(COMMUNITY_LIST_COLORS.title);
   await TestRenderer.act(async () => {
     tree.unmount();
   });
@@ -122,7 +123,7 @@ it('retains the mounted list row through protected detail load and immediately r
     await useCommunityReadStore.getState().markRead(mockViewer, post.id);
   });
   expect(title().props.children).toBe(post.title);
-  expect(StyleSheet.flatten(title().props.style).color).toBe('#7E22CE');
+  expect(StyleSheet.flatten(title().props.style).color).toBe(COMMUNITY_LIST_COLORS.readTitle);
   expect(useCommunityStore.getState().posts).toHaveLength(1);
   await TestRenderer.act(async () => tree.unmount());
 });

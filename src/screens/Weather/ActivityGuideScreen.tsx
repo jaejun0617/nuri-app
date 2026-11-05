@@ -1,3 +1,6 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 // 파일: src/screens/Weather/ActivityGuideScreen.tsx
 // 역할:
 // - 실내 활동 상세 가이드를 공통 화면 구조로 렌더링
@@ -72,19 +75,19 @@ export default function ActivityGuideScreen() {
 
   return (
     <SafeAreaView style={styles.safe}>
-      <View style={styles.header}>
+      <AppHeaderLayout subtitle="아이의 컨디션에 맞는 활동을 준비해요" style={styles.header}>
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
             activeOpacity={0.88}
             style={styles.backButton}
             onPress={onPressBack}
           >
-            <Feather name="arrow-left" size={20} color="#102033" />
+            <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
           </TouchableOpacity>
         </View>
-        <Text style={styles.headerTitle}>{guide.title} 가이드</Text>
-        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
-      </View>
+        <Text style={[styles.headerTitle, APP_HEADER.title]}>{guide.title} 가이드</Text>
+        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}><HeaderHelpButton topic="indoorActivity" /></View>
+      </AppHeaderLayout>
 
       <ScrollView
         style={styles.scroll}
@@ -189,11 +192,10 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 17,
-    lineHeight: 22,
-    color: '#0B1220',
-    fontWeight: '900',
-  },
+
+
+
+     ...APP_HEADER.title },
   scroll: {
     flex: 1,
   },

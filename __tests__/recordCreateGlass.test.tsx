@@ -217,9 +217,9 @@ describe('Create opt-in Home glass surfaces', () => {
       expect(StyleSheet.flatten(styles.input)).toMatchObject({ minHeight: 48, backgroundColor: 'transparent' });
       expect(StyleSheet.flatten(styles.dateCard)).toMatchObject({ minHeight: 48, backgroundColor: 'transparent' });
       expect(StyleSheet.flatten(styles.tagSelector)).toMatchObject({ minHeight: 48 });
-      expect(byId(tree, 'record-category-icon-walk').props).toMatchObject({ name: 'shoe-print', color: '#000000' });
-      for (const key of ['meal', 'diary', 'other']) {
-        expect(byId(tree, `record-category-icon-${key}`).props).toMatchObject({ size: 24, color: '#000000' });
+      expect(tree.root.findAllByType(RecordChoiceGrid)[0].props.textOnly).toBe(true);
+      for (const key of ['walk', 'meal', 'diary', 'other']) {
+        expect(tree.root.findAllByProps({ testID: `record-category-icon-${key}` })).toHaveLength(0);
       }
       expect(byId(tree, 'record-date-chevron').props).toMatchObject({ name: 'chevron-right', color: '#000000' });
       if (category === 'bathing') {

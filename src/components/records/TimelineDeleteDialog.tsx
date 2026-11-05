@@ -5,6 +5,7 @@ import AppText from '../../app/ui/AppText';
 import MarkerText from '../../app/ui/MarkerText';
 import TimelineButton, { CtaText } from './TimelineButton';
 import TimelineArtwork from './TimelineArtwork';
+import { MenuGlassSurface } from '../common/MenuGlassSurface';
 import { TIMELINE_DESIGN as C, TIMELINE_TYPE as T } from '../../theme/timelineDesign';
 
 /** The caller owns the fixed record ID, request guard, cache and failure handling. */
@@ -18,6 +19,7 @@ export default function TimelineDeleteDialog({visible,recordTitle,loading,onCanc
     <View style={s.backdrop}>
       <Pressable style={StyleSheet.absoluteFill} onPress={cancel} disabled={loading} accessibilityLabel="기록 삭제 취소"/>
       <View accessibilityViewIsModal style={[s.card,{maxHeight:height-insets.top-insets.bottom-40}]}>
+        <MenuGlassSurface radius={16} backed />
         <ScrollView contentContainerStyle={s.content} bounces={false}>
           <View style={s.icon}><TimelineArtwork name="delete" color={C.primary} size={32}/></View>
           <AppText preset="unifiedTitle" style={s.title}>이 기록을 삭제할까요?</AppText>

@@ -113,7 +113,7 @@ import {
   HomeHeroContentSheet,
   HomeHeroInfoPanel,
 } from './HomeHeroInfoPanel';
-import { HOME_HERO_COLORS, getHomeHeroColors, getHomeHeroMinimumHeight, getHomeHeroSeasonCopy } from '../../../../theme/home/heroLayout';
+import { HOME_HERO_COLORS, getHomeHeroColors, getHomeHeroMinimumHeight } from '../../../../theme/home/heroLayout';
 import { HomePetSelectionSheet } from './HomePetSelectionSheet';
 import { HomePetSheetHeader } from './HomePetSheetHeader';
 import {
@@ -169,6 +169,7 @@ import {
   type HealthActivityItem,
 } from '../../../../services/health-report/viewModel';
 import { buildPetThemePalette, NEUTRAL_UI_PALETTE } from '../../../../services/pets/themePalette';
+import MarkerText from '../../../../app/ui/MarkerText';
 import {
   buildFrequentRecordSummary,
   type FrequentRecordCategory,
@@ -571,13 +572,11 @@ const WeatherToLowerHomeBridge = React.memo(
 
 const HomeHeaderSection = React.memo(function HomeHeaderSection({
   season,
-  petName,
   onPressNotifications,
   notificationUnreadCount,
   photoReady,
 }: {
   season: SeasonalHomeVisual['season'] | null;
-  petName: string;
   onPressNotifications: () => void;
   notificationUnreadCount: number;
   photoReady: boolean;
@@ -597,17 +596,7 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
       styles.header,
       isAutumn || isWinter || isSpring || isSummer ? styles.seasonalHeader : null,
     ]}>
-      <View style={styles.brandContentStack}>
-        <AppText
-          testID="home-hero-season-copy"
-          preset="unifiedLabel"
-          styleOverridesPreset
-          numberOfLines={2}
-          style={[styles.heroSeasonCopy, { color: foreground }]}
-        >
-          {getHomeHeroSeasonCopy(petName, season ?? 'autumn')}
-        </AppText>
-      </View>
+      <View style={styles.brandContentStack} />
 
       <View style={styles.notificationAnchor}>
         <TouchableOpacity
@@ -1094,6 +1083,7 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
 
 const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
   petId,
+  petColor,
   visible,
   profilePetName,
   basicInfo,
@@ -1107,6 +1097,7 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
   onCloseComplete,
 }: {
   petId: string | null;
+  petColor: string | null;
   visible: boolean;
   profilePetName: string;
   basicInfo: HomePetBasicInfoValues;
@@ -1361,12 +1352,7 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
           <View style={{ marginHorizontal: contentHorizontalInset }}>
             <HomePetSheetHeader
               title={`${profilePetName}의 소개와 취향`}
-              titleColor={
-                isWinter ? styles.winterProfileSheetTitle.color
-                  : isSpring ? styles.springProfileSheetTitle.color
-                  : isSummer ? styles.summerProfileSheetTitle.color
-                  : styles.profileSheetTitle.color
-              }
+              titleColor={NEUTRAL_UI_PALETTE.deep}
               closeLabel="프로필 상세 닫기"
               onClose={() => requestClose()}
             />
@@ -1402,7 +1388,7 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
                 { paddingBottom: Math.max(24, insets.bottom + 16) },
               ]}
             >
-              <AppText
+              <MarkerText variant="wash" petColor={petColor}
                 style={[
                   styles.profileSheetFooterCopy,
                   isWinter ? styles.winterProfileSheetFooterCopy : null,
@@ -1411,7 +1397,7 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
                 ]}
               >
                 {formatPetCopy('언제나 우리 아이와 함께 ♡', profilePetName)}
-              </AppText>
+              </MarkerText>
             </View>
           </ScrollView>
         </RNAnimated.View>
@@ -1871,7 +1857,7 @@ export default function LoggedInHome() {
   }, [isScreenFocused, refetchNotificationUnread]);
 
   const openHomeNotifications = useCallback(() => {
-    navigation.navigate('HomeQuickNotifications');
+    navigation.navigate('UserNotifications', { entrySource: 'home' });
   }, [navigation]);
 
 
@@ -2699,7 +2685,6 @@ export default function LoggedInHome() {
   const homeHeader = (
     <HomeHeaderSection
       season={ambientSeason}
-      petName={profilePetName}
       onPressNotifications={openHomeNotifications}
       notificationUnreadCount={notificationUnread.data ?? 0}
       photoReady={heroPhotoReady}
@@ -2979,6 +2964,7 @@ export default function LoggedInHome() {
 
         <ProfileInfoBottomSheet
           petId={activePetId}
+          petColor={selectedPet?.themeColor ?? null}
           visible={profileSheetVisible}
           profilePetName={profilePetName}
           basicInfo={profileBasicInfo}

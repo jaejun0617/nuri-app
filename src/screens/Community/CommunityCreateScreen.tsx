@@ -27,8 +27,7 @@ import { useTheme } from 'styled-components/native';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { spacing } from '../../app/theme/tokens/spacing';
 import AppText from '../../app/ui/AppText';
-import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
-import { SEASON_CTA } from '../../app/theme/ctaPalette';
+import { PRODUCT_CTA } from '../../app/theme/tokens/productAccent';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import { getCommunityMutationErrorMeta } from '../../services/community/errors';
@@ -146,8 +145,7 @@ export default function CommunityCreateScreen() {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
-  const season = useEffectiveSeason();
-  const seasonColors = SEASON_CTA[season];
+  const seasonColors = PRODUCT_CTA;
   const { progress: keyboardProgress } = useReanimatedKeyboardAnimation();
   const toolbarInset = useAnimatedStyle(
     () => ({

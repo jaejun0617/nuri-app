@@ -1,12 +1,19 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   AppState,
-  Alert,
   FlatList,
   StyleSheet,
   TouchableOpacity,
   View,
 } from 'react-native';
+import ConfirmDialog from '../../components/common/ConfirmDialog';
+import { useOwnerOperation } from '../../hooks/useOwnerOperation';
 import {
   useFocusEffect,
   useNavigation,
@@ -39,52 +46,43 @@ export default function UserNotificationsScreen() {
     >();
   const route = useRoute<RootScreenRoute<'UserNotifications'>>();
   const insets = useSafeAreaInsets();
-  const { list, unread, markAll, dismiss } = useNotificationInbox();
+  const { list, unread, markAll, dismiss, userId } = useNotificationInbox();
+  const captureOwner = useOwnerOperation('notification-inbox-delete');
   const { open: openNotification, opening } = useOpenNotification();
   const [now, setNow] = useState(() => new Date());
   const [marking, setMarking] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const remove = async (item: UserNotificationItem | null) => {
-    if (deleting || marking) return;
+  const busy = useRef(false);
+  const [pendingDelete, setPendingDelete] = useState<{
+    item: UserNotificationItem | null;
+    isCurrent: () => boolean;
+  } | null>(null);
+  useEffect(() => {
+    setPendingDelete(null);
+  }, [userId]);
+  const remove = async () => {
+    const operation = pendingDelete;
+    if (!operation || busy.current || !operation.isCurrent()) return;
+    busy.current = true;
     setDeleting(true);
     try {
-      await dismiss(item);
+      await dismiss(operation.item);
+      if (operation.isCurrent()) setPendingDelete(null);
     } catch {
-      showToast({
-        tone: 'error',
-        title: '알림을 삭제하지 못했어요',
-        message: '연결 상태를 확인하고 다시 시도해주세요.',
-      });
+      if (operation.isCurrent())
+        showToast({
+          tone: 'error',
+          title: '알림을 삭제하지 못했어요',
+          message: '연결 상태를 확인하고 다시 시도해주세요.',
+        });
     } finally {
+      busy.current = false;
       setDeleting(false);
     }
   };
-  const confirmRemove = (item: UserNotificationItem | null) =>
-    Alert.alert(
-      item ? '이 알림을 삭제할까요?' : '알림을 모두 삭제할까요?',
-      '알림함에서 삭제되며 되돌릴 수 없어요.',
-      [
-        { text: '취소', style: 'cancel' },
-        {
-          text: '삭제',
-          style: 'destructive',
-          onPress: () => {
-            remove(item);
-          },
-        },
-      ],
-    );
-  const manage = (item: UserNotificationItem) => {
-    if (deleting || marking) return;
-    Alert.alert('알림 관리', undefined, [
-      { text: '취소', style: 'cancel' },
-      { text: '이 알림 삭제', onPress: () => confirmRemove(item) },
-      {
-        text: '전체 알림 삭제',
-        style: 'destructive',
-        onPress: () => confirmRemove(null),
-      },
-    ]);
+  const confirmRemove = (item: UserNotificationItem | null) => {
+    if (busy.current || opening || pendingDelete) return;
+    setPendingDelete({ item, isCurrent: captureOwner() });
   };
   const refetchList = list.refetch;
   const refetchUnread = unread.refetch;
@@ -96,18 +94,18 @@ export default function UserNotificationsScreen() {
   useFocusEffect(
     useCallback(() => {
       refresh();
+      const timer = setInterval(() => {
+        if (AppState.currentState === 'active') refresh();
+      }, 60_000);
+      const listener = AppState.addEventListener('change', state => {
+        if (state === 'active') refresh();
+      });
+      return () => {
+        clearInterval(timer);
+        listener.remove();
+      };
     }, [refresh]),
   );
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date()), 60_000);
-    const listener = AppState.addEventListener('change', state => {
-      if (state === 'active') refresh();
-    });
-    return () => {
-      clearInterval(timer);
-      listener.remove();
-    };
-  }, [refresh]);
   const items = useMemo(
     () => list.data?.pages.flatMap(page => page.items) ?? [],
     [list.data],
@@ -132,7 +130,8 @@ export default function UserNotificationsScreen() {
         : navigation.navigate('AppTabs', { screen: 'HomeTab' }),
   });
   const onMarkAll = async () => {
-    if (marking) return;
+    if (busy.current || pendingDelete || opening) return;
+    busy.current = true;
     setMarking(true);
     try {
       await markAll();
@@ -143,6 +142,7 @@ export default function UserNotificationsScreen() {
         message: '잠시 후 다시 시도해주세요.',
       });
     } finally {
+      busy.current = false;
       setMarking(false);
     }
   };
@@ -162,18 +162,32 @@ export default function UserNotificationsScreen() {
               {count}개
             </AppText>
           </AppText>
-          <TouchableOpacity
-            accessibilityRole="button"
-            disabled={marking || deleting || count === 0}
-            onPress={() => {
-              onMarkAll();
-            }}
-            style={styles.markAll}
-          >
-            <AppText preset="bodyStrong" color={notificationColors.purple}>
-              {marking ? '저장 중' : '모두 읽음'}
-            </AppText>
-          </TouchableOpacity>
+          <View style={styles.actions}>
+            <TouchableOpacity
+              accessibilityRole="button"
+              disabled={marking || deleting || count === 0}
+              onPress={() => {
+                onMarkAll();
+              }}
+              style={styles.markAll}
+            >
+              <AppText preset="bodyStrong" color={notificationColors.purple}>
+                {marking ? '저장 중' : '모두 읽음'}
+              </AppText>
+            </TouchableOpacity>
+            <TouchableOpacity
+              testID="notifications-delete-all"
+              accessibilityRole="button"
+              accessibilityLabel="알림 전체 삭제"
+              disabled={marking || deleting || opening || items.length === 0}
+              onPress={() => confirmRemove(null)}
+              style={styles.markAll}
+            >
+              <AppText preset="bodyStrong" color={notificationColors.muted}>
+                전체 삭제
+              </AppText>
+            </TouchableOpacity>
+          </View>
         </View>
       ) : null}
       {list.isPending ? (
@@ -181,7 +195,15 @@ export default function UserNotificationsScreen() {
       ) : list.isError && items.length === 0 ? (
         <NotificationState message="알림을 불러오지 못했어요" retry={refresh} />
       ) : empty ? (
-        <EmptyNotificationInbox />
+        <View style={styles.empty}>
+          <EmptyNotificationInbox />
+          <AppText
+            preset="caption"
+            style={[styles.retention, { paddingBottom: insets.bottom + 20 }]}
+          >
+            알림은 도착한 날부터 30일 후 자동 삭제돼요.
+          </AppText>
+        </View>
       ) : (
         <FlatList
           data={groups}
@@ -196,9 +218,14 @@ export default function UserNotificationsScreen() {
               items={item.items}
               now={now}
               timeZone={timeZone}
-              onManage={manage}
+              onDelete={confirmRemove}
               disabled={deleting || marking || opening}
-              onPress={notification => { openNotification({ id: notification.id, source: notification.source }).catch(() => {}); }}
+              onPress={notification => {
+                openNotification({
+                  id: notification.id,
+                  source: notification.source,
+                }).catch(() => {});
+              }}
             />
           )}
           refreshing={list.isRefetching && !list.isFetchingNextPage}
@@ -223,22 +250,51 @@ export default function UserNotificationsScreen() {
             ) : undefined
           }
           ListFooterComponent={
-            list.isFetchNextPageError ? (
-              <NotificationState
-                message="다음 알림을 불러오지 못했어요"
-                retry={() => {
-                  list.fetchNextPage().catch(() => {});
-                }}
-              />
-            ) : list.isFetchingNextPage ? (
-              <NotificationState
-                loading
-                message="이전 알림을 불러오는 중이에요"
-              />
-            ) : undefined
+            <View>
+              {list.isFetchNextPageError ? (
+                <NotificationState
+                  message="다음 알림을 불러오지 못했어요"
+                  retry={() => {
+                    list.fetchNextPage().catch(() => {});
+                  }}
+                />
+              ) : list.isFetchingNextPage ? (
+                <NotificationState
+                  loading
+                  message="이전 알림을 불러오는 중이에요"
+                />
+              ) : null}
+              <AppText preset="caption" style={styles.retention}>
+                알림은 도착한 날부터 30일 후 자동 삭제돼요.
+              </AppText>
+            </View>
           }
         />
       )}
+      <ConfirmDialog
+        visible={pendingDelete !== null}
+        title={
+          pendingDelete?.item
+            ? '이 알림을 삭제할까요?'
+            : '알림을 모두 삭제할까요?'
+        }
+        message="알림함에서 삭제되며 되돌릴 수 없어요."
+        confirmLabel="삭제하기"
+        cancelLabel="취소"
+        tone="danger"
+        surfaceVariant="menuGlass"
+        typographyMode="unified"
+        confirmRole="destructiveConfirm"
+        cancelRole="neutral"
+        confirmDisabled={deleting}
+        confirmLoading={deleting}
+        onConfirm={() => {
+          remove();
+        }}
+        onCancel={() => {
+          if (!busy.current) setPendingDelete(null);
+        }}
+      />
     </NotificationCanvas>
   );
 }
@@ -256,9 +312,24 @@ const styles = StyleSheet.create({
     fontSize: 16,
     lineHeight: 23,
     color: notificationColors.muted,
-    flexShrink: 1,
+    flex: 1,
   },
   count: { color: '#7047BD' },
+  empty: { flex: 1 },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    flexShrink: 0,
+    columnGap: 14,
+  },
+  retention: {
+    textAlign: 'center',
+    color: notificationColors.muted,
+    fontSize: 12,
+    lineHeight: 20,
+    paddingHorizontal: 12,
+    paddingVertical: 20,
+  },
   markAll: { minHeight: 44, justifyContent: 'center' },
   content: { paddingHorizontal: 20 },
 });

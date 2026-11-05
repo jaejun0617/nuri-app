@@ -1,4 +1,5 @@
 import React from 'react';
+import { APP_HEADER } from '../src/components/navigation/headerAppearance';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import Screen, { NuriRankingView, type NuriRankingViewProps } from '../src/screens/Ranking/NuriRankingScreen';
@@ -51,8 +52,8 @@ describe('ranking reference rendering', () => {
   it('uses latest reference typography and fixed white system-area paint', () => {
     const r = render();
     const title = r.root.findAll(node => String(node.type) === 'AppText' && node.props.children === '누리 랭킹')[0];
-    expect(StyleSheet.flatten(title.props.style)).toMatchObject(RANKING_TYPOGRAPHY.title);
-    expect(StyleSheet.flatten(byId(r, 'ranking-status-bar')[0].props.style)).toMatchObject({ backgroundColor: '#FFFFFF', height: 24 });
+    expect(StyleSheet.flatten(title.props.style)).toMatchObject(APP_HEADER.title);
+    expect(StyleSheet.flatten(byId(r, 'ranking-status-bar')[0].props.style)).toMatchObject({ backgroundColor: '#F1F5F8', height: 24 });
     expect(r.root.findAll(node => node.type === TouchableOpacity && node.props.accessibilityRole === 'tab')).toHaveLength(6);
     act(() => r.unmount());
   });

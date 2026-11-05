@@ -1,9 +1,10 @@
 import React, { useEffect } from 'react';
 import { ActivityIndicator, AppState, Image, Modal, Platform, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+import { MenuGlassSurface } from '../../components/common/MenuGlassSurface';
 import { useQuery } from '@tanstack/react-query';
 
 import AppText from '../../app/ui/AppText';
+import { ACTIVITY_READING_TYPE as TYPE } from '../../theme/activityTypography';
 import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 import { NotificationToggle } from '../../components/common/NotificationToggle';
 import { NotificationPreferenceGroup } from '../../components/common/NotificationPreferenceGroup';
@@ -57,7 +58,7 @@ export function NotificationSettingsSheet(props: NotificationSettingsSheetProps)
       <View style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessible={false} />
         <View testID="notification-settings-sheet" accessibilityViewIsModal style={[styles.sheet, { maxHeight: height - 56, paddingBottom: Math.max(bottomInset, 12) }]}>
-          <LinearGradient colors={['#FEFCFF', '#F9F6FD', '#FCFAFF']} pointerEvents="none" style={StyleSheet.absoluteFill} />
+          <MenuGlassSurface radius={0} backed />
           <View style={styles.handle} />
           <View style={styles.header}>
             <AppText preset="sectionTitle" style={styles.heading}>알림 설정</AppText>
@@ -73,6 +74,7 @@ export function NotificationSettingsSheet(props: NotificationSettingsSheetProps)
             </View>
             <AppText preset="sectionTitle" style={[styles.sectionTitle, styles.firstSectionTitle]}>받을 알림</AppText>
             <View style={styles.card}>
+              <MenuGlassSurface radius={16} />
               <View style={[styles.settingRow, styles.divider]}>
                 <Image source={art.calendar} style={styles.icon} />
                 <View style={styles.rowText}><AppText preset="bodyStrong" style={styles.rowTitle}>일정 알림</AppText><AppText preset="bodySm" style={styles.helper}>병원·약·산책 일정을 알려드려요</AppText></View>
@@ -101,6 +103,7 @@ export function NotificationSettingsSheet(props: NotificationSettingsSheetProps)
             <NotificationPreferenceGroup />
             <AppText preset="sectionTitle" style={styles.sectionTitle}>기기 알림 설정</AppText>
             <View style={styles.card}>
+              <MenuGlassSurface radius={16} />
               {systemRows.filter(row => Platform.OS === 'android' || row.key === 'system').map((row, index, rows) => {
                 const content = <>
                   <Image source={art[row.key]} style={styles.icon} />
@@ -122,30 +125,30 @@ export function NotificationSettingsSheet(props: NotificationSettingsSheetProps)
 }
 const styles = StyleSheet.create({
   backdrop: { flex: 1, backgroundColor: C.backdrop, justifyContent: 'flex-end' },
-  sheet: { width: '100%', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', backgroundColor: C.surface },
+  sheet: { width: '100%', borderTopLeftRadius: 24, borderTopRightRadius: 24, overflow: 'hidden', backgroundColor: 'transparent' },
   handle: { width: 40, height: 5, borderRadius: 3, backgroundColor: '#D7CDEF', marginTop: 11, alignSelf: 'center' },
   header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 22, paddingTop: 10, paddingBottom: 14, gap: 12 },
-  heading: { color: C.ink, fontSize: 23, lineHeight: 32, fontWeight: '700' },
+  heading: { color: C.ink, ...TYPE.title },
   close: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.control, justifyContent: 'center', alignItems: 'center' },
   scroll: { flexShrink: 1 },
   content: { paddingHorizontal: 18, paddingBottom: 16 },
   intro: { paddingHorizontal: 4, marginTop: 10, marginBottom: 12 },
   introRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  introTitle: { flex: 1, minWidth: 0, color: C.ink, fontSize: 27, lineHeight: 36, fontWeight: '700' },
+  introTitle: { flex: 1, minWidth: 0, color: C.ink, ...TYPE.title },
   heroArt: { width: 90, height: 90, flexShrink: 0 },
-  introCopy: { color: C.muted, fontSize: 14, lineHeight: 21, marginTop: 10 },
-  sectionTitle: { color: C.ink, fontSize: 19, lineHeight: 28, marginHorizontal: 4, marginBottom: 10, marginTop: 18, fontWeight: '700' },
+  introCopy: { color: C.muted, ...TYPE.body, marginTop: 10 },
+  sectionTitle: { color: C.ink, ...TYPE.section, marginHorizontal: 4, marginBottom: 10, marginTop: 18 },
   firstSectionTitle: { marginTop: 0 },
-  card: { borderWidth: 1, borderColor: C.border, borderRadius: 16, paddingHorizontal: 16, backgroundColor: 'rgba(255,255,255,0.55)' },
+  card: { borderWidth: 1, borderColor: 'rgba(255,255,255,0.78)', borderRadius: 16, paddingHorizontal: 16, backgroundColor: 'transparent' },
   settingRow: { flexDirection: 'row', alignItems: 'center', gap: 14, minHeight: 76, paddingVertical: 14 },
   divider: { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.divider },
   icon: { width: 44, height: 44, flexShrink: 0 },
   rowText: { flex: 1, minWidth: 0, gap: 4 },
-  rowTitle: { color: C.ink, fontSize: 15, lineHeight: 22, fontWeight: '700' },
-  helper: { color: C.muted, fontSize: 12, lineHeight: 19 },
+  rowTitle: { color: C.ink, ...TYPE.label, fontWeight: '700' },
+  helper: { color: C.muted, ...TYPE.body },
   toggleSlot: { width: 56 },
-  scheduleHelp: { color: C.muted, fontSize: 13, lineHeight: 20, paddingHorizontal: 6, marginTop: 10, marginBottom: 0 },
-  status: { maxWidth: 78, textAlign: 'right', fontSize: 13, lineHeight: 20, flexShrink: 0 },
+  scheduleHelp: { color: C.muted, ...TYPE.body, paddingHorizontal: 6, marginTop: 10, marginBottom: 0 },
+  status: { maxWidth: 78, textAlign: 'right', ...TYPE.body, flexShrink: 0 },
   notice: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginTop: 12, paddingHorizontal: 6 },
   noticeText: { flex: 1 },
 });

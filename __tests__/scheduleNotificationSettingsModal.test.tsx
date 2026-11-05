@@ -1,10 +1,11 @@
 import React from 'react';
-import { Platform, ScrollView } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text } from 'react-native';
 import TestRenderer from 'react-test-renderer';
 import { ThemeProvider as StyledThemeProvider } from 'styled-components/native';
 import {QueryClient,QueryClientProvider} from '@tanstack/react-query';
 
 import { createTheme } from '../src/app/theme/theme';
+import { ACTIVITY_READING_TYPE } from '../src/theme/activityTypography';
 import {
   getNotificationSettingsMaxHeight,
   NotificationSettingsModal,
@@ -62,6 +63,15 @@ describe('schedule notification settings modal', () => {
       );
 
       expect(maxHeightStyle?.maxHeight).toBeGreaterThan(0);
+      const textStyle = (label: string) => {
+        const node = renderer.root.findAll(candidate => candidate.type === Text && candidate.props.children === label)[0];
+        if (!node) throw new Error(`Missing settings label: ${label}`);
+        return StyleSheet.flatten(node.props.style);
+      };
+      expect(textStyle('알림 설정')).toMatchObject(ACTIVITY_READING_TYPE.title);
+      expect(textStyle('받을 알림')).toMatchObject(ACTIVITY_READING_TYPE.section);
+      expect(textStyle('일정 알림')).toMatchObject({ fontSize: ACTIVITY_READING_TYPE.label.fontSize, lineHeight: ACTIVITY_READING_TYPE.label.lineHeight });
+      expect(textStyle('병원·약·산책 일정을 알려드려요')).toMatchObject(ACTIVITY_READING_TYPE.body);
       expect(
         renderer.root.findAll(
           node =>

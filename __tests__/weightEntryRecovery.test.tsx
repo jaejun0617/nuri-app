@@ -1,5 +1,6 @@
 import React from 'react';
-import { Alert, Modal } from 'react-native';
+import { Modal } from 'react-native';
+import { NuriAlert as Alert } from '../src/app/ui/NuriAlert';
 import Renderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
@@ -193,16 +194,23 @@ it('reports a weight edit failure as a record update, not a profile update', asy
 
 it('reports a weight deletion failure without claiming a profile edit failed', async () => {
   await render({ initialLog: log });
-  act(() => tree().root.findByProps({ role: 'destructiveEntry' }).props.onPress());
-  const confirm = jest.mocked(Alert.alert).mock.calls.at(-1)?.[2]
-    ?.find(button => button.style === 'destructive')?.onPress;
-  if (!confirm) throw new Error('Delete confirmation was not shown');
-  jest.mocked(deletePetWeightLog).mockRejectedValueOnce(new Error('offline'));
-  await act(async () => { await confirm(); });
-  expect(Alert.alert).toHaveBeenLastCalledWith(
-    '기록 삭제를 완료하지 못했어요',
-    expect.any(String),
+  act(() =>
+    tree().root.findByProps({ role: 'destructiveEntry' }).props.onPress(),
   );
+  const confirm = tree().root.findByProps({ testID: 'weight-delete-submit' })
+    .props.onPress;
+  jest.mocked(deletePetWeightLog).mockRejectedValueOnce(new Error('offline'));
+  await act(async () => {
+    await confirm();
+  });
+  expect(Alert.alert).not.toHaveBeenCalled();
+  expect(
+    tree().root.findByProps({ testID: 'weight-delete-confirmation' }),
+  ).toBeDefined();
+  expect(
+    tree().root.findByProps({ testID: 'weight-delete-submit' }).props.disabled,
+  ).toBe(false);
+  expect(deletePetWeightLog).toHaveBeenCalledTimes(1);
   expect(close).not.toHaveBeenCalled();
 });
 
@@ -228,10 +236,8 @@ it('rejects an old delete confirmation after the pet changes', async () => {
   act(() =>
     tree().root.findByProps({ role: 'destructiveEntry' }).props.onPress(),
   );
-  const confirm = jest
-    .mocked(Alert.alert)
-    .mock.calls.at(-1)?.[2]
-    ?.find(button => button.style === 'destructive')?.onPress;
+  const confirm = tree().root.findByProps({ testID: 'weight-delete-submit' })
+    .props.onPress;
   expect(confirm).toBeDefined();
   await render({ petId: 'other', initialLog: null });
   await act(async () => {
@@ -282,10 +288,8 @@ it('locks delete confirmation and ignores its late response after an owner round
   act(() =>
     tree().root.findByProps({ role: 'destructiveEntry' }).props.onPress(),
   );
-  const confirm = jest
-    .mocked(Alert.alert)
-    .mock.calls.at(-1)?.[2]
-    ?.find(button => button.style === 'destructive')?.onPress;
+  const confirm = tree().root.findByProps({ testID: 'weight-delete-submit' })
+    .props.onPress;
   if (!confirm) throw new Error('Delete confirmation was not shown');
   const pending = deferred<PetWeightLogMutationResult>();
   jest.mocked(deletePetWeightLog).mockReturnValueOnce(pending.promise);
@@ -309,4 +313,29 @@ it('locks delete confirmation and ignores its late response after an owner round
   expect(
     tree().root.findByProps({ testID: 'weight-entry-save' }).props.disabled,
   ).toBe(false);
+});
+
+it('closes only the confirmation on Cancel or Android Back, without deleting', async () => {
+  await render({ initialLog: log });
+  const open = () =>
+    tree().root.findByProps({ role: 'destructiveEntry' }).props.onPress();
+  act(open);
+  expect(JSON.stringify(tree().toJSON())).toContain('체중 기록을 삭제할까요?');
+  expect(JSON.stringify(tree().toJSON())).toContain('6.2');
+  const cancel = tree().root.findByProps({ testID: 'weight-delete-cancel' })
+    .props.onPress;
+  act(cancel);
+  expect(
+    tree().root.findAllByProps({ testID: 'weight-delete-confirmation' }),
+  ).toHaveLength(0);
+  act(open);
+  act(() => tree().root.findByType(Modal).props.onRequestClose());
+  expect(
+    tree().root.findAllByProps({ testID: 'weight-delete-confirmation' }),
+  ).toHaveLength(0);
+  expect(
+    tree().root.findByProps({ testID: 'weight-entry-value' }).props.value,
+  ).toBe('6.2');
+  expect(close).not.toHaveBeenCalled();
+  expect(deletePetWeightLog).not.toHaveBeenCalled();
 });

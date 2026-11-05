@@ -653,7 +653,7 @@ describe('community comment corrective rendered contract', () => {
     ).toBe('게시글 더보기');
     expect(header.root.findByType(Feather).props).toMatchObject({
       name: 'more-horizontal',
-      size: 22,
+      size: 24,
       color: '#D44912',
     });
     await TestRenderer.act(async () => {

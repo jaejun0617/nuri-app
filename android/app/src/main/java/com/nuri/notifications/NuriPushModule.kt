@@ -29,7 +29,11 @@ class NuriPushModule(private val context: ReactApplicationContext) : ReactContex
   }
   @ReactMethod fun bindOwner(owner: String, promise: Promise) {
     try { UUID.fromString(owner) } catch (_: IllegalArgumentException) { promise.reject("NURI_PUSH_OWNER_INVALID", "Invalid owner"); return }
-    context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit().putString("owner", owner).apply()
+    val preferences = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+    if (preferences.getString("owner", null) != owner) {
+      NuriInboxBadge.clearNotifications(context)
+      preferences.edit().clear().putString("owner", owner).apply()
+    }
     FirebaseMessaging.getInstance().isAutoInitEnabled = true
     NuriPushService.channels(context)
     promise.resolve(true)
@@ -39,10 +43,18 @@ class NuriPushModule(private val context: ReactApplicationContext) : ReactContex
     if (expectedOwner != null && preferences.getString("owner", null) != expectedOwner) { promise.resolve(false); return }
     preferences.edit().clear().apply()
     pendingTap = null
-    val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-    manager.activeNotifications.filter { it.tag == "nuri_push" }.forEach { manager.cancel("nuri_push", it.id) }
+    NuriInboxBadge.clearNotifications(context)
     FirebaseMessaging.getInstance().isAutoInitEnabled = false
     promise.resolve(true)
+  }
+  @ReactMethod fun syncInboxBadge(owner: String, count: Double, observedAt: Double, validUntil: Double, promise: Promise) {
+    if (!count.isFinite() || count < 0 || count > Int.MAX_VALUE || count % 1.0 != 0.0 ||
+      !observedAt.isFinite() || observedAt <= 0 || observedAt > 9007199254740991.0 || observedAt % 1.0 != 0.0 ||
+      ((count == 0.0) != (validUntil == 0.0)) ||
+      (validUntil != 0.0 && (!validUntil.isFinite() || validUntil <= observedAt || validUntil > 9007199254740991.0 || validUntil % 1.0 != 0.0))) {
+      promise.reject("NURI_PUSH_BADGE_INVALID", "Invalid unread count"); return
+    }
+    promise.resolve(NuriInboxBadge.sync(context, owner, count.toInt(), observedAt.toLong(), if (validUntil == 0.0) null else validUntil.toLong()))
   }
   @ReactMethod fun consumeInitialTap(promise: Promise) {
     val tap = pendingTap; pendingTap = null
@@ -88,8 +100,8 @@ class NuriPushModule(private val context: ReactApplicationContext) : ReactContex
       val source = intent.getStringExtra("notificationSource") ?: return
       intent.removeExtra("nuri_push_tap")
       if (context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("owner", null) != owner) return
-      try { UUID.fromString(owner); UUID.fromString(id) } catch (_: IllegalArgumentException) { return }
-      if (source !in listOf("user", "announcement")) return
+      try { UUID.fromString(owner); if (source != "inbox") UUID.fromString(id) } catch (_: IllegalArgumentException) { return }
+      if (source !in listOf("user", "announcement", "inbox") || (source == "inbox" && id != "inbox")) return
       val tap = mapOf("recipientUserId" to owner, "id" to id, "source" to source)
       pendingTap = tap
       emit("NuriPushTap", tap)

@@ -1,3 +1,7 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
+import { MenuGlassSurface, MENU_GLASS_FRAME } from '../../components/common/MenuGlassSurface';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
@@ -121,7 +125,7 @@ export default function LocationDiscoveryDetailScreen() {
     return (
       <Screen style={styles.screen}>
         <View style={styles.container}>
-          <View style={styles.header}>
+          <AppHeaderLayout subtitle="함께 걷기 전 장소 정보를 확인해요" style={styles.header}>
             <View style={styles.headerSideSlot}>
               <TouchableOpacity
                 activeOpacity={0.88}
@@ -129,19 +133,20 @@ export default function LocationDiscoveryDetailScreen() {
                 onPress={goBack}
                 hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
               >
-                <Feather name="arrow-left" size={20} color="#102033" />
+                <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
               </TouchableOpacity>
             </View>
-            <AppText
+            <AppText styleOverridesPreset
               typographyRole="screenTitle"
               preset="unifiedTitle"
-              style={styles.headerTitle}
+              style={[styles.headerTitle, APP_HEADER.title]}
             >
               산책 장소 상세
             </AppText>
-            <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
-          </View>
-          <View style={styles.emptyCard}>
+            <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}><HeaderHelpButton topic="walkPlaces" /></View>
+          </AppHeaderLayout>
+          <View style={[styles.emptyCard, MENU_GLASS_FRAME]}>
+            <MenuGlassSurface radius={22} />
             <AppText
               typographyRole="celebration"
               preset="unifiedTitle"
@@ -165,7 +170,7 @@ export default function LocationDiscoveryDetailScreen() {
   return (
     <Screen style={styles.screen}>
       <View style={styles.container}>
-        <View style={styles.header}>
+        <AppHeaderLayout subtitle="함께 걷기 전 장소 정보를 확인해요" style={styles.header}>
           <View style={styles.headerSideSlot}>
             <TouchableOpacity
               activeOpacity={0.88}
@@ -173,24 +178,25 @@ export default function LocationDiscoveryDetailScreen() {
               onPress={goBack}
               hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
             >
-              <Feather name="arrow-left" size={20} color="#102033" />
+              <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
             </TouchableOpacity>
           </View>
-          <AppText
+          <AppText styleOverridesPreset
             typographyRole="screenTitle"
             preset="unifiedTitle"
-            style={styles.headerTitle}
+            style={[styles.headerTitle, APP_HEADER.title]}
           >
             산책 장소 상세
           </AppText>
-          <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
-        </View>
+          <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}><HeaderHelpButton topic="walkPlaces" /></View>
+        </AppHeaderLayout>
 
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.detailScrollContent}
         >
-          <View style={styles.detailHero}>
+          <View testID="walk-place-detail-glass" style={[styles.detailHero, MENU_GLASS_FRAME]}>
+            <MenuGlassSurface radius={24} />
             <AppText preset="unifiedMeta" style={styles.detailCategory}>
               {item.categoryLabel}
             </AppText>

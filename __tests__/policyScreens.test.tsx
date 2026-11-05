@@ -1,4 +1,5 @@
 import React from 'react';
+import { APP_HEADER } from '../src/components/navigation/headerAppearance';
 import { BackHandler, ScrollView, StyleSheet } from 'react-native';
 import TestRenderer from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
@@ -99,7 +100,7 @@ describe('policy presentation screens', () => {
       ),
     ).toEqual(
       expect.objectContaining({
-        color: NEUTRAL_UI_PALETTE.deep,
+        color: APP_HEADER.titleColor,
       }),
     );
 

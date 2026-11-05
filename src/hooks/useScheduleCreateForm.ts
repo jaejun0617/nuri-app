@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Alert } from 'react-native';
+import { NuriAlert as Alert } from '../app/ui/NuriAlert';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 import { getBrandedErrorMeta, getErrorMessage } from '../services/app/errors';
 import {

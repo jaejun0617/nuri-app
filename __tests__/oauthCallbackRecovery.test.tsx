@@ -1,6 +1,7 @@
 import React from 'react';
 import TestRenderer, { act } from 'react-test-renderer';
-import { Alert, TouchableOpacity } from 'react-native';
+import { TouchableOpacity } from 'react-native';
+import { NuriAlert as Alert } from '../src/app/ui/NuriAlert';
 import OAuthCallbackScreen from '../src/screens/Auth/OAuthCallbackScreen';
 import type { RootStackParamList } from '../src/navigation/RootNavigator';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';

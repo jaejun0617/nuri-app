@@ -244,6 +244,24 @@ it('Home and lazy profile reuse a single progression query', async () => {
   expect(walkProgressionRepository.get).toHaveBeenCalledTimes(1);
   expect(texts()).toContain('다음 레벨까지');
 });
+it('shows cumulative active minutes below the Home level without the GPS prefix', async () => {
+  jest.mocked(walkProgressionRepository.get).mockResolvedValue({ ...progression('pet-a', 1000n), lifetimeActiveDurationMs: '1259999' });
+  await mount(<WalkProgressionRow petId="pet-a" enabled />);
+  await flush();
+  expect(texts()).toContain('산책 20분');
+  expect(texts()).toContain('Lv. 2');
+  expect(texts()).not.toContain('GPS 산책');
+  expect(tree!.root.findAll(node=>node.props.name==='shoe-sneaker'||node.props.name==='bar-chart-2')).toHaveLength(0);
+  const minutes = tree!.root.findAll(node=>node.props.testID==='home-walk-active-minutes')[0];
+  expect(minutes.props.style.textAlign).toBe('center');
+});
+it('does not invent zero minutes from an old cached progression response', async () => {
+  jest.mocked(walkProgressionRepository.get).mockResolvedValue(progression('pet-a'));
+  await mount(<WalkProgressionRow petId="pet-a" enabled />);
+  await flush();
+  expect(texts()).toContain('산책 시간 확인 필요');
+  expect(texts()).not.toContain('산책 0분');
+});
 it('history consumes server cursor, opens original detail, and leaves deleted records non-actionable', async () => {
   const summary = {
     sessionId: 'server',

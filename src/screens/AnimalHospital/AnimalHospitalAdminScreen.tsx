@@ -1,14 +1,16 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import AppTextInput from '../../app/ui/AppTextInput';
 import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { NuriAlert as Alert } from '../../app/ui/NuriAlert';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import Feather from '../../components/icons/NuriFeatherIcon';
@@ -379,15 +381,15 @@ export default function AnimalHospitalAdminScreen() {
   if (!isAdmin) {
     return (
       <SafeAreaView style={styles.screen}>
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 12) }]}>
+        <AppHeaderLayout subtitle="병원 정보의 검수 상태를 확인해요" style={[styles.header, { paddingTop: Math.max(insets.top, 12) }]}>
           <TouchableOpacity style={styles.backButton} onPress={onPressBack}>
-            <Feather name="arrow-left" size={20} color="#102033" />
+            <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
           </TouchableOpacity>
-          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText styleOverridesPreset typographyRole="screenTitle" preset="unifiedTitle" style={[styles.headerTitle, APP_HEADER.title]}>
             동물병원 운영
           </AppText>
           <View style={styles.headerSide} />
-        </View>
+        </AppHeaderLayout>
         <View style={styles.permissionCard}>
           <Feather name="shield-off" size={28} color="#D75B23" />
           <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.permissionTitle}>
@@ -403,11 +405,11 @@ export default function AnimalHospitalAdminScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 12) }]}>
+      <AppHeaderLayout subtitle="병원 정보의 검수 상태를 확인해요" style={[styles.header, { paddingTop: Math.max(insets.top, 12) }]}>
         <TouchableOpacity style={styles.backButton} onPress={onPressBack}>
-          <Feather name="arrow-left" size={20} color="#102033" />
+          <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
         </TouchableOpacity>
-        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText styleOverridesPreset typographyRole="screenTitle" preset="unifiedTitle" style={[styles.headerTitle, APP_HEADER.title]}>
           동물병원 운영
         </AppText>
         <TouchableOpacity
@@ -419,7 +421,7 @@ export default function AnimalHospitalAdminScreen() {
         >
           <Feather name="refresh-cw" size={18} color="#102033" />
         </TouchableOpacity>
-      </View>
+      </AppHeaderLayout>
 
       <ScrollView
         style={styles.scroll}
@@ -749,9 +751,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    color: '#102033',
-    fontWeight: '900',
-  },
+
+     ...APP_HEADER.title },
   headerSide: {
     width: 40,
   },

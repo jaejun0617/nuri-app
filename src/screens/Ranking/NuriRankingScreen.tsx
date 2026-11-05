@@ -1,3 +1,5 @@
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
 import React, { memo, useCallback, useState } from 'react';
 import {
   ActivityIndicator, Image, RefreshControl, ScrollView, StyleSheet,
@@ -12,6 +14,7 @@ import AppText from '../../app/ui/AppText';
 import Feather from 'react-native-vector-icons/Feather';
 import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
 import { HomeReflectiveGlass } from '../../components/home/HomeReflectiveGlass';
+import { PRODUCT_CANVAS_COLOR, PRODUCT_CANVAS_GRADIENT_COLORS } from '../../app/theme/tokens/colors';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
@@ -91,21 +94,18 @@ export function NuriRankingView({ category, onCategoryChange, rows, myRow, mySta
   const stacked = width < 350 || fontScale >= 1.3;
   const meta = RANKING_TABS.find(tab => tab.key === category) ?? RANKING_TABS[0];
   return <View testID="ranking-screen" style={s.screen}>
-    <LinearGradient testID="ranking-background" colors={['#FBF9FF', '#F0EBF9', '#F9F3FA']}
+    <LinearGradient testID="ranking-background" colors={[...PRODUCT_CANVAS_GRADIENT_COLORS]}
       start={{ x: 0, y: 0 }} end={{ x: 0.85, y: 1 }} pointerEvents="none" accessible={false} style={StyleSheet.absoluteFill} />
     <View testID="ranking-status-bar" pointerEvents="none" style={[s.statusBar, { height: topInset }]} />
-    <View style={[s.header, { paddingTop: topInset + 4 }]}>
-      <View style={s.headerRow}>
+    <AppHeaderLayout subtitle="함께 쌓은 작은 순간들" style={[s.header, { paddingTop: topInset + 4 }]}>
         <TouchableOpacity testID="ranking-back" accessibilityRole="button" accessibilityLabel="랭킹 화면 닫기" style={s.iconButton} onPress={onBack}>
-          <Feather name="chevron-left" size={24} color={C.ink} />
+          <Feather name="chevron-left" size={APP_HEADER.backIconSize} color={C.ink} />
         </TouchableOpacity>
-        <Copy role="title" style={s.headerTitle}>누리 랭킹</Copy>
+        <Copy role="title" style={[s.headerTitle, APP_HEADER.title]}>누리 랭킹</Copy>
         <TouchableOpacity testID="ranking-info" accessibilityRole="button" accessibilityLabel="랭킹 집계 기준 안내" style={s.iconButton} onPress={onInfo}>
-          <Feather name="info" size={23} color={C.muted} />
+          <Feather name="info" size={APP_HEADER.actionIconSize} color={C.muted} />
         </TouchableOpacity>
-      </View>
-      <Copy role="subtitle" style={s.subtitle}>함께 쌓은 작은 순간들</Copy>
-    </View>
+    </AppHeaderLayout>
     <View testID="ranking-tabs" style={s.tabs}>
       {RANKING_TABS.map(tab => <TouchableOpacity key={tab.key} testID={'ranking-tab-' + tab.key}
         accessibilityRole="tab" accessibilityState={{ selected: tab.key === category }} style={s.tab}
@@ -183,21 +183,21 @@ export default function NuriRankingScreen() {
       loading={rankingQuery.isPending && !!owner} error={rankingQuery.isError || !owner}
       refreshing={rankingQuery.isRefetching} onRefresh={onRefresh}
       onBack={backAction} onInfo={() => setInfo(true)} topInset={insets.top} bottomInset={insets.bottom} />
-    <PremiumNoticeModal visible={info} eyebrow="누리 랭킹" titleLines={['랭킹 집계 기준']} iconName="shield" accentColor={C.accent}
+    <PremiumNoticeModal surfaceVariant="menuGlass" visible={info} eyebrow="누리 랭킹" titleLines={['랭킹 집계 기준']} iconName="shield" accentColor={C.accent}
       bodyLines={['계정 전체의 누적 XP와 활동 지표를 기준으로 집계해요.', '산책은 XP, 글·댓글·건강·생활은 각 활동 수를 표시해요.', '현재 사용자는 나, 다른 사용자는 보호된 이름으로 표시해요.']}
       onClose={() => setInfo(false)} />
   </>;
 }
 
 const s = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: C.background },
+  screen: { flex: 1, backgroundColor: PRODUCT_CANVAS_COLOR },
   copy: { color: C.ink, letterSpacing: 0, includeFontPadding: false, flexShrink: 1 },
   muted: { color: C.muted }, activeText: { color: C.accent },
-  statusBar: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: '#FFFFFF' },
+  statusBar: { position: 'absolute', top: 0, left: 0, right: 0, backgroundColor: PRODUCT_CANVAS_COLOR },
   header: { paddingHorizontal: 12, paddingBottom: 14 },
   headerRow: { flexDirection: 'row', alignItems: 'center', minHeight: 48 },
   iconButton: { width: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  headerTitle: { flex: 1, textAlign: 'center' },
+  headerTitle: { flex: 1, textAlign: 'center', ...APP_HEADER.title },
   subtitle: { marginTop: 10, textAlign: 'center', color: C.muted },
   tabs: { flexDirection: 'row', marginHorizontal: 16, borderBottomWidth: 1, borderBottomColor: C.border },
   tab: { flex: 1, minWidth: 0, minHeight: 52, paddingVertical: 14, alignItems: 'center', justifyContent: 'center' },

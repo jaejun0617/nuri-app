@@ -51,10 +51,21 @@ class NuriPushService : FirebaseMessagingService() {
       .setSmallIcon(com.nuri.R.mipmap.ic_launcher)
       .setContentTitle(data["title"]?.take(150) ?: "누리 알림")
       .setContentText(data["body"]?.take(180) ?: "새로운 알림이 도착했어요")
+      // Each displayed OS notification represents one item, not the inbox unread total.
+      .setNumber(1)
+      .setTimeoutAfter((expiry - System.currentTimeMillis()).coerceAtLeast(1L))
       .setContentIntent(pending).setAutoCancel(true).setOnlyAlertOnce(true)
       .setVisibility(NotificationCompat.VISIBILITY_PRIVATE).build()
     val group = data["collapseGroup"]?.takeIf { it.matches(Regex("^[a-zA-Z0-9:_-]{1,100}$")) } ?: (source + id)
     try { NotificationManagerCompat.from(this).notify("nuri_push", group.hashCode(), notification) } catch (_: SecurityException) { }
+    // Authoritative server snapshot, not an increment per FCM receipt. Retries,
+    // collapsed deliveries and late packets must not inflate the inbox total.
+    val unread = data["inboxUnreadCount"]?.toIntOrNull()
+    val observedAt = data["inboxObservedAt"]?.toLongOrNull()
+    val validUntil = data["inboxValidUntil"]?.toLongOrNull()
+    if (unread != null && unread >= 0 && observedAt != null && observedAt > 0 &&
+      validUntil != null && validUntil > observedAt)
+      NuriInboxBadge.sync(this, owner, unread, observedAt, validUntil)
   }
   companion object {
     val categories = listOf("news", "community", "activity", "record")
@@ -62,7 +73,12 @@ class NuriPushService : FirebaseMessagingService() {
       if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
       val names = mapOf("news" to "누리 소식", "community" to "커뮤니티", "activity" to "칭호·레벨", "record" to "기록·회고")
       val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-      categories.forEach { manager.createNotificationChannel(NotificationChannel("nuri_$it", names[it], NotificationManager.IMPORTANCE_DEFAULT)) }
+      categories.forEach {
+        // Existing channels retain the user's badge/importance choices.
+        manager.createNotificationChannel(NotificationChannel("nuri_$it", names[it], NotificationManager.IMPORTANCE_DEFAULT).apply {
+          setShowBadge(true)
+        })
+      }
     }
   }
 }

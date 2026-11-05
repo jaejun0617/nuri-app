@@ -7,21 +7,13 @@ import { StyleSheet } from 'react-native';
 
 import type { SeasonKey } from '../../theme/seasonal/season';
 import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
-import {
-  HOME_SEASONAL_HEADING_COLORS,
-  HOME_SEASONAL_CONTENT_COLORS,
-} from '../../theme/home/seasonalAmbient';
+import { PRODUCT_ACCENT } from '../../app/theme/tokens/productAccent';
 
 const HomeSeasonContext = createContext<SeasonKey | null>(null);
 const HomeTextSeasonContext = createContext<SeasonKey | null>(null);
-const contentTextStyles = StyleSheet.create({
-  spring: { color: HOME_SEASONAL_CONTENT_COLORS.spring },
-  summer: { color: HOME_SEASONAL_CONTENT_COLORS.summer },
-  autumn: { color: HOME_SEASONAL_CONTENT_COLORS.autumn },
-  winter: { color: HOME_SEASONAL_CONTENT_COLORS.winter },
-});
+const contentTextStyles = StyleSheet.create({ fixed: { color: PRODUCT_ACCENT.ink } });
 
-/** Explicit Home text tones follow the background without changing materials or actions. */
+/** Seasonal imagery remains independent of fixed product text and pet accents. */
 export function HomeSeasonProvider({
   season,
   headingSeason,
@@ -43,11 +35,11 @@ export function useHomeSeason(): SeasonKey {
 
 export function useHomeHeadingColor(): string | null {
   const season = useContext(HomeTextSeasonContext);
-  return season ? HOME_SEASONAL_HEADING_COLORS[season] : null;
+  return season ? PRODUCT_ACCENT.ink : null;
 }
 
 /** Stable, opt-in text styles leave unscoped callers and secondary copy unchanged. */
 export function useHomeContentTextStyle() {
   const season = useContext(HomeTextSeasonContext);
-  return season ? contentTextStyles[season] : undefined;
+  return season ? contentTextStyles.fixed : undefined;
 }

@@ -36,7 +36,7 @@ import {
 } from '../../domains/privateLetters';
 import { usePrivateLetters } from '../../hooks/usePrivateLetters';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE, buildPetThemePalette } from '../../services/pets/themePalette';
 import { useAuthStore } from '../../store/authStore';
 import { resolveSelectedPetId, usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
@@ -226,10 +226,10 @@ export default function GuestbookScreen() {
           ]}
         >
           <View style={styles.composerHeader}>
-            <View style={styles.petMark}>
+            <View style={[styles.petMark, { backgroundColor: buildPetThemePalette(selectedPet.themeColor).tint }]}>
               <AppText
                 preset="unifiedMeta"
-                style={[styles.petMarkText, { color: petTheme.primary }]}
+                style={[styles.petMarkText, { color: NEUTRAL_UI_PALETTE.deep }]}
               >
                 {selectedPet.name.slice(0, 1)}
               </AppText>

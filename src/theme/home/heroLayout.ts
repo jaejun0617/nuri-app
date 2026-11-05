@@ -1,7 +1,9 @@
 import type { SeasonKey } from '../seasonal/season';
 import { formatPetCopy } from '../../utils/petDisplayName';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 
-export const HOME_SKY_BACKGROUND_GRADIENT = ['#EEF5FC', '#F7FAFE', '#EEF5FC'] as const;
+// Retain the existing export contract while Home shares the More-menu canvas.
+export const HOME_SKY_BACKGROUND_GRADIENT = [PRODUCT_CANVAS_COLOR, PRODUCT_CANVAS_COLOR, PRODUCT_CANVAS_COLOR] as const;
 export const HOME_SKY_BACKGROUND_LOCATIONS = [0, 0.5, 1] as const;
 
 // PO reference: 852 x 1061 photo, one shallow ellipse with a 104 px sag.
@@ -9,7 +11,7 @@ export const HOME_SKY_BACKGROUND_LOCATIONS = [0, 0.5, 1] as const;
 export const HOME_HERO_PHOTO_ASPECT_RATIO = 852 / 1061;
 export const HOME_HERO_TOOLBAR_RADIUS = 24;
 export const HOME_HERO_COLORS = {
-  surface: '#F8F7FD', statusBar: '#FFFFFF', ink: '#221351',
+  surface: PRODUCT_CANVAS_COLOR, statusBar: PRODUCT_CANVAS_COLOR, ink: '#221351',
   muted: '#8D88AA', onPhoto: '#FFFFFF',
 } as const;
 // PO 2026-10-21: the reference palette is fixed, independent of pet/app theme.

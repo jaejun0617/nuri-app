@@ -4,6 +4,7 @@ import Feather from '../icons/NuriFeatherIcon';
 import NuriSemanticIcon from '../icons/NuriSemanticIcon';
 import CtaButton from '../../app/ui/CtaButton';
 import type { CtaRole } from '../../app/theme/ctaPalette';
+import { APP_HEADER } from './headerAppearance';
 
 type Props = {
   accessibilityLabel: string;
@@ -40,7 +41,7 @@ export default function HeaderIconActionButton({
         onPress={onPress}
       >
         {palette => (
-          preserveOriginal ? <NuriSemanticIcon family="feather" name={iconName} size={18} color={palette.text} preserveOriginal /> : <Feather name={iconName as never} size={18} color={palette.text} />
+            preserveOriginal ? <NuriSemanticIcon family="feather" name={iconName} size={APP_HEADER.actionIconSize} color={palette.text} preserveOriginal /> : <Feather name={iconName as never} size={APP_HEADER.actionIconSize} color={palette.text} />
         )}
       </CtaButton>
     );
@@ -59,7 +60,7 @@ export default function HeaderIconActionButton({
       ]}
       onPress={onPress}
     >
-      <Feather name={iconName as never} size={18} color={iconColor} />
+      <Feather name={iconName as never} size={APP_HEADER.actionIconSize} color={iconColor} />
     </TouchableOpacity>
   );
 }

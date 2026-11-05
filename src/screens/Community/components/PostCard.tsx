@@ -1,6 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo } from 'react';
 import { Pressable, View } from 'react-native';
-import { useTheme } from 'styled-components/native';
 import MaterialCommunityIcons from '../../../components/icons/NuriMaterialIcon';
 
 import AppText from '../../../app/ui/AppText';
@@ -13,7 +12,7 @@ import {
   COMMUNITY_NOTICE_ICON_NAME,
 } from '../communityListPresentation';
 import { styles } from './PostCard.styles';
-import { getCommunityCategoryPalette } from '../communityCategoryPalette';
+import { COMMUNITY_LIST_COLORS, getCommunityCategoryPalette } from '../communityCategoryPalette';
 import { useAuthStore } from '../../../store/authStore';
 import {
   communityPostReadKey,
@@ -44,7 +43,6 @@ function resolvePostTitle(post: CommunityPost) {
 }
 
 function PostCardBase({ post, accentColor, onPressPost }: Props) {
-  const theme = useTheme();
   const viewerId = useAuthStore(s => s.session?.user?.id ?? null);
   const readKey = communityPostReadKey(viewerId, post.id);
   const hasRead = useCommunityReadStore(s => s.readKeys[readKey] === true);
@@ -89,9 +87,9 @@ function PostCardBase({ post, accentColor, onPressPost }: Props) {
               : `${accentColor}08`
             : post.isNotice
             ? `${noticeColor}08`
-            : '#FFFFFF',
-          borderColor: post.isNotice ? noticeColor : '#E6E8F0',
-          borderBottomColor: post.isNotice ? noticeColor : '#E6E8F0',
+            : 'transparent',
+          borderColor: post.isNotice ? noticeColor : COMMUNITY_LIST_COLORS.divider,
+          borderBottomColor: post.isNotice ? noticeColor : COMMUNITY_LIST_COLORS.divider,
         },
       ]}
       onPress={handlePress}
@@ -159,7 +157,7 @@ function PostCardBase({ post, accentColor, onPressPost }: Props) {
             numberOfLines={getCommunityPostTitleLineCount(post.isNotice)}
             style={[
               styles.title,
-              hasRead ? { color: theme.colors.communityReadTitle } : null,
+              { color: hasRead ? COMMUNITY_LIST_COLORS.readTitle : COMMUNITY_LIST_COLORS.title },
             ]}
           >
             {title}
@@ -179,14 +177,15 @@ function PostCardBase({ post, accentColor, onPressPost }: Props) {
         style={[
           styles.commentRail,
           {
-            backgroundColor: post.isNotice ? `${noticeColor}0D` : '#F8F9FB',
-            borderLeftColor: '#E6E8F0',
+            backgroundColor: post.isNotice ? `${noticeColor}0D` : COMMUNITY_LIST_COLORS.railFill,
+            borderLeftColor: COMMUNITY_LIST_COLORS.divider,
           },
         ]}
       >
         <AppText
           preset="body"
-          style={[styles.commentCount, { color: accentColor }]}
+          testID="community-post-comment-count"
+          style={[styles.commentCount, { color: COMMUNITY_LIST_COLORS.secondary }]}
         >
           {post.commentCount.toLocaleString()}
         </AppText>

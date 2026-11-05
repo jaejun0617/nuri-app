@@ -25,6 +25,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { KeyboardProvider } from 'react-native-keyboard-controller';
 
 import AppProviders from './src/app/providers/AppProviders';
+import NuriAlertHost from './src/app/ui/NuriAlertHost';
 import GlobalToast from './src/components/common/GlobalToast';
 import RootNavigator from './src/navigation/RootNavigator';
 import type { RootStackParamList } from './src/navigation/RootNavigator';
@@ -124,6 +125,17 @@ function App() {
     let active = true;
     let bootOwnsDestination = false;
     const owner = sessionUserId;
+    if (notificationTap.source === 'inbox') {
+      const destination = { name: 'UserNotifications', params: { entrySource: 'home' } } as const;
+      if (navigationRef.current.getCurrentRoute()?.name === 'Splash') {
+        setStartupDestination({ tap: notificationTap, destination });
+      } else {
+        if (navigationRef.current.getCurrentRoute()?.name !== 'UserNotifications')
+          navigationRef.current.navigate(destination.name, destination.params);
+        setNotificationTap(current => current === notificationTap ? null : current);
+      }
+      return;
+    }
     const receipt = createNotificationOpenReceipt({ id: notificationTap.id, source: notificationTap.source, ownerId: owner });
     const currentRoute = navigationRef.current.getCurrentRoute();
     const openReceipt = currentRoute?.params && 'notificationOpen' in currentRoute.params ? currentRoute.params.notificationOpen : null;
@@ -349,6 +361,7 @@ function App() {
               <RootNavigator notificationStartup={notificationStartup} />
             </NavigationContainer>
             <GlobalToast />
+            <NuriAlertHost />
           </AppProviders>
         </SafeAreaProvider>
       </KeyboardProvider>

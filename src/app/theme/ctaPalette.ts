@@ -1,5 +1,6 @@
 import type { SeasonKey } from '../../theme/seasonal/season';
 import type { AppTheme, ThemeMode } from './theme';
+import { PRODUCT_CTA } from './tokens/productAccent';
 
 export type CtaRole =
   | 'primary'
@@ -46,7 +47,7 @@ export const SEASON_CTA = {
 /** Action meaning owns the palette; pet colors and dates never enter this boundary. */
 export function resolveCtaPalette({
   role,
-  season,
+  season: _season,
   colorScheme,
   state = 'default',
   colors,
@@ -62,7 +63,7 @@ export function resolveCtaPalette({
 }): CtaPalette {
   const pressed = state === 'pressed';
   const dark = colorScheme === 'dark';
-  const seasonal = SEASON_CTA[season];
+  const seasonal = PRODUCT_CTA;
   if (role === 'disabled' || state === 'disabled') {
     return dark
       ? {

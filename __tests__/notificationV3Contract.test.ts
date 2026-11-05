@@ -3,6 +3,7 @@ import {
   mapNotification,
   fetchUserNotificationUnreadCount,
   fetchNotificationPage,
+  fetchNotificationBadgeSnapshot,
 } from '../src/services/notifications/userNotifications';
 import {
   groupNotifications,
@@ -105,6 +106,15 @@ describe('notification v3 boundary contracts', () => {
     await expect(fetchUserNotificationUnreadCount()).rejects.toThrow(
       'NURI_NOTIFICATION_RESPONSE_INVALID',
     );
+  });
+  it('validates the server unread snapshot and clock instead of estimating from a list page', async () => {
+    supabase.rpc.mockResolvedValueOnce({ data: { count:3, observedAt:100, validUntil:200 }, error:null });
+    await expect(fetchNotificationBadgeSnapshot()).resolves.toEqual({count:3,observedAt:100,validUntil:200});
+    expect(supabase.rpc).toHaveBeenLastCalledWith('get_user_notification_badge_v3');
+    supabase.rpc.mockResolvedValueOnce({ data: { count:3, observedAt:100, validUntil:99 }, error:null });
+    await expect(fetchNotificationBadgeSnapshot()).rejects.toThrow('NURI_NOTIFICATION_RESPONSE_INVALID');
+    supabase.rpc.mockResolvedValueOnce({ data: { count:3, observedAt:100, validUntil:null }, error:null });
+    await expect(fetchNotificationBadgeSnapshot()).rejects.toThrow('NURI_NOTIFICATION_RESPONSE_INVALID');
   });
   it('push taps carry a validated recipient and ID, never an arbitrary route', () => {
     expect(

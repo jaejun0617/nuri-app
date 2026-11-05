@@ -15,15 +15,15 @@ import Feather from '../../../../components/icons/NuriFeatherIcon';
 import NuriSemanticIcon from '../../../../components/icons/NuriSemanticIcon';
 import PetAvatar from '../../../../components/pets/PetAvatar';
 import { formatMemorialPetName } from '../../../../services/pets/memorial';
-import { NEUTRAL_UI_PALETTE } from '../../../../services/pets/themePalette';
+import { NEUTRAL_UI_PALETTE, buildPetThemePalette } from '../../../../services/pets/themePalette';
 import type { Pet } from '../../../../store/petStore';
-import { HOME_HERO_COLORS, HOME_HERO_ACCENT } from '../../../../theme/home/heroLayout';
+import { HOME_HERO_COLORS } from '../../../../theme/home/heroLayout';
 import type { SeasonKey } from '../../../../theme/seasonal/season';
 import { HomePetSheetHeader } from './HomePetSheetHeader';
 
 type Props = {
   visible: boolean;
-  pets: readonly Pick<Pet, 'id' | 'name' | 'avatarUrl' | 'deathDate'>[];
+  pets: readonly Pick<Pet, 'id' | 'name' | 'avatarUrl' | 'deathDate' | 'themeColor'>[];
   selectedPetId: string | null;
   season: SeasonKey;
   accentColor: string;
@@ -123,6 +123,7 @@ export function HomePetSelectionSheet({
                       uri={pet.avatarUrl?.trim() || null}
                       size={48}
                       fallbackLabel={pet.name}
+                      accentColor={pet.themeColor ?? null}
                     />
                   </View>
                   <AppText
@@ -138,9 +139,9 @@ export function HomePetSelectionSheet({
                       styles.selection,
                       {
                         borderColor: selected
-                          ? HOME_HERO_ACCENT.primary
+                          ? buildPetThemePalette(pet.themeColor).primary
                           : NEUTRAL_UI_PALETTE.muted,
-                        backgroundColor: selected ? HOME_HERO_ACCENT.primary : 'transparent',
+                        backgroundColor: selected ? buildPetThemePalette(pet.themeColor).primary : 'transparent',
                       },
                     ]}
                     accessible={false}
@@ -152,7 +153,7 @@ export function HomePetSelectionSheet({
                         testID="home-pet-selection-check"
                         name="check"
                         size={14}
-                        color="#FFFFFF"
+                        color={buildPetThemePalette(pet.themeColor).onPrimary}
                         accessible={false}
                       />
                     ) : null}

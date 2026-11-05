@@ -1,3 +1,5 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import React, { useCallback } from 'react';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -53,7 +55,7 @@ export default function PolicyCenterScreen() {
       style={[styles.safe, { backgroundColor: theme.colors.background }]}
       edges={['top']}
     >
-      <View
+      <AppHeaderLayout subtitle="누리를 이용하는 데 필요한 약속을 모았어요"
         style={[
           styles.header,
           {
@@ -71,17 +73,17 @@ export default function PolicyCenterScreen() {
           onPress={onBack}
           style={styles.backButton}
         >
-          <Feather name="arrow-left" size={21} color={theme.colors.textPrimary} />
+          <Feather name="chevron-left" size={APP_HEADER.backIconSize} color={theme.colors.textPrimary} />
         </TouchableOpacity>
-        <AppText typographyRole="screenTitle"
+        <AppText styleOverridesPreset typographyRole="screenTitle"
           testID="policy-center-title"
           preset="unifiedTitle"
-          style={[styles.headerTitle, { color: petTheme.deep }]}
+          style={[[styles.headerTitle, { color: petTheme.deep }], APP_HEADER.title]}
         >
           약관 및 정책
         </AppText>
         <View style={styles.headerSide} />
-      </View>
+      </AppHeaderLayout>
 
       <ScrollView
         testID="policy-center-scroll"
@@ -153,10 +155,9 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    fontSize: 18,
-    lineHeight: 24,
-    fontWeight: '900',
-  },
+
+
+     ...APP_HEADER.title },
   headerSide: { width: 44 },
   body: {
     flexGrow: 1,

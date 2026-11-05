@@ -1,11 +1,14 @@
 // 파일: src/services/pets/themePalette.ts
 // 역할:
-// - 펫 프로필 사진/이름을 기준으로 테마 컬러를 추천
-// - 홈/프로필 편집/위젯에서 같은 색 규칙을 재사용
+// - 아이 포인트색 UI 종료: 모든 표시에는 기본 라벤더 사용
+// - 저장된 legacy themeColor는 읽기/저장 호환용으로만 보존
 
-const FALLBACK_THEME = '#6D6AF8';
+import { PRODUCT_ACCENT } from '../../app/theme/tokens/productAccent';
+
+const FALLBACK_THEME = PRODUCT_ACCENT.primary;
 
 export const PET_THEME_OPTIONS = [
+  PRODUCT_ACCENT.primary,
   '#6D6AF8',
   '#F97316',
   '#EC4899',
@@ -109,7 +112,11 @@ function relativeLuminance(hex: string): number {
 }
 
 export function getReadableTextColor(hex: string): string {
-  return relativeLuminance(hex) > 0.46 ? '#10203D' : '#FFFFFF';
+  const luminance = relativeLuminance(hex);
+  const dark = '#10203D';
+  const darkContrast = (luminance + 0.05) / (relativeLuminance(dark) + 0.05);
+  const whiteContrast = 1.05 / (luminance + 0.05);
+  return darkContrast > whiteContrast ? dark : '#FFFFFF';
 }
 
 function getHueFromHex(hex: string): number {
@@ -183,20 +190,17 @@ export function recommendPetThemeColor(input: {
   return hslToHex(hue, saturation, lightness);
 }
 
+/** Display-only compatibility adapter. Never rewrites a legacy saved value. */
 export function resolvePetThemeColor(
-  storedThemeColor: string | null | undefined,
-  fallback?: { name?: string | null; petId?: string | null },
+  _storedThemeColor: string | null | undefined,
+  _fallback?: { name?: string | null; petId?: string | null },
 ): string {
-  const normalized = normalizeHex(storedThemeColor);
-  if (normalized) return normalized;
-  return recommendPetThemeColor({
-    name: fallback?.name,
-    petId: fallback?.petId,
-  });
+  return FALLBACK_THEME;
 }
 
-export function buildPetThemePalette(themeColor: string | null | undefined) {
-  const primary = resolvePetThemeColor(themeColor);
+/** Color math for semantic accents such as weather, not saved pet preferences. */
+export function buildAccentPalette(accent: string | null | undefined) {
+  const primary = normalizeHex(accent) ?? FALLBACK_THEME;
   const deep = shiftHex(primary, -26);
   const soft = mixHex(primary, '#FFFFFF', 0.84);
   const border = mixHex(primary, '#FFFFFF', 0.68);
@@ -226,6 +230,15 @@ export function buildPetThemePalette(themeColor: string | null | undefined) {
   };
 }
 
-// UI actions are independent of the pet's identity color. Profile/theme editors
-// still use buildPetThemePalette; this never changes the stored preference.
-export const NEUTRAL_UI_PALETTE = buildPetThemePalette('#4B5563');
+/** Legacy display API: stored pet values no longer personalize any surface. */
+export function buildPetThemePalette(_themeColor: string | null | undefined) {
+  return buildAccentPalette(FALLBACK_THEME);
+}
+
+// Legacy callers receive the fixed product palette; no user color is applied.
+export const NEUTRAL_UI_PALETTE: ReturnType<typeof buildPetThemePalette> = {
+  ...buildPetThemePalette(PRODUCT_ACCENT.primary),
+  deep: PRODUCT_ACCENT.ink,
+  tint: PRODUCT_ACCENT.tint,
+  border: PRODUCT_ACCENT.border,
+};

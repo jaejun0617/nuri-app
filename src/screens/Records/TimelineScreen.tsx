@@ -1,6 +1,9 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import { useNotificationDestinationRead } from '../../hooks/useNotificationDestinationRead';
 import { useNotificationTimeline } from '../../hooks/useNotificationTimeline';
+import { MenuGlassSurface } from '../../components/common/MenuGlassSurface';
 // 파일: src/screens/Records/TimelineScreen.tsx
 // 파일 목적:
 // - 선택된 펫의 기록을 시간순 타임라인으로 탐색하는 메인 목록 화면이다.
@@ -57,7 +60,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
-import { TIMELINE_SEASON_COLORS } from '../../theme/seasonal/timeline';
+import { PRODUCT_ACCENT } from '../../app/theme/tokens/productAccent';
+import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
 import { scheduleIdleTask } from '../../utils/scheduleIdleTask';
 import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
 
@@ -360,7 +364,7 @@ export default function TimelineScreen() {
     fontScale,
   } = useWindowDimensions();
   const season = useEffectiveSeason();
-  const seasonColors = TIMELINE_SEASON_COLORS[season];
+  const seasonColors = useMemo(() => ({ selectedCategory: PRODUCT_ACCENT.primary, statsGradientEnd: PRODUCT_ACCENT.primary }), []);
   const [listWidth, setListWidth] = useState(windowWidth);
   const onListLayout = useCallback((event: LayoutChangeEvent) => {
     const width = event.nativeEvent.layout.width;
@@ -1502,7 +1506,7 @@ export default function TimelineScreen() {
     return (
       <View style={[styles.screen, { paddingTop: insets.top }]}>
         <LavenderScreenBackground testID="timeline-background-gradient" />
-        <View style={styles.header}>
+        <AppHeaderLayout subtitle="아이와 함께한 순간을 차곡차곡 모아요" topInset={0} style={styles.header}>
           <View style={styles.headerSideSlot}>
             <TouchableOpacity
               activeOpacity={0.88}
@@ -1510,18 +1514,18 @@ export default function TimelineScreen() {
               onPress={onPressBack}
               hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
             >
-              <Feather name="arrow-left" size={20} color="#102033" />
+              <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
             </TouchableOpacity>
           </View>
-          <AppText
+          <AppText styleOverridesPreset
             typographyRole="screenTitle"
             preset="unifiedTitle"
-            style={styles.headerTitle}
+            style={[styles.headerTitle, APP_HEADER.title]}
           >
             타임라인
           </AppText>
-          <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
-        </View>
+          <HeaderHelpButton topic="timeline" />
+        </AppHeaderLayout>
 
         <ControlsBar
           sortLabel={sortLabel}
@@ -1627,13 +1631,14 @@ export default function TimelineScreen() {
             style={[
               styles.modalCard,
               {
-                backgroundColor: theme.colors.surfaceElevated,
-                borderColor: theme.colors.border,
+                backgroundColor: 'transparent',
+                borderColor: 'rgba(255,255,255,0.78)',
                 maxHeight: modalMaxHeight,
               },
             ]}
             onPress={() => {}}
           >
+            <MenuGlassSurface radius={18} backed />
             <AppText
               typographyRole="sectionTitle"
               preset="unifiedTitle"
@@ -1706,13 +1711,14 @@ export default function TimelineScreen() {
             style={[
               styles.modalCard,
               {
-                backgroundColor: theme.colors.surfaceElevated,
-                borderColor: theme.colors.border,
+                backgroundColor: 'transparent',
+                borderColor: 'rgba(255,255,255,0.78)',
                 maxHeight: modalMaxHeight,
               },
             ]}
             onPress={() => {}}
           >
+            <MenuGlassSurface radius={18} backed />
             <AppText
               typographyRole="sectionTitle"
               preset="unifiedTitle"

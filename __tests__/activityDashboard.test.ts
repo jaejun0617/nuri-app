@@ -122,6 +122,7 @@ describe('activity dashboard summary', () => {
     });
 
     expect(dashboard.representativeTitle).toBe('첫 산책 친구');
+    expect(dashboard.representativeTitleKey).toBe('first_walk_friend');
     expect(
       dashboard.allAchievements.find(item => item.key === 'pet_first_walk_friend'),
     ).toMatchObject({ achieved: true, ownerId: 'pet-1', ownerLabel: '첫째' });

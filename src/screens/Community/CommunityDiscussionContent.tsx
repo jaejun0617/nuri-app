@@ -1,3 +1,4 @@
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import { useNotificationDestinationRead } from '../../hooks/useNotificationDestinationRead';
 import type { CtaRole } from '../../app/theme/ctaPalette';
@@ -622,7 +623,7 @@ export default function CommunityDiscussionContent({
         onPress={handleBack}
         hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
       >
-        <Feather name="arrow-left" size={20} color={theme.colors.textPrimary} />
+        <Feather name="chevron-left" size={APP_HEADER.backIconSize} color={theme.colors.textPrimary} />
       </TouchableOpacity>
     ),
     [handleBack, theme.colors.textPrimary],
@@ -664,7 +665,7 @@ export default function CommunityDiscussionContent({
             family="feather"
             preserveOriginal
             name="more-horizontal"
-            size={22}
+            size={APP_HEADER.actionIconSize}
             color={moreAccent}
           />
         </TouchableOpacity>

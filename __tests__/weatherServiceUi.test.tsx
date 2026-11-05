@@ -26,7 +26,7 @@ import {
 import { useWeatherGuide } from '../src/hooks/useWeatherGuide';
 import * as seasonPreference from '../src/app/providers/SeasonPreferenceProvider';
 import { getSeasonalWeatherVisualTheme } from '../src/theme/seasonal/weather';
-import { SEASON_CTA } from '../src/app/theme/ctaPalette';
+import { PRODUCT_CTA } from '../src/app/theme/tokens/productAccent';
 import { HOME_FLOATING_WIDGET_MATERIAL } from '../src/components/home/HomeWidgetMaterial';
 import { getSeasonalWeatherHeroVisual } from '../src/theme/seasonal/weatherHero';
 
@@ -99,8 +99,8 @@ function expectGlassBackButton(header: TestRenderer.ReactTestInstance, color: st
   back.props.onPress();
   expect(mockGoBack).toHaveBeenCalledTimes(1);
   expect(
-    back.findAll(node => node.props.name === 'arrow-left')
-      .every(node => node.props.color === color),
+    back.findAll(node => node.props.name === 'chevron-left')
+      .every(node => node.props.color === color && node.props.size === 28),
   ).toBe(true);
 }
 
@@ -219,7 +219,7 @@ describe('weather service presentation UI', () => {
           .find(text => text.props.children === label);
         expect(node).toBeDefined();
         expect(StyleSheet.flatten(node?.props.style).color).toBe(
-          SEASON_CTA[season].primary,
+          PRODUCT_CTA.primary,
         );
       }
       const date = renderer.root

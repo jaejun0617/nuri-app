@@ -19,6 +19,7 @@ import PetDeleteConfirmDialog, {
 import PetManagementCard from '../src/components/pets/PetManagementCard';
 import PetDeletionRecoveryMarker from '../src/components/pets/PetDeletionRecoveryMarker';
 import PetManagementScreen from '../src/screens/Pets/PetManagementScreen';
+import { APP_HEADER } from '../src/components/navigation/headerAppearance';
 import { formatPetAgeLabelFromBirthDate } from '../src/services/pets/age';
 import {
   deletePetSafely,
@@ -196,6 +197,34 @@ describe('pet profile management reference and safety', () => {
     jest.restoreAllMocks();
   });
 
+  it('centers the management title between equal back/help targets using the Activity header inset', () => {
+    screen();
+    expect(text(renderer)).not.toContain('우리 아이');
+    const header = view('pet-management-header');
+    expect(StyleSheet.flatten(header.props.style)).toMatchObject({ paddingTop:28, paddingHorizontal:12, paddingBottom:7 });
+    const title = label('pet-management-title');
+    expect(StyleSheet.flatten(title.props.style)).toMatchObject({ textAlign:'center', flex:1, minWidth:0, ...APP_HEADER.title });
+    expect(StyleSheet.flatten(button('pet-management-back').props.style)).toMatchObject({width:48,height:48});
+    const help = renderer.root.findAllByProps({testID:'header-help-petManagement'}).find(node => typeof node.props.onPress === 'function');
+    if (!help) throw Error('MANAGEMENT_HELP_MISSING');
+    expect(StyleSheet.flatten(help.props.style)).toMatchObject({minWidth:48,minHeight:48});
+    expect(help.props.accessibilityLabel).toBe('아이들 프로필 관리 안내');
+    expect(deletePetSafely).not.toHaveBeenCalled();
+    expect(mockNavigation.navigate).not.toHaveBeenCalled();
+  });
+
+  it('centers labels and values in three equally padded stat columns', () => {
+    mount(<PetManagementCard pet={pet} isSelected {...callbacks} />);
+    for (const key of ['age', 'weight', 'together']) {
+      const column = view(`pet-${key}-${pet.id}`);
+      expect(StyleSheet.flatten(column.props.style)).toMatchObject({ flex: 1, paddingHorizontal: 6, alignItems: 'center' });
+      column.findAllByType(Text).forEach(node => {
+        expect(StyleSheet.flatten(node.props.style)).toMatchObject({ width: '100%', textAlign: 'center' });
+      });
+      expect(column.findAllByType(Text)).toHaveLength(2);
+    }
+  });
+
   it.each([
     [320, 568],
     [360, 640],
@@ -335,19 +364,23 @@ describe('pet profile management reference and safety', () => {
       StyleSheet.flatten(view('pet-photo-frame-' + pet.id).props.style),
     ).toEqual(before);
   });
-  it.each([0, 1, 3])('renders real count %i without inventing pets', count => {
+  it.each([0, 1, 3])('keeps %i actual pets without the removed count caption', count => {
     const list = Array.from({ length: count }, (_, i) => ({
       ...pet,
       id: 'fixture-' + i,
     }));
     screen(list);
     expect(renderer.root.findByType(FlatList).props.data).toEqual(list);
-    expect(text(renderer)).toContain(count + '마리');
+    expect(text(renderer)).not.toContain('우리 아이');
+    expect(text(renderer)).not.toContain(count + '마리');
     if (count === 0)
       expect(text(renderer)).toContain('아직 등록된 아이가 없어요');
   });
   it('keeps edit/add routes, immediate selection, ordering and safe-area padding', () => {
     screen();
+    const addLabel = button('pet-management-add').findAllByType(Text)[0];
+    expect(contentText(addLabel.props.children)).toBe('새로운 아이 소개하기');
+    expect(StyleSheet.flatten(addLabel.props.style).textAlign).toBe('center');
     act(() => button('pet-edit-' + pet.id).props.onPress());
     expect(mockNavigation.navigate).toHaveBeenCalledWith('PetProfileEdit', {
       petId: pet.id,

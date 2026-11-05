@@ -1,3 +1,4 @@
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import { TIMELINE_DESIGN as C, TIMELINE_TYPE as T } from '../../theme/timelineDesign';
 import { StyleSheet } from 'react-native';
 import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
@@ -51,10 +52,9 @@ const baseStyles = StyleSheet.create({
   },
   headerTitle: {
     flex: 1,
-    color: TEXT,
-    fontWeight: '900',
-    textAlign: 'center',
-  },
+
+
+    textAlign: 'center', ...APP_HEADER.title },
   headerDoneText: {
     color: BRAND,
     fontWeight: '900',
@@ -85,16 +85,6 @@ const baseStyles = StyleSheet.create({
     justifyContent: 'space-between',
     borderWidth: 1,
     borderColor: 'rgba(148,163,184,0.08)',
-  },
-  dateLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  dateIconWrap: {
-    width: 22,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   dateText: {
     color: '#616D82',
@@ -613,13 +603,14 @@ export const styles = StyleSheet.create({
   ...baseStyles,
   screen: {flex:1,backgroundColor:LAVENDER_CANVAS.base},
   header: {...baseStyles.header,borderBottomWidth:0,paddingHorizontal:16,paddingBottom:8},
-  headerTitle:{...baseStyles.headerTitle,...T.screen,color:C.ink},
+  headerTitle:{...baseStyles.headerTitle,...T.screen, ...APP_HEADER.title },
   content:{...baseStyles.content,paddingHorizontal:16,paddingTop:8},
   formPanel:{padding:0},
   dateCard:{...baseStyles.dateCard,minHeight:48,borderRadius:10,paddingHorizontal:14,backgroundColor:'transparent',borderColor:'transparent'},
-  dateText:{...T.input,color:C.ink},
+  dateText:{...T.input,color:C.ink,flexShrink:1},
   field:{marginTop:20},
   fieldLabel:{...T.card,color:C.ink,marginBottom:8},
+  categoryHeading:{fontSize:15,lineHeight:20},
   // The existing input keeps its native focus/IME owner; glass is paint behind it.
   inputSurface:{borderRadius:10,position:'relative'},
   input:{...baseStyles.input,minHeight:48,borderRadius:10,borderColor:'transparent',backgroundColor:'transparent',color:C.ink,paddingHorizontal:14,paddingVertical:12,...T.input},

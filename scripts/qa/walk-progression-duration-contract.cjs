@@ -1,0 +1,51 @@
+'use strict';
+const fs=require('node:fs'),path=require('node:path'),assert=require('node:assert/strict'),crypto=require('node:crypto');
+const {PGlite}=require(process.env.NURI_PGLITE_MODULE||'@electric-sql/pglite');
+const root=path.resolve(__dirname,'../..');
+const output=process.env.NURI_WALK_DURATION_EVIDENCE_DIRECTORY;
+if(!output||!path.isAbsolute(output))throw Error('EVIDENCE_DIRECTORY_REQUIRED');
+async function main(){
+ const db=new PGlite();
+ await db.exec(`create role anon; create role authenticated; create role service_role;
+ create schema auth;
+ create function auth.uid() returns uuid language sql stable as $$select nullif(current_setting('request.jwt.claim.sub',true),'')::uuid$$;
+ create table auth.users(id uuid primary key,deleted_at timestamptz,banned_until timestamptz);
+ create table public.pets(id uuid primary key,user_id uuid);
+ create table public.account_deletion_requests(user_id uuid,status text);`);
+ for(const file of ['20261020024833_walk_phase4_server_foundation.sql','20261020025209_walk_phase4_feasibility_read_guard.sql','20261020042159_walk_phase5a_progression.sql'])
+  await db.exec(fs.readFileSync(path.join(root,'supabase/migrations',file),'utf8'));
+ const [owner,other,pet,otherPet]=Array.from({length:4},()=>crypto.randomUUID());
+ await db.query('insert into auth.users(id) values($1),($2)',[owner,other]);
+ await db.query('insert into public.pets values($1,$2),($3,$4)',[pet,owner,otherPet,other]);
+ await db.query("select set_config('request.jwt.claim.sub',$1,false)",[owner]);
+ const add=async(user,animal,duration,distance,eligibility='PROGRESSION_ELIGIBLE')=>db.query(`insert into public.walk_sessions(user_id,pet_id,client_session_id,state,payload_digest,started_at,ended_at,measured_duration_ms,active_duration_ms,measured_distance_m,accepted_distance_m,eligibility,quality_summary,accepted_at)
+ values($1,$2,$3,'ACCEPTED_SERVER',repeat('a',64),now()-interval '1 day',now(),$4,$4,$5,$5,$6,'{}',now())`,[user,animal,crypto.randomUUID(),duration,distance,eligibility]);
+ await add(owner,pet,'1259999','223');
+ await add(owner,pet,'60001','0','PROGRESSION_INELIGIBLE_QUALITY');
+ await add(other,otherPet,'9999999','5000');
+ const read=async animal=>(await db.query('select public.get_pet_walk_progression_v1($1) p',[animal])).rows[0].p;
+ const before=await read(pet);
+ const acl=(await db.query("select proacl from pg_proc where oid='public.get_pet_walk_progression_v1(uuid)'::regprocedure")).rows[0].proacl;
+ const files=fs.readdirSync(path.join(root,'supabase/migrations')).filter(n=>/^\d+_walk_progression_active_duration\.sql$/.test(n));
+ assert.equal(files.length,1);
+ await db.exec(fs.readFileSync(path.join(root,'supabase/migrations',files[0]),'utf8'));
+ const current=await read(pet),{lifetimeActiveDurationMs,...legacy}=current;
+ assert.deepEqual(legacy,before);
+ assert.equal(lifetimeActiveDurationMs,'1320000');
+ assert.equal(current.lifetimeDistanceM,'223');
+ assert.deepEqual((await db.query("select proacl from pg_proc where oid='public.get_pet_walk_progression_v1(uuid)'::regprocedure")).rows[0].proacl,acl);
+ await db.query("insert into public.walk_sessions(user_id,pet_id,client_session_id,state) values($1,$2,$3,'ACTIVE')",[owner,pet,crypto.randomUUID()]);
+ assert.equal((await read(pet)).lifetimeActiveDurationMs,'1320000');
+ await db.query("update public.walk_sessions set deleted_at=now() where user_id=$1 and pet_id=$2 and state='ACCEPTED_SERVER' and eligibility='PROGRESSION_ELIGIBLE'",[owner,pet]);
+ assert.equal((await read(pet)).lifetimeActiveDurationMs,'60001');
+ assert.equal((await read(pet)).lifetimeDistanceM,'0');
+ await db.query("update public.walk_sessions set deleted_at=now() where user_id=$1 and pet_id=$2 and state='ACCEPTED_SERVER'",[owner,pet]);
+ assert.equal((await read(pet)).lifetimeActiveDurationMs,'0');
+ await assert.rejects(read(otherPet),error=>error.code==='42501');
+ await db.query("select set_config('request.jwt.claim.sub','',false)");
+ await assert.rejects(read(pet),error=>error.code==='42501');
+ const result={pass:true,environment:'ISOLATED_PGLITE_NO_REMOTE_WRITES',checks:['legacy_fields_unchanged','duration_includes_completed_quality_excluded','other_owner_excluded','active_excluded','deleted_excluded','empty_zero','foreign_pet_denied','anonymous_denied','acl_preserved']};
+ fs.writeFileSync(path.join(output,'walk-duration-sql-results.json'),JSON.stringify(result,null,2));
+ console.log(JSON.stringify(result));await db.close();
+}
+main().catch(e=>{console.error(JSON.stringify({error:e.message,code:e.code}));process.exitCode=1;});

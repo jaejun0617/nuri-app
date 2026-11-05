@@ -322,7 +322,7 @@ describe('More account deletion confirmation', () => {
     await TestRenderer.act(async () => renderer.unmount());
   });
 
-  it('keeps all 19 destinations once across identity, quick links and purpose groups', async () => {
+  it('keeps all 18 remaining destinations once after removing point color settings', async () => {
     let renderer!: TestRenderer.ReactTestRenderer;
 
     await TestRenderer.act(async () => {
@@ -358,7 +358,6 @@ describe('More account deletion confirmation', () => {
       'walk-nearby',
       'animal-hospital',
       'my-profile',
-      'theme',
       'app-font',
       'notification',
       'user-notifications',
@@ -919,12 +918,13 @@ describe('More account deletion confirmation', () => {
       expect(renderer.root.findAllByProps({ testID: 'more-settings-shortcut' })).toHaveLength(0);
       expect(renderer.root.findByProps({ testID: 'more-settings-section' }).props.items).toEqual(
         expect.arrayContaining([
-          expect.objectContaining({ key: 'theme', label: '펫 강조색', onPress: expect.any(Function) }),
           expect.objectContaining({ key: 'app-font', label: '앱 글꼴', onPress: expect.any(Function) }),
           expect.objectContaining({ key: 'notification', label: '알림 설정', onPress: expect.any(Function) }),
           expect.objectContaining({ key: 'user-notifications', label: '알림함', onPress: expect.any(Function) }),
         ]),
       );
+      expect(renderer.root.findByProps({ testID: 'more-settings-section' }).props.items)
+        .not.toEqual(expect.arrayContaining([expect.objectContaining({ key:'theme' })]));
       expect(mockNavigation.navigate).not.toHaveBeenCalled();
       expect(mockPerformAccountDeletion).not.toHaveBeenCalled();
     } finally {

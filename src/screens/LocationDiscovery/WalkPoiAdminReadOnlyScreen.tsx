@@ -1,3 +1,5 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 // 파일: src/screens/LocationDiscovery/WalkPoiAdminReadOnlyScreen.tsx
 // 파일 목적:
 // - V1.1 산책 POI import/review/coverage 상태를 운영자가 확인하고 pending 후보를 검수한다.
@@ -667,15 +669,15 @@ export default function WalkPoiAdminReadOnlyScreen() {
   if (!isProfileReady) {
     return (
       <SafeAreaView style={styles.screen}>
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 12) }]}>
+        <AppHeaderLayout subtitle="장소 정보의 검수 상태를 확인해요" style={[styles.header, { paddingTop: Math.max(insets.top, 12) }]}>
           <TouchableOpacity style={styles.backButton} onPress={onPressBack}>
-            <Feather name="arrow-left" size={20} color="#102033" />
+            <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
           </TouchableOpacity>
-          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText styleOverridesPreset typographyRole="screenTitle" preset="unifiedTitle" style={[styles.headerTitle, APP_HEADER.title]}>
             산책 POI 운영
           </AppText>
           <View style={styles.headerSide} />
-        </View>
+        </AppHeaderLayout>
         <View style={styles.permissionCard}>
           <Feather name="loader" size={28} color="#2F6F4E" />
           <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.permissionTitle}>
@@ -692,15 +694,15 @@ export default function WalkPoiAdminReadOnlyScreen() {
   if (!isAdmin) {
     return (
       <SafeAreaView style={styles.screen}>
-        <View style={[styles.header, { paddingTop: Math.max(insets.top, 12) }]}>
+        <AppHeaderLayout subtitle="장소 정보의 검수 상태를 확인해요" style={[styles.header, { paddingTop: Math.max(insets.top, 12) }]}>
           <TouchableOpacity style={styles.backButton} onPress={onPressBack}>
-            <Feather name="arrow-left" size={20} color="#102033" />
+            <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
           </TouchableOpacity>
-          <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+          <AppText styleOverridesPreset typographyRole="screenTitle" preset="unifiedTitle" style={[styles.headerTitle, APP_HEADER.title]}>
             산책 POI 운영
           </AppText>
           <View style={styles.headerSide} />
-        </View>
+        </AppHeaderLayout>
         <View style={styles.permissionCard}>
           <Feather name="shield-off" size={28} color="#D75B23" />
           <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.permissionTitle}>
@@ -717,17 +719,17 @@ export default function WalkPoiAdminReadOnlyScreen() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
-      <View style={[styles.header, { paddingTop: Math.max(insets.top, 12) }]}>
+      <AppHeaderLayout subtitle="장소 정보의 검수 상태를 확인해요" style={[styles.header, { paddingTop: Math.max(insets.top, 12) }]}>
         <TouchableOpacity style={styles.backButton} onPress={onPressBack}>
-          <Feather name="arrow-left" size={20} color="#102033" />
+          <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
         </TouchableOpacity>
-        <AppText typographyRole="screenTitle" preset="unifiedTitle" style={styles.headerTitle}>
+        <AppText styleOverridesPreset typographyRole="screenTitle" preset="unifiedTitle" style={[styles.headerTitle, APP_HEADER.title]}>
           산책 POI 운영
         </AppText>
         <TouchableOpacity style={styles.refreshButton} onPress={refresh}>
           <Feather name="refresh-cw" size={18} color="#102033" />
         </TouchableOpacity>
-      </View>
+      </AppHeaderLayout>
 
       <ScrollView
         style={styles.scroll}
@@ -1118,9 +1120,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     textAlign: 'center',
-    color: '#102033',
-    fontWeight: '900',
-  },
+
+     ...APP_HEADER.title },
   headerSide: {
     width: 40,
   },

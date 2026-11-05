@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
-import { SEASON_CTA } from '../src/app/theme/ctaPalette';
+import { PRODUCT_CTA } from '../src/app/theme/tokens/productAccent';
 import WalkRestSheet from '../src/screens/DevTest/walkPresentation/WalkRestSheet';
 
 jest.mock('../src/app/ui/AppText', () => 'AppText');
@@ -231,13 +231,13 @@ describe('Walk rest sheet presentation and motion', () => {
     });
   });
   test.each(['spring', 'summer', 'autumn', 'winter'] as const)(
-    '%s uses the existing season primary and 48dp targets',
+    '%s keeps the fixed product primary and 48dp targets',
     async season => {
       await render({ season });
       const primary = StyleSheet.flatten(
         node('walk-rest-resume').props.style({ pressed: false }),
       );
-      expect(primary.backgroundColor).toBe(SEASON_CTA[season].primary);
+      expect(primary.backgroundColor).toBe(PRODUCT_CTA.primary);
       expect(primary.minHeight).toBeGreaterThanOrEqual(48);
       expect(
         StyleSheet.flatten(node('walk-rest-later').props.style).minHeight,

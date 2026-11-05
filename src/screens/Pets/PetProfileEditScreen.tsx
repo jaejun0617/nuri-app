@@ -1,3 +1,7 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
+import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
+import { MenuGlassSurface, MENU_GLASS_FRAME } from '../../components/common/MenuGlassSurface';
 import { formatPetCopy } from '../../utils/petDisplayName';
 import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
@@ -18,12 +22,12 @@ import React, {
   useState,
 } from 'react';
 import {
-  Alert,
   AppState,
   type TextInputContentSizeChangeEvent,
   TouchableOpacity,
   View,
 } from 'react-native';
+import { NuriAlert as Alert } from '../../app/ui/NuriAlert';
 import {
   useIsFocused,
   useNavigation,
@@ -49,7 +53,6 @@ import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import { normalizeDateInput } from '../../components/date-picker/datePickerUtils';
 import WeightLogEntrySheet from '../../components/health/WeightLogEntrySheet';
 import PhotoAddCard from '../../components/media/PhotoAddCard';
-import PetThemePicker from '../../components/pets/PetThemePicker';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
@@ -57,7 +60,6 @@ import {
   getBrandedErrorMeta,
   getErrorMessage,
 } from '../../services/app/errors';
-import { readFileAsBase64 } from '../../services/files/readFileAsBase64';
 import { pickPhotoAssets } from '../../services/media/photoPicker';
 import { formatPetAgeLabelFromBirthDate } from '../../services/pets/age';
 import {
@@ -77,7 +79,7 @@ import {
 import {
   buildPetThemePalette,
   NEUTRAL_UI_PALETTE,
-  recommendPetThemeColor,
+  resolvePetThemeColor,
 } from '../../services/pets/themePalette';
 import { supabase } from '../../services/supabase/client';
 import { fetchMyPets, updatePet } from '../../services/supabase/pets';
@@ -330,19 +332,20 @@ export default function PetProfileEditScreen() {
       screen: { backgroundColor: PRODUCT_CANVAS_COLOR },
       ambient: { backgroundColor: palette.ambientOverlayColor },
       section: {
-        backgroundColor: palette.sectionSurfaceColor,
-        borderColor: palette.sectionBorderColor,
+        ...MENU_GLASS_FRAME,
       },
       control: {
-        backgroundColor: palette.controlSurfaceColor,
-        borderColor: palette.controlBorderColor,
+        backgroundColor: 'rgba(255,255,255,0.58)',
+        borderColor: 'rgba(130,125,159,0.16)',
       },
       sticky: {
-        backgroundColor: palette.stickySurfaceColor,
-        borderTopColor: palette.stickyBorderColor,
+        backgroundColor: PRODUCT_CANVAS_COLOR,
+        borderTopColor: 'rgba(255,255,255,0.78)',
+        shadowOpacity: 0,
+        elevation: 0,
       },
-      primaryText: { color: palette.primaryTextColor },
-      secondaryText: { color: palette.secondaryTextColor },
+      primaryText: { color: NEUTRAL_UI_PALETTE.deep },
+      secondaryText: { color: APP_HEADER.subtitleColor },
     };
   }, [profileEditVisual]);
 
@@ -449,13 +452,8 @@ export default function PetProfileEditScreen() {
     [deathDate],
   );
   const selectedThemeColor = useMemo(
-    () =>
-      themeColor ??
-      recommendPetThemeColor({
-        name: trimmedName || originalName,
-        petId: pet?.id,
-      }),
-    [originalName, pet?.id, themeColor, trimmedName],
+    () => resolvePetThemeColor(themeColor),
+    [themeColor],
   );
   const petTheme = useMemo(
     () => buildPetThemePalette(selectedThemeColor),
@@ -561,28 +559,11 @@ export default function PetProfileEditScreen() {
 
       setImageUri(asset.uri);
       setImageType(asset.mimeType);
-      try {
-        const base64 = await readFileAsBase64(asset.uri);
-        setThemeColor(
-          recommendPetThemeColor({
-            imageBase64: base64,
-            name: trimmedName || originalName,
-            petId,
-          }),
-        );
-      } catch {
-        setThemeColor(
-          recommendPetThemeColor({
-            name: trimmedName || originalName,
-            petId,
-          }),
-        );
-      }
     } catch (error) {
       const { title, message } = getBrandedErrorMeta(error, 'image-pick');
       showToast({ tone: 'error', title, message });
     }
-  }, [originalName, petId, trimmedName]);
+  }, []);
 
   const handleRepresentativeSpeciesChange = useCallback(
     (value: PetRepresentativeSpeciesKey) => {
@@ -660,7 +641,7 @@ export default function PetProfileEditScreen() {
         speciesDisplayName: taxonomyChanged
           ? speciesSelection.speciesDisplayName
           : pet.speciesDisplayName,
-        themeColor: selectedThemeColor,
+        themeColor,
         birthDate: normalizeYmdOrNull(birthDate),
         adoptionDate: normalizeYmdOrNull(adoptionDate),
         deathDate:
@@ -723,7 +704,7 @@ export default function PetProfileEditScreen() {
     pet,
     remainingNameChanges,
     representativeSpecies,
-    selectedThemeColor,
+    themeColor,
     sessionUserId,
     setPets,
     speciesDetailKey,
@@ -831,36 +812,32 @@ export default function PetProfileEditScreen() {
 
   return (
     <View style={[styles.screen, seasonalStyles.screen]}>
-      <View
-        style={[
-          styles.header,
-          {
-            marginTop: 0,
-            paddingTop: Math.max(insets.top + 4, 12),
-          },
-        ]}
+      <AppHeaderLayout testID="pet-edit-header" topInset={insets.top}
+        subtitle="아이의 새로운 모습을 프로필에 담아요"
+        style={styles.header}
       >
         <View style={styles.headerSideSlot}>
           <TouchableOpacity
             activeOpacity={0.88}
-            style={[styles.backButton, seasonalStyles.control]}
+            testID="pet-edit-back" accessibilityRole="button" accessibilityLabel="뒤로가기"
+            style={styles.backButton}
             onPress={onPressBack}
             hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
           >
-            <Feather name="arrow-left" size={20} color="#102033" />
+            <Feather name="chevron-left" size={APP_HEADER.backIconSize} color={APP_HEADER.titleColor} />
           </TouchableOpacity>
         </View>
 
-        <AppText
+        <AppText styleOverridesPreset
           typographyRole="screenTitle"
           preset="unifiedTitle"
-          style={styles.headerTitle}
+          style={[styles.headerTitle, APP_HEADER.title]}
         >
           프로필 수정
         </AppText>
 
-        <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
-      </View>
+        <HeaderHelpButton topic="petEdit" color={APP_HEADER.titleColor} />
+      </AppHeaderLayout>
 
       <KeyboardAwareScrollView
         ref={scrollRef}
@@ -906,14 +883,14 @@ export default function PetProfileEditScreen() {
           </View>
           <AppText
             preset="unifiedTitle"
-            style={[styles.profileName, { color: petTheme.deep }]}
+            style={[styles.profileName, { color: NEUTRAL_UI_PALETTE.deep }]}
           >
             {trimmedName || pet.name || '반려동물'}
           </AppText>
           {profileSummaryLine ? (
             <AppText
               preset="unifiedBody"
-              style={[styles.profileMeta, { color: petTheme.muted }]}
+              style={styles.profileMeta}
             >
               {profileSummaryLine}
             </AppText>
@@ -925,16 +902,7 @@ export default function PetProfileEditScreen() {
         </View>
 
         <View style={[styles.sectionGlass, seasonalStyles.section]}>
-          <PetThemePicker
-            embedded
-            selectedColor={selectedThemeColor}
-            title="프로필 컬러"
-            helperText="홈과 위젯의 강조색으로 사용돼요."
-            onSelectColor={setThemeColor}
-          />
-        </View>
-
-        <View style={[styles.sectionGlass, seasonalStyles.section]}>
+          <MenuGlassSurface radius={22} testID="pet-edit-card-glass" />
           <View style={styles.sectionHeader}>
             <AppText
               typographyRole="sectionTitle"
@@ -1047,6 +1015,7 @@ export default function PetProfileEditScreen() {
             styles.formSection,
           ]}
         >
+          <MenuGlassSurface radius={22} testID="pet-edit-card-glass" />
           <View style={styles.sectionHeader}>
             <AppText
               typographyRole="sectionTitle"
@@ -1401,6 +1370,7 @@ export default function PetProfileEditScreen() {
             styles.formSection,
           ]}
         >
+          <MenuGlassSurface radius={22} testID="pet-edit-card-glass" />
           <View style={styles.sectionHeader}>
             <AppText
               typographyRole="sectionTitle"
@@ -1527,6 +1497,7 @@ export default function PetProfileEditScreen() {
             styles.formSection,
           ]}
         >
+          <MenuGlassSurface radius={22} testID="pet-edit-card-glass" />
           <View style={styles.sectionHeader}>
             <View style={styles.inlineLabel}>
               <Feather name="hash" size={18} color={NEUTRAL_UI_PALETTE.primary} />
@@ -1660,6 +1631,7 @@ export default function PetProfileEditScreen() {
             stickyActionInsetStyle,
           ]}
         >
+          <MenuGlassSurface radius={0} backed testID="pet-edit-actions-glass" />
           <View style={styles.stickyActionInner}>
             <CtaButton
               role="primary"

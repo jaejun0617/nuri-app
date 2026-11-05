@@ -4,8 +4,7 @@ import { StyleSheet, TouchableOpacity } from 'react-native';
 import AppText from '../../app/ui/AppText';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import type { CtaRole } from '../../app/theme/ctaPalette';
-import { SEASON_CTA } from '../../app/theme/ctaPalette';
-import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
+import { PRODUCT_ACCENT } from '../../app/theme/tokens/productAccent';
 
 type Props = {
   label: string;
@@ -38,7 +37,6 @@ export default function HeaderTextActionButton({
   fontSize,
   appearance = 'default',
 }: Props) {
-  const season = useEffectiveSeason();
   if (appearance === 'seasonalText') {
     return (
       <TouchableOpacity
@@ -54,7 +52,7 @@ export default function HeaderTextActionButton({
           typographyRole="utility"
           preset="tab"
           styleOverridesPreset
-          style={[styles.text, { color: SEASON_CTA[season].primary, fontSize: fontSize ?? 14, lineHeight: (fontSize ?? 14) + 6 }]}
+          style={[styles.text, { color: PRODUCT_ACCENT.primary, fontSize: fontSize ?? 14, lineHeight: (fontSize ?? 14) + 6 }]}
         >
           {label}
         </AppText>

@@ -3,10 +3,10 @@ import Renderer, { act } from 'react-test-renderer';
 import { AccessibilityInfo, Modal, StyleSheet, View } from 'react-native';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
-import { SEASON_CTA } from '../src/app/theme/ctaPalette';
+import { PRODUCT_CTA } from '../src/app/theme/tokens/productAccent';
 import WalkView from '../src/screens/DevTest/walkPresentation/WalkView';
 import { getSeasonalWeatherVisualTheme } from '../src/theme/seasonal/weather';
-import { buildPetThemePalette } from '../src/services/pets/themePalette';
+import { buildAccentPalette } from '../src/services/pets/themePalette';
 
 let mockDimensions = { width: 384, height: 832, scale: 3, fontScale: 1 };
 const mockScrollToEnd = jest.fn();
@@ -236,7 +236,7 @@ describe('approved finish confirmation and device-local result redesign', () => 
       expect(
         StyleSheet.flatten(node('walk-primary').props.style({ pressed: false }))
           .backgroundColor,
-      ).toBe(SEASON_CTA[season].primary);
+      ).toBe(PRODUCT_CTA.primary);
     },
   );
   test('long personalized name and fontScale 1.3 keep copy wrapping instead of truncating', async () => {
@@ -300,7 +300,7 @@ describe('approved finish confirmation and device-local result redesign', () => 
     async season => {
       await render({ season });
       const accent = getSeasonalWeatherVisualTheme(season)!.card.accent;
-      const deep = buildPetThemePalette(accent).deep;
+      const deep = buildAccentPalette(accent).deep;
       for (const id of [
         'walk-result-title',
         'walk-distance-value',

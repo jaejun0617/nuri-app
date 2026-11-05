@@ -1,3 +1,6 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import React, {
   memo,
   useCallback,
@@ -8,7 +11,6 @@ import React, {
 } from 'react';
 import {
   AccessibilityInfo,
-  Alert,
   findNodeHandle,
   FlatList,
   StyleSheet,
@@ -17,6 +19,7 @@ import {
   View,
   type ListRenderItem,
 } from 'react-native';
+import { NuriAlert as Alert } from '../../app/ui/NuriAlert';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -249,7 +252,7 @@ export default function PetManagementScreen() {
         onPress={handleAddPet}
       >
         <AppText preset="button" style={styles.addText}>
-          + 아이 등록하기
+          새로운 아이 소개하기
         </AppText>
       </TouchableOpacity>
     ),
@@ -270,16 +273,8 @@ export default function PetManagementScreen() {
           deleteTarget ? 'no-hide-descendants' : 'auto'
         }
       >
-        <View
-          style={[
-            styles.header,
-            {
-              paddingTop: Math.max(insets.top + 8, 18),
-              paddingHorizontal: layout.pageInset,
-            },
-          ]}
-        >
-          <View style={styles.headerRow}>
+        <View style={styles.header}>
+          <AppHeaderLayout testID="pet-management-header" subtitle="함께하는 아이들의 프로필을 살펴봐요" topInset={insets.top}>
             <TouchableOpacity
               ref={backRef}
               testID="pet-management-back"
@@ -290,22 +285,17 @@ export default function PetManagementScreen() {
             >
               <NuriSemanticIcon
                 family="feather"
-                name="arrow-left"
+                name="chevron-left"
                 preserveOriginal
-                size={24}
+                size={APP_HEADER.backIconSize}
                 color={colors.ink}
               />
             </TouchableOpacity>
-            <AppText preset="title1" style={styles.title}>
+            <AppText testID="pet-management-title" styleOverridesPreset preset="title1" style={[styles.title, APP_HEADER.title]}>
               아이들 프로필 관리
             </AppText>
-          </View>
-          <AppText preset="body" style={styles.count}>
-            우리 아이{' '}
-            <AppText preset="body" style={styles.countAccent}>
-              {pets.length}마리
-            </AppText>
-          </AppText>
+            <HeaderHelpButton topic="petManagement" color={APP_HEADER.titleColor} />
+          </AppHeaderLayout>
         </View>
         <FlatList
           testID="pet-management-list"
@@ -354,6 +344,7 @@ export default function PetManagementScreen() {
         />
       ) : null}
       <ConfirmDialog
+        surfaceVariant="menuGlass"
         confirmRole="primary"
         cancelRole="neutral"
         visible={lastPetGuardVisible}
@@ -373,7 +364,6 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.canvas },
   content: { flex: 1 },
   header: { paddingBottom: 8 },
-  headerRow: { flexDirection: 'row', alignItems: 'center' },
   back: {
     width: 48,
     height: 48,
@@ -383,19 +373,11 @@ const styles = StyleSheet.create({
   title: {
     ...type.managementTitle,
     flex: 1,
-    color: colors.ink,
+    minWidth: 0,
+    flexShrink: 1,
+    textAlign: 'center',
     includeFontPadding: false,
-    textAlignVertical: 'center',
-  },
-  count: {
-    ...type.count,
-    color: colors.muted,
-    marginLeft: 48,
-    marginTop: -3,
-    paddingVertical: 0,
-    includeFontPadding: false,
-  },
-  countAccent: { ...type.count, color: colors.accent },
+    textAlignVertical: 'center', ...APP_HEADER.title },
   list: { flexGrow: 1, paddingTop: 0, paddingBottom: 24 },
   separator: { height: 14 },
   add: {

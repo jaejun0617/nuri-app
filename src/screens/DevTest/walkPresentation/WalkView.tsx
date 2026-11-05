@@ -28,6 +28,8 @@ import WalkLocalResult from './WalkLocalResult';
 import WalkSignalStatus from './WalkSignalStatus';
 import { finishArtwork } from './finishArtwork';
 import { lightColors } from '../../../app/theme/tokens/colors';
+import { APP_HEADER } from '../../../components/navigation/headerAppearance';
+import { AppHeaderLayout } from '../../../components/navigation/AppHeaderLayout';
 import { walkCopyAccent } from './walkAccent';
 
 const Surface = styled.View`
@@ -37,7 +39,8 @@ const Root = styled.View`
   flex: 1;
   background-color: ${({ theme }) => theme.colors.background};
 `;
-const Header = styled(Surface)`
+const Header = styled(AppHeaderLayout)`
+  background-color: ${({ theme }) => theme.colors.surfaceElevated};
   padding: 8px 16px;
   flex-direction: row;
   align-items: center;
@@ -319,7 +322,7 @@ export function IconControl({
     >
       <Feather
         name={icon}
-        size={22}
+        size={icon === 'chevron-left' ? APP_HEADER.backIconSize : APP_HEADER.actionIconSize}
         color={paper ? lightColors.textPrimary : theme.colors.textPrimary}
       />
     </Pressable>
@@ -396,6 +399,7 @@ export default function WalkView(props: Props) {
     : '잠시 쉬기';
   const header = (
     <Header
+      subtitle="함께 걷는 오늘을 차곡차곡 남겨요"
       style={[
         { paddingTop: props.insetTop + 8 },
         paper && { backgroundColor: lightColors.surfaceElevated },
@@ -403,7 +407,7 @@ export default function WalkView(props: Props) {
     >
       <IconControl
         label="산책 화면 닫기"
-        icon="arrow-left"
+        icon="chevron-left"
         onPress={props.onClose}
         testID="walk-close"
         paper={paper}
@@ -411,7 +415,7 @@ export default function WalkView(props: Props) {
       <View style={styles.headerText}>
         <AppText
           preset="titleSm"
-          style={[WALK_TEXT.title, paper && { color: lightColors.textPrimary }]}
+          style={[WALK_TEXT.title, APP_HEADER.title, { textAlign: 'center' }]}
           testID="walk-header-title"
         >
           오늘의 산책
@@ -428,18 +432,19 @@ export default function WalkView(props: Props) {
               lineHeight: 18,
               color: lightColors.textSecondary,
             },
+            { textAlign: 'center' },
           ]}
         >
           {formatPetCopy('우리 아이와 함께', petName)}
         </AppText>
       </View>
-      {props.onQa && <IconControl
+      {props.onQa ? <IconControl
         label="QA 정보 열기"
         icon="sliders"
         onPress={props.onQa}
         testID="walk-qa-open"
         paper={paper}
-      />}
+      /> : <View style={{ width: 48 }} />}
     </Header>
   );
   if (pre) {

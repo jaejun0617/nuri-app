@@ -4,6 +4,8 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTheme } from 'styled-components/native';
 import AppText from '../../app/ui/AppText';
+import { HomeReflectiveGlass } from '../home/HomeReflectiveGlass';
+import NuriSemanticIcon from '../icons/NuriSemanticIcon';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
   useWalkProgression,
@@ -39,6 +41,40 @@ export function WalkProgressionRow({
   const query = useWalkProgression(petId, enabled);
   const theme = useTheme();
   const p = query.data;
+  if (p && !expanded) {
+    const minutes =
+      typeof p.lifetimeActiveDurationMs === 'string'
+        ? (BigInt(p.lifetimeActiveDurationMs) / 60_000n).toString()
+        : null;
+    return (
+      <HomeReflectiveGlass
+        testID="walk-home-progression"
+        borderRadius={18}
+        style={styles.homeProgression}
+      >
+        <View style={styles.progressionMetric}>
+          <View style={styles.metricCopy}>
+            <AppText preset="unifiedMeta" style={styles.metricLabel}>평생 함께 걸은 거리</AppText>
+            <AppText preset="unifiedTitle" style={styles.progressionValue}>
+              {walkDistance(p.lifetimeDistanceM)}
+            </AppText>
+          </View>
+        </View>
+        <View style={styles.progressionDivider} />
+        <View style={styles.progressionMetric}>
+          <View style={styles.metricCopy}>
+            <AppText preset="unifiedMeta" style={styles.metricLabel}>산책</AppText>
+            <AppText preset="unifiedTitle" style={styles.progressionValue}>
+              Lv. {p.level}
+            </AppText>
+            <AppText testID="home-walk-active-minutes" preset="unifiedMeta" style={styles.metricLabel}>
+              {minutes === null ? '산책 시간 확인 필요' : `산책 ${minutes}분`}
+            </AppText>
+          </View>
+        </View>
+      </HomeReflectiveGlass>
+    );
+  }
   return (
     <View
       testID={expanded ? 'walk-profile-progression' : 'walk-home-progression'}
@@ -173,17 +209,50 @@ export function WalkHomeFooter({
       {error && <AppText preset="unifiedMeta">{error}</AppText>}
       <Pressable
         accessibilityRole="button"
-        style={styles.action}
+        style={[styles.action, styles.historyAction]}
         onPress={() => navigation.navigate('WalkHistory', { petId })}
       >
         <AppText preset="unifiedMeta">산책 이력 보기</AppText>
+        <NuriSemanticIcon
+          family="feather"
+          preserveOriginal
+          name="chevron-right"
+          size={18}
+          color="#7D5CE4"
+        />
       </Pressable>
     </View>
   );
 }
 const styles = StyleSheet.create({
+  homeProgression: {
+    marginTop: 10,
+    padding: 14,
+    flexDirection: 'row',
+    alignItems: 'stretch',
+    gap: 14,
+  },
+  progressionMetric: {
+    flex: 1,
+    minWidth: 0,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  metricCopy: { width: '100%', minWidth: 0, alignItems: 'center', gap: 4 },
+  metricLabel: { textAlign: 'center' },
+  progressionValue: { fontSize: 24, lineHeight: 32, fontWeight: '700', textAlign: 'center' },
+  progressionDivider: {
+    width: StyleSheet.hairlineWidth,
+    backgroundColor: 'rgba(125,92,228,0.22)',
+  },
   section: { gap: 6, paddingTop: 10 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
+  historyAction: {
+    alignSelf: 'flex-end',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
   action: {
     minHeight: 44,
     justifyContent: 'center',

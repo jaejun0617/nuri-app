@@ -16,6 +16,7 @@ import { KeyboardAvoidingView as KeyboardControllerAvoidingView } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 import AppText from '../../app/ui/AppText';
+import { MenuGlassSurface } from '../common/MenuGlassSurface';
 import PetDeletionRecoveryMarker from './PetDeletionRecoveryMarker';
 import {
   useAppFontPreference,
@@ -205,6 +206,7 @@ function PetDeleteConfirmDialog({
               },
             ]}
           >
+            <MenuGlassSurface radius={25} backed />
             <View testID="pet-delete-header" style={styles.header}>
               <AppText
                 preset="title1"
@@ -431,10 +433,10 @@ const styles = StyleSheet.create({
     minHeight: 0,
     borderRadius: 25,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
+    borderColor: 'rgba(255,255,255,0.78)',
+    backgroundColor: 'transparent',
     overflow: 'hidden',
-    elevation: 4,
+    elevation: 0,
   },
   header: {
     paddingLeft: 30,

@@ -9,6 +9,8 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { PRODUCT_CANVAS_GRADIENT_COLORS } from '../../app/theme/tokens/colors';
+import { MenuGlassSurface } from '../../components/common/MenuGlassSurface';
 import {
   useFocusEffect,
   useNavigation,
@@ -108,8 +110,7 @@ export default function PetProfileEditDoneScreen() {
   return (
     <View style={styles.screen} testID="profile-completion-screen">
       <LinearGradient
-        colors={['#FCFAFF', '#F7F2FF', '#FCFAFF']}
-        locations={[0, 0.54, 1]}
+        colors={[...PRODUCT_CANVAS_GRADIENT_COLORS]}
         pointerEvents="none"
         style={StyleSheet.absoluteFill}
       />
@@ -200,13 +201,7 @@ function ProfileCompletionSummary({
 }) {
   return (
     <View style={styles.card} testID="profile-completion-summary">
-      <LinearGradient
-        colors={['rgba(255,255,255,0.60)', 'rgba(255,255,255,0.08)']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
+      <MenuGlassSurface radius={20} />
       <View style={styles.cardTop}>
         <View style={styles.avatar}>
           <ProfileCompletionPhoto

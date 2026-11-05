@@ -1,3 +1,5 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // 파일: src/screens/Schedules/ScheduleListScreen.tsx
 // 파일 목적:
@@ -186,20 +188,20 @@ export default function ScheduleListScreen() {
   return (
     <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <SeasonalAmbientBackground season={season} />
-      <View style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
+      <AppHeaderLayout subtitle="아이와 함께할 일정을 모아봐요" style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <TouchableOpacity
           accessibilityRole="button"
           accessibilityLabel="뒤로"
           style={styles.headerBackButton}
           onPress={onPressBack}
         >
-          <Feather name="chevron-left" size={24} color={petTheme.deep} />
+          <Feather name="chevron-left" size={APP_HEADER.backIconSize} color={petTheme.deep} />
         </TouchableOpacity>
-        <AppText
+        <AppText styleOverridesPreset
           typographyRole="screenTitle"
           preset="unifiedTitle"
-          color={petTheme.primary}
-          style={styles.headerTitle}
+          color={APP_HEADER.titleColor}
+          style={[styles.headerTitle, APP_HEADER.title]}
         >
           전체 일정
         </AppText>
@@ -209,7 +211,7 @@ export default function ScheduleListScreen() {
           accessibilityLabel="일정 추가"
           onPress={onPressCreate}
         />
-      </View>
+      </AppHeaderLayout>
       <SectionList
         testID="schedule-hub-list"
         sections={sections}

@@ -24,12 +24,23 @@ export default function RecordPhotoStrip({items,onAdd,onRemove,disabled=false,su
       {items.length<10 && <TouchableOpacity accessibilityRole="button" accessibilityLabel="사진 추가" disabled={disabled} onPress={onAdd} style={[s.photo,s.add,surfaceVariant==='homeGlass' && s.glass, surfaceVariant==='homeGlass' && disabled && s.disabled]}>
         {surfaceVariant==='homeGlass' ? <RecordFieldGlass /> : null}
         {surfaceVariant === 'homeGlass' ? (
-          <NuriSemanticIcon family="feather" name="plus" preserveOriginal size={24} color="#000000" testID="record-photo-add-icon" accessible={false} />
-        ) : <Feather name={items.length?'plus':'camera'} size={24} color={C.primary} />}
-        <AppText style={[T.meta,{color:C.primary}]}>사진 추가</AppText>
+          <View style={addContent.centered}>
+            <NuriSemanticIcon family="feather" name="plus" preserveOriginal size={24} color="#000000" testID="record-photo-add-icon" accessible={false} />
+            <AppText styleOverridesPreset style={[T.meta, addContent.label]}>사진</AppText>
+          </View>
+        ) : (
+          <>
+            <Feather name={items.length?'plus':'camera'} size={24} color={C.primary} />
+            <AppText style={[T.meta,{color:C.primary}]}>사진 추가</AppText>
+          </>
+        )}
       </TouchableOpacity>}
       {items.length>0 && <AppText style={[T.meta,s.count]}>{items.length} / 10</AppText>}
     </ScrollView>
   </View>;
 }
 const s=StyleSheet.create({root:{marginTop:18},heading:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:8,marginBottom:10},row:{gap:8,alignItems:'flex-end'},photo:{width:88,height:88,borderRadius:10,overflow:'hidden',backgroundColor:C.selected,alignItems:'center',justifyContent:'center'},add:{borderWidth:1,borderStyle:'dashed',borderColor:'#CBB9FA',backgroundColor:'transparent',gap:8},glass:{backgroundColor:'transparent',borderColor:'transparent'},disabled:{opacity:0.5},remove:{position:'absolute',right:0,top:0,minWidth:48,minHeight:48},removeBadge:{position:'absolute',right:4,top:4,width:22,height:22,borderRadius:11,alignItems:'center',justifyContent:'center',backgroundColor:'rgba(25,20,40,.65)'},count:{color:C.muted,padding:6}});
+const addContent = StyleSheet.create({
+  centered: { width: '100%', alignItems: 'center', gap: 6 },
+  label: { width: '100%', textAlign: 'center', color: C.primary },
+});

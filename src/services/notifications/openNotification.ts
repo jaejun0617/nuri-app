@@ -10,6 +10,7 @@ export type NotificationOpenReceipt = {
 };
 
 export type NotificationDestination =
+  | { name: 'UserNotifications'; params: { entrySource: 'home' } }
   | { name: 'NotificationDetail'; params: { id: string; source: UserNotificationSource; notificationOpen: NotificationOpenReceipt } }
   | { name: 'CommunityComments'; params: { postId: string; commentId: string; notificationOpen: NotificationOpenReceipt } }
   | { name: 'CommunityDetail'; params: { postId: string; notificationOpen: NotificationOpenReceipt } }
@@ -35,7 +36,7 @@ export function createNotificationOpenReceipt(input: { id: string; source: UserN
 
 /** Only server-validated targets become internal routes. Unavailable/news retain
  * their readable detail; there is never an arbitrary route string or Home fallback. */
-export function resolveNotificationDestination(item: UserNotificationItem, receipt: NotificationOpenReceipt, _selectedPetId: string | null): NotificationDestination {
+export function resolveNotificationDestination(item: UserNotificationItem, receipt: NotificationOpenReceipt, _selectedPetId: string | null): Exclude<NotificationDestination, { name: 'UserNotifications' }> {
   const target = item.actionTarget;
   switch (target?.kind) {
     case 'community_comment': return { name: 'CommunityComments', params: { postId: target.postId, commentId: target.commentId, notificationOpen: receipt } };

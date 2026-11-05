@@ -4,6 +4,7 @@ import { AppState, Image, ScrollView, StyleSheet, View } from 'react-native';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
 import { resolveCtaPalette, SEASON_CTA } from '../src/app/theme/ctaPalette';
+import { PRODUCT_CTA } from '../src/app/theme/tokens/productAccent';
 import WalkView, {
   WalkAction,
 } from '../src/screens/DevTest/walkPresentation/WalkView';
@@ -134,7 +135,7 @@ describe('PO active Walk design candidate', () => {
     expect(host('walk-header-pet').props.children).toBe('누리와 함께');
     expect(
       StyleSheet.flatten(host('walk-header-title').props.style),
-    ).toMatchObject({ fontSize: 18, lineHeight: 24 });
+    ).toMatchObject({ fontSize: 17, lineHeight: 24 });
     expect(
       StyleSheet.flatten(host('walk-distance-value').props.style),
     ).toMatchObject({ fontSize: 28, lineHeight: 34 });
@@ -329,8 +330,8 @@ describe('PO active Walk design candidate', () => {
     async season => {
       await render(<WalkView {...props} season={season} />);
       const action = StyleSheet.flatten(host('walk-primary-face').props.style);
-      expect(action.backgroundColor).toBe(SEASON_CTA[season].primary);
-      expect(action.borderColor).toBe(SEASON_CTA[season].primary);
+      expect(action.backgroundColor).toBe(PRODUCT_CTA.primary);
+      expect(action.borderColor).toBe(PRODUCT_CTA.primary);
       expect(action).toMatchObject({
         borderWidth: 1,
         borderRadius: 8,
@@ -398,8 +399,8 @@ describe('PO active Walk design candidate', () => {
         )
           ? StyleSheet.flatten(action.props.style({ pressed }))
           : StyleSheet.flatten(action.props.children({ pressed }).props.style);
-      expect(faceStyle(false).backgroundColor).toBe(SEASON_CTA[season].primary);
-      expect(faceStyle(true).backgroundColor).toBe(SEASON_CTA[season].pressed);
+      expect(faceStyle(false).backgroundColor).toBe(PRODUCT_CTA.primary);
+      expect(faceStyle(true).backgroundColor).toBe(PRODUCT_CTA.pressed);
       expect(StyleSheet.flatten(host(`${id}-label`).props.style)).toMatchObject(
         {
           color: '#FFFFFF',

@@ -1,3 +1,8 @@
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
+import { MenuGlassSurface, MENU_GLASS_FRAME } from '../../components/common/MenuGlassSurface';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, { useCallback, useMemo } from 'react';
 import { Linking, ScrollView, TouchableOpacity, View } from 'react-native';
@@ -48,12 +53,22 @@ export default function AnimalHospitalDetailScreen() {
   const goBack = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
+  const header = <AppHeaderLayout subtitle="방문 전 병원 정보를 차분히 확인해요">
+    <TouchableOpacity accessibilityRole="button" accessibilityLabel="뒤로가기" onPress={goBack}
+      style={{ width: 48, height: 48, justifyContent: 'center', alignItems: 'center' }}>
+      <Feather name="chevron-left" size={APP_HEADER.backIconSize} color={theme.colors.textPrimary} />
+    </TouchableOpacity>
+    <AppText preset="unifiedTitle" styleOverridesPreset style={[APP_HEADER.title, { flex: 1, textAlign: 'center' }]}>동물병원 상세</AppText>
+    <HeaderHelpButton topic="hospital" />
+  </AppHeaderLayout>;
 
   if (!displayItem || !viewModel) {
     return (
-      <Screen style={styles.screen}>
+      <Screen style={[styles.screen, { backgroundColor: PRODUCT_CANVAS_COLOR }]}>
         <View style={styles.container}>
-          <View style={styles.sectionCard}>
+          {header}
+          <View style={[styles.sectionCard, MENU_GLASS_FRAME]}>
+            <MenuGlassSurface radius={20} />
             <AppText
               typographyRole="celebration"
               preset="unifiedTitle"
@@ -85,27 +100,16 @@ export default function AnimalHospitalDetailScreen() {
       : styles.operatingBadgeTextClosed;
 
   return (
-    <Screen style={styles.screen}>
+    <Screen style={[styles.screen, { backgroundColor: PRODUCT_CANVAS_COLOR }]}>
       <View style={styles.container}>
-        <View style={styles.heroHeader}>
-          <TouchableOpacity
-            activeOpacity={0.88}
-            onPress={goBack}
-            hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
-          >
-            <Feather
-              name="arrow-left"
-              size={20}
-              color={theme.colors.textPrimary}
-            />
-          </TouchableOpacity>
-        </View>
+        {header}
 
         <ScrollView
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 32, gap: 18 }}
         >
-          <View style={styles.hero}>
+          <View testID="hospital-detail-glass" style={[styles.hero, MENU_GLASS_FRAME]}>
+            <MenuGlassSurface radius={26} />
             <View style={styles.heroHeader}>
               <AppText preset="unifiedMeta" style={styles.eyebrow}>
                 우리동네 동물병원
@@ -264,7 +268,8 @@ export default function AnimalHospitalDetailScreen() {
                 interactive
               />
             ) : (
-              <View style={styles.mapFallbackCard}>
+              <View style={[styles.mapFallbackCard, MENU_GLASS_FRAME]}>
+                <MenuGlassSurface radius={18} />
                 <Feather
                   name="map-pin"
                   size={20}

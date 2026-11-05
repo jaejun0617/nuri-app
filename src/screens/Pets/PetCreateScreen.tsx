@@ -1,3 +1,7 @@
+import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
+import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
+import { MenuGlassSurface, MENU_GLASS_FRAME } from '../../components/common/MenuGlassSurface';
 import { formatPetCopy } from '../../utils/petDisplayName';
 // 파일: src/screens/Pets/PetCreateScreen.tsx
 // 파일 목적:
@@ -26,7 +30,6 @@ import React, {
   useState,
 } from 'react';
 import {
-  Alert,
   BackHandler,
   Image,
   Keyboard,
@@ -38,6 +41,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { NuriAlert as Alert } from '../../app/ui/NuriAlert';
 import {
   KeyboardStickyView,
   KeyboardAwareScrollView,
@@ -71,13 +75,11 @@ import FirstPetFontSelectorModal from '../../components/onboarding/FirstPetFontS
 import AppFontSettingsModal from '../../components/settings/AppFontSettingsModal';
 import DatePickerModal from '../../components/date-picker/DatePickerModal';
 import PhotoAddCard from '../../components/media/PhotoAddCard';
-import PetThemePicker from '../../components/pets/PetThemePicker';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
   getBrandedErrorMeta,
   getErrorMessage,
 } from '../../services/app/errors';
-import { readFileAsBase64 } from '../../services/files/readFileAsBase64';
 import { pickPhotoAssets } from '../../services/media/photoPicker';
 import { supabase } from '../../services/supabase/client';
 import {
@@ -94,7 +96,7 @@ import { captureMonitoringException } from '../../services/monitoring/sentry';
 import {
   buildPetThemePalette,
   NEUTRAL_UI_PALETTE,
-  recommendPetThemeColor,
+  resolvePetThemeColor,
 } from '../../services/pets/themePalette';
 import {
   getPetMemorialChoice,
@@ -158,19 +160,20 @@ function buildRegistrationSeasonalStyles(
     screen: { backgroundColor: PRODUCT_CANVAS_COLOR },
     ambient: { backgroundColor: palette.ambientOverlayColor },
     section: {
-      backgroundColor: palette.sectionSurfaceColor,
-      borderColor: palette.sectionBorderColor,
+      ...MENU_GLASS_FRAME,
     },
     control: {
-      backgroundColor: palette.controlSurfaceColor,
-      borderColor: palette.controlBorderColor,
+      backgroundColor: 'rgba(255,255,255,0.58)',
+      borderColor: 'rgba(130,125,159,0.16)',
     },
     sticky: {
-      backgroundColor: palette.stickySurfaceColor,
-      borderTopColor: palette.stickyBorderColor,
+      backgroundColor: PRODUCT_CANVAS_COLOR,
+      borderTopColor: 'rgba(255,255,255,0.78)',
+      shadowOpacity: 0,
+      elevation: 0,
     },
-    primaryText: { color: palette.primaryTextColor },
-    secondaryText: { color: palette.secondaryTextColor },
+    primaryText: { color: NEUTRAL_UI_PALETTE.deep },
+    secondaryText: { color: APP_HEADER.subtitleColor },
     placeholderTextColor: palette.placeholderTextColor,
     neutralIconColor: palette.neutralIconColor,
   };
@@ -430,7 +433,6 @@ type StepOneFormProps = RegistrationFontFieldProps & {
   imageUri: string | null;
   onPickImage: () => void;
   selectedThemeColor: string;
-  onSelectThemeColor: (color: string) => void;
   memorialChoice: PetMemorialChoice;
   deathDate: string;
   onChangeMemorialChoice: (choice: PetMemorialChoice) => void;
@@ -468,7 +470,6 @@ const StepOneForm = memo(function StepOneFormComponent({
   imageUri,
   onPickImage,
   selectedThemeColor,
-  onSelectThemeColor,
   memorialChoice,
   deathDate,
   onChangeMemorialChoice,
@@ -531,7 +532,7 @@ const StepOneForm = memo(function StepOneFormComponent({
             placeholderText="사진 추가"
             placeholderTextStyle={[
               styles.avatarPlaceholderText,
-              { color: selectedTheme.deep },
+              { color: NEUTRAL_UI_PALETTE.deep },
             ]}
             editButtonStyle={[
               styles.avatarEditButton,
@@ -558,13 +559,7 @@ const StepOneForm = memo(function StepOneFormComponent({
       </View>
 
       <View style={[styles.sectionGlass, seasonalStyles.section]}>
-        <PetThemePicker
-          embedded
-          selectedColor={selectedThemeColor}
-          title="프로필 컬러"
-          helperText="홈과 위젯의 강조색으로 사용돼요."
-          onSelectColor={onSelectThemeColor}
-        />
+        <MenuGlassSurface radius={22} testID="pet-create-card-glass" />
         <RegistrationFontField
           fontLabel={fontLabel}
           fontSettingsDisabled={fontSettingsDisabled}
@@ -573,6 +568,7 @@ const StepOneForm = memo(function StepOneFormComponent({
       </View>
 
       <View style={[styles.sectionGlass, seasonalStyles.section]}>
+        <MenuGlassSurface radius={22} testID="pet-create-card-glass" />
         <View style={styles.sectionHeader}>
           <AppText typographyRole="sectionTitle"
             preset="unifiedTitle"
@@ -681,6 +677,7 @@ const StepOneForm = memo(function StepOneFormComponent({
       </View>
 
       <View style={[styles.sectionGlass, seasonalStyles.section]}>
+        <MenuGlassSurface radius={22} testID="pet-create-card-glass" />
         <View style={styles.sectionHeader}>
           <AppText typographyRole="sectionTitle"
             preset="unifiedTitle"
@@ -1049,6 +1046,7 @@ const StepTwoForm = memo(function StepTwoFormComponent({
       </View>
 
       <View style={[styles.sectionGlass, seasonalStyles.section]}>
+        <MenuGlassSurface radius={22} testID="pet-create-card-glass" />
         <View style={styles.sectionHeader}>
           <AppText typographyRole="sectionTitle"
             preset="unifiedTitle"
@@ -1134,6 +1132,7 @@ const StepTwoForm = memo(function StepTwoFormComponent({
       </View>
 
       <View style={[styles.sectionGlass, seasonalStyles.section]}>
+        <MenuGlassSurface radius={22} testID="pet-create-card-glass" />
         <View style={styles.sectionHeader}>
           <AppText typographyRole="sectionTitle"
             preset="unifiedTitle"
@@ -1350,26 +1349,11 @@ export default function PetCreateScreen() {
 
       setImageUri(asset.uri);
       setImageType(asset.mimeType);
-      try {
-        const base64 = await readFileAsBase64(asset.uri);
-        setThemeColor(
-          recommendPetThemeColor({
-            imageBase64: base64,
-            name: trimmedName,
-          }),
-        );
-      } catch {
-        setThemeColor(
-          recommendPetThemeColor({
-            name: trimmedName,
-          }),
-        );
-      }
     } catch (error) {
       const { title, message } = getBrandedErrorMeta(error, 'image-pick');
       showToast({ tone: 'error', title, message });
     }
-  }, [trimmedName]);
+  }, []);
 
   const openDateModal = useCallback(
     (target: 'birth' | 'adoption' | 'death') => {
@@ -1422,12 +1406,8 @@ export default function PetCreateScreen() {
     [dateModalTarget],
   );
   const selectedThemeColor = useMemo(
-    () =>
-      themeColor ??
-      recommendPetThemeColor({
-        name: trimmedName,
-      }),
-    [themeColor, trimmedName],
+    () => resolvePetThemeColor(themeColor),
+    [themeColor],
   );
 
   const effectiveSeason = useEffectiveSeason();
@@ -1512,15 +1492,6 @@ export default function PetCreateScreen() {
 
     return () => subscription.remove();
   }, [clampScrollToContentBounds]);
-
-  useEffect(() => {
-    if (imageUri) return;
-    setThemeColor(
-      recommendPetThemeColor({
-        name: trimmedName,
-      }),
-    );
-  }, [imageUri, trimmedName]);
 
   useEffect(() => {
     if (memorialChoice === 'memorial') return;
@@ -1608,7 +1579,7 @@ export default function PetCreateScreen() {
         birthDate,
         adoptionDate,
         deathDate,
-        themeColor: selectedThemeColor,
+        themeColor,
         gender,
         memorialChoice,
         neutered,
@@ -1649,7 +1620,7 @@ export default function PetCreateScreen() {
     name,
     neutered,
     saving,
-    selectedThemeColor,
+    themeColor,
     step,
     successModalVisible,
     memorialChoice,
@@ -1779,7 +1750,7 @@ export default function PetCreateScreen() {
         speciesKey: speciesSelection.speciesKey,
         speciesDetailKey: speciesSelection.speciesDetailKey,
         speciesDisplayName: speciesSelection.speciesDisplayName,
-        themeColor: selectedThemeColor,
+        themeColor,
         birthDate: normalizedBirthDate,
         adoptionDate: normalizedAdoptionDate,
         deathDate: normalizedDeathDate,
@@ -1907,7 +1878,7 @@ export default function PetCreateScreen() {
     memorialChoice,
     neutered,
     representativeSpecies,
-    selectedThemeColor,
+    themeColor,
     speciesDetailKey,
     setPets,
     updatePetAvatar,
@@ -2098,21 +2069,28 @@ export default function PetCreateScreen() {
   return (
     <RegistrationSeasonalStyleContext.Provider value={seasonalStyles}>
       <View style={[styles.screen, seasonalStyles.screen]}>
-        <View
-          style={[
-            styles.topChrome,
-            { paddingTop: Math.max(insets.top + 4, 12) },
-          ]}
-        >
-          <View style={styles.header}>
-            <AppText typographyRole="screenTitle"
+        <View style={styles.topChrome}>
+          <AppHeaderLayout testID="pet-create-header" topInset={insets.top}
+            subtitle="함께할 아이의 이야기를 시작해요" style={styles.header}>
+            <View style={styles.headerSideSlot}>
+              {step === 2 || showStepOneExitButton ? (
+                <TouchableOpacity testID="pet-create-back" accessibilityRole="button"
+                  accessibilityLabel={step === 2 ? '이전 단계로' : '뒤로가기'}
+                  disabled={saving || successModalVisible}
+                  style={styles.headerSideSlot}
+                  onPress={step === 2 ? goPrevStep : onPressRequestExit}>
+                  <Feather name="chevron-left" size={APP_HEADER.backIconSize} color={APP_HEADER.titleColor} />
+                </TouchableOpacity>
+              ) : null}
+            </View>
+            <AppText styleOverridesPreset typographyRole="screenTitle"
               preset="unifiedTitle"
-              style={[styles.headerTitle, seasonalStyles.primaryText]}
+              style={styles.headerTitle}
             >
               프로필 등록 ({step}/2)
             </AppText>
-
-          </View>
+            <HeaderHelpButton topic="petCreate" color={APP_HEADER.titleColor} />
+          </AppHeaderLayout>
 
           <View style={styles.progressHeader}>
             <View style={styles.progressMetaRow}>
@@ -2166,7 +2144,6 @@ export default function PetCreateScreen() {
               imageUri={imageUri}
               onPickImage={pickImage}
               selectedThemeColor={selectedThemeColor}
-              onSelectThemeColor={setThemeColor}
               memorialChoice={memorialChoice}
               deathDate={deathDate}
               onChangeMemorialChoice={setMemorialChoice}
@@ -2236,6 +2213,7 @@ export default function PetCreateScreen() {
               stickyActionInsetStyle,
             ]}
           >
+            <MenuGlassSurface radius={0} backed testID="pet-create-actions-glass" />
             <View style={styles.actionRow} onLayout={handleActionZoneLayout}>
               {step === 1 && showStepOneExitButton ? (
                 <TouchableOpacity

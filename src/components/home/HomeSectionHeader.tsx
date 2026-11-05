@@ -4,6 +4,7 @@ import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import AppText from '../../app/ui/AppText';
 import { SectionHeaderAction } from '../../app/ui/SectionHeaderAction';
 import { useHomeHeadingColor } from './HomeSeasonContext';
+import { PRODUCT_ACCENT } from '../../app/theme/tokens/productAccent';
 
 type Props = {
   title: string;
@@ -95,7 +96,7 @@ export const HomeSectionHeader = memo(function HomeSectionHeaderView({
         </View>
         {action && !hideAction ? (
           <SectionHeaderAction
-            color={headingColor ?? color}
+            color={PRODUCT_ACCENT.primary}
             onPress={action.onPress}
             accessibilityLabel={action.accessibilityLabel}
             textPreset="unifiedMicro"

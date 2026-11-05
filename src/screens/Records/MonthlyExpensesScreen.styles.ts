@@ -1,16 +1,19 @@
+import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import { StyleSheet } from 'react-native';
+import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
+import { HOME_FLOATING_WIDGET_MATERIAL } from '../../components/home/HomeWidgetMaterial';
 
-export const EXPENSE_COLORS = { background: '#F8F6FD', ink: '#19152F', muted: '#827D9F', accent: '#7D5CE4', border: '#E1D9F7' };
+export const EXPENSE_COLORS = { background: PRODUCT_CANVAS_COLOR, ink: '#19152F', muted: '#827D9F', accent: '#7D5CE4', border: '#E1D9F7' };
 const text = { color: EXPENSE_COLORS.ink, letterSpacing: 0, includeFontPadding: false };
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: EXPENSE_COLORS.background },
   header: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, minHeight: 48 },
   tool: { minWidth: 48, minHeight: 48, alignItems: 'center', justifyContent: 'center' },
-  heading: { ...text, flex: 1, textAlign: 'center' },
+  heading: { ...text, flex: 1, textAlign: 'center', ...APP_HEADER.title },
   content: { flexGrow: 1, paddingBottom: 24 },
   monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 18, paddingVertical: 0 },
   month: { ...text, fontSize: 17, lineHeight: 26, fontWeight: '700', textAlign: 'center', flexShrink: 1 },
-  glass: { backgroundColor: 'rgba(255,255,255,0.65)', borderWidth: 1, borderColor: EXPENSE_COLORS.border, borderTopColor: '#F0E5FE', borderRadius: 16, overflow: 'hidden' },
+  glass: { backgroundColor: 'transparent', borderWidth: 1, borderColor: 'rgba(255,255,255,0.78)', borderRadius: 16, overflow: 'hidden' },
   summary: { paddingHorizontal: 20, paddingVertical: 12, gap: 4 },
   summaryHeading: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 6, flexWrap: 'wrap' },
   label: { ...text, color: '#686184', fontSize: 11, lineHeight: 20 },
@@ -43,7 +46,7 @@ export const styles = StyleSheet.create({
   count: { ...text, color: EXPENSE_COLORS.muted, fontSize: 11, lineHeight: 20 },
   selectedTotal: { flexDirection: 'row', alignItems: 'center', gap: 5, flexWrap: 'wrap', paddingBottom: 12 },
   selectedAmount: { ...text, color: EXPENSE_COLORS.accent, fontSize: 13, lineHeight: 22, fontWeight: '700' },
-  listPlate: { borderLeftWidth: 1, borderRightWidth: 1, borderColor: '#EBE4FD', backgroundColor: 'rgba(255,255,255,0.72)', paddingHorizontal: 14 },
+  listPlate: { ...HOME_FLOATING_WIDGET_MATERIAL, borderWidth: 0, borderLeftWidth: 1, borderRightWidth: 1, paddingHorizontal: 14 },
   firstPlate: { borderTopWidth: 1, borderTopLeftRadius: 16, borderTopRightRadius: 16, paddingTop: 5 },
   lastPlate: { borderBottomWidth: 1, borderBottomLeftRadius: 16, borderBottomRightRadius: 16, paddingBottom: 5 },
   dateRow: { minHeight: 30, paddingHorizontal: 9, paddingVertical: 5, marginVertical: 4, borderRadius: 10, borderWidth: 1, borderColor: '#E8E0F8', overflow: 'hidden', backgroundColor: '#F5F2FC', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
@@ -69,7 +72,7 @@ export const styles = StyleSheet.create({
   overlay: { flex: 1, justifyContent: 'center', padding: 24 },
   // The native modal spans system bars too, so its scrim dims the whole screen.
   pickerScrim: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, backgroundColor: 'rgba(25,21,47,0.4)' },
-  sheet: { width: '100%', maxWidth: 420, alignSelf: 'center', backgroundColor: '#F9F7FE', borderRadius: 20, borderWidth: 1, borderColor: '#DDD2F5', padding: 18, gap: 14, maxHeight: '80%', overflow: 'hidden' },
+  sheet: { width: '100%', maxWidth: 420, alignSelf: 'center', backgroundColor: 'transparent', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(255,255,255,0.78)', padding: 18, gap: 14, maxHeight: '80%', overflow: 'hidden' },
   pickerHeader: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   pickerHeadingCopy: { flex: 1, minWidth: 0, gap: 3 },
   pickerTitle: { color: EXPENSE_COLORS.ink },
