@@ -271,16 +271,30 @@ export function signInWithKakao(): Promise<void> {
   return signInWithOAuthProvider('kakao');
 }
 
-const callbackExchanges = new Map<string, { promise: Promise<AuthEntryRoute>; timer: ReturnType<typeof setTimeout> | null }>();
+const callbackExchanges = new Map<string, {
+  promise: Promise<AuthEntryRoute>;
+  timer: ReturnType<typeof setTimeout> | null;
+  exchangeStarted: boolean;
+  listeners: Set<() => void>;
+}>();
 
-export function completeOAuthCallbackSession(input: OAuthCallbackSessionInput): Promise<AuthEntryRoute> {
+export function completeOAuthCallbackSession(
+  input: OAuthCallbackSessionInput,
+  onExchangeStart?: () => void,
+): Promise<AuthEntryRoute> {
   const code = input.code?.trim();
   if (!code || code.length > 4096 || input.tokenHash || input.accessToken || input.refreshToken || input.verificationType) {
     return Promise.reject(new OAuthSignInError({ code: 'callback_not_expected', message: '앱에서 소셜 로그인을 다시 시작해 주세요.' }));
   }
   const key = JSON.stringify([code, input.provider ?? null]);
   const pending = callbackExchanges.get(key);
-  if (pending) return pending.promise;
+  if (pending) {
+    if (onExchangeStart && pending.timer === null) {
+      if (pending.exchangeStarted) onExchangeStart();
+      else pending.listeners.add(onExchangeStart);
+    }
+    return pending.promise;
+  }
   if ((oauthStartInProgress && !oauthBrowserReady) || oauthExchangeInProgress) {
     return Promise.reject(new OAuthSignInError({ code: 'callback_not_expected', message: '로그인을 확인 중이에요.' }));
   }
@@ -292,10 +306,20 @@ export function completeOAuthCallbackSession(input: OAuthCallbackSessionInput): 
   }
   const expireCompleted = () => {
     const entry = callbackExchanges.get(key);
-    if (entry) entry.timer = setTimeout(() => callbackExchanges.delete(key), 60_000);
+    if (entry) {
+      entry.listeners.clear();
+      entry.timer = setTimeout(() => callbackExchanges.delete(key), 60_000);
+    }
   };
   oauthExchangeInProgress = true;
-  const promise = exchangeOAuthCallbackSession(input).then(async session => {
+  const listeners = new Set(onExchangeStart ? [onExchangeStart] : []);
+  const promise = exchangeOAuthCallbackSession(input, () => {
+    const entry = callbackExchanges.get(key);
+    if (!entry) return;
+    entry.exchangeStarted = true;
+    for (const listener of listeners) listener();
+    listeners.clear();
+  }).then(async session => {
     await clearExplicitLogoutAfterSignIn();
     recordAuthEvent('EXPLICIT_LOGOUT_STATE_CLEARED');
     // SIGNED_IN is emitted inside exchangeCodeForSession's auth lock. Publish
@@ -305,12 +329,13 @@ export function completeOAuthCallbackSession(input: OAuthCallbackSessionInput): 
     route => { expireCompleted(); return route; },
     (error: unknown) => { expireCompleted(); throw error; },
   );
-  callbackExchanges.set(key, { promise, timer: null });
+  callbackExchanges.set(key, { promise, timer: null, exchangeStarted: false, listeners });
   return promise;
 }
 
 async function exchangeOAuthCallbackSession(
   input: OAuthCallbackSessionInput,
+  onExchangeStart: () => void,
 ): Promise<NonNullable<Awaited<ReturnType<typeof supabase.auth.exchangeCodeForSession>>['data']['session']>> {
   const code = normalizeOptionalToken(input.code);
   const provider = await consumePendingOAuth(input.provider ?? null);
@@ -323,6 +348,7 @@ async function exchangeOAuthCallbackSession(
   }
   recordAuthEvent('PENDING_FLOW_VALIDATED');
   recordAuthEvent('CODE_EXCHANGE_STARTED');
+  onExchangeStart();
   const { data, error } = await supabase.auth.exchangeCodeForSession(code);
   if (error || !data.session) {
     throw new OAuthSignInError({

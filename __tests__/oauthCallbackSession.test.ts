@@ -43,7 +43,9 @@ test.each([
   expect(supabase.auth.exchangeCodeForSession).not.toHaveBeenCalled();
 });
 test('unsolicited code has no pending device flow', async () => {
-  await expect(completeOAuthCallbackSession({ code: 'unsolicited' })).rejects.toMatchObject({ code: 'callback_not_expected' });
+  const showProgress = jest.fn();
+  await expect(completeOAuthCallbackSession({ code: 'unsolicited' }, showProgress)).rejects.toMatchObject({ code: 'callback_not_expected' });
+  expect(showProgress).not.toHaveBeenCalled();
   expect(supabase.auth.exchangeCodeForSession).not.toHaveBeenCalled();
 });
 test('cold return reads persisted pending metadata with no bearer credentials', async () => {
@@ -70,11 +72,19 @@ test('concurrent and repeated delivery exchanges the same code once', async () =
   const owner = jest.fn(async () => ({ name: 'AppTabs' as const, params: undefined }));
   registerAuthTransitionOwner(owner);
   await beginPendingOAuth('kakao');
-  const first = completeOAuthCallbackSession({ code: 'same-code' });
-  const second = completeOAuthCallbackSession({ code: 'same-code' });
+  const firstProgress = jest.fn();
+  const secondProgress = jest.fn();
+  const cachedProgress = jest.fn();
+  const first = completeOAuthCallbackSession({ code: 'same-code' }, firstProgress);
+  const second = completeOAuthCallbackSession({ code: 'same-code' }, secondProgress);
   expect(first).toBe(second);
+  expect(firstProgress).not.toHaveBeenCalled();
+  expect(secondProgress).not.toHaveBeenCalled();
   await first;
-  await completeOAuthCallbackSession({ code: 'same-code' });
+  await completeOAuthCallbackSession({ code: 'same-code' }, cachedProgress);
+  expect(firstProgress).toHaveBeenCalledTimes(1);
+  expect(secondProgress).toHaveBeenCalledTimes(1);
+  expect(cachedProgress).not.toHaveBeenCalled();
   expect(supabase.auth.exchangeCodeForSession).toHaveBeenCalledTimes(1);
   expect(owner).toHaveBeenCalledTimes(1);
 });

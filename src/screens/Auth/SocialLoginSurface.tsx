@@ -223,7 +223,7 @@ export default function SocialLoginSurface({
           </View>
         </View>
       </ScrollView>
-      {sessionPending || busyProvider ? (
+      {sessionPending ? (
         <View testID="social-login-progress-overlay" pointerEvents="none" style={styles.progressOverlay}>
           <View
             testID="social-login-progress"

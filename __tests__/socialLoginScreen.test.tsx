@@ -247,6 +247,7 @@ describe('social-only seasonal login', () => {
     });
     expect(button('google').props.accessibilityLabel).toBe('Google로 계속하기');
     expect(button('kakao').props.disabled).toBe(true);
+    expect(renderer.root.findAllByProps({ testID: 'social-login-progress-overlay' })).toHaveLength(0);
     await act(async () => finish());
     expect(button('google').props.disabled).toBe(false);
   });

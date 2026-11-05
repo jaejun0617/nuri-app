@@ -30,7 +30,9 @@ beforeEach(() => {
 
 it('keeps the login surface locked during exchange and ignores a completion after leaving', async () => {
   let finish: ((value: { name: 'AppTabs'; params: undefined }) => void) | undefined;
-  jest.mocked(completeOAuthCallbackSession).mockImplementation(() => new Promise(resolve => {
+  let startExchange: (() => void) | undefined;
+  jest.mocked(completeOAuthCallbackSession).mockImplementation((_input, onExchangeStart) => new Promise(resolve => {
+    startExchange = onExchangeStart;
     finish = resolve;
   }));
   const reset = jest.fn();
@@ -46,6 +48,8 @@ it('keeps the login surface locked during exchange and ignores a completion afte
   for (const provider of ['kakao', 'google']) {
     expect(buttons.find(button => button.props.testID === `social-login-${provider}`)?.props.disabled).toBe(true);
   }
+  expect(tree!.root.findAllByProps({ testID: 'social-login-progress-overlay' })).toHaveLength(0);
+  await act(async () => startExchange?.());
   const progress = tree!.root.findByProps({ testID: 'social-login-progress' });
   expect(progress.props.accessibilityLiveRegion).toBe('polite');
   expect(progress.props.accessibilityState.busy).toBe(true);

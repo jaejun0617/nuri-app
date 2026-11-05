@@ -10,7 +10,7 @@
 // 수정 시 주의:
 // - password reset recovery route와 섞지 않는다. `nuri://auth/reset`은 이 화면에서 처리하지 않는다.
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Alert } from 'react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
@@ -41,6 +41,7 @@ function parseProvider(value: string): SocialOAuthProvider | null {
 }
 
 export default function OAuthCallbackScreen({ navigation, route }: Props) {
+  const [sessionPending, setSessionPending] = useState(false);
   const error = readParam(route.params?.error);
   const errorDescription = readParam(route.params?.error_description);
   const provider = parseProvider(readParam(route.params?.provider));
@@ -51,6 +52,7 @@ export default function OAuthCallbackScreen({ navigation, route }: Props) {
   const verificationType = readParam(route.params?.type);
   useEffect(() => {
     let active = true;
+    setSessionPending(false);
 
     const navigateResolved = (target: AuthEntryRoute) => {
       if (!active) return;
@@ -67,6 +69,7 @@ export default function OAuthCallbackScreen({ navigation, route }: Props) {
     const showFailure = (message: string) => {
       recordAuthEvent('CALLBACK_REJECTED');
       if (!active) return;
+      setSessionPending(false);
       Alert.alert('소셜 로그인을 완료하지 못했어요', message, [{
         text: '확인', onPress: () => { recover().catch(() => {
           if (active) Alert.alert('로그인 상태를 확인하지 못했어요', '앱을 다시 열어 주세요.');
@@ -90,6 +93,8 @@ export default function OAuthCallbackScreen({ navigation, route }: Props) {
           tokenHash,
           verificationType,
           provider,
+        }, () => {
+          if (active) setSessionPending(true);
         });
         if (!active) return;
         navigateResolved(target);
@@ -111,7 +116,7 @@ export default function OAuthCallbackScreen({ navigation, route }: Props) {
   return (
     <SocialLoginSurface
       disabled
-      sessionPending
+      sessionPending={sessionPending}
       busyProvider={provider}
       onProviderPress={() => {}}
       onLegalPress={() => {}}
