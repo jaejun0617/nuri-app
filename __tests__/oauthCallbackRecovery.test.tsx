@@ -46,7 +46,10 @@ it('keeps the login surface locked during exchange and ignores a completion afte
   for (const provider of ['kakao', 'google']) {
     expect(buttons.find(button => button.props.testID === `social-login-${provider}`)?.props.disabled).toBe(true);
   }
-  expect(tree!.root.findByProps({ accessibilityLiveRegion: 'polite' }).props.accessibilityState.busy).toBe(true);
+  const progress = tree!.root.findByProps({ testID: 'social-login-progress' });
+  expect(progress.props.accessibilityLiveRegion).toBe('polite');
+  expect(progress.props.accessibilityState.busy).toBe(true);
+  expect(progress.findByProps({ children: '누리로 로그인하고 있어요' })).toBeDefined();
   expect(reset).not.toHaveBeenCalled();
   expect(completeOAuthCallbackSession).toHaveBeenCalledTimes(1);
   await act(async () => tree!.unmount());

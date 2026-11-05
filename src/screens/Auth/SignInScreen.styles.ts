@@ -68,12 +68,22 @@ export const styles = StyleSheet.create({
     minWidth: 0,
   },
   legal: { alignItems: 'center', gap: 0 },
-  sessionProgress: {
-    flexDirection: 'row',
+  progressOverlay: {
+    ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 24,
+  },
+  sessionProgress: {
+    alignItems: 'center',
     gap: 8,
-    minHeight: 24,
+    maxWidth: '100%',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: lightColors.border,
   },
   legalLinks: {
     flexDirection: 'row',

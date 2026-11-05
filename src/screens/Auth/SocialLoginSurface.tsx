@@ -85,13 +85,11 @@ const SocialButton = memo(function SocialButtonContent({
             provider === 'kakao' ? styles.kakaoLabel : null,
           ]}
         >
-          {busy ? '로그인 중입니다' : config.label}
+          {config.label}
         </AppText>
       </View>
       <View style={styles.buttonTrailingSpace}>
-        {busy ? (
-          <ActivityIndicator size="small" color="#1F1F1F" />
-        ) : recent ? (
+        {!busy && recent ? (
           <AppText
             testID={`social-login-${provider}-recent`}
             preset="caption"
@@ -190,18 +188,6 @@ export default function SocialLoginSurface({
             </AppText>
           ) : null}
           <View style={styles.legal}>
-            {sessionPending ? (
-              <View
-                style={styles.sessionProgress}
-                accessibilityLiveRegion="polite"
-                accessibilityState={{ busy: true }}
-              >
-                <ActivityIndicator size="small" color="#1F1F1F" />
-                <AppText preset="caption" style={styles.unavailableText}>
-                  로그인 중입니다
-                </AppText>
-              </View>
-            ) : null}
             <View style={styles.legalLinks}>
               <TouchableOpacity
                 accessibilityRole="link"
@@ -237,6 +223,24 @@ export default function SocialLoginSurface({
           </View>
         </View>
       </ScrollView>
+      {sessionPending || busyProvider ? (
+        <View pointerEvents="none" style={styles.progressOverlay}>
+          <View
+            testID="social-login-progress"
+            style={styles.sessionProgress}
+            accessibilityLiveRegion="polite"
+            accessibilityState={{ busy: true }}
+          >
+            <ActivityIndicator size="small" color="#1F1F1F" />
+            <AppText preset="unifiedLabel" style={styles.unavailableText}>
+              누리로 로그인하고 있어요
+            </AppText>
+            <AppText preset="caption" style={styles.unavailableText}>
+              잠시만 기다려 주세요
+            </AppText>
+          </View>
+        </View>
+      ) : null}
       <View
         testID="social-login-status-bar-background"
         pointerEvents="none"
