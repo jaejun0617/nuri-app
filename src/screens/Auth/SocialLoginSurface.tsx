@@ -15,7 +15,7 @@ import {
 } from 'react-native-safe-area-context';
 import AppText from '../../app/ui/AppText';
 import { PREMIUM_NOTICE_RADIUS } from '../../components/common/PremiumNoticeModal.layout';
-import { HomeFloatingWidgetSurface } from '../../components/home/HomeWidgetMaterial';
+import { HomeWidgetSheen } from '../../components/home/HomeWidgetMaterial';
 import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 import {
   getSeasonalLoginVisual,
@@ -233,10 +233,7 @@ export default function SocialLoginSurface({
             accessibilityLiveRegion="polite"
             accessibilityState={{ busy: true }}
           >
-            <HomeFloatingWidgetSurface
-              radius={PREMIUM_NOTICE_RADIUS}
-              testIDPrefix="social-login-progress-glass"
-            />
+            <HomeWidgetSheen radius={PREMIUM_NOTICE_RADIUS} />
             <ActivityIndicator size="small" color={styles.progressTitle.color} />
             <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.progressTitle}>
               누리에 로그인하고 있어요

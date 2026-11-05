@@ -85,7 +85,7 @@ export const styles = StyleSheet.create({
     ...premiumNoticeCardLayout,
     ...HOME_WIDGET_MATERIAL,
     gap: 8,
-    backgroundColor: 'rgba(255, 253, 250, 0.78)',
+    backgroundColor: 'rgba(255, 254, 252, 0.96)',
     overflow: 'hidden',
   },
   progressTitle: { ...premiumNoticeTitle, color: '#292426', letterSpacing: 0 },
