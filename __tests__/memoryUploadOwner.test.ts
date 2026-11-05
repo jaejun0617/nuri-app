@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
   enqueuePendingMemoryUpload,
+  loadStoppedPhotoPlan,
   processPendingMemoryUploads,
   type PendingMemoryUploadTask,
 } from '../src/services/local/uploadQueue';
@@ -17,6 +18,7 @@ type State = { session: { user: { id: string } } | null };
 let mockState: State = { session: { user: { id: 'A' } } };
 const mockListeners = new Set<(next: State, previous: State) => void>();
 const mockGetUser = jest.fn();
+const mockObjectInfo = jest.fn();
 jest.mock('../src/store/authStore', () => ({
   useAuthStore: {
     getState: () => mockState,
@@ -27,7 +29,10 @@ jest.mock('../src/store/authStore', () => ({
   },
 }));
 jest.mock('../src/services/supabase/client', () => ({
-  supabase: { auth: { getUser: () => mockGetUser() } },
+  supabase: {
+    auth: { getUser: () => mockGetUser() },
+    storage: { from: () => ({ info: (path: string) => mockObjectInfo(path) }) },
+  },
 }));
 jest.mock('../src/services/supabase/memories', () => ({
   cleanupRetiredMemoryImages: jest.fn(),
@@ -74,6 +79,7 @@ beforeEach(() => {
     data: { user: mockState.session?.user ?? null },
     error: null,
   }));
+  mockObjectInfo.mockResolvedValue({ data: { id: 'uploaded' }, error: null });
   jest
     .mocked(fetchMemoryById)
     .mockResolvedValue({
@@ -96,6 +102,72 @@ beforeEach(() => {
     });
 });
 afterEach(() => expect(mockListeners.size).toBe(0));
+
+async function stopExistingPhotoPlan(expectedPaths?: string[]) {
+  const task = await enqueuePendingMemoryUpload({
+    ...input,
+    expectedPaths,
+    finalEntries: [{ kind: 'existing', path: 'A/pet/memory/upload.jpg' }],
+  });
+  storage.set(key, JSON.stringify([{ ...task, attempts: 5 }]));
+  const plan = await loadStoppedPhotoPlan(input);
+  if (!plan) throw new Error('Missing stopped plan');
+  return plan;
+}
+
+it('explicitly retries the same stopped legacy task without resetting attempts or uploading', async () => {
+  const plan = await stopExistingPhotoPlan();
+  expect((await processPendingMemoryUploads({ userId: 'A' })).processed).toBe(0);
+  const result = await processPendingMemoryUploads({
+    userId: 'A',
+    confirmedPhotoRetry: { ...plan, currentPaths: ['previous.jpg'] },
+  });
+  expect(result.succeededTaskIds).toEqual([plan.taskId]);
+  expect(mockObjectInfo).toHaveBeenCalledWith(plan.paths[0]);
+  expect(updateMemoryImagePaths).toHaveBeenCalledWith({
+    memoryId: input.memoryId, expectedPaths: ['previous.jpg'], imagePaths: plan.paths,
+  });
+  expect(uploadMemoryImage).not.toHaveBeenCalled();
+  expect(storage.get(key)).toBe('[]');
+});
+
+it('does not rebase a stopped plan with a known baseline onto a newer edit', async () => {
+  const plan = await stopExistingPhotoPlan(['original.jpg']);
+  const result = await processPendingMemoryUploads({
+    userId: 'A',
+    confirmedPhotoRetry: { ...plan, currentPaths: ['newer.jpg'] },
+  });
+  expect(result.processed).toBe(0);
+  expect(mockObjectInfo).not.toHaveBeenCalled();
+  expect(updateMemoryImagePaths).not.toHaveBeenCalled();
+  expect(JSON.parse(storage.get(key) ?? '[]')).toEqual([expect.objectContaining({ attempts: 5 })]);
+});
+
+it('retains the stopped task and its paths when an object is unavailable', async () => {
+  const plan = await stopExistingPhotoPlan();
+  mockObjectInfo.mockResolvedValueOnce({ data: null, error: new Error('Missing object') });
+  const result = await processPendingMemoryUploads({
+    userId: 'A',
+    confirmedPhotoRetry: { ...plan, currentPaths: ['original.jpg'] },
+  });
+  expect(result.failedTaskIds).toEqual([plan.taskId]);
+  expect(updateMemoryImagePaths).not.toHaveBeenCalled();
+  expect(JSON.parse(storage.get(key) ?? '[]')).toEqual([expect.objectContaining({ taskId: plan.taskId, attempts: 6 })]);
+});
+
+it('retains the stopped plan when the server detects a concurrent photo edit', async () => {
+  const plan = await stopExistingPhotoPlan();
+  jest.mocked(updateMemoryImagePaths).mockRejectedValueOnce(new Error('memory_image_refs_changed'));
+  const result = await processPendingMemoryUploads({
+    userId: 'A',
+    confirmedPhotoRetry: { ...plan, currentPaths: ['original.jpg'] },
+  });
+  expect(result.failedTaskIds).toEqual([plan.taskId]);
+  expect(deleteMemoryImage).not.toHaveBeenCalled();
+  expect(JSON.parse(storage.get(key) ?? '[]')).toEqual([expect.objectContaining({
+    taskId: plan.taskId, attempts: 6, finalEntries: [{ kind: 'existing', path: plan.paths[0] }],
+  })]);
+});
 it('journals the upload identity before sending and reuses it after an unknown result', async () => {
   await enqueuePendingMemoryUpload(input);
   let firstId: string | undefined;

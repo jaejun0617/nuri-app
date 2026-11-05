@@ -39,6 +39,7 @@ import React, {
 import {
   ActivityIndicator,
   Alert,
+  Image,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -72,6 +73,7 @@ import {
 } from '../../services/forms/composerFocus';
 import {
   enqueuePendingMemoryUpload,
+  loadStoppedPhotoPlan,
   processPendingMemoryUploads,
   type PendingMemoryUploadEntry,
 } from '../../services/local/uploadQueue';
@@ -357,6 +359,64 @@ function RecordEditContent() {
   const imageRecordRef = useRef(record);
   const [removedPaths, setRemovedPaths] = useState<Set<string>>(new Set());
   const [addedImages, setAddedImages] = useState<AddedImage[]>([]);
+  const [stoppedPhoto, setStoppedPhoto] = useState<{
+    plan: NonNullable<Awaited<ReturnType<typeof loadStoppedPhotoPlan>>>;
+    previews: string[];
+  } | null>(null);
+  const [loadedRecoveryPreviews, setLoadedRecoveryPreviews] = useState<string[]>([]);
+  useEffect(() => {
+    setStoppedPhoto(null);
+    setLoadedRecoveryPreviews([]);
+    if (!userId || !bodyReady || candidateWalk) return;
+    const current = captureCurrent();
+    let active = true;
+    (async () => {
+      const plan = await loadStoppedPhotoPlan({ userId, memoryId, petId });
+      if (!plan || !active || !current()) return;
+      const previews = await Promise.all(plan.paths.map(path => getMemoryImageSignedUrlCached(path)));
+      if (active && current() && previews.every((uri): uri is string => Boolean(uri))) {
+        setStoppedPhoto({ plan, previews });
+      }
+    })().catch(() => {});
+    return () => { active = false; };
+  }, [userId, memoryId, petId, bodyReady, candidateWalk, captureCurrent]);
+
+  function confirmStoppedPhoto() {
+    if (!stoppedPhoto || !userId || dirty || submitInFlightRef.current ||
+      !stoppedPhoto.previews.every(uri => loadedRecoveryPreviews.includes(uri))) return;
+    const { plan } = stoppedPhoto;
+    const currentPaths = [...baseImagePaths];
+    const current = captureCurrent();
+    Alert.alert('대기 중인 사진을 저장할까요?', '현재 사진을 화면에 표시된 대기 사진으로 바꿉니다. 다른 기기에서 사진이 바뀌었다면 저장하지 않습니다.', [
+      { text: '취소', style: 'cancel' },
+      { text: '한 번 다시 저장', onPress: () => {
+        if (!current() || submitInFlightRef.current) return;
+        submitInFlightRef.current = true;
+        setSaving(true);
+        (async () => {
+          const result = await processPendingMemoryUploads({
+            userId,
+            confirmedPhotoRetry: { ...plan, currentPaths },
+          });
+          if (!current()) return;
+          if (!result.succeededTaskIds.includes(plan.taskId)) throw new Error('MEMORY_IMAGE_RECOVERY_UNCONFIRMED');
+          setStoppedPhoto(null);
+          const latest = await fetchMemoryById(memoryId);
+          if (!current()) return;
+          upsertOneLocal(petId, latest);
+          setBaseImagePaths(latest.imagePaths);
+          showToast({ tone: 'success', title: '대기 중인 사진을 저장했어요', message: '기록의 사진이 갱신됐어요.' });
+        })().catch(() => {
+          if (current()) Alert.alert('사진 저장을 확인하지 못했어요', '현재 사진과 대기 상태를 다시 확인해 주세요.');
+        }).finally(() => {
+          if (current()) {
+            submitInFlightRef.current = false;
+            setSaving(false);
+          }
+        });
+      } },
+    ]);
+  }
   const [recoveryDraft, setRecoveryDraft] = useState<WalkDraft | null>(null);
   const [recoveryApplied, setRecoveryApplied] = useState(false);
   useEffect(() => {
@@ -987,6 +1047,26 @@ function RecordEditContent() {
           </TouchableOpacity>
 
           <RecordPhotoStrip surfaceVariant="homeGlass" items={previewItems} onAdd={onPickImage} onRemove={onRemoveActiveImage} disabled={saving} />
+          {stoppedPhoto && !dirty ? (
+            <View testID="record-edit-stopped-photo">
+              <AppText preset="unifiedMeta">저장 대기 사진</AppText>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {stoppedPhoto.previews.map((uri, index) => (
+                  <Image
+                    key={stoppedPhoto.plan.paths[index]}
+                    source={{ uri }}
+                    accessibilityLabel={`대기 사진 ${index + 1}`}
+                    onLoad={() => setLoadedRecoveryPreviews(previous => previous.includes(uri) ? previous : [...previous, uri])}
+                    onError={() => setLoadedRecoveryPreviews(previous => previous.filter(item => item !== uri))}
+                    style={{ width: 64, height: 64, borderRadius: 8 }}
+                  />
+                ))}
+              </View>
+              <TouchableOpacity accessibilityRole="button" disabled={saving || !stoppedPhoto.previews.every(uri => loadedRecoveryPreviews.includes(uri))} onPress={confirmStoppedPhoto} style={{ minHeight: 48, justifyContent: 'center' }}>
+                <AppText preset="unifiedMeta">대기 중인 사진 다시 저장</AppText>
+              </TouchableOpacity>
+            </View>
+          ) : null}
 
           <AppText preset="unifiedLabel" style={styles.label}>
             어떤 기록인가요?

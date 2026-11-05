@@ -83,6 +83,38 @@ type ProcessPendingMemoryUploadsResult = {
   failedTaskIds: string[];
 };
 
+type StoppedPhotoPlan = {
+  taskId: string;
+  memoryId: string;
+  petId: string;
+  paths: string[];
+};
+
+type ConfirmedPhotoRetry = StoppedPhotoPlan & { currentPaths: string[] };
+
+function getStoppedPhotoPlan(task: PendingMemoryUploadTask): StoppedPhotoPlan | null {
+  if (task.attempts < MAX_ATTEMPTS || task.finalEntries.length === 0) return null;
+  const paths = task.finalEntries.flatMap(entry => entry.kind === 'existing' ? [entry.path] : []);
+  if (paths.length !== task.finalEntries.length) return null;
+  return { taskId: task.taskId, memoryId: task.memoryId, petId: task.petId, paths };
+}
+
+function samePaths(a: string[], b: string[]) {
+  return a.length === b.length && a.every((path, index) => path === b[index]);
+}
+
+export async function loadStoppedPhotoPlan(input: {
+  userId: string;
+  petId: string;
+  memoryId: string;
+}): Promise<StoppedPhotoPlan | null> {
+  const queue = await loadQueue();
+  if (useAuthStore.getState().session?.user.id !== input.userId) return null;
+  const latest = findLatestTaskForMemory(queue, input.memoryId);
+  if (!latest || latest.userId !== input.userId || latest.petId !== input.petId) return null;
+  return getStoppedPhotoPlan(latest);
+}
+
 type LegacyPendingMemoryUploadTask = Omit<
   PendingMemoryUploadTask,
   'mode' | 'finalEntries'
@@ -442,7 +474,9 @@ function pickNextTaskForUser(queue: PendingMemoryUploadTask[], userId: string) {
 
 export async function processPendingMemoryUploads(input?: {
   userId?: string | null;
+  confirmedPhotoRetry?: ConfirmedPhotoRetry;
 }): Promise<ProcessPendingMemoryUploadsResult> {
+  const confirmed = input?.confirmedPhotoRetry;
   const activeUserId = await resolveActiveQueueUserId(input?.userId);
   if (!activeUserId) {
     return {
@@ -456,6 +490,7 @@ export async function processPendingMemoryUploads(input?: {
   }
 
   if (processingPromise) {
+    if (confirmed) throw new Error('MEMORY_IMAGE_RECOVERY_BUSY');
     const sameOwner = processingUserId === activeUserId;
     const result = await processingPromise;
     if (sameOwner && useAuthStore.getState().session?.user.id === activeUserId)
@@ -505,11 +540,23 @@ export async function processPendingMemoryUploads(input?: {
         }
 
         const queue = await loadQueue();
-        const task = pickNextTaskForUser(
+        const candidate: PendingMemoryUploadTask | null = confirmed ? findLatestTaskForMemory(queue, confirmed.memoryId) : pickNextTaskForUser(
           queue.filter(item => !attemptedTaskIds.has(item.taskId)),
           activeUserId,
         );
-        if (!task) break;
+        if (!candidate || attemptedTaskIds.has(candidate.taskId)) break;
+        let task = candidate;
+        if (confirmed) {
+          const plan = getStoppedPhotoPlan(candidate);
+          if (!plan || plan.taskId !== confirmed.taskId || plan.petId !== confirmed.petId ||
+            candidate.userId !== activeUserId || claimedTaskIds.has(candidate.taskId) ||
+            !samePaths(plan.paths, confirmed.paths)) break;
+          // Legacy plans lack a journaled baseline. Use only the ordered
+          // references explicitly confirmed in the editor, not a fresh rebase.
+          if (candidate.expectedPaths && !samePaths(candidate.expectedPaths, confirmed.currentPaths) &&
+            !samePaths(plan.paths, confirmed.currentPaths)) break;
+          task = { ...candidate, expectedPaths: [...confirmed.currentPaths] };
+        }
         if (ownerChanged) break;
 
         claimedTaskIds.add(task.taskId);
@@ -517,10 +564,18 @@ export async function processPendingMemoryUploads(input?: {
         processed += 1;
 
         try {
+          if (confirmed) {
+            for (const path of confirmed.paths) {
+              assertOwner();
+              const { data, error } = await supabase.storage.from('memory-images').info(path);
+              if (error || !data) throw new Error('MEMORY_IMAGE_RECOVERY_OBJECT_UNAVAILABLE');
+            }
+            assertOwner();
+          }
           const retiredPaths = await processTask(task, assertOwner);
           assertOwner();
           await removeTask(task.taskId);
-          if (retiredPaths?.length) {
+          if (!confirmed && retiredPaths?.length) {
             await cleanupRetiredMemoryImages(task.memoryId, retiredPaths, assertOwner);
           }
           touchedPetIds.add(task.petId);
@@ -542,13 +597,13 @@ export async function processPendingMemoryUploads(input?: {
         } catch (error: unknown) {
           if (ownerChanged || error instanceof UploadOwnerChangedError) break;
           if (isSupersededTaskError(error)) {
-            await removeTask(task.taskId);
+            if (!confirmed) await removeTask(task.taskId);
             continue;
           }
 
           captureMonitoringException(error);
 
-          if (isMemoryNotFoundError(error)) {
+          if (!confirmed && isMemoryNotFoundError(error)) {
             await removeTask(task.taskId);
           } else {
             const attempts = task.attempts + 1;
