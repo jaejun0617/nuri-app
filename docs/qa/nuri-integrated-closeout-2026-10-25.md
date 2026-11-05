@@ -1,5 +1,14 @@
 # NURI 통합 마감 수락 원장
 
+<!-- FINAL_APPROVAL_20261105_BEGIN -->
+## 2026-11-05 최종승인 전달·정리 후 PO 대기
+
+- 승인 제품 `afd3fe8`의 전체347 suites4661·타입·source guard와 [동일 SHA CI](https://github.com/jaejun0617/nuri-app/actions/runs/42018324530) PASS, bundled Debug 물리 보존 설치·Metro OFF를 확인했다. 앱 이름 누리·실제 배지3→2→0과 canonical QA 서버 미읽음2/0 일치·0일 때 요약/숫자 소거를 수락했다. cold/계정·권한 전체 수락으로 확대하지 않는다.
+- 재생성 산출물62경로 정리로 실제6.50355GiB 확보, 정리 후21.81120GiB 여유다. APK·outputs·native/심볼/소스맵·Git 상태·원본 checkout을 보존했다. [전달 및 필수 잔여 보고](../reports/nuri-approved-delivery-and-required-remainders-2026-11-05.md).
+- Google 기존 중단 사진은11/05 11:51의 같은 task·참조·큐 복구 PASS를 보존한다. P0 K PASS, D/F 사전조건 차단·L-GLOBAL 미수락·24시간 고정 창은 이미 도달했지만 증거 판정 미완료, 502/메모리 영향 미확정이다.
+- 통합2/7·OS11/13·기록0/4 및 U1/U2/U3/U5/NAV 필수 잔여·전체 미동결·STORE HOLD를 유지한다. 이번에는 기존 잔여 시험을 재개하지 않았다. **WAITING_FOR_PO / AUTO_RESUME_NO**. 과거 자동 재개 예정 문구보다 이 종료 지시가 우선한다.
+<!-- FINAL_APPROVAL_20261105_END -->
+
 ## 2026-11-04 20:20 KST P0 잔여 수락 결과
 
 **P0_FINAL_ACCEPTANCE: PARTIAL / HARD STOP / STORE HOLD.** 관측은20:07:20~20:18:30 KST(11:07:20~11:18:30 UTC), 운영 로그의 조회 시작은 배포19:01:13 KST다. 이번 범위는 검증·읽기 관측·증거/문서뿐이며 앱·서버 수정/배포/설치·다른 작업 재개는 없다.
