@@ -1,11 +1,5 @@
 import { StyleSheet } from 'react-native';
 import { lightColors } from '../../app/theme/tokens/colors';
-import { HOME_WIDGET_MATERIAL } from '../../components/home/HomeWidgetMaterial';
-import {
-  premiumNoticeBody,
-  premiumNoticeCardLayout,
-  premiumNoticeTitle,
-} from '../../components/common/PremiumNoticeModal.layout';
 
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#FFFFFF' },
@@ -78,18 +72,8 @@ export const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 24,
-    backgroundColor: 'rgba(29, 25, 33, 0.22)',
+    backgroundColor: 'rgba(29, 25, 33, 0.48)',
   },
-  sessionProgress: {
-    ...premiumNoticeCardLayout,
-    ...HOME_WIDGET_MATERIAL,
-    gap: 8,
-    backgroundColor: 'rgba(255, 254, 252, 0.96)',
-    overflow: 'hidden',
-  },
-  progressTitle: { ...premiumNoticeTitle, color: '#292426', letterSpacing: 0 },
-  progressDescription: { ...premiumNoticeBody, color: '#403942' },
   legalLinks: {
     flexDirection: 'row',
     flexWrap: 'wrap',

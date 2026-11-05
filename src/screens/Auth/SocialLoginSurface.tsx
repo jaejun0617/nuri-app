@@ -14,8 +14,6 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import AppText from '../../app/ui/AppText';
-import { PREMIUM_NOTICE_RADIUS } from '../../components/common/PremiumNoticeModal.layout';
-import { HomeWidgetSheen } from '../../components/home/HomeWidgetMaterial';
 import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 import {
   getSeasonalLoginVisual,
@@ -227,21 +225,16 @@ export default function SocialLoginSurface({
       </ScrollView>
       {sessionPending ? (
         <View testID="social-login-progress-overlay" pointerEvents="none" style={styles.progressOverlay}>
-          <View
+          <ActivityIndicator
             testID="social-login-progress"
-            style={styles.sessionProgress}
+            size="large"
+            color="#FFFFFF"
+            accessible
+            accessibilityRole="progressbar"
+            accessibilityLabel="로그인 중"
             accessibilityLiveRegion="polite"
             accessibilityState={{ busy: true }}
-          >
-            <HomeWidgetSheen radius={PREMIUM_NOTICE_RADIUS} />
-            <ActivityIndicator size="small" color={styles.progressTitle.color} />
-            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.progressTitle}>
-              누리에 로그인하고 있어요
-            </AppText>
-            <AppText preset="unifiedBody" style={styles.progressDescription}>
-              잠시만 기다려 주세요
-            </AppText>
-          </View>
+          />
         </View>
       ) : null}
       <View

@@ -53,9 +53,11 @@ it('keeps the login surface locked during exchange and ignores a completion afte
   const progress = tree!.root.findByProps({ testID: 'social-login-progress' });
   expect(progress.props.accessibilityLiveRegion).toBe('polite');
   expect(progress.props.accessibilityState.busy).toBe(true);
-  expect(tree!.root.findByProps({ testID: 'social-login-progress-overlay' }).props.pointerEvents).toBe('none');
-  expect(progress.findByProps({ testID: 'home-widget-sheen' })).toBeDefined();
-  expect(progress.findByProps({ children: '누리에 로그인하고 있어요' })).toBeDefined();
+  expect(progress.props.accessibilityRole).toBe('progressbar');
+  expect(progress.props.accessibilityLabel).toBe('로그인 중');
+  const overlay = tree!.root.findByProps({ testID: 'social-login-progress-overlay' });
+  expect(overlay.props.pointerEvents).toBe('none');
+  expect(overlay.props.children.props.testID).toBe('social-login-progress');
   expect(reset).not.toHaveBeenCalled();
   expect(completeOAuthCallbackSession).toHaveBeenCalledTimes(1);
   await act(async () => tree!.unmount());
