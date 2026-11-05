@@ -14,6 +14,7 @@ import {
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
 import AppText from '../../app/ui/AppText';
+import { PREMIUM_NOTICE_RADIUS } from '../../components/common/PremiumNoticeModal.layout';
 import { HomeFloatingWidgetSurface } from '../../components/home/HomeWidgetMaterial';
 import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 import {
@@ -26,7 +27,7 @@ import {
 } from '../../services/supabase/auth';
 import type { LegalDocumentId } from '../../services/legal/documents';
 import type { RecentLoginProvider } from '../../services/auth/recentLoginProvider';
-import { LOGIN_PROGRESS_RADIUS, styles } from './SignInScreen.styles';
+import { styles } from './SignInScreen.styles';
 
 const PROVIDERS = {
   kakao: {
@@ -233,14 +234,14 @@ export default function SocialLoginSurface({
             accessibilityState={{ busy: true }}
           >
             <HomeFloatingWidgetSurface
-              radius={LOGIN_PROGRESS_RADIUS}
+              radius={PREMIUM_NOTICE_RADIUS}
               testIDPrefix="social-login-progress-glass"
             />
             <ActivityIndicator size="small" color={styles.progressTitle.color} />
-            <AppText preset="unifiedLabel" style={styles.progressTitle}>
+            <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.progressTitle}>
               누리에 로그인하고 있어요
             </AppText>
-            <AppText preset="caption" style={styles.progressDescription}>
+            <AppText preset="unifiedBody" style={styles.progressDescription}>
               잠시만 기다려 주세요
             </AppText>
           </View>

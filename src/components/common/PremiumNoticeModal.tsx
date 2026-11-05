@@ -18,6 +18,7 @@ import type { CtaRole } from '../../app/theme/ctaPalette';
 import { useOptionalSafeAreaInsets } from '../../hooks/useOptionalSafeAreaInsets';
 import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
 import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
+import { premiumNoticeBody, premiumNoticeCardLayout, premiumNoticeTitle } from './PremiumNoticeModal.layout';
 
 
 type NoticeIconName = 'check' | 'shield' | 'user-plus';
@@ -257,15 +258,7 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFill,
   },
   card: {
-    width: '100%',
-    maxWidth: 440,
-    alignSelf: 'center',
-    borderRadius: 28,
-    borderWidth: 1,
-    paddingHorizontal: 24,
-    paddingTop: 22,
-    paddingBottom: 24,
-    alignItems: 'center',
+    ...premiumNoticeCardLayout,
     ...(Platform.OS === 'ios'
       ? {
           shadowColor: '#171B25',
@@ -292,18 +285,10 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   title: {
-    textAlign: 'center',
-    fontWeight: '800',
-    fontSize: 20,
-    lineHeight: 29,
+    ...premiumNoticeTitle,
     letterSpacing: -0.2,
   },
-  body: {
-    textAlign: 'center',
-    fontWeight: '600',
-    fontSize: 15,
-    lineHeight: 22,
-  },
+  body: premiumNoticeBody,
   button: {
     width: '100%',
     marginTop: 18,

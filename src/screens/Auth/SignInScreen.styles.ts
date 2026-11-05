@@ -1,8 +1,11 @@
 import { StyleSheet } from 'react-native';
 import { lightColors } from '../../app/theme/tokens/colors';
 import { HOME_WIDGET_MATERIAL } from '../../components/home/HomeWidgetMaterial';
-
-export const LOGIN_PROGRESS_RADIUS = 8;
+import {
+  premiumNoticeBody,
+  premiumNoticeCardLayout,
+  premiumNoticeTitle,
+} from '../../components/common/PremiumNoticeModal.layout';
 
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#FFFFFF' },
@@ -79,18 +82,14 @@ export const styles = StyleSheet.create({
     backgroundColor: 'rgba(29, 25, 33, 0.22)',
   },
   sessionProgress: {
+    ...premiumNoticeCardLayout,
     ...HOME_WIDGET_MATERIAL,
-    alignItems: 'center',
     gap: 8,
-    maxWidth: '100%',
-    paddingHorizontal: 24,
-    paddingVertical: 18,
-    borderRadius: LOGIN_PROGRESS_RADIUS,
     backgroundColor: 'rgba(255, 253, 250, 0.78)',
     overflow: 'hidden',
   },
-  progressTitle: { color: '#292426', textAlign: 'center' },
-  progressDescription: { color: '#403942', textAlign: 'center' },
+  progressTitle: { ...premiumNoticeTitle, color: '#292426', letterSpacing: 0 },
+  progressDescription: { ...premiumNoticeBody, color: '#403942' },
   legalLinks: {
     flexDirection: 'row',
     flexWrap: 'wrap',
