@@ -200,9 +200,6 @@ describe('seasonal splash presentation and boot preservation', () => {
         expect(theme).toContain(
           '<item name="android:windowSplashScreenBackground">@color/nuri_splash_background</item>',
         );
-        expect(theme).toContain(
-          '<item name="android:windowSplashScreenAnimatedIcon">@drawable/nuri_launch_wordmark</item>',
-        );
       }
     }
     const android15Theme = fs.readFileSync(
@@ -234,18 +231,11 @@ describe('seasonal splash presentation and boot preservation', () => {
     expect(mockNavigation.reset).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps the launcher icon separate from the system launch mark', () => {
-    const manifest = fs.readFileSync(
-      path.join(process.cwd(), 'android/app/src/main/AndroidManifest.xml'),
-      'utf8',
-    );
-    expect(manifest).toContain('android:icon="@mipmap/ic_launcher"');
-  });
-
-  it('requests the system launch mark for notification cold starts on Android 13 and later', () => {
+  it('requests the existing system icon for notification cold starts on Android 13 and later', () => {
     for (const version of ['values-v33', 'values-v35']) {
       const xml = fs.readFileSync(path.join(process.cwd(), `android/app/src/main/res/${version}/styles.xml`), 'utf8');
       expect(xml).toContain('<item name="android:windowSplashScreenBehavior">icon_preferred</item>');
+      expect(xml).toContain('<item name="android:windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>');
       expect(xml).toContain('<item name="android:windowLightStatusBar">true</item>');
     }
   });
