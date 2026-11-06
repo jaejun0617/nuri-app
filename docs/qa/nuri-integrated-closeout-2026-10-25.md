@@ -1,5 +1,98 @@
 # NURI 통합 마감 수락 원장
 
+<!-- OS_FINAL_A_20261106_BEGIN -->
+## 2026-11-06 OS 최종 잔여 판정 A단계: 부분 완료
+
+### 현재 결론과 실행 범위
+
+**A단계 문서·증거 대조 완료. OS10은 아래 실행 구성에 한정 PASS, OS13 PASS 보존. 현재 후보의 OS05 개별 표시 증거 연결은 PARTIAL이므로 OS 묶음은12/13을 유지한다. 전체 통합 미동결·STORE HOLD.** 숫자13/13을 먼저 정하지 않고 원래13개 행의 현재 유효성을 대조했다. OS10의 미완료 조건을 다른 항목으로 옮긴 것이 아니며, OS05의 기존 요구인 전경 수신·중복 없는 표시를 최신 승인 동작에 대조한 결과다. 기존 OS05의 구후보 bridge PASS는 삭제하지 않는다. 생일U2와 P0 안정성은 별도 미완료다.
+
+- 착수 시각 **2026-11-06 20:38:42 KST /11:38:42 UTC**, 판정 시각 **20:45:43 KST /11:45:43 UTC**. 종료/전달 시각은 증거 루트의 `git-delivery.json`을 따른다. 이 시각은 새 CPU·실기기 관측 시각이 아니다.
+- 현재 Master 저장소는 `/Users/shinjaejun/.codex/worktrees/nuri-batch-a-20261020/nuri`, 브랜치는 `codex/walk-marker-recovery-20261020`. 시작 HEAD/upstream은 **e3bfe70de90bd30885b1806631652a0ec25635c8**, fetch 후 일치·staged0. 기존14개 tracked dirty와 미추적 문서·자산을 보존했다. 기본 cwd의 다른 checkout은 변경하지 않았다.
+- 최신 제품은 **e138c5cc2e80c7e6b102a74fe847aa373ec2be50**, runtime **bfcbd30eaf8638c6f55374d0880014c3acadfbf33cab234ad5ebcd40b6827732**, APK **6a94b9be9fa76e1da42bc97583fba556c890a3ad148bc314e055b1ac457edc6c**. 지시문 기준7fbb00b/9bab15c 이후의 유효한 디자인 전달 영수증을 우선했다.15:42 보고 증분은 이미 e3bfe70에 전달돼 있으며 현재 미전달로 되돌리지 않는다.
+- [제품 CI success](https://github.com/jaejun0617/nuri-app/actions/runs/42190973109)와 [기존 문서 CI success](https://github.com/jaejun0617/nuri-app/actions/runs/42191825848)를 재사용한다. 이번 문서 증분의 커밋·push·자동 CI는 `git-delivery.json`으로 별도 연결하며 앱 제품 기준을 바꾸지 않는다.
+- 서버 identity는 기존 운영 영수증의 **device-v3 v6 / worker-v3 v4 / 생일 migration20261106050544**를 재사용한다.7fbb00b 이후 서버 소스·migration diff는0이다. 이번 운영 catalog/Edge 재조회는 하지 않았으므로 마지막 영수증 이후 외부 변경 유무의 신규 실측은 **미확인**이다. 새 배포나 재적용을 하지 않았다.
+- 이번 증거 루트: `/Users/shinjaejun/.codex/nuri-os-final-a-20261106/`. `checkpoint.json`은 시작 dirty 해시, `source-and-acceptance.json`은9개 실제 소스 blob 비교와 기존 영수증의 판정 범위를 소유한다. 제품·서버·인증 설정 변경0, 새 검사·빌드·설치·기기 조작·운영 조회0. Metro는 마지막 설치 영수증의 OFF를 보존하며 이번에 새 프로세스를 시작하지 않았다.
+
+### 해결·진행·잔여
+
+| 구분 | 이번 증분 |
+|---|---|
+| 해결 | PO의 제한적 적용성 판단을 실제 Auth Tab 직렬화 증거와 연결, OS10의 적용 가능한 원래 계정 보호 조건 대조·수락. P0 공식지원 본문과 비밀정보 제거 첨부3개 준비 |
+| 진행 | 없음. 문서 전달의 실제 결과는 아래 영수증으로 연결 |
+| 잔여 | OS05 최신 전경 개별 표시의 같은 실행 증거,11/07 새 정상 생일 원본의 실제 수신·후속, P0502/메모리/Swap/계측 공백 |
+| 잔여 해결 계획 | PO의11/07 캡처 또는 미수신 입력 이후 B단계에서 새 원본부터 읽기 전용 연결. 그 결과와 기존 자료로 부족한 OS05 한 경계만 확인. P0 문의는 별도 발송 승인 전 미발송 |
+
+### OS10-A와 원래 OS10 범위 판정
+
+`MainActivity.kt:24`의 단일 authTabRequest, `openOAuthTab:48`의 중복 거부, `auth.ts:161`의 oauthStartInProgress, `SignInScreen.tsx:105`의 submittingRef/disabled, pendingOAuth의15분 TTL·소비 전 claim을 대조했다. MainActivity/Auth 서비스/pending/SignIn/SocialLoginSurface/native push/badge/App의9개 blob은 **7fbb00b와 현재 HEAD 및 working tree가 동일**하다. 코드 존재만으로 새 실기기 PASS를 만들지 않고 아래 기존 실제 실행과 연결했다.
+
+| 원래 조건 | 실제 근거·경계 | 현재 판정 |
+|---|---|---|
+| OS10-A 동시 진입 차단·원래A 정상 완료 | `nuri-os10-birthday-20261106/auth-held-state.json`, `flow-v17.log`, `flow-result-before-cleanup.json`: 실제 미소비 Kakao Auth Tab RESULT_OK를247.620초 보류, nativeBusy와 두 CTA disabled, 교환0. 같은 원래 결과 반환 후 교환 성공1·인증 route1·세션/owner/Home. 완료 이후 새 Google 정상 로그인 | **PASS: 현재 지원 Auth Tab·동일 앱 인스턴스의 직렬화와 원래A 완료**. 이번 PO 판단을 적용했으며 재시험0 |
+| A→B→늦은A 순서 | A 보류 동안 정상B 시작 전제가 성립하지 않음. busy 해제·가짜취소·PKCE 변경 없음 | **정상 흐름 전제 불성립**. 해당 순서를 실행한 PASS가 아님 |
+| 취소·소비된 이전 결과·중복 앱링크 | 기존 `nuri-os-boundaries-20261106/auth-late-retry-final.json`, `auth-duplicate-final.json` 및 v14 trace: Google Back 취소, 소비된 옛 Kakao 결과 거부, 정상 재시도. 동일 실제 앱링크 추가2회에도 교환/인증 route1 | 해당 경계 **PASS 보존**. ActivityResult와 앱링크 중복을 혼동하지 않음 |
+| 늦은 등록·해제와 현재 owner/다른 설치 | D409/PT409, F200/revoked0, 원래 앱 register200 응답178.197초 지연 후 정상 전환·원래 Promise 완료. 정상 UI logout은 revoke 완료를 기다리는 직렬 계약 | 해당 **PASS/전제 불성립 구분 보존**. F를 늦은 UI Promise 실행 PASS로 바꾸지 않음 |
+| 이전 PendingIntent·접근·읽음 | 기존 OS13 실제2회 PendingIntent/목적지1개·읽음·Back, 이전 Kakao PendingIntent 처리 종료 뒤 Google 화면·미읽음·owner·이전 읽음·다른 설치 불변 | 해당 경계 **PASS 보존** |
+| OS10-B 실제 이전 수신자FCM | 실제 worker→FCM→SDK 수신 후 recipient 검사 전 앱 dispatch490.766초 보류, Google 전환 뒤 원래 handler Task 완료. TTL 내, count27/owner/다른 설치·이전 read_at=null 보존 | **PASS 보존: 실제 수신 후 통제 앱 처리 지연**. 제공자 내부 운송 지연으로 확대하지 않음 |
+
+원래 OS10은 ‘로그아웃·계정 전환의 현재 owner 등록과 대상 격리’이며 위 하위 조건을 연결해 **현재 확인된 물리 지원 환경에서 PASS**다. `unsupported`이면 `Linking.openURL`로 넘어가는 fallback 코드는 존재하지만 이번 직렬화 증거와 동일하지 않다. fallback 전체·프로세스 복귀·Google 선택/동의/재인증 전체는 기존 U1 잔여로 보존하며 이번 PO 판단의 PASS 범위를 확대하지 않는다. 원래 OS10에 없던 전체 제공자/브라우저 조합을 새 마감 조건으로 추가하지 않았다. 새로운 인증 결함을 확인한 것은 아니다.
+
+### OS05 최신 승인 동작과 증거 차이
+
+**변경된 입력: afd3fe8 이후 전경 개별 OS 표시 허용 / 영향: 기존 OS05의 ‘전경OS0’ 이력 / 확인할 결과: 무음 개별 목적지·중복/배지 증폭 없음.** `NuriPushService.kt`의 emit→`.setSilent(foreground)`→`setOnlyAlertOnce(true)`→고유 notify key→canonical snapshot 경로는7fbb00b부터 현재까지 불변이다. nativePush의 수신 bridge와 기존 badge 순서/owner 검사는 재사용한다. 승인된 현재 동작을 OS0으로 되돌리지 않는다.
+
+- 기존8ea8674a의 두 인스턴스 인앱 갱신·간접 native bridge·OS0/badge11은 당시 후보의 **PASS 이력**이다.
+- 새 QA transport `6835ab57-a128-428d-b2fd-6025d4a77f24`의 accepted1/attempt1, 목적지 모달 캡처와 서버 read_at **05:53:15.597254Z**는 보존한다. 정상 생일 scheduler 원본과 구분한다.
+- 그러나 같은 실행의 `birthday-foreground-os.json`(**05:51:50.636Z**)에는 native count1과 **nuri_inbox_summary 한 키만** 있고 개별 `nuri_push` 키가 없다. `birthday-individual-os-open.png`도 트레이가 아니라 이미 열린 상세/모달이다. 기존 보고의 ‘개별 표시 PASS’ 문장만으로 실제 개별 행·무음 flags·중복 없는 키·같은 시점 canonical/앱/native 숫자를 모두 확인했다고 쓰지 않는다. 이 차이는 **증거 부족이며 제품 FAIL 확정이 아니다**.
+- 따라서 구후보 수락을 삭제하지 않고 **현재 후보 OS05 PARTIAL_EVIDENCE_GAP**을 남긴다. OS10 완료1개와 현재 승인 동작의 OS05 증거 보강 필요1개를 분리하므로 현재 후보는12/13, OS13/13 선언은 보류한다. 새로운 OS 행이나 분모를 만든 것이 아니다.
+- B단계에서는 먼저 새 정상 생일 원본을 연결한다. 실제 수신 당시 foreground와 개별 행/무음·중복/카운트가 이미 증명되면 재사용한다. 부족할 때만 **동일 현재QA·권한ON에서 최소 QA 알림1개**의 전경 SDK→인앱 갱신→개별 OS key1/무음→canonical/앱/native 일치→실제 탭/읽음·Back을 묶어 확인한다. A단계 추가 발송·앱 열기·재시험은0이다.
+
+### 생일U2 준비 상태와 B단계 재개점
+
+시험 아이 **569a0e07-1dab-4823-b748-2da5f38448ff**, `QA-OS-BIRTHDAY-20261107`, 생일2025-11-07·입양2026-11-06·기존 Kakao QA 소유는 이전 정상 저장/보존 영수증을 따른다. 사용자 시간대11/07 00:00 인앱,09:00 외부push, 복구 종료11/08 09:00 계약을 유지한다. PO 수신 자료는 이번 A단계에 아직 없다. **U2: WAITING_FOR_PO_RECEIPT_EVIDENCE**, 정각 도착·탭·읽음·Back 미관찰을 PASS하지 않는다.
+
+최신 디자인 인계는 원래 누리가 아닌 **PO가 선택한 QA-PHOTO**와 기존11/06의 이미 읽은 생일 모달을 남겼다. 이전15:33 누리 Home 상태로 맞추려고 앱을 열거나 선택을 바꾸지 않았다. 현재 화면·선택의 신규 실측은 **미확인**, 마지막 설치/원복 영수증만 사용한다. globalON·권한ON·네트워크·Metro OFF도 그 영수증 기준이며 새 인증·adb·instrumentation·설정 변경0이다. 별도 두 번째 설치01d78a3는 기존 독립등록 보존 증거만 재사용하고 최신 인증/UI 수락으로 사용하지 않는다.
+
+PO의 캡처 또는 미수신 연락은 B단계 재개 입력이다. **시각 도달만으로 자동 재개하지 않는다.** 첫 실행은 해당 날짜 새 정상 원본ID·pet/source/version/recipient·created/pushAvailable·delivery/FCM·읽음/삭제를 읽기 전용 확인하고 PO가 실제 수행한 탭·모달·목적지·Back과 연결하는 것이다. 촬영 시각과 수신 시각을 구분한다.11/06 원본 `10e27831...`, QA transport `6835ab57...`, 읽은 행 재열기를 새09시 원본으로 대체하지 않는다. 미수신이면 재발송 전에 계층별 상태를 보존한다. 증거 확보 전 시험아이/알림 삭제·모두 읽음·날짜 변경을 하지 않는다.
+
+### P0 공식 문의: 검토 가능한 본문과 최소 첨부
+
+**상태: PREPARED_NOT_SENT.** 공식 대상은 [Supabase Support의 Open support ticket](https://supabase.com/support)이다. 공개 이슈/커뮤니티에 프로젝트 운영 자료를 게시하지 않는다. 외부 발송은 별도 PO 승인 대상이며 이번에는 제출하지 않았다. 공식 [Metrics 설명](https://supabase.com/docs/guides/observability/metrics)을 참고했으나 새 scrape/상시관측/수집 설정을 만들지 않았다.
+
+**Subject:** Historical notification-worker-v3 HTTP502 and missing runtime/resource correlation, project grmekesqoydylqmyvfke
+
+**발송 본문:**
+
+Please help correlate a historical Edge Functions gateway error in project `grmekesqoydylqmyvfke`. The observed endpoint is `/functions/v1/notification-worker-v3`, HTTP502 at **2026-11-04T10:08:00.104Z (19:08:00.104 KST)**; the earlier observation recorded execution11ms. We have no recoverable gateway/request, invocation, execution, deployment or claim/lease identifier for this502: all are **UNKNOWN**, not inferred from adjacent successful invocations. Cause, notification impact and recovery remain UNKNOWN.
+
+Please confirm whether retained internal records can identify gateway-to-execution routing, function entry, isolate boot/shutdown, resource limits or OOM, and whether the request reached claim/lease processing. If those records cannot be recovered, please state the retention or diagnostic limitation. Please provide available identifiers and timestamps, not user content or credentials. If this event reached work claiming, we need the relevant lease/retry linkage to determine whether the same work was retried, omitted or duplicated; later HTTP200 and an empty queue alone do not establish recovery.
+
+Our fixed comparison window is **2026-11-04T10:01:13Z through2026-11-05T10:01:13Z**. Saved SQL cron receipts show1440 successful worker dispatches, while retained function-edge rows total1423 (1118 HTTP200/v2,304 HTTP200/v3,1 HTTP502 without version). Please explain any observable dispatch/invocation/logging difference17 and whether coverage or ingestion gaps can be identified. Cron dispatch success is not treated as proof of worker or delivery success. Version first/last log events are not asserted as exact deployment times; worker-v4 appears only in saved post-window observations and is not represented as a continuous24h v4 run.
+
+The business stale-session contract was changed from SQLSTATE40001 to nonretryablePT409 on11/04 19:01:13 KST. The saved fixed-window SQLSTATE aggregate contains4 PT409 and no returned40001 rows; this is bounded by retained logs, not proof of zero errors in unlogged intervals. Please help recover raw CPU User/System/IOWait and clarify actual memory used versus commitment, Swap allocation versus swap I/O, and any OOM/runtime impact for the fixed window and the502 neighborhood. A saved dashboard headline displayed CPU5.12%, actual used403.36MB, commitment1.36GB and SEVERE; a separate point at11/05 16:01:13 KST displayed User1.85%, System0.70%, IOWait3.50%, Total6.07%, Swap523.86MB and commitment1.37GB. These are not asserted as24h averages or as proof of causation/recovery. Continuous raw series, swap I/O and provider OOM evidence are missing.
+
+Later read-only DB samples show rollback0 over1653.975s, and a separate77.881min sample shows commit+14623/rollback+1 with unchanged stats_reset; the latter rollback cause is UNKNOWN. Please separate any available historical evidence from later healthy samples. We are not requesting restart, plan/Compute changes, cron changes, statistics reset or process termination. Three sanitized attachments contain only incident/window/version/resource aggregates and explicit coverage limitations.
+
+**첨부:** `/Users/shinjaejun/.codex/nuri-os-final-a-20261106/`의 `support-01-incident-and-window.json`, `support-02-versions-and-resources.json`, `support-03-followup-db-and-edge.json`. `support-manifest.json`에 각 SHA-256/크기·출처 및 미발송 상태를 보존했다. 기존 원본 전체를 첨부하지 않고 명시한 필드만 추출했다. 원문 Authorization/JWT/refresh/FCM/키/쿠키·개인정보·owner/device 식별자는 첨부하지 않는다. 이 첨부는 로컬 보존이며 Git에 원문 운영 자료를 올리지 않는다.
+
+고정 창은 이미 종료·대조됐고 데이터 소스별 first/last event는 연속 커버리지의 증명이 아니다. 현재CPU/메모리/Swap 신규 값은 **UNKNOWN/이번 미계측**. 과거502 원인·영향·복구,SEVERE·Swap·시계열 공백은 미해결이다. **P0 core/source/runtime PASS, stability/final PARTIAL**을 보존한다. 외부 자료 회수 불가 판정과 잔여 위험 수용은 별도 PO 판단이며 기능 시험 PASS와 섞지 않는다.
+
+### 전달·정리와 다음 작업표
+
+이번 수정 대상은 본 원장·리서치·project-memory4개, 총6개 문서의 `OS_FINAL_A_20261106` 증분뿐이다. 기존 혼재 문서/이미지/미추적 자료를 전체 stage하지 않는다. source/앱/서버 입력은 불변이므로 수동 전체 검사·APK 빌드·재설치를 반복하지 않고 staged diff/비밀정보/보존 검증과 문서 push의 필수 자동 CI를 구분한다. 실제 커밋·원격·CI 영수증은 `git-delivery.json`, `document-ci.json`으로 회수한다. release-checklist의 출시 수락은 변경하지 않는다. 새 QA 생성/정리 대상0, 계정/선택/권한/네트워크/보조도구 상태 변경0이므로 임의 원복/삭제도0이다.
+
+| 우선순위 | 원래 작업 번호 또는 추가 범위 | 작업 | 선행 조건 | 담당 | 필요한 입력 | 완료 기준 | 현재 시작 가능 여부 | Astra 권장 추론 강도 | GPT-6.1 Sol 권장 추론 강도 |
+|---|---|---|---|---|---|---|---|---|---|
+|1|4·U2 생일|11/07 새 정상 원본·실제 수신 후속|보존 QA/미읽음/권한ON, PO 수신 또는 미수신 자료|Master|PO 캡처/미수신 상태와 실제 수행 행동|새 원본→worker/FCM→실제OS→목적지·읽음·Back의 관찰 범위 연결, 필요한 QA 개별 정리|**대기: PO 자료 없음**. 시간만으로 재개 안 함|Medium|Medium|
+|2|5·OS05|최신 전경 무음 개별 표시의 증거 보강|U2 최초 증거 보존/연결 후, 부족한 기존 조건만|Master|추가 질문 없이 기존 승인 QA·도구 사용|한 실행의 개별key/무음·중복 없음·인앱/canonical/native·목적지/읽음 연결|B단계에서 필요할 때만. A단계 실행 금지|Medium|Medium|
+|3|P0 안정성|공식지원 문의 발송 또는 잔여 위험 판단|본문·첨부3개 검토 가능 상태|Master, 승인PO|**외부 발송 승인** 또는 명시적 위험 판단|내부자료/회수불가/위험수용을 구분하고 원장에 반영|준비 완료·미발송, 별도 승인 필요|Medium|Medium|
+|4|3·U1|Google 선택·동의·fallback의 기존 인증 잔여|별도 범위 재개|Master|후속 PO 지시·해당 정상 인증 환경|기존U1 행별 미충족만 수락, Auth Tab 판정 확대 금지|현재 범위 밖·착수 안 함|High|High|
+|5|4·U2,6·U5/NAV-01|기존 원본·기록4도메인·공통 복귀 잔여|OS 증분 보고 후 별도 재개|Master|후속 PO 지시|기존 단일 원장의 필수 행별 수락|현재 범위 밖·착수 안 함|High|High|
+
+**정확한 다음 실행 지점:** PO의11/07 캡처 또는 미수신 입력 도착 후 새 정상 생일 원본의 읽기 전용 연결부터 시작한다. 같은 범위 재개 승인은 다시 묻지 않는다. 그 전에는 준비 기기를 그대로 두며 장시간 대기·예약·백그라운드 관측을 만들지 않는다. OS10-A 판단은 두 모델High, 이후 증거/문서/확정 실행은Medium 권장이다. 실제 모델·추론 설정은 미확인, 자동 변경0. **P1/P2 NOT_STARTED, 기존 통합 미동결·ON_HOLD, STORE HOLD, AUTO_RESUME NO.**
+<!-- OS_FINAL_A_20261106_END -->
+
 <!-- DESIGN_DELIVERY_20261106_BEGIN -->
 ## 2026-11-06 디자인 전달 및 OS 작업 대기
 
