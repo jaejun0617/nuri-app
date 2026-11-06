@@ -1,5 +1,74 @@
 # NURI 통합 마감 수락 원장
 
+<!-- OS10_BIRTHDAY_20261106_BEGIN -->
+## 2026-11-06 생일 모달 완료 후 OS10 재개: 부분 완료
+
+### 결론과 증분
+
+**생일 모달의 이번 디자인 보정·물리 설치 확인 완료. OS10은 PARTIAL, OS13 PASS·OS12/13·통합2/7·기록0/4·전체 미동결·STORE HOLD 유지.** 최신 PO 지시의 순서대로 생일 모달을 마친 뒤 OS10을 실행했다. Master 단독이며 기본 cwd의 Room B나 다른 checkout은 수정하지 않았다. 아래 과거 절의 생일 미생성/ActivityResult 관측0/실제 FCM 미수신 상태는 당시 이력이다.
+
+증거 루트: `/Users/shinjaejun/.codex/nuri-os10-birthday-20261106/`. 이번 실기기 원복·운영 표본 종료는 **15:25:00 KST /06:25:00 UTC**다. Git/CI 종료는 뒤의 `git-delivery.json`을 따른다.
+
+| 기존 ID·조건 | 직전 | 이번 실제 결과 | 현재 판정·한계 |
+|---|---|---|---|
+| 추가 승인 생일 모달 | 이미지/닫기/문구/글꼴 조정 중 | 사료·케이크·껌·장난감·리본·하트와 누리 심볼, 오른쪽 X, 실제 이름15sp·제목22sp. 강제 귀여운 글꼴 제거, 선택된 Pretendard/귀염뽀짝체를 공통 AppText로 존중. 물리 Pretendard·긴 QA 이름·X·추억 목적지 확인 | 이번 UI 보정 PASS. 두 글꼴은 단위 검사, 두 번째 글꼴의 실기기 렌더링까지 주장하지 않음 |
+| U1/OS10-A 미소비 이전 인증 | BLOCKED_TEST_CAPABILITY, ActivityResult 관찰0 | 실제 Kakao Auth Tab RESULT_OK1개를 교환 전247.620초 보류. nativeBusy=true·두 CTA disabled·교환0. 원래 callback/result 반환 후 교환 성공1·인증 route1·Kakao Home/등록 | 관찰 수단 확보 PASS. A 보류 중 정상 B 시작 전제는 불성립하여 **BLOCKED_NORMAL_FLOW_APPLICABILITY**. A→B→늦은A 수락은 아님 |
+| OS10-B 이전 수신자의 실제 FCM | 수동 RemoteMessage 경계만 PASS | 실제 worker/FCM→SDK 원본1개 수신 후 앱 dispatch만490.766초 지연. 정상 Google 전환 후 동일 Intent 반환/Task 성공. 현재 owner·native27·snapshot 시각·OS 목록·Home·다른 설치 불변, 이전 read_at=null | **PASS: 실제 FCM + 통제 앱 처리 지연 경계**. 제공자 내부 운송 지연이나 자연 발생 지연이라고 보고하지 않음 |
+| U2 정상 생일 원본 | 시험 아이 승인 대기 | 승인 아이1개 정상 생성, PO 후속 승인에 따라 해당 QA 아이만 당일 생일로 잠시 변경. 정기 scheduler가 정상 pets 원본 생성·worker accepted1·OS 요약→알림함→목적지→읽음·Back | 원본/전달/기존 OS 연결의 한정 증거 확보. 최신 개별 생일 OS 행의 정기 수신은 아래 준비 상태로 잔여 |
+| 추가 승인 개별 OS 목적지 | foreground는 요약만 표시 | 실제 QA transport 생일1개로 개별 제목/본문·OS 탭→생일 모달·서버 읽음 확인. foreground는 무음, 기존 배지 snapshot 유지 | 개별 표시 경로 PASS. 정상 scheduler 원본으로 합산하지 않음 |
+| P0 | core/source/runtime PASS, stability/final PARTIAL | 기존 계약 불변. 이번77.881분 DB표본 commit+14623/rollback+1, reset 불변·30초 초과 client0 | 기존 판정 유지. rollback1 원인 미귀속, CPU/메모리/Swap 신규 계측 없음 |
+
+직전 OS10 미완료의 두 대표 조건 중 실제 FCM 처리 경계1개를 닫았고, 인증1개는 도구 차단에서 정상 흐름 적용성 판단으로 바뀌었다. 신규 OS 분모를 추가하지 않았다. 기존 D/F/K/L-GLOBAL·등록 Promise178초·이전 PendingIntent·소비된 callback·OS12/13은 관련 방어 입력 불변으로 재사용한다.
+
+### 인증과 FCM의 실제 실행 경계
+
+1. `FlowProbe`v17은 lifecycle observer의 실제 Auth Tab callback을 ON_START 전에 관찰한다. 기존 transient registry map 관측0을 그대로 반복하지 않았다. 06:13:32.075Z 실제 성공 결과1개를 메모리에 보류했고 code/URI/PKCE/JWT 원문은 저장하지 않았다. `auth-held-state.json`에서 OAUTH_INTENT_STARTED/PENDING_FLOW_READY까지만 있고 CODE_EXCHANGE_STARTED는0이다. `auth-unconsumed-held.png`와 native status에서 Kakao 처리 중·Google disabled·authTabRequest 유지다.
+2. 현 `MainActivity.openOAuthTab`의 단일 authTabRequest, JS oauthStartInProgress, SignIn submittingRef가 직렬화를 보장한다. 결과를 보류한 순간 공식 탭은 이미 닫혀 정상 취소 버튼이 남지 않았으며 B를 시작하려면 이 잠금을 인위적으로 변경해야 한다. 그 조작은 하지 않았다. 06:17:39.695Z **같은 원래 callback과 결과**를 반환한 뒤 CALLBACK_RECEIVED/PENDING_FLOW_VALIDATED/교환 성공/세션/인증 route 각1회, Kakao owner/누리 Home을 확인했다. 그 뒤 정상 logout→공식 Google 선택→Google Home/등록도 성공했다. 정상 새 시도는 이전 완료 뒤에만 입증했고 같은 제공자 A/B 겹침·fallback은 미입증이다.
+3. 권장 판단안은 **지원 Auth Tab 환경은 미소비 A 보류 중 B 시작 불가라는 적용성 근거를 인정하고, 도달 가능한 취소·사용 완료 결과·중복 앱링크는 기존 PASS를 연결**하는 것이다. 이는 PO 판단 대상이며 자동 PASS/조건 삭제하지 않았다. unsupported fallback까지 같은 결론으로 확대하지 않고 기본 브라우저 변경·새 인증 구조·busy 해제는 하지 않는다.
+4. 실제 QA 알림 `b546000b-61d8-4b0c-86c7-508a83630c31`은 worker accepted1/물리 receipt1이다. SDK가06:12:01.175Z 받은 원본 Intent를 owner 검사 이전의 Firebase bind dispatch에서 한 번만 보존했다. TTL844초·expires06:26:04.767Z·notification payload 없음·최초 recipient=Kakao를 확인했다. SDK Task는 즉시 정상 반환해 메인 스레드/서비스 callback을 계정 전환 내내 붙잡지 않았다.
+5. 06:19:57Z Google Home·server/native Google owner·미읽음27 확정 후06:20:11.941Z 원래 handler에 동일 Intent를 넘겼고06:20:11.963Z 완료/성공을 관찰했다. 만료 이전이고 이후 Google owner/count27/observedAt1793945983393·OS summary만 존재·Googleet Home·다른 설치 last_seen11/05 12:39:26.497816Z가 불변이다. 이전 Kakao read_at도null이다. NuriPushService는 recipient mismatch에서 expiry/표시/snapshot 전에 반환한다. 정상 전송·실제 SDK 수신·원래 handler 완료를 연결했으므로 메시지 미도착을 차단 PASS로 오인하지 않았다.
+6. `flow-v17.log`의 FCM detail.delayMs=399866은 Auth hold와 공유한 타이머 탓에 과소 표기됐다. **원본 로그를 수정하지 않고**, FCM captured/dispatch의 wallMs와 uptime 차이에서490766ms를 계산해 `final-evidence.json`에 명시했다. 로그 수치 하나를 실제 운송 지연으로 쓰지 않는다. 원문 Intent/result는 프로세스 메모리에서만 유지했다.
+
+### 생일 계약·모달·실제 원본
+
+- PO가 승인한 권장 방식은 **사용자 시간대00:00 인앱 생일 생성,09:00 외부 푸시**다. 신규 migration `20261106050544_notification_birthday_midnight_inbox`만 적용했고, 기존 migration/cron/RLS/권한/QA cohort/Edge를 변경하지 않았다. scheduler 함수의 signature·SECURITY DEFINER·빈 search_path·ACL을 보존했다. 실제 정의 hash는 `64da20a3981d98992a5b9d08bfa6af07`, 적용 확인05:07:06.297Z이며 파일명 시각을 배포 관측 대신 쓰지 않는다.
+- 정상 원본은 시험 아이 `569a0e07-1dab-4823-b748-2da5f38448ff`, Kakao QA 소유,04:52:39.668247Z 정상 생성이다. 당일 시험으로 생일2025-11-06을 정상 UI에서 저장한 뒤14:07 KST 정기 scheduler의 복구 창으로 알림 `10e27831-d9b9-4182-9b2f-7f6c71af5e2d`가 생성됐다. source=pets, version2025-11-06:2026, 인앱 available11/06 00:00 KST, push available09:00, expiry11/07 09:00, attempt1/physicalaccepted다. 정각00시/09시 수신 관찰은 아니다.
+- 당시 구제품의 foreground 요약 OS→알림함 선택→기존 QA 아이 Timeline→read_at05:08:46.126684Z→Back을 연결했다. 새 개별 OS UI는 별도 QA transport `6835ab57-a128-428d-b2fd-6025d4a77f24`에서 확인했다.05:53:15.597254Z 서버 읽음과 OS→모달을 연결하며 두 원본을 합치지 않는다. 마지막7fbb00b는 같은 정상 생일 row의 모달 표시·닫기·CTA를 재확인했지만 이미 읽은 행이라 새로운 읽음 증거가 아니다.
+- 초기 이미지 intrinsic 크기로 패널 내 빈 공간이 생긴 결함은240dp 양축 제한과 scrollable modal로 수정했다. latest PO의 ‘폰트 스타일은 바꾸지 말라’를 반영해 jisu 강제 override4개를 제거했다. 실제 이름을 그대로 사용하며 ‘QA 아이’ 같은 접미어를 제품에서 붙이지 않는다. 초기 QA transport의 잘못된 임시 제목은 생성 도구 문구였고 정상 scheduler 제목은 실제 pet.name 기반이었다. 해당 QA row는 정상 UI로 개별삭제했다.
+- 최종 캡처 `birthday-user-font-visible.png`는 실제 Pretendard·이름15/제목22/본문15/CTA16sp·오른쪽X·이미지와 문구 잘림 없음이다. `birthday-user-font-final.png`는 비동기 모달 표시 전 알림함이므로 모달 증거로 사용하지 않는다. profile edit 완료 화면은 활동칭호 읽기 토큰으로 맞췄고 실제 날짜 복원 저장 뒤 `profile-edit-done-final.png`로 확인했다.
+- 시험 아이 생일은 정상 UI로 **2025-11-07**로 복원했고 입양일2026-11-06·원래 누리 선택을 유지했다. 다음 정상 인앱 생성 가능 시각은11/07 00:00 KST, 외부 푸시는09:00 KST, 기존 복구 종료11/08 09:00 KST다. 새 후보의 정상 개별 생일 OS 행→모달→읽음 후속은 그때 확인한다. 읽음/삭제된 알림의 푸시는 기존 lease가 억제하므로09시 전에 시험 알림을 미리 읽거나 삭제하지 않는다. 새 예약/자동화/대기는 만들지 않았다.
+
+### P0 관측과 제공자 문의 초안
+
+고정 창11/04 19:01:13~11/05 19:01:13 KST의 기존 자료와 버전 구분을 재사용한다. devicev5/v6·workerv2/v3 구간과 창 이후v4를 합치지 않는다. 이번 DB05:07:06.297~06:24:59.146Z는 별도77.881분 표본이며 rollback+1≈0.000214회/초, commit+14623, 연결24·장시간 client0·stats_reset2025-12-08 불변이다. 해당rollback의 정확한 요청 원인은UNKNOWN이다. 이전40001 폭증 재현으로 단정하지 않으며 이번 전구간 로그0건을 주장하지 않는다. raw CPU/실메모리/commitment/Swap/OOM의 신규 시계열은 미확보다. 과거502의 원인·영향·복구UNKNOWN, SEVERE·Swap523.86MB·고정 창 계측 공백은 남는다.
+
+**발송 대상/초안: Supabase 공식 Support, 미발송.** 프로젝트 `grmekesqoydylqmyvfke`, 사건2026-11-04 10:08:00.104 UTC(19:08 KST), notification-worker-v3 HTTP502/기록11ms. 확보된 gateway/request 고유 ID 및 execution/deployment 연결은UNKNOWN이며 만들어 넣지 않는다. 질문: 해당 시각의 gateway→execution 연결, isolate boot/종료/OOM·함수 진입 여부, claim 이전/이후 및 lease 재처리 추적 자료가 존재하는지, 고정 창의 cron dispatch1440/worker HTTP1423 차이17 설명, raw CPU User/System/IOWait와 실제 메모리/commitment/Swap IO/OOM의 구분 자료를 요청한다. 후속200이나 빈queue로 과거 작업 복구를 입증하지 않았음을 명시한다.
+
+최소 첨부안은 기존 `nuri-os-required-20261105/operating-evidence-start.json`의 사건·집계 부분, `acceptance.json`의 고정 창 버전/공백 부분, `nuri-os-boundaries-20261106/operating-evidence.json`의 후속 구간 부분이다. **원문 전체 파일을 바로 보내지 않고** 발송 승인 시 사건 시각/상태/계측만 추려 토큰·쿠키·개인정보·소유자ID를 제외한 첨부를 만든다. 지원 발송/위험 수용은 PO 결정이며 플랜 변경·재시작·프로세스 종료는 실행하지 않았다.
+
+### 소스·검사·설치·정리
+
+- 제품HEAD `7fbb00b6b101e2fc7b753005ceeb4acab1faa507`, tree `2652783572b695aabe594e8bf1e94bcf82a92074`, runtime `91ef95722c3c15548762126cd4f809672c5d91bcff2dfc82370a18279a7a81cf`, APK `2a42411fba1f4ba293efb93fc4eb95d60d04a0aa2046a3bd0852e0b099f9470f`다. `delivery-birthday-font-preference/{build-result,installation}.json`과 연결한다. 이전832e1a7/8ebd538/fef5e83 캡처는 해당 후보로만 해석한다.
+- 로컬 전체348 suites/4666 PASS는 기능 후보 검사, 이후표적4suites24 및 글꼴설정2suites18 PASS·타입·대상lint·source/secretguard PASS를 연결한다. SQL 격리65/65 PASS에는 midnight/09시 lease·DST·중복·기존OFF·권한이 포함된다. watchman recrawl/Gradle deprecation은 기존 경고로 보존하며 경고0이라고 하지 않는다. 최신 제품의 원격 CI [42174362769](https://github.com/jaejun0617/nuri-app/actions/runs/42174362769)는06:29:45Z **success**, 전체348 suites/4667 PASS·핵심12suites132 PASS·TypeScript/secret/source guard PASS, 전체lint0오류23경고다. `product-ci.json`에 실제 결과를 보존했다. 문서 CI와 앱 제품SHA는 분리하며 후속 결과는 `git-delivery.json`을 따른다.
+- 물리 SM-S937N bundled Debug/Metro OFF·서명/UID10402/최초설치/권한hash/기존데이터/네트워크/density450/fontScale1 보존이다. 에뮬레이터01d78a3는 새 UI 수락에 쓰지 않고 Google 독립등록의 owner/status/last_seen 보존만 확인했다. devicev6/workerv4 그대로며 웹/인증 설정 변경0이다.
+- 종료 시 물리 Kakao/누리 Home·globalON·OS권한ON, Google 물리등록 정상logout revoked·다른Google설치 active 보존이다. QA transport2개만 정상 개별dismiss, 정상 생일 원본/시험아이/기존자료는 후속 확인을 위해 보존했다. 홈 생일 표시이력은 presentation-only이며 canonical읽음과 다르다. 칭호 trigger/audit 부수 효과의 완전 원복은 미확인이라 임의 삭제하지 않았다.
+- `FLOW_CLEANUP` 이후 보조패키지 제거·명령표식ABSENT·훅/메모리해제·앱정상재실행을 확인했다. instrumentation 종료는 의도한 프로세스 종료이고 자연충돌로 계산하지 않는다. 최초 스크린샷1MiB buffer초과는 도구 준비 문제로24MiB 보완, 잘못된Activity명 실행1회는 올바른 com.nuri.MainActivity로 정정했다. 제품 FAIL/화면튐으로 집계하지 않는다.
+- 기존14개 dirty 및 미추적문서/이미지, 원본checkout181개dirty를 보존했다. 제품20파일만 기존브랜치 정상push, 문서는 이번 marker6개만 선택stage한다. release의 역사snapshot은 소급수정하지 않고 현재 판정은 본 원장에 둔다.
+
+### 해결·진행·잔여·다음 실행
+
+해결: 생일 UI 보정·선택글꼴 준수·개별OS 목적지 표시, 정상생일원본 복구창 생성/전달, 실제FCM의 이전수신자 앱처리 경계, 제품 일반push/동일SHA CI success. 진행: 이번 문서 증분 전달/자동 CI 회수. 잔여: OS10-A 적용성 판단, 다음 정상생일 개별OS 후속·fixture정리, P0 제공자자료/위험판단. 단위/SQL계약·QAtransport·정상원본·통제callback은 각각 분리했다.
+
+| 우선순위 | 원래 작업 번호 또는 추가 범위 | 작업 | 선행 조건 | 담당 | 필요한 입력 | 완료 기준 | 현재 시작 가능 여부 | Astra 권장 추론 강도 | GPT-6.1 Sol 권장 추론 강도 |
+|---|---|---|---|---|---|---|---|---|---|
+|1|U1·OS10-A|Auth Tab의 미소비A/B 조건 적용성 판정|위 실제 직렬화/정상A완료 증거|Master, 판정PO|지원 환경의 도달불가 인정 여부. fallback의 별도 준비환경 필요 여부|원장필수조건을 명시적으로 판정, 임의PASS금지|판단안 준비완료, 동일시험 반복안함|High|High|
+|2|U2 생일|정상 정기원본의 최신개별OS·모달·읽음·Back 후 정리|보존QA아이/미읽음 새원본/권한ON|Master|시각도달 후 실행.09시전 시험알림 읽기금지|정상원본ID→FCM→개별OS→모달→읽음 연결|11/07 00시인앱·09시푸시부터, 예약미설정|Medium|Medium|
+|3|P0 안정성|502·SEVERE·Swap·공백 문의/잔여위험 판정|새 제공자자료 또는 명시적위험판단|Master, 승인PO|위 공식지원 문의 발송 승인|확보가능자료/회수불가범위 구분·판정|본문/첨부선별안 준비, 미발송|Medium|Medium|
+|4|기존1~6·NAV 및7~14|이후 우선순위 결정|이번 OS잔여 판정|PO|별도실행지시|기존 단일원장 기준|자동시작안함|Medium|Medium|
+
+정확한 다음 실행은 OS10-A의 적용성 판단 또는11/07 09:00 KST 정상생일원본 조회→실기기 OS행 탭이다. 자동 재개/예약 관측은 없다. OS13 PASS, P0 core/source/runtime PASS, stability/final PARTIAL, 전체 미동결·STORE HOLD. 실제 모델/추론설정은 미확인이며 전역설정 변경0이다.
+<!-- OS10_BIRTHDAY_20261106_END -->
+
 <!-- OS_BOUNDARIES_20261106_BEGIN -->
 ## 2026-11-06 OS 경계 검증 증분: OS13 수락, 전체 부분 완료
 
