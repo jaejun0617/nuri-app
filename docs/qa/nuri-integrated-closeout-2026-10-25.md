@@ -1,5 +1,26 @@
 # NURI 통합 마감 수락 원장
 
+<!-- DESIGN_DELIVERY_20261106_BEGIN -->
+## 2026-11-06 디자인 전달 및 OS 작업 대기
+
+**디자인 후보 보존 설치·일반 push·동일 제품 SHA CI success. 전체 통합 미동결·STORE HOLD.** 이번 결과를 OS10·09시 정기 생일 수신·P0 안정성의 수락으로 확대하지 않는다. PO는 디자인 전달 후 남은 OS 작업을 시작하지 말고 대기하도록 했다. 후속 문서 커밋/CI는 앱 입력과 분리해 영수증으로 연결한다.
+
+| 구분 | 실제 결과 |
+|---|---|
+| 해결 | 실제 사진의 프로필 등록 완료 모달·정보 재배치, 공통 라벤더 CTA, 생일 모달12개 원본 추출 장식·실제 알림 대상 사진/이름·모자 제거·상단/본문 간격, 빈 타임라인 흰 채움 제거, 두 고정 글등록 버튼의 단색 라벤더/흰 +, 공통 검정 X |
+| 실제 설치 수락 | SM-S937N/Metro OFF: 기존 생일 원본→실제 사진·긴 이름→X 후 상세 유지→다시 진입→추억 보기→알림 대상의 빈 타임라인→Back 후 상세/모달 재표시 없음. Metro에서는 현재 선택 아이와 다른 target 및 실제 연속 터치 후 목적지1개를 trace로 확인했다. 설치본320dp 상당/글자1.3에서 긴 이름·본문·CTA/X 노출을 확인하고1080×2340/1.0 복원 |
+| 검사 |349 suites/4,687 PASS·TypeScript PASS·변경59개 TS/TSX lint0오류0경고·source/secret guard PASS. native 빌드 성공, 기존 Watchman recrawl/Gradle 경고는 경고0으로 기록하지 않음 |
+| 전달 |제품 e138c5cc2e80c7e6b102a74fe847aa373ec2be50, runtime bfcbd30eaf8638c6f55374d0880014c3acadfbf33cab234ad5ebcd40b6827732, APK6a94b9be9fa76e1da42bc97583fba556c890a3ad148bc314e055b1ac457edc6c. 기존 서명/UID/최초 설치/권한/데이터 보존. [제품 CI success](https://github.com/jaejun0617/nuri-app/actions/runs/42190973109). 문서 증분/CI는 evidence의 document-ci.json으로 구분 |
+| 진행 |없음. 후속 OS 실행은 PO 지시 대기 |
+| 잔여·한계 |평면 PNG의 가려진 소품/미세 그림자·끈은 원본 레이어 전체 복원이 아니며, 실제 사진/긴 이름과 PO의 폰트·CTA·모자·간격 예외 때문에 원본 픽셀 동일을 주장하지 않음. 모든 화면 X의 전수 실기기와 프로필 등록13개 조건의 새 설치 전수 재실행은 미수행. 프로필 실제 사진 등록/완료는 Metro, 설치 수락은 이번 생일 실제 흐름과 구분 |
+| 잔여 해결 계획 |추가 디자인 검토는 PO 지시를 따른다. 남은 OS 실행은 별도 재개 지시 후 기존 증거를 재사용하며 정기09시 생일 증거를 먼저 연결. 새 알림/계정/아이 생성·예약 변경·서버 배포0건 |
+
+- 기존 수락 보존: OS13 PASS·OS12/13·통합2/7·기록0/4. P0 core/source/runtime PASS·stability/final PARTIAL. U1/OS10-A 적용성 및 U2 정상09시 후속은 미해결 상태를 유지한다.
+- QA: 이번 새 fixture0. 이전 프로필 디자인 QA2개와 사용자 선택 사진은 검토 자료로 보존하고, PO가 현재 선택한 QA-PHOTO도 임의 삭제/변경하지 않는다. 생일 QA569a0e07의 생일2025-11-07/입양2026-11-06, 기존 알림10e27831의 readAt05:08:46 UTC·dismissedAt null을 읽기 전용 확인했다. 다른 설치/현재 세션을 해제하지 않았다. 새 보조 패키지/상시 훅0·설정 원복·Metro OFF.
+- 증거: `/Users/shinjaejun/.codex/nuri-birthday-redesign-20261106/`의 jest-approved, lint-approved, canonical-preserved, installed-birthday-final, installed-x-detail-preserved, installed-birthday-timeline, installed-memory-back-detail, installed-small-width-large-font, installed-responsive-restoration, delivery-final/build-result·installation. 초기 도구 준비·시점이 어긋난 캡처는 성공 증거로 쓰지 않는다.
+- 상태: **DESIGN_DELIVERY: INSTALLED_AND_PRODUCT_CI_PASS_WITH_RECORDED_LIMITS, OS_WORK: WAITING_FOR_PO, AUTO_RESUME: NO, STORE: HOLD**.
+<!-- DESIGN_DELIVERY_20261106_END -->
+
 <!-- OS10_BIRTHDAY_20261106_BEGIN -->
 ## 2026-11-06 생일 모달 완료 후 OS10 재개: 부분 완료
 
