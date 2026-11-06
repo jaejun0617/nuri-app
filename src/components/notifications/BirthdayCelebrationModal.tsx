@@ -35,12 +35,12 @@ export default function BirthdayCelebrationModal({ visible, petName, today, busy
         </Pressable>
         <ScrollView style={s.scroll} contentContainerStyle={s.content} bounces={false}>
           <Image source={require('../../assets/notifications/birthday-celebration.png')} resizeMode="contain" style={[s.art, { width: artSize, height: artSize }]} accessible={false} />
-          <AppText preset="unifiedLabel" fontModeOverride="jisu" styleOverridesPreset style={[s.petName, { color: theme.colors.textSecondary }]}>{petName}</AppText>
-          <AppText preset="unifiedTitle" fontModeOverride="jisu" styleOverridesPreset accessibilityRole="header" style={[s.title, { color: theme.colors.textPrimary }]}>{today ? '생일을 축하해 ♡' : '소중한 생일의 기억 ♡'}</AppText>
-          <AppText preset="bodySm" fontModeOverride="jisu" style={[s.body, { color: theme.colors.textSecondary }]}>태어나줘서 고마워.{ '\n' }사랑과 행복이 가득한 하루 보내!</AppText>
+          <AppText preset="unifiedLabel" styleOverridesPreset style={[s.petName, { color: theme.colors.textSecondary }]}>{petName}</AppText>
+          <AppText preset="unifiedTitle" styleOverridesPreset accessibilityRole="header" style={[s.title, { color: theme.colors.textPrimary }]}>{today ? '생일을 축하해 ♡' : '소중한 생일의 기억 ♡'}</AppText>
+          <AppText preset="bodySm" style={[s.body, { color: theme.colors.textSecondary }]}>태어나줘서 고마워.{ '\n' }사랑과 행복이 가득한 하루 보내!</AppText>
         </ScrollView>
         <CtaButton role="primary" accessibilityLabel="함께한 추억 보기" onPress={onOpen} disabled={busy} loading={busy} style={s.button}>
-          <CtaText preset="unifiedLabel" fontModeOverride="jisu" styleOverridesPreset style={s.buttonText}>함께한 추억 보기</CtaText>
+          <CtaText preset="unifiedLabel" styleOverridesPreset style={s.buttonText}>함께한 추억 보기</CtaText>
         </CtaButton>
       </View>
     </View>

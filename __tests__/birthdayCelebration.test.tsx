@@ -1,9 +1,11 @@
 import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Image, Modal, StyleSheet } from 'react-native';
+import { Image, Modal, StyleSheet, Text } from 'react-native';
 import Renderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
+import { AppFontPreferenceProvider } from '../src/app/providers/AppFontPreferenceProvider';
+import { APP_FONT_PREFERENCE_STORAGE_KEY } from '../src/services/local/appFontPreference';
 import BirthdayCelebrationModal from '../src/components/notifications/BirthdayCelebrationModal';
 import { birthdayPetId, isBirthdayToday, claimHomeBirthday } from '../src/services/notifications/birthdayCelebration';
 import { createNotificationOpenReceipt, resolveNotificationDestination } from '../src/services/notifications/openNotification';
@@ -45,18 +47,29 @@ it('routes only validated birthday targets through celebration detail, preservin
   expect(resolveNotificationDestination(item, receipt, null).name).toBe('NotificationDetail');
   expect(resolveNotificationDestination({ ...item, eventType: 'pet.together_anniversary' }, receipt, null).name).toBe('NotificationTimeline');
 });
-it('uses the actual long pet name, image and independent Back/CTA actions', async () => {
+it.each(['pretendard', 'jisu'] as const)('respects the stored %s font with the actual name and independent Back/CTA actions', async mode => {
   const close = jest.fn(), open = jest.fn();
+  const theme = createTheme('light');
+  await AsyncStorage.setItem(APP_FONT_PREFERENCE_STORAGE_KEY, mode);
   let tree!: Renderer.ReactTestRenderer;
-  await act(async () => { tree = Renderer.create(<ThemeProvider theme={createTheme('light')}><BirthdayCelebrationModal visible petName="아주 긴 실제 아이 이름" today onClose={close} onOpen={open} /></ThemeProvider>); });
+  await act(async () => { tree = Renderer.create(<ThemeProvider theme={theme}><AppFontPreferenceProvider><BirthdayCelebrationModal visible petName="아주 긴 실제 아이 이름" today onClose={close} onOpen={open} /></AppFontPreferenceProvider></ThemeProvider>); });
   expect(JSON.stringify(tree.toJSON())).toContain('아주 긴 실제 아이 이름');
   const artwork = StyleSheet.flatten(tree.root.findByType(Image).props.style);
   expect(artwork.width).toBeGreaterThan(0);
   expect(artwork.width).toBeLessThanOrEqual(240);
   expect(artwork.height).toBe(artwork.width);
-  const petLabel = tree.root.findAll(node => node.props.children === '아주 긴 실제 아이 이름' && node.props.fontModeOverride === 'jisu')[0];
+  const labels = tree.root.findAllByType(Text);
+  expect(labels).toHaveLength(4);
+  for (const label of labels) {
+    expect(StyleSheet.flatten(label.props.style).fontFamily).toBe(theme.typography.appFontMode[mode].fontFamily);
+  }
+  const petLabel = labels.find(node => node.props.children === '아주 긴 실제 아이 이름');
+  expect(petLabel).toBeDefined();
+  if (!petLabel) throw new Error('Missing pet name');
   expect(StyleSheet.flatten(petLabel.props.style).fontSize).toBe(15);
-  const greeting = tree.root.findAll(node => node.props.children === '생일을 축하해 ♡' && node.props.fontModeOverride === 'jisu')[0];
+  const greeting = labels.find(node => node.props.children === '생일을 축하해 ♡');
+  expect(greeting).toBeDefined();
+  if (!greeting) throw new Error('Missing birthday greeting');
   expect(StyleSheet.flatten(greeting.props.style).fontSize).toBe(22);
   act(() => tree.root.findByType(Modal).props.onRequestClose());
   expect(close).toHaveBeenCalledTimes(1);
