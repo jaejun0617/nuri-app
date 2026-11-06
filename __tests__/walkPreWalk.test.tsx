@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
-import { PRODUCT_CTA } from '../src/app/theme/tokens/productAccent';
+import { LAVENDER_CTA } from '../src/app/theme/tokens/productAccent';
 import { getSeasonalWeatherVisualTheme } from '../src/theme/seasonal/weather';
 import { buildAccentPalette } from '../src/services/pets/themePalette';
 import WalkView from '../src/screens/DevTest/walkPresentation/WalkView';
@@ -324,14 +324,14 @@ describe('approved pre-walk illustration and entrance', () => {
       expect(
         StyleSheet.flatten(button().props.style({ pressed: false })),
       ).toMatchObject({
-        backgroundColor: PRODUCT_CTA.primary,
+        backgroundColor: LAVENDER_CTA.background,
         minHeight: 52,
         borderRadius: 16,
       });
       expect(
         StyleSheet.flatten(button().props.style({ pressed: true }))
           .backgroundColor,
-      ).toBe(PRODUCT_CTA.pressed);
+      ).toBe(LAVENDER_CTA.pressed);
       expect(
         StyleSheet.flatten(host('walk-primary-label').props.style),
       ).toMatchObject({ fontSize: 15, lineHeight: 21, textAlign: 'center' });

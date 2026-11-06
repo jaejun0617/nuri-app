@@ -665,7 +665,7 @@ export const styles = StyleSheet.create({
 
   empty: {
     flex: 1,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: 'transparent',
     borderRadius: 22,
     padding: 22,
     alignItems: 'center',

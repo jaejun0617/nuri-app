@@ -1,4 +1,6 @@
 import React, { memo } from 'react';
+import LavenderCtaFill from '../../app/ui/LavenderCtaFill';
+import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
 import {
   ActivityIndicator,
   Modal,
@@ -189,13 +191,14 @@ function FirstPetFontSelectorModalComponent({
               saving ? styles.disabled : null,
             ]}
           >
+            <LavenderCtaFill radius={styles.confirmButton.borderRadius} />
             {saving ? (
-              <ActivityIndicator color="#FFFFFF" />
+              <ActivityIndicator color={LAVENDER_CTA.text} />
             ) : (
               <AppText
                 fontModeOverride={selectedMode}
                 preset="unifiedLabel"
-                style={styles.confirmLabel}
+                style={[styles.confirmLabel, { color: LAVENDER_CTA.text }]}
               >
                 이 글꼴로 시작하기
               </AppText>

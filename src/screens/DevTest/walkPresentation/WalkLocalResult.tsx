@@ -11,6 +11,8 @@ import AppText from '../../../app/ui/AppText';
 import Feather from '../../../components/icons/NuriFeatherIcon';
 import { lightColors } from '../../../app/theme/tokens/colors';
 import { resolveCtaPalette } from '../../../app/theme/ctaPalette';
+import LavenderCtaFill from '../../../app/ui/LavenderCtaFill';
+import { LAVENDER_CTA } from '../../../app/theme/tokens/productAccent';
 import { formatPetCopy } from '../../../utils/petDisplayName';
 import type { SeasonKey } from '../../../theme/seasonal/season';
 import WalkSummaryMetrics from './WalkSummaryMetrics';
@@ -263,13 +265,16 @@ export default function WalkLocalResult(props: Props) {
               },
             ]}
           >
+            {({ pressed }) => <>
+            {!props.busy ? <LavenderCtaFill pressed={pressed} radius={styles.primary.borderRadius} /> : null}
             <AppText
               testID="walk-primary-label"
               preset="button"
-              style={styles.buttonText}
+              style={[styles.buttonText, { color: props.busy ? '#566271' : LAVENDER_CTA.text }]}
             >
               산책 화면 닫기
             </AppText>
+            </>}
           </Pressable>
         )}
       </View>

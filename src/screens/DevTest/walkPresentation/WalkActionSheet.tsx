@@ -21,6 +21,7 @@ import {
 import { useTheme } from 'styled-components/native';
 import AppText from '../../../app/ui/AppText';
 import { resolveCtaPalette, type CtaRole } from '../../../app/theme/ctaPalette';
+import LavenderCtaFill from '../../../app/ui/LavenderCtaFill';
 import { lightColors } from '../../../app/theme/tokens/colors';
 import { HomeFloatingWidgetSurface } from '../../../components/home/HomeWidgetMaterial';
 import type { SeasonKey } from '../../../theme/seasonal/season';
@@ -300,6 +301,7 @@ export default function WalkActionSheet(props: Props) {
                 },
               ]}
             >
+              {(!props.primaryRole || props.primaryRole === 'primary' || props.primaryRole === 'primarySubtle') && !props.busy ? <LavenderCtaFill radius={styles.primary.borderRadius} /> : null}
               <AppText
                 preset="button"
                 style={[styles.buttonText, { color: palette.text }]}

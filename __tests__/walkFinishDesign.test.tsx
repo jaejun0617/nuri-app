@@ -3,7 +3,7 @@ import Renderer, { act } from 'react-test-renderer';
 import { AccessibilityInfo, Modal, StyleSheet, View } from 'react-native';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
-import { PRODUCT_CTA } from '../src/app/theme/tokens/productAccent';
+import { LAVENDER_CTA } from '../src/app/theme/tokens/productAccent';
 import WalkView from '../src/screens/DevTest/walkPresentation/WalkView';
 import { getSeasonalWeatherVisualTheme } from '../src/theme/seasonal/weather';
 import { buildAccentPalette } from '../src/services/pets/themePalette';
@@ -236,7 +236,7 @@ describe('approved finish confirmation and device-local result redesign', () => 
       expect(
         StyleSheet.flatten(node('walk-primary').props.style({ pressed: false }))
           .backgroundColor,
-      ).toBe(PRODUCT_CTA.primary);
+      ).toBe(LAVENDER_CTA.background);
     },
   );
   test('long personalized name and fontScale 1.3 keep copy wrapping instead of truncating', async () => {

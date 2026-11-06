@@ -2,6 +2,9 @@ import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
 import { MenuGlassSurface, MENU_GLASS_FRAME } from '../../components/common/MenuGlassSurface';
+import PetRegistrationCompleteModal from '../../components/pets/PetRegistrationCompleteModal';
+import LavenderCtaFill from '../../app/ui/LavenderCtaFill';
+import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
 import { formatPetCopy } from '../../utils/petDisplayName';
 // 파일: src/screens/Pets/PetCreateScreen.tsx
 // 파일 목적:
@@ -31,10 +34,8 @@ import React, {
 } from 'react';
 import {
   BackHandler,
-  Image,
   Keyboard,
   type LayoutChangeEvent,
-  Modal,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
   TextInput,
@@ -62,7 +63,6 @@ import Animated, {
   useAnimatedStyle,
 } from 'react-native-reanimated';
 
-import { ASSETS } from '../../assets';
 import { spacing } from '../../app/theme/tokens/spacing';
 import { useAppFontPreference } from '../../app/providers/AppFontPreferenceProvider';
 import {
@@ -120,7 +120,8 @@ import {
 } from '../../services/supabase/pets';
 import { upsertPetWeightLog } from '../../services/supabase/petWeightLogs';
 import { uploadPetAvatar } from '../../services/supabase/storagePets';
-import { usePetStore } from '../../store/petStore';
+import { usePetStore, type Pet } from '../../store/petStore';
+import { useAuthStore } from '../../store/authStore';
 import { showToast } from '../../store/uiStore';
 import { getKstYmd } from '../../utils/date';
 import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
@@ -341,7 +342,8 @@ const MultiInputSection = memo(function MultiInputSectionComponent({
           accessibilityLabel={`${label} 추가`}
           onPress={addAndContinue}
         >
-          <AppText preset="unifiedLabel" style={styles.inlineAddButtonText}>
+          <LavenderCtaFill radius={styles.inlineAddButton.borderRadius} />
+          <AppText preset="unifiedLabel" style={[styles.inlineAddButtonText, { color: LAVENDER_CTA.text }]}>
             추가
           </AppText>
         </TouchableOpacity>
@@ -1228,7 +1230,18 @@ export default function PetCreateScreen() {
   const [imageType, setImageType] = useState<string | null>(null);
   const [themeColor, setThemeColor] = useState<string | null>(null);
   const [createdPetName, setCreatedPetName] = useState<string | null>(null);
+  const [registeredProfile, setRegisteredProfile] = useState<{ ownerId: string; pet: Pet } | null>(null);
+  const currentOwnerId = useAuthStore(state => state.session?.user.id ?? null);
+  const submitInFlightRef = useRef(false);
+  const completionConsumedRef = useRef(false);
   const [successModalVisible, setSuccessModalVisible] = useState(false);
+  useEffect(() => {
+    if (registeredProfile && registeredProfile.ownerId !== currentOwnerId) {
+      setSuccessModalVisible(false);
+      setRegisteredProfile(null);
+      setCreatedPetName(null);
+    }
+  }, [currentOwnerId, registeredProfile]);
   const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
   const [dateModalTarget, setDateModalTarget] = useState<
     'birth' | 'adoption' | 'death' | null
@@ -1720,7 +1733,8 @@ export default function PetCreateScreen() {
   }, [adoptionDate, birthDate, deathDate, memorialChoice, trimmedName]);
 
   const onSubmit = useCallback(async () => {
-    if (!canSubmit) return;
+    if (!canSubmit || submitInFlightRef.current) return;
+    submitInFlightRef.current = true;
 
     try {
       setSaving(true);
@@ -1767,6 +1781,8 @@ export default function PetCreateScreen() {
         tags,
         avatarPath: null,
       });
+      let confirmedPet = createdPet;
+      if (useAuthStore.getState().session?.user.id !== userId) return;
 
       if (normalizedWeight !== null) {
         try {
@@ -1805,6 +1821,7 @@ export default function PetCreateScreen() {
             .eq('id', createdPet.id);
 
           if (error) throw error;
+          confirmedPet = { ...createdPet, avatarPath: path, avatarUrl: toPublicPetAvatarUrl(path) };
 
           updatePetAvatar(
             createdPet.id,
@@ -1823,6 +1840,7 @@ export default function PetCreateScreen() {
       }
 
       const refreshedPets = await fetchMyPets(userId);
+      if (useAuthStore.getState().session?.user.id !== userId) return;
       const currentPets = usePetStore.getState().pets;
       const includesCreatedPet = refreshedPets.some(
         p => p.id === createdPet.id,
@@ -1856,12 +1874,16 @@ export default function PetCreateScreen() {
       }
 
       await clearPetCreateDraft();
-
+      if (useAuthStore.getState().session?.user.id !== userId) return;
+      Keyboard.dismiss();
+      completionConsumedRef.current = false;
+      setRegisteredProfile({ ownerId: userId, pet: refreshedPets.find(p => p.id === createdPet.id) ?? confirmedPet });
       setSuccessModalVisible(true);
     } catch (error) {
       const { title, message } = getBrandedErrorMeta(error, 'pet-create');
       Alert.alert(title, message);
     } finally {
+      submitInFlightRef.current = false;
       setSaving(false);
     }
   }, [
@@ -2013,6 +2035,8 @@ export default function PetCreateScreen() {
     [removeItem],
   );
   const goToWelcomeTransition = useCallback(() => {
+    if (completionConsumedRef.current) return;
+    completionConsumedRef.current = true;
     setSuccessModalVisible(false);
     clearPetCreateDraft().catch(() => {
       // ignore draft clear errors
@@ -2271,7 +2295,7 @@ export default function PetCreateScreen() {
                 style={[
                   styles.primaryButton,
                   {
-                    backgroundColor: NEUTRAL_UI_PALETTE.primary,
+                    backgroundColor: LAVENDER_CTA.background,
                     shadowColor: NEUTRAL_UI_PALETTE.primary,
                   },
                   (step === 1 ? !canGoNext : !canSubmit)
@@ -2280,11 +2304,12 @@ export default function PetCreateScreen() {
                 ]}
                 onPress={step === 1 ? goNext : onSubmit}
               >
+                <LavenderCtaFill radius={17} />
                 <AppText
                   preset="unifiedLabel"
                   style={[
                     styles.primaryButtonText,
-                    { color: NEUTRAL_UI_PALETTE.onPrimary },
+                    { color: LAVENDER_CTA.text },
                   ]}
                 >
                   {step === 1 ? '다음으로' : '등록 완료'}
@@ -2310,58 +2335,11 @@ export default function PetCreateScreen() {
           onClose={() => setFontSettingsVisible(false)}
         />
 
-        <Modal
-          transparent
-          visible={successModalVisible}
-          animationType="fade"
-          onRequestClose={goToWelcomeTransition}
-        >
-          <View style={styles.successModalBackdrop}>
-            <View style={[styles.successModalCard, { backgroundColor: registrationPresentation.palette.stickySurfaceColor }]}>
-              <View style={styles.successLogoWrap}>
-                <Image
-                  source={ASSETS.logo}
-                  style={styles.successLogo}
-                  resizeMode="contain"
-                />
-              </View>
-
-              <View style={styles.successCopyWrap}>
-                <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.successTitle}>
-                  등록이 완료되었어요!
-                </AppText>
-                <AppText preset="unifiedBody" style={styles.successBody}>
-                  {formatPetCopy('우리 아이와 함께할 소중한 추억들을', createdPetName || name)}
-                </AppText>
-                <AppText preset="unifiedBody" style={styles.successBody}>
-                  차곡차곡 쌓아보세요.
-                </AppText>
-              </View>
-
-              <TouchableOpacity
-                activeOpacity={0.92}
-                style={[
-                  styles.successPrimaryButton,
-                  {
-                    backgroundColor: NEUTRAL_UI_PALETTE.primary,
-                    shadowColor: NEUTRAL_UI_PALETTE.primary,
-                  },
-                ]}
-                onPress={goToWelcomeTransition}
-              >
-                <AppText typographyRole="emotionalCta"
-                  preset="unifiedTitle"
-                  style={[
-                    styles.successPrimaryButtonText,
-                    { color: NEUTRAL_UI_PALETTE.onPrimary },
-                  ]}
-                >
-                  시작하기
-                </AppText>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
+        <PetRegistrationCompleteModal
+          visible={successModalVisible && registeredProfile?.ownerId === currentOwnerId}
+          pet={registeredProfile?.pet ?? null}
+          onStart={goToWelcomeTransition}
+        />
 
         <DatePickerModal
           visible={dateModalTarget !== null}

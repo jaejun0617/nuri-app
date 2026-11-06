@@ -1,6 +1,6 @@
 import type { SeasonKey } from '../../theme/seasonal/season';
 import type { AppTheme, ThemeMode } from './theme';
-import { PRODUCT_CTA } from './tokens/productAccent';
+import { LAVENDER_CTA, PRODUCT_CTA } from './tokens/productAccent';
 
 export type CtaRole =
   | 'primary'
@@ -12,6 +12,7 @@ export type CtaRole =
   | 'destructiveConfirm'
   | 'disabled';
 export type CtaState = 'default' | 'pressed' | 'loading' | 'disabled';
+export type CtaVariant = 'default' | 'solidLavender';
 export type CtaPalette = { background: string; text: string; border: string };
 
 export const SEASON_CTA = {
@@ -51,11 +52,13 @@ export function resolveCtaPalette({
   colorScheme,
   state = 'default',
   colors,
+  variant = 'default',
 }: {
   role: CtaRole;
   season: SeasonKey;
   colorScheme: ThemeMode;
   state?: CtaState;
+  variant?: CtaVariant;
   colors: Pick<
     AppTheme['colors'],
     'surface' | 'surfaceElevated' | 'textPrimary' | 'textSecondary' | 'border'
@@ -63,7 +66,7 @@ export function resolveCtaPalette({
 }): CtaPalette {
   const pressed = state === 'pressed';
   const dark = colorScheme === 'dark';
-  const seasonal = PRODUCT_CTA;
+  const seasonal = LAVENDER_CTA;
   if (role === 'disabled' || state === 'disabled') {
     return dark
       ? {
@@ -77,25 +80,23 @@ export function resolveCtaPalette({
           border: 'rgba(86,98,113,0.16)',
         };
   }
+  if (variant === 'solidLavender' && (role === 'primary' || role === 'primarySubtle')) {
+    const background = pressed ? PRODUCT_CTA.pressed : PRODUCT_CTA.primary;
+    return { background, border: background, text: '#FFFFFF' };
+  }
   switch (role) {
     case 'primary':
       return {
-        background: pressed ? seasonal.pressed : seasonal.primary,
-        text: '#FFFFFF',
-        border: pressed ? seasonal.pressed : seasonal.primary,
+        background: pressed ? seasonal.pressed : seasonal.background,
+        text: seasonal.text,
+        border: seasonal.border,
       };
     case 'primarySubtle':
-      return dark
-        ? {
-            background: colors.surfaceElevated,
-            text: '#FFFFFF',
-            border: seasonal.primary,
-          }
-        : {
-            background: seasonal.subtle,
-            text: seasonal.primary,
-            border: seasonal.border,
-          };
+      return {
+        background: pressed ? seasonal.pressed : seasonal.background,
+        text: seasonal.text,
+        border: seasonal.border,
+      };
     case 'destructiveConfirm':
       return {
         background: pressed ? '#982936' : '#B93645',

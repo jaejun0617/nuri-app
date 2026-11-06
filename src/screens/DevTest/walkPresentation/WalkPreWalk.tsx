@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import AppText from '../../../app/ui/AppText';
 import { resolveCtaPalette } from '../../../app/theme/ctaPalette';
+import LavenderCtaFill from '../../../app/ui/LavenderCtaFill';
 import { lightColors } from '../../../app/theme/tokens/colors';
 import type { SeasonKey } from '../../../theme/seasonal/season';
 import { getSeasonalWeatherVisualTheme } from '../../../theme/seasonal/weather';
@@ -337,6 +338,8 @@ export default function WalkPreWalk(props: Props) {
               },
             ]}
           >
+            {({ pressed }) => <>
+            {!props.busy ? <LavenderCtaFill pressed={pressed} radius={styles.start.borderRadius} /> : null}
             <AppText
               testID="walk-primary-label"
               preset="button"
@@ -344,6 +347,7 @@ export default function WalkPreWalk(props: Props) {
             >
               함께 산책 시작하기
             </AppText>
+            </>}
           </Pressable>
         </View>
       </View>

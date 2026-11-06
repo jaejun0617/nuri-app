@@ -846,19 +846,22 @@ export default function CommunityListScreen() {
               <CtaButton
                 testID="community-fixed-create"
                 role="primary"
+                variant="solidLavender"
                 accessibilityLabel="게시글 작성"
                 style={[styles.createButton, { paddingHorizontal: 4 }]}
                 onPress={handlePressCreate}
               >
-                <NuriSemanticIcon
-                  family="feather"
-                  preserveOriginal
-                  name="plus"
-                  size={26}
-                  color="#FFFFFF"
-                  accessible={false}
-                  accessibilityElementsHidden
-                />
+                {palette => (
+                  <NuriSemanticIcon
+                    family="feather"
+                    preserveOriginal
+                    name="plus"
+                    size={26}
+                    color={palette.text}
+                    accessible={false}
+                    accessibilityElementsHidden
+                  />
+                )}
               </CtaButton>
             ) : null}
           </View>

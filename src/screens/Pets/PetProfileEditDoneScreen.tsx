@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
 import { PRODUCT_CANVAS_GRADIENT_COLORS } from '../../app/theme/tokens/colors';
 import { MenuGlassSurface } from '../../components/common/MenuGlassSurface';
 import {
@@ -163,7 +164,7 @@ export default function PetProfileEditDoneScreen() {
           style={styles.button}
         >
           <LinearGradient
-            colors={['#F0E7FF', '#D6C4FC']}
+            colors={[...LAVENDER_CTA.gradient]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}
             style={styles.buttonContent}

@@ -18,7 +18,7 @@ export default function RecordPhotoStrip({items,onAdd,onRemove,disabled=false,su
         {surfaceVariant==='homeGlass' ? <RecordFieldGlass /> : null}
         {item.uri ? <Image source={{uri:item.uri}} resizeMode="cover" resizeMethod="resize" style={StyleSheet.absoluteFill} /> : <AppText style={T.meta}>사진 불러오는 중</AppText>}
         <TouchableOpacity accessibilityRole="button" accessibilityLabel={`사진 ${index+1} 제거`} disabled={disabled} onPress={()=>onRemove(index)} style={s.remove}>
-          <View style={s.removeBadge}><Feather name="x" size={14} color="white" /></View>
+          <View style={[s.removeBadge, { backgroundColor: 'rgba(255,255,255,0.90)' }]}><Feather name="x" size={14} color="#000000" /></View>
         </TouchableOpacity>
       </View>)}
       {items.length<10 && <TouchableOpacity accessibilityRole="button" accessibilityLabel="사진 추가" disabled={disabled} onPress={onAdd} style={[s.photo,s.add,surfaceVariant==='homeGlass' && s.glass, surfaceVariant==='homeGlass' && disabled && s.disabled]}>

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import styled, { useTheme } from 'styled-components/native';
 import AppText from '../../../app/ui/AppText';
+import LavenderCtaFill from '../../../app/ui/LavenderCtaFill';
 import Feather from '../../../components/icons/NuriFeatherIcon';
 import NuriSemanticIcon from '../../../components/icons/NuriSemanticIcon';
 import { formatPetCopy } from '../../../utils/petDisplayName';
@@ -172,6 +173,7 @@ export function WalkAction({
                 },
               ]}
             >
+              {filled && !disabled && (visualRole === 'primary' || visualRole === 'primarySubtle') ? <LavenderCtaFill pressed={pressed} radius={styles.controlFace.borderRadius} /> : null}
               {icon && (
                 <View
                   testID={`${testID}-icon-slot`}
@@ -247,6 +249,8 @@ export function WalkAction({
         ];
       }}
     >
+      {({ pressed }) => <>
+      {!disabled && (role === 'primary' || role === 'primarySubtle') ? <LavenderCtaFill pressed={pressed} radius={styles.action.borderRadius} /> : null}
       {icon && (
         <View>
           <Feather
@@ -287,6 +291,7 @@ export function WalkAction({
           {label}
         </AppText>
       </View>
+      </>}
     </Pressable>
   );
 }

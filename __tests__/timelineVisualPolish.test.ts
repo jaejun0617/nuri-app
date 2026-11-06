@@ -52,4 +52,14 @@ describe('Timeline visual polish', () => {
     expect(source).not.toContain('styles.emptyPawImage');
     expect(source).not.toContain("require('../../assets/logo/logo_v2.png')");
   });
+  it('lets the empty, loading and error region share the surrounding canvas', () => {
+    expect(StyleSheet.flatten(styles.empty)).toMatchObject({
+      backgroundColor: 'transparent',
+      flex: 1,
+      padding: 22,
+      alignItems: 'center',
+      justifyContent: 'center',
+    });
+    expect(styles.screen.backgroundColor).toBe('#F1F5F8');
+  });
 });

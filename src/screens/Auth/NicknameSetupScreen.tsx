@@ -1,4 +1,6 @@
 // 파일: src/screens/Auth/NicknameSetupScreen.tsx
+import LavenderCtaFill from '../../app/ui/LavenderCtaFill';
+import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
 // 파일 목적:
 // - 회원가입/로그인 직후 닉네임을 확정해 본격적인 앱 사용 전 마지막 사용자 식별 정보를 채운다.
 // 어디서 쓰이는지:
@@ -208,10 +210,11 @@ const NicknameInputSection = memo(function NicknameInputSectionView({
           onPress={onCheckDuplicate}
           disabled={!canCheck}
         >
+          {canCheck ? <LavenderCtaFill radius={styles.checkButton.borderRadius} /> : null}
           {checking ? (
-            <ActivityIndicator color="#8B6CF5" size="small" />
+            <ActivityIndicator color={LAVENDER_CTA.text} size="small" />
           ) : (
-            <AppText style={styles.checkButtonText}>
+            <AppText style={[styles.checkButtonText, canCheck && { color: LAVENDER_CTA.text }]}>
               중복확인
             </AppText>
           )}

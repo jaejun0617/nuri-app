@@ -46,6 +46,10 @@ function NuriSemanticIconBase({
       />
     );
   const Icon = family === 'material' ? MaterialCommunityIcons : Feather;
+  const close = family === 'feather'
+    ? name === 'x' || name === 'x-circle'
+    : ['close', 'close-circle', 'close-circle-outline'].includes(name);
+  if (close) return <Icon name={name} {...props} color="#000000" style={[props.style, { color: '#000000' }]} />;
   return <Icon name={name} {...props} />;
 }
 

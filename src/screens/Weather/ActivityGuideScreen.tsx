@@ -1,6 +1,8 @@
 import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
 import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
+import LavenderCtaFill from '../../app/ui/LavenderCtaFill';
+import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
 // 파일: src/screens/Weather/ActivityGuideScreen.tsx
 // 역할:
 // - 실내 활동 상세 가이드를 공통 화면 구조로 렌더링
@@ -153,7 +155,8 @@ export default function ActivityGuideScreen() {
             }
           }}
         >
-          <Text style={styles.primaryButtonText}>활동 완료하고 기록하기</Text>
+          <LavenderCtaFill radius={styles.primaryButton.borderRadius} />
+          <Text style={[styles.primaryButtonText, { color: LAVENDER_CTA.text }]}>활동 완료하고 기록하기</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

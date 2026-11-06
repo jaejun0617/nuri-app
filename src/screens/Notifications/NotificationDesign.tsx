@@ -1,4 +1,6 @@
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
+import LavenderCtaFill from '../../app/ui/LavenderCtaFill';
+import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
 import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
 import React, { memo } from 'react';
 import {
@@ -418,9 +420,10 @@ export function NotificationDetailDesign({
           onPress={onAction}
           style={styles.cta}
         >
+          <LavenderCtaFill radius={40} />
           <AppText
             preset="sectionTitle"
-            color="#33205C"
+            color={LAVENDER_CTA.text}
             style={{ textAlign: 'center' }}
           >
             {busy

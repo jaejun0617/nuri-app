@@ -1,5 +1,7 @@
 import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
+import LavenderCtaFill from '../../app/ui/LavenderCtaFill';
+import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
 import AppTextInput from '../../app/ui/AppTextInput';
 import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -311,7 +313,8 @@ export default function GuideAdminEditorScreen() {
               onPress={() => saveGuide('published')}
               disabled={saving}
             >
-              <AppText preset="unifiedMeta" style={styles.actionButtonPrimaryText}>
+              <LavenderCtaFill radius={styles.actionButton.borderRadius} />
+              <AppText preset="unifiedMeta" style={[styles.actionButtonPrimaryText, { color: LAVENDER_CTA.text }]}>
                 발행
               </AppText>
             </TouchableOpacity>

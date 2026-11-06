@@ -4,7 +4,7 @@ import { AppState, Image, ScrollView, StyleSheet, View } from 'react-native';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
 import { resolveCtaPalette, SEASON_CTA } from '../src/app/theme/ctaPalette';
-import { PRODUCT_CTA } from '../src/app/theme/tokens/productAccent';
+import { LAVENDER_CTA } from '../src/app/theme/tokens/productAccent';
 import WalkView, {
   WalkAction,
 } from '../src/screens/DevTest/walkPresentation/WalkView';
@@ -330,8 +330,8 @@ describe('PO active Walk design candidate', () => {
     async season => {
       await render(<WalkView {...props} season={season} />);
       const action = StyleSheet.flatten(host('walk-primary-face').props.style);
-      expect(action.backgroundColor).toBe(PRODUCT_CTA.primary);
-      expect(action.borderColor).toBe(PRODUCT_CTA.primary);
+      expect(action.backgroundColor).toBe(LAVENDER_CTA.background);
+      expect(action.borderColor).toBe(LAVENDER_CTA.border);
       expect(action).toMatchObject({
         borderWidth: 1,
         borderRadius: 8,
@@ -399,11 +399,11 @@ describe('PO active Walk design candidate', () => {
         )
           ? StyleSheet.flatten(action.props.style({ pressed }))
           : StyleSheet.flatten(action.props.children({ pressed }).props.style);
-      expect(faceStyle(false).backgroundColor).toBe(PRODUCT_CTA.primary);
-      expect(faceStyle(true).backgroundColor).toBe(PRODUCT_CTA.pressed);
+      expect(faceStyle(false).backgroundColor).toBe(LAVENDER_CTA.background);
+      expect(faceStyle(true).backgroundColor).toBe(LAVENDER_CTA.pressed);
       expect(StyleSheet.flatten(host(`${id}-label`).props.style)).toMatchObject(
         {
-          color: '#FFFFFF',
+          color: LAVENDER_CTA.text,
           fontSize: ['FINISHED_LOCAL', 'FUTURE_RECORD_CTA_PREVIEW'].includes(
             state,
           )

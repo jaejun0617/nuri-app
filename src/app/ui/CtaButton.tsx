@@ -6,13 +6,16 @@ import {
   resolveCtaPalette,
   type CtaPalette,
   type CtaRole,
+  type CtaVariant,
 } from '../theme/ctaPalette';
 import AppText from './AppText';
 import NuriFeatherIcon from '../../components/icons/NuriFeatherIcon';
+import LavenderCtaFill from './LavenderCtaFill';
 
 const CtaContext = createContext<CtaPalette | null>(null);
 type Props = Omit<PressableProps, 'children' | 'style' | 'role'> & {
   role: CtaRole;
+  variant?: CtaVariant;
   loading?: boolean;
   compact?: boolean;
   visuallyHidden?: boolean;
@@ -24,6 +27,7 @@ type Props = Omit<PressableProps, 'children' | 'style' | 'role'> & {
 /** Explicit opt-in prevents shared Auth, Weather and onboarding callers changing. */
 export default function CtaButton({
   role,
+  variant = 'default',
   loading = false,
   compact = false,
   visuallyHidden = false,
@@ -52,6 +56,7 @@ export default function CtaButton({
       style={({ pressed }) => {
         const palette = resolveCtaPalette({
           role,
+          variant,
           season,
           colorScheme: theme.mode,
           colors: theme.colors,
@@ -88,6 +93,7 @@ export default function CtaButton({
       {({ pressed }) => {
         const palette = resolveCtaPalette({
           role,
+          variant,
           season,
           colorScheme: theme.mode,
           colors: theme.colors,
@@ -101,6 +107,9 @@ export default function CtaButton({
         });
         return (
           <CtaContext.Provider value={palette}>
+            {variant !== 'solidLavender' && (role === 'primary' || role === 'primarySubtle') && !(!loading && disabled) ? (
+              <LavenderCtaFill pressed={pressed && !loading} radius={StyleSheet.flatten(typeof style === 'function' ? style({ pressed }) : style)?.borderRadius ?? 8} />
+            ) : null}
             {typeof children === 'function' ? children(palette) : children}
           </CtaContext.Provider>
         );

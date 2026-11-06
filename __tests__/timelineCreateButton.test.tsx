@@ -54,6 +54,7 @@ describe('Timeline fixed foreground control', () => {
         borderRadius: 24,
         backgroundColor: resolveCtaPalette({
           role: 'primary',
+          variant: 'solidLavender',
           season,
           colorScheme: 'light',
           colors: theme.colors,

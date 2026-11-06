@@ -72,7 +72,7 @@ export const createFormStyles = StyleSheet.create({
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: '#243042',
+    backgroundColor: 'rgba(255,255,255,0.90)',
     justifyContent: 'center',
     alignItems: 'center',
   },

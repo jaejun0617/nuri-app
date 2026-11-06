@@ -6,6 +6,7 @@ import { createTheme } from '../src/app/theme/theme';
 import CtaButton, { CtaText } from '../src/app/ui/CtaButton';
 import ConfirmDialog from '../src/components/common/ConfirmDialog';
 import type { CtaRole } from '../src/app/theme/ctaPalette';
+import LinearGradient from 'react-native-linear-gradient';
 let mockSeason = 'autumn';
 jest.mock('../src/app/providers/SeasonPreferenceProvider', () => ({
   useEffectiveSeason: () => mockSeason,
@@ -28,11 +29,21 @@ describe('opt-in action component', () => {
     renderer.root.find(node => typeof node.props.style === 'function');
   const style = (pressed = false) =>
     StyleSheet.flatten(button().props.style({ pressed }));
+  it('keeps the two compose controls solid lavender without changing ordinary CTA gradients', () => {
+    act(() => { renderer = TestRenderer.create(wrap(<CtaButton role="primary" variant="solidLavender"><CtaText>작성</CtaText></CtaButton>)); });
+    expect(style()).toMatchObject({ backgroundColor: '#7D5CE4', borderColor: '#7D5CE4' });
+    expect(style(true).backgroundColor).toBe('#6345BE');
+    expect(renderer.root.find(node => String(node.type) === 'AppText').props.color).toBe('#FFFFFF');
+    expect(renderer.root.findAllByType(LinearGradient)).toHaveLength(0);
+    act(() => renderer.update(wrap(<CtaButton role="primary" variant="solidLavender" disabled><CtaText>작성</CtaText></CtaButton>)));
+    expect(style().backgroundColor).toBe('#E8EBEF');
+    expect(button().props.disabled).toBe(true);
+  });
   it.each([
-    ['autumn', '#7D5CE4'],
-    ['winter', '#7D5CE4'],
-    ['spring', '#7D5CE4'],
-    ['summer', '#7D5CE4'],
+    ['autumn', '#C4A9EF'],
+    ['winter', '#C4A9EF'],
+    ['spring', '#C4A9EF'],
+    ['summer', '#C4A9EF'],
   ])(
     'uses global %s even when caller and pet palette disagree',
     (season, color) => {
@@ -57,7 +68,8 @@ describe('opt-in action component', () => {
       });
       expect(
         renderer.root.find(node => String(node.type) === 'AppText').props.color,
-      ).toBe('#FFFFFF');
+      ).toBe('#251255');
+      expect(renderer.root.findByType(LinearGradient).props.colors).toEqual(['#E7DAFC', '#C4A9EF']);
     },
   );
   it('renders pressed and disabled states, blocks loading without dimming', () => {
@@ -71,7 +83,7 @@ describe('opt-in action component', () => {
         ),
       );
     });
-    expect(style(true).backgroundColor).toBe('#6345BE');
+    expect(style(true).backgroundColor).toBe('#B696E7');
     act(() =>
       renderer.update(
         wrap(
@@ -83,6 +95,7 @@ describe('opt-in action component', () => {
     );
     expect(style().backgroundColor).toBe('#E8EBEF');
     expect(button().props.accessibilityState.disabled).toBe(true);
+    expect(renderer.root.findAllByType(LinearGradient)).toHaveLength(0);
     act(() =>
       renderer.update(
         wrap(
@@ -92,7 +105,7 @@ describe('opt-in action component', () => {
         ),
       ),
     );
-    expect(style().backgroundColor).toBe('#7D5CE4');
+    expect(style().backgroundColor).toBe('#C4A9EF');
     expect(button().props.disabled).toBe(true);
     expect(button().props.accessibilityState).toMatchObject({
       busy: true,

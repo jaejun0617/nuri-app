@@ -1,0 +1,77 @@
+{
+  "source": "누리와 함께 쌓는 추억.png",
+  "sourceSha256": "e77c86e0784da51faef2c8243c74f1eb0726b0e9191df74b1fbb001d61905eb2",
+  "size": [
+    852,
+    1846
+  ],
+  "assets": [
+    {
+      "name": "album",
+      "sourceRect": [
+        88,
+        600,
+        296,
+        776
+      ],
+      "file": "src/assets/onboarding/profile-completion/album.png",
+      "sha256": "d3bb80bdde74b49855f1cc586015e0ef31310634cb8ba6b3c4daac86afa48f30"
+    },
+    {
+      "name": "fabric-toy",
+      "sourceRect": [
+        92,
+        766,
+        242,
+        884
+      ],
+      "file": "src/assets/onboarding/profile-completion/fabric-toy.png",
+      "sha256": "9629ea2c7b503e21a7e124f7e0cddb2f862fe64dac722be682462d826bcc9bc1"
+    },
+    {
+      "name": "ball",
+      "sourceRect": [
+        235,
+        811,
+        320,
+        899
+      ],
+      "file": "src/assets/onboarding/profile-completion/ball.png",
+      "sha256": "414cc994b8194a286b8291a47cec9da34bb8ea203d9a50f9333375598a474a9b"
+    },
+    {
+      "name": "ribbon",
+      "sourceRect": [
+        560,
+        605,
+        722,
+        769
+      ],
+      "file": "src/assets/onboarding/profile-completion/ribbon.png",
+      "sha256": "ecc0a1c6c75e6c5761c52b88fbe68e55ca1510b8023bd627b57886526780569d"
+    },
+    {
+      "name": "glass-bead",
+      "sourceRect": [
+        711,
+        720,
+        752,
+        765
+      ],
+      "file": "src/assets/onboarding/profile-completion/glass-bead.png",
+      "sha256": "2c40a23b9f8a068f5e07ed9bf043cce5441115240022cf808896e5ee646a3e14"
+    },
+    {
+      "name": "prints",
+      "sourceRect": [
+        550,
+        765,
+        767,
+        922
+      ],
+      "file": "src/assets/onboarding/profile-completion/prints.png",
+      "sha256": "73e4c08fc448e6c0ed33bcb24591c9eb9dd4ad0ed9e13115af7d7c49d2d33b2f"
+    }
+  ],
+  "method": "original pixel extraction; robust smooth-background estimation; no image generation"
+}

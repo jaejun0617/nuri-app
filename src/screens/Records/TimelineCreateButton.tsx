@@ -30,6 +30,7 @@ export default function TimelineCreateButton({
       <CtaButton
         testID="timeline-fixed-create"
         role="primary"
+        variant="solidLavender"
         accessibilityLabel="기록하기"
         style={styles.floatingCreateButton}
         onPress={onPress}

@@ -1,5 +1,11 @@
 # advanced-codex-workflow.md
 
+## 2026-11-06 PO 고정 디자인 정책
+
+- 후속 디자인 시안보다 고정 CTA·글자 크기를 우선한다. 일반 라벤더 CTA는 `LAVENDER_CTA`와 공용 렌더러, 제목/라벨/본문은 활동칭호의 `ACTIVITY_READING_TYPE`을 사용한다. 시안에 따라 별도 CTA 색 또는 글자 크기를 새로 만들지 않는다.
+- 사용자 글꼴 설정·접근성 확대·기존 위험/제공자 의미색·Lv/수치 보존은 유지한다. 정책 변경은 PO의 명시적 지시가 필요하다. 정확한 값과 적용 범위는 `docs/project-memory/핵심-결정사항.md`의 `FIXED_DESIGN_20261106` 절을 따른다.
+- PO 후속 예외는 타임라인·커뮤니티 고정 글등록 버튼의 `solidLavender`/흰 +와 앱 자체 X의 검정색 통일이다. 그 외 일반 CTA의 고정 그라데이션·폰트 기준은 유지한다.
+
 <!-- NURI_SUMMARY_GLASS_INSTALL_20261005_BEGIN -->
 ## 2026-10-05 PO 최신 정책: 디자인 반복 빌드 산출물 유지
 

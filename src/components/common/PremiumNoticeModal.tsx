@@ -14,6 +14,8 @@ import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
+import LavenderCtaFill from '../../app/ui/LavenderCtaFill';
+import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
 import type { CtaRole } from '../../app/theme/ctaPalette';
 import { useOptionalSafeAreaInsets } from '../../hooks/useOptionalSafeAreaInsets';
 import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
@@ -92,6 +94,7 @@ function PremiumNoticeModalBase({
 
   const petTheme = NEUTRAL_UI_PALETTE;
   const primaryColor = accentColor ?? petTheme.primary;
+  const lavenderConfirm = !accentColor || accentColor === petTheme.primary;
   const textPresets =
     typographyMode === 'unified'
       ? {
@@ -212,7 +215,8 @@ function PremiumNoticeModalBase({
                 accessibilityHint={confirmAccessibilityHint}
                 style={[styles.button, { backgroundColor: primaryColor }]}
               >
-                <AppText preset={textPresets.button} style={styles.buttonText}>
+                {lavenderConfirm ? <LavenderCtaFill radius={styles.button.borderRadius} /> : null}
+                <AppText preset={textPresets.button} style={[styles.buttonText, lavenderConfirm && { color: LAVENDER_CTA.text }]}>
                   {confirmLabel}
                 </AppText>
               </TouchableOpacity>

@@ -1,6 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import { ACTIVITY_READING_TYPE as TYPE } from '../../theme/activityTypography';
+import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
 
 export const PROFILE_COMPLETION_COLORS = {
   background: PRODUCT_CANVAS_COLOR,
@@ -8,7 +9,7 @@ export const PROFILE_COMPLETION_COLORS = {
   muted: '#7E759E',
   border: '#E4D9FF',
   divider: '#E1D5FA',
-  arrow: '#6032C0',
+  arrow: LAVENDER_CTA.arrow,
 } as const;
 const c = PROFILE_COMPLETION_COLORS;
 export const styles = StyleSheet.create({
@@ -96,7 +97,7 @@ export const styles = StyleSheet.create({
     marginTop: 20,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: '#E4D7FF',
+    borderColor: LAVENDER_CTA.border,
     overflow: 'hidden',
     justifyContent: 'center',
     boxShadow: '0px 6px 12px rgba(151, 120, 229, 0.25)',
@@ -111,7 +112,7 @@ export const styles = StyleSheet.create({
   buttonText: {
     flex: 1,
     ...TYPE.label,
-    color: '#251255',
+    color: LAVENDER_CTA.text,
     fontWeight: '700',
     textAlign: 'center',
     letterSpacing: 0,

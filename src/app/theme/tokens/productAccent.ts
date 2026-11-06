@@ -15,3 +15,14 @@ export const PRODUCT_CTA = {
   subtle: PRODUCT_ACCENT.tint,
   border: PRODUCT_ACCENT.border,
 } as const;
+
+/** Profile completion's approved Home action; unrelated product accents stay fixed. */
+export const LAVENDER_CTA = {
+  gradient: ['#E7DAFC', '#C4A9EF'],
+  pressedGradient: ['#DCC9F7', '#B696E7'],
+  background: '#C4A9EF',
+  pressed: '#B696E7',
+  text: '#251255',
+  border: '#E4D7FF',
+  arrow: '#6032C0',
+} as const;

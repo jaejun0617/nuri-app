@@ -1,5 +1,7 @@
 import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
+import LavenderCtaFill from '../../app/ui/LavenderCtaFill';
+import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
 import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
 import { MenuGlassSurface, MENU_GLASS_FRAME } from '../../components/common/MenuGlassSurface';
 import { formatPetCopy } from '../../utils/petDisplayName';
@@ -1562,9 +1564,10 @@ export default function PetProfileEditScreen() {
               style={[styles.tagAddButton, { backgroundColor: NEUTRAL_UI_PALETTE.tint }]}
               onPress={() => addTag(draftTag)}
             >
+              <LavenderCtaFill radius={styles.tagAddButton.borderRadius} />
               <AppText
                 preset="unifiedMeta"
-                style={[styles.tagAddButtonText, { color: NEUTRAL_UI_PALETTE.deep }]}
+                style={[styles.tagAddButtonText, { color: LAVENDER_CTA.text }]}
               >
                 추가
               </AppText>

@@ -34,6 +34,8 @@ function NotificationDetailContent() {
   const userId = useAuthStore(s => s.session?.user.id ?? null);
   const [busy, setBusy] = useState(false);
   const [birthdayShown, setBirthdayShown] = useState(false);
+  const [birthdayDismissed, setBirthdayDismissed] = useState(false);
+  const birthdayActionGeneration = useRef(0);
   const ownedPets = usePetStore(s => s.pets);
   const acting = useRef(false);
   const redirected = useRef<string | null>(null);
@@ -82,11 +84,14 @@ function NotificationDetailContent() {
     if (acting.current || !receipt) return;
     const current = captureCurrent();
     if (!current()) return;
+    const fromBirthday = Boolean(birthdayPet && !birthdayDismissed);
+    const birthdayGeneration = birthdayActionGeneration.current;
     acting.current = true;
     setBusy(true);
     try {
       const item = await fetchNotificationDetail(params.id, params.source);
       if (!current() || useAuthStore.getState().session?.user.id !== userId || !navigation.isFocused()) return;
+      if (fromBirthday && birthdayGeneration !== birthdayActionGeneration.current) return;
       const target = item.actionTarget;
       if (!target || target.kind === 'unavailable') {
         showToast({
@@ -100,6 +105,7 @@ function NotificationDetailContent() {
       const pets = usePetStore.getState().pets,
         selectedPetId = usePetStore.getState().selectedPetId;
       if (birthdayPetId(item) && target.kind === 'pet_anniversary') {
+        setBirthdayDismissed(true);
         navigation.dispatch(StackActions.push('NotificationTimeline', {
           notificationOpen: receipt, screen: 'TimelineMain',
           params: { petId: target.petId, ymFilter: null, notificationOpen: receipt },
@@ -165,8 +171,8 @@ function NotificationDetailContent() {
         <NotificationState message="삭제되었거나 확인할 수 없는 알림이에요" />
       )}
       {ownerMatches && detail.isSuccess && birthdayPet && detail.data ? <BirthdayCelebrationModal
-        visible={focused && !resolvingTarget} petName={birthdayPet.name} today={isBirthdayToday(detail.data)}
-        busy={busy} onShow={() => setBirthdayShown(true)} onClose={navigation.goBack} onOpen={() => { onAction(); }}
+        visible={focused && !resolvingTarget && !birthdayDismissed} petId={birthdayPet.id} petName={birthdayPet.name} petAvatarUrl={birthdayPet.avatarUrl} today={isBirthdayToday(detail.data)}
+        busy={busy} onShow={() => setBirthdayShown(true)} onClose={() => { birthdayActionGeneration.current += 1; setBirthdayDismissed(true); }} onOpen={onAction}
       /> : null}
     </NotificationCanvas>
   );

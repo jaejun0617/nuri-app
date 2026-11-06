@@ -15,6 +15,8 @@ import {
 import Feather from '../icons/NuriFeatherIcon';
 
 import AppText from '../../app/ui/AppText';
+import LavenderCtaFill from '../../app/ui/LavenderCtaFill';
+import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
 import { ASSETS } from '../../assets';
 import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 import { getSeasonalOnboardingVisual } from '../../theme/seasonal/onboarding';
@@ -162,7 +164,8 @@ function FirstPetWelcomeModalBase({
               },
             ]}
           >
-            <AppText style={styles.primaryButtonText}>{copy.cta}</AppText>
+            <LavenderCtaFill radius={styles.primaryButton.borderRadius} />
+            <AppText style={[styles.primaryButtonText, { color: LAVENDER_CTA.text }]}>{copy.cta}</AppText>
           </TouchableOpacity>
           </ScrollView>
         </Animated.View>

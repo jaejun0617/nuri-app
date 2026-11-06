@@ -4,6 +4,7 @@ import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import LinearGradient from 'react-native-linear-gradient';
+import NativeFeather from 'react-native-vector-icons/Feather';
 import { ThemeProvider } from 'styled-components/native';
 
 import NuriIcon, { type NuriIconName } from '../src/components/icons/NuriIcon';
@@ -76,6 +77,19 @@ describe('NURI custom icon candidate', () => {
   afterEach(() => {
     mockLoggedIn = true;
     jest.clearAllMocks();
+  });
+  it.each(['close', 'close-circle'] as const)('keeps the app-owned %s glyph black regardless of caller or theme color', async name => {
+    const renderer = await render(<NuriIcon name={name} size={22} color="#FFFFFF" />);
+    expect(renderer.root.findAllByType(LinearGradient)).toHaveLength(0);
+    expect(renderer.root.findAllByType(Text).every(node => StyleSheet.flatten(node.props.style).color === '#000000')).toBe(true);
+    await act(async () => renderer.unmount());
+  });
+  it('keeps original X glyphs black even when the caller supplies a white style', async () => {
+    const renderer = await render(<NuriSemanticIcon family="feather" preserveOriginal name="x" size={22} color="#FFFFFF" style={{ color: '#FFFFFF' }} />);
+    const glyph = renderer.root.findByType(NativeFeather);
+    expect(glyph.props.color).toBe('#000000');
+    expect(StyleSheet.flatten(glyph.props.style).color).toBe('#000000');
+    await act(async () => renderer.unmount());
   });
 
   it('contains the original seven functional types and a complete global catalog', () => {

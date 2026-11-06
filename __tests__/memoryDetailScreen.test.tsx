@@ -20,7 +20,8 @@ import { styles } from '../src/screens/Records/RecordDetailScreen.styles';
 import RecordDetailScreen from '../src/screens/Records/RecordDetailScreen';
 import type { MemoryRecord } from '../src/services/supabase/memories';
 import { lightColors } from '../src/app/theme/tokens/colors';
-import { TIMELINE_DESIGN as C, TIMELINE_TYPE as T } from '../src/theme/timelineDesign';
+import { LAVENDER_CTA } from '../src/app/theme/tokens/productAccent';
+import { TIMELINE_TYPE as T } from '../src/theme/timelineDesign';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 import { ToolbarHeightContext } from '../src/components/navigation/ToolbarHeightContext';
 import { deleteMemoryWithFile } from '../src/services/supabase/memories';
@@ -484,13 +485,13 @@ describe('memory detail rendered contract', () => {
       expect(more.props.role).toBe('primary');
       const button = more.findAllByType(View).find(node => node.props.accessibilityLabel === '다른 추억 5개 더보기');
       expect(button).toBeDefined();
-      expect(StyleSheet.flatten(button?.props.style).backgroundColor).toBe(C.primary);
+      expect(StyleSheet.flatten(button?.props.style).backgroundColor).toBe(LAVENDER_CTA.background);
       const moreIcon = more.findAll(node => node.props.family === 'feather' && node.props.name === 'chevron-right')[0];
       expect(moreIcon).toBeDefined();
       expect(moreIcon.props).toMatchObject({
         family: 'feather',
         name: 'chevron-right',
-        color: '#FFFFFF',
+        color: LAVENDER_CTA.text,
       });
       expect(text(tree)).toContain('추억을 더 만나볼까요');
       expect(text(tree)).not.toContain('추억을 더 만나볼까요?');

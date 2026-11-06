@@ -1,6 +1,7 @@
 import React, { memo, useEffect, useMemo, useState } from 'react';
 import { Image, Modal, Pressable, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
+import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
 import AppText from '../../app/ui/AppText';
 import NuriSemanticIcon from '../icons/NuriSemanticIcon';
 import { useOptionalSafeAreaInsets } from '../../hooks/useOptionalSafeAreaInsets';
@@ -135,8 +136,8 @@ function PremiumRewardModalBase({
           </ScrollView>
           <TouchableOpacity testID="reward-confirm" accessibilityRole="button" accessibilityLabel="보상 안내 확인"
             onPress={confirm} style={styles.primaryButton} activeOpacity={0.85}>
-            <LinearGradient pointerEvents="none" accessible={false} colors={['#8C58FF', '#7D4FFD']}
-              start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={StyleSheet.absoluteFill} />
+            <LinearGradient pointerEvents="none" accessible={false} colors={[...LAVENDER_CTA.gradient]}
+              start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
             <AppText preset="unifiedLabel" styleOverridesPreset style={styles.primaryButtonText}>확인</AppText>
           </TouchableOpacity>
           {onDismissToday ? (
@@ -192,7 +193,7 @@ const styles = StyleSheet.create({
   brand: { width: 23, height: 21 },
   streakText: { flexShrink: 1, color: C.muted, textAlign: 'center', fontSize: 12, lineHeight: 18, fontWeight: '600', letterSpacing: 0 },
   primaryButton: { width: '100%', minHeight: 48, marginTop: 10, paddingHorizontal: 16, paddingVertical: 12, borderRadius: 12, overflow: 'hidden', alignItems: 'center', justifyContent: 'center' },
-  primaryButtonText: { color: '#FFFFFF', fontSize: 16, lineHeight: 22, fontWeight: '700', letterSpacing: 0 },
+  primaryButtonText: { color: LAVENDER_CTA.text, fontSize: 16, lineHeight: 22, fontWeight: '700', letterSpacing: 0 },
   dismissTodayButton: { minHeight: 48, marginTop: 4, paddingHorizontal: 8, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 },
   dismissTodayText: { color: C.muted, fontSize: 12, lineHeight: 18, fontWeight: '600', letterSpacing: 0 },
   checkbox: { width: 18, height: 18, borderRadius: 4, borderWidth: 1, borderColor: C.muted, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },

@@ -1,6 +1,8 @@
 import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
 import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
+import LavenderCtaFill from '../../app/ui/LavenderCtaFill';
+import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
 import React, {
   memo,
   useCallback,
@@ -251,6 +253,7 @@ export default function PetManagementScreen() {
         activeOpacity={0.85}
         onPress={handleAddPet}
       >
+        <LavenderCtaFill radius={13} />
         <AppText preset="button" style={styles.addText}>
           새로운 아이 소개하기
         </AppText>
@@ -388,11 +391,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 14,
     marginTop: 16,
-    backgroundColor: colors.accent,
+    backgroundColor: LAVENDER_CTA.background,
   },
   addText: {
     ...type.add,
-    color: colors.white,
+    color: LAVENDER_CTA.text,
     textAlign: 'center',
     textAlignVertical: 'center',
     includeFontPadding: false,

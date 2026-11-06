@@ -1,5 +1,7 @@
 import AppTextInput from '../../app/ui/AppTextInput';
 import AppText from '../../app/ui/AppText';
+import LavenderCtaFill from '../../app/ui/LavenderCtaFill';
+import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -213,7 +215,8 @@ export default function PasswordResetFormScreen({ navigation }: Props) {
                 disabled ? styles.primaryButtonDisabled : null,
               ]}
             >
-              <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
+              <LavenderCtaFill radius={styles.primaryButton.borderRadius} />
+              <AppText preset="unifiedLabel" style={[styles.primaryButtonText, { color: LAVENDER_CTA.text }]}>
                 {submitting ? '비밀번호를 변경하고 있어요...' : '비밀번호 변경하기'}
               </AppText>
             </TouchableOpacity>

@@ -1039,7 +1039,7 @@ export default function PetActivityAchievementsScreen() {
               <View style={s.sectionHeading}>
                 <Copy kind="section" style={s.flex}>칭호 분류</Copy>
                 <Pressable accessibilityRole="button" accessibilityLabel="칭호 분류 선택 닫기" style={s.iconButton} onPress={() => setCategoryPicker(false)}>
-                  <Feather name="x" size={22} color={C.ink} />
+                  <Feather name="x" size={22} color="#000000" />
                 </Pressable>
               </View>
               <ScrollView contentContainerStyle={s.categoryOptions} showsVerticalScrollIndicator>
@@ -1088,7 +1088,7 @@ export default function PetActivityAchievementsScreen() {
                   style={s.iconButton}
                   onPress={() => setPicker(false)}
                 >
-                  <Feather name="x" size={22} color={C.muted} />
+                  <Feather name="x" size={22} color="#000000" />
                 </Pressable>
               </View>
               <ScrollView>

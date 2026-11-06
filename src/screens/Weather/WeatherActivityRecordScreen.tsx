@@ -1,5 +1,7 @@
 import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
+import LavenderCtaFill from '../../app/ui/LavenderCtaFill';
+import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
 // 파일: src/screens/Weather/WeatherActivityRecordScreen.tsx
 // 역할:
 // - 실내 활동 완료 후 빠르게 감정/메모/태그를 남기는 전용 기록 화면
@@ -544,7 +546,8 @@ function WeatherActivityRecordContent() {
             onPress={onSubmit}
             disabled={saving}
           >
-            <Text style={styles.primaryButtonText}>
+            <LavenderCtaFill radius={styles.primaryButton.borderRadius} />
+            <Text style={[styles.primaryButtonText, { color: LAVENDER_CTA.text }]}>
               기록 저장하기
             </Text>
           </TouchableOpacity>

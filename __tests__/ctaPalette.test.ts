@@ -6,6 +6,7 @@ import {
   type CtaRole,
 } from '../src/app/theme/ctaPalette';
 import type { SeasonKey } from '../src/theme/seasonal/season';
+import { LAVENDER_CTA, PRODUCT_ACCENT } from '../src/app/theme/tokens/productAccent';
 
 const seasons: SeasonKey[] = ['autumn', 'winter', 'spring', 'summer'];
 const colors = createTheme('light').colors;
@@ -27,15 +28,18 @@ function luminance(hex: string) {
 const whiteContrast = (hex: string) => 1.05 / (luminance(hex) + 0.05);
 describe('approved CTA role palette', () => {
   it('uses fixed product lavender independently of legacy seasonal tokens', () => {
-    expect(palette('primary').background).toBe('#7D5CE4');
-    expect(palette('primary', 'autumn', 'pressed').background).toBe('#6345BE');
+    expect(palette('primary').background).toBe('#C4A9EF');
+    expect(palette('primary', 'autumn', 'pressed').background).toBe('#B696E7');
+    expect(LAVENDER_CTA.gradient).toEqual(['#E7DAFC', '#C4A9EF']);
+    expect(PRODUCT_ACCENT.primary).toBe('#7D5CE4');
     expect(JSON.stringify(SEASON_CTA)).not.toContain('#A84B2F');
   });
-  it.each(seasons)('%s default and pressed primary meet 4.5:1', season => {
+  it.each(seasons)('%s dark label against both gradient ends meets 4.5:1', season => {
     for (const state of ['default', 'pressed'] as const) {
       const actual = palette('primary', season, state);
-      expect(actual.text).toBe('#FFFFFF');
-      expect(whiteContrast(actual.background)).toBeGreaterThanOrEqual(4.5);
+      expect(actual.text).toBe('#251255');
+      const gradient = state === 'pressed' ? LAVENDER_CTA.pressedGradient : LAVENDER_CTA.gradient;
+      for (const background of gradient) expect((luminance(background) + .05) / (luminance(actual.text) + .05)).toBeGreaterThanOrEqual(4.5);
     }
   });
   it.each(seasons)(

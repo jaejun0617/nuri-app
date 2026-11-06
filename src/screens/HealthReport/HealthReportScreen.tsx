@@ -1,6 +1,8 @@
 import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
+import LavenderCtaFill from '../../app/ui/LavenderCtaFill';
+import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
 import React, {
   useCallback,
   useEffect,
@@ -1363,10 +1365,11 @@ export default function HealthReportScreen() {
             onPress={openHealthWriteActions}
             style={styles.headerActionButton}
           >
+            <LavenderCtaFill radius={22} />
             <HealthText
               preset="unifiedMeta"
               weight="600"
-              color={healthPalette.primary}
+              color={LAVENDER_CTA.text}
               style={styles.headerActionText}
             >
               기록하기
@@ -1892,10 +1895,11 @@ export default function HealthReportScreen() {
             onPress={openHealthWriteActions}
             style={styles.addHealthButton}
           >
-            <HealthText weight="700" color="#FFFFFF">
+            <LavenderCtaFill radius={9} />
+            <HealthText weight="700" color={LAVENDER_CTA.text}>
               건강 기록 더하기
             </HealthText>
-            <Feather name="chevron-right" size={18} color="#FFFFFF" />
+            <Feather name="chevron-right" size={18} color={LAVENDER_CTA.text} />
           </TouchableOpacity>
         </ScrollView>
       )}

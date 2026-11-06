@@ -4,7 +4,8 @@ import { Keyboard, StyleSheet, TextInput, TouchableOpacity, View } from 'react-n
 import { AppHeaderLayout } from '../src/components/navigation/AppHeaderLayout';
 import { APP_HEADER } from '../src/components/navigation/headerAppearance';
 import ConfirmDialog from '../src/components/common/ConfirmDialog';
-import { createPet } from '../src/services/supabase/pets';
+import { createPet, fetchMyPets } from '../src/services/supabase/pets';
+import PetRegistrationCompleteModal from '../src/components/pets/PetRegistrationCompleteModal';
 import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 
@@ -70,8 +71,15 @@ jest.mock('../src/components/onboarding/FirstPetFontSelectorModal', () => 'First
 jest.mock('../src/components/date-picker/DatePickerModal', () => 'DatePickerModal');
 jest.mock('../src/components/common/ConfirmDialog', () => 'ConfirmDialog');
 jest.mock('../src/components/common/WaveText', () => 'WaveText');
+jest.mock('../src/components/pets/PetRegistrationCompleteModal', () => 'PetRegistrationCompleteModal');
 jest.mock('../src/components/pets/PetThemePicker', () => 'PetThemePicker');
-jest.mock('../src/services/supabase/client', () => ({ supabase: {} }));
+jest.mock('../src/services/supabase/client', () => ({ supabase: { auth: { getUser: () => Promise.resolve({ data: { user: { id: 'qa-owner' } } }) } } }));
+jest.mock('../src/store/authStore', () => ({
+  useAuthStore: Object.assign(
+    <T,>(selector: (state: typeof mockAuthState) => T) => selector(mockAuthState),
+    { getState: () => mockAuthState },
+  ),
+}));
 jest.mock('../src/services/supabase/pets', () => ({
   createPet: jest.fn(), fetchMyPets: jest.fn(), toPublicPetAvatarUrl: jest.fn(),
 }));
@@ -84,6 +92,7 @@ jest.mock('../src/services/local/onboardingDraft', () => ({
 }));
 
 const mockFocus = jest.fn();
+const mockAuthState = { session: { user: { id: 'qa-owner' } } };
 const mockScrollTo = jest.fn();
 const mockIsFocused = jest.fn(() => true);
 const fontPreference = {
@@ -125,6 +134,7 @@ describe('pet registration interactions', () => {
     jest.mocked(loadPetCreateDraft).mockResolvedValue(null);
     jest.mocked(useAppFontPreference).mockReturnValue(fontPreference);
     mockIsFocused.mockReturnValue(true);
+    mockAuthState.session.user.id = 'qa-owner';
     jest.spyOn(Keyboard, 'isVisible').mockReturnValue(true);
     jest.spyOn(Keyboard, 'metrics').mockReturnValue({
       screenX: 0, screenY: 600, width: 360, height: 300,
@@ -278,6 +288,50 @@ describe('pet registration interactions', () => {
       node => node.props.testID === 'pet-create-font-settings',
     );
     expect(action?.props.disabled).toBe(true);
+    await act(async () => renderer.unmount());
+  });
+
+  it('uses the saved new-pet receipt, dismisses the keyboard, and guards rapid submit before rerender', async () => {
+    let finish!: (pet: Awaited<ReturnType<typeof createPet>>) => void;
+    jest.mocked(createPet).mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+    const saved = { id: 'saved-qa', name: 'QA Nuri', breed: '실제 저장 품종', gender: 'female' as const, birthDate: '2023-09-06' };
+    jest.mocked(fetchMyPets).mockResolvedValue([saved]);
+    const dismiss = jest.spyOn(Keyboard, 'dismiss');
+    const renderer = await renderScreen();
+    await goToDetails(renderer);
+    for (const label of ['좋아하는 것 (최소 1개)', '싫어하는 것 (최소 1개)', '취미 (최소 1개)', '태그 (최소 1개)']) {
+      const input = () => renderer.root.findAllByType(TextInput).find(node => node.props.accessibilityLabel === label);
+      await act(async () => input()?.props.onChangeText('QA'));
+      await act(async () => input()?.props.onSubmitEditing());
+    }
+    const submit = renderer.root.findAllByType(TouchableOpacity).find(node => node.props.accessibilityLabel === '반려동물 등록 완료');
+    if (!submit || submit.props.disabled) throw new Error('Valid submit missing');
+    await act(async () => { submit.props.onPress(); submit.props.onPress(); });
+    expect(createPet).toHaveBeenCalledTimes(1);
+    await act(async () => finish(saved));
+    const receipt = renderer.root.findByType(PetRegistrationCompleteModal);
+    expect(receipt.props.visible).toBe(true);
+    expect(receipt.props.pet).toEqual(saved);
+    expect(dismiss).toHaveBeenCalled();
+    await act(async () => renderer.unmount());
+  });
+
+  it('does not publish a saved receipt after the request owner changes', async () => {
+    let finish!: (pet: Awaited<ReturnType<typeof createPet>>) => void;
+    jest.mocked(createPet).mockImplementation(() => new Promise(resolve => { finish = resolve; }));
+    const renderer = await renderScreen();
+    await goToDetails(renderer);
+    for (const label of ['좋아하는 것 (최소 1개)', '싫어하는 것 (최소 1개)', '취미 (최소 1개)', '태그 (최소 1개)']) {
+      const input = () => renderer.root.findAllByType(TextInput).find(node => node.props.accessibilityLabel === label);
+      await act(async () => input()?.props.onChangeText('QA'));
+      await act(async () => input()?.props.onSubmitEditing());
+    }
+    const submit = renderer.root.findAllByType(TouchableOpacity).find(node => node.props.accessibilityLabel === '반려동물 등록 완료');
+    await act(async () => { submit?.props.onPress(); });
+    mockAuthState.session.user.id = 'different-owner';
+    await act(async () => finish({ id: 'old-owner-pet', name: 'QA Nuri' }));
+    expect(renderer.root.findByType(PetRegistrationCompleteModal).props.visible).toBe(false);
+    expect(fetchMyPets).not.toHaveBeenCalled();
     await act(async () => renderer.unmount());
   });
 });

@@ -1,4 +1,6 @@
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
+import LavenderCtaFill from '../../app/ui/LavenderCtaFill';
+import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
 import AppTextInput from '../../app/ui/AppTextInput';
 import React, {
   useCallback,
@@ -555,9 +557,10 @@ export default function WeightLogEntrySheet({
                       styles.reportButtonDisabled,
                   ]}
                 >
+                  <LavenderCtaFill radius={styles.primaryButton.borderRadius} />
                   <AppText
                     preset="unifiedLabel"
-                    color="#FFFFFF"
+                    color={LAVENDER_CTA.text}
                     weight="700"
                     styleOverridesPreset
                     style={styles.reportLabelText}

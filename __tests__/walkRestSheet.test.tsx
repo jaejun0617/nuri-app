@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
-import { PRODUCT_CTA } from '../src/app/theme/tokens/productAccent';
+import { LAVENDER_CTA } from '../src/app/theme/tokens/productAccent';
 import WalkRestSheet from '../src/screens/DevTest/walkPresentation/WalkRestSheet';
 
 jest.mock('../src/app/ui/AppText', () => 'AppText');
@@ -237,7 +237,7 @@ describe('Walk rest sheet presentation and motion', () => {
       const primary = StyleSheet.flatten(
         node('walk-rest-resume').props.style({ pressed: false }),
       );
-      expect(primary.backgroundColor).toBe(PRODUCT_CTA.primary);
+      expect(primary.backgroundColor).toBe(LAVENDER_CTA.background);
       expect(primary.minHeight).toBeGreaterThanOrEqual(48);
       expect(
         StyleSheet.flatten(node('walk-rest-later').props.style).minHeight,

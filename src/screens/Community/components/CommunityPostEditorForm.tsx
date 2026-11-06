@@ -197,7 +197,7 @@ function CommunityPostEditorFormBase({
                     activeOpacity={0.9}
                     style={[
                       styles.removeImageButton,
-                      { backgroundColor: `${theme.colors.textPrimary}D9` },
+                      { backgroundColor: 'rgba(255,255,255,0.90)' },
                     ]}
                     onPress={() => onRemoveImage(index)}
                   >

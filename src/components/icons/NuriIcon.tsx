@@ -48,9 +48,11 @@ function NuriIconBase({
     [size],
   );
   const palette = palettes[name];
-  const themed = colorMode === 'theme';
+  const close = name === 'close' || name === 'close-circle';
+  const themed = close || colorMode === 'theme';
+  const visualVariant = close ? 'outline' : variant;
   const activeLayers: ReadonlyArray<string> = palette.layers;
-  const primary = themed ? color ?? palette.primary : palette.primary;
+  const primary = close ? '#000000' : themed ? color ?? palette.primary : palette.primary;
   // Colored jelly surfaces stay visible on glass; navigation keeps its approved tint.
   const colors = useMemo(
     () => [themed ? '#FFFFFF' : palette.surface, primary, primary],
@@ -76,7 +78,7 @@ function NuriIconBase({
       pointerEvents="none"
       style={[style, geometry]}
     >
-      {!themed || variant === 'glass' ? (
+      {!themed || visualVariant === 'glass' ? (
         <>
           <NativeMask
             key={name}

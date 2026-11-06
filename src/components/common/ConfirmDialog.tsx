@@ -14,6 +14,8 @@ import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
+import LavenderCtaFill from '../../app/ui/LavenderCtaFill';
+import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
 import { shouldStackCtaPair, type CtaRole } from '../../app/theme/ctaPalette';
 import { useOptionalSafeAreaInsets } from '../../hooks/useOptionalSafeAreaInsets';
 import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
@@ -116,6 +118,7 @@ function ConfirmDialogBase({
 
   const petTheme = NEUTRAL_UI_PALETTE;
   const resolvedAccentColor = accentColor ?? petTheme.primary;
+  const lavenderConfirm = tone !== 'danger' && (!accentColor || accentColor === petTheme.primary);
   const textPresets =
     typographyMode === 'unified'
       ? {
@@ -270,6 +273,7 @@ function ConfirmDialogBase({
                 ]}
                 onPress={onConfirm}
               >
+                {lavenderConfirm ? <LavenderCtaFill radius={styles.button.borderRadius} /> : null}
                 <CtaText
                   preset={textPresets.button}
                   style={styles.confirmButtonText}
@@ -298,7 +302,7 @@ function ConfirmDialogBase({
                   preset={textPresets.button}
                   style={[
                     styles.confirmButtonText,
-                    { color: toneMeta.confirmText },
+                    { color: lavenderConfirm ? LAVENDER_CTA.text : toneMeta.confirmText },
                   ]}
                 >
                   {confirmLabel}

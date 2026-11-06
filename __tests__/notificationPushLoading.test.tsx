@@ -35,8 +35,8 @@ jest.mock('../src/store/authStore', () => ({
   }),
 }));
 jest.mock('../src/store/petStore', () => ({ usePetStore: Object.assign(
-  (select: (state: { pets: { id: string; name: string }[] }) => unknown) => select({ pets: [{ id: 'pet', name: '사랑' }] }),
-  { getState: () => ({ selectedPetId: 'pet', pets: [{ id: 'pet', name: '사랑' }] }) },
+  (select: (state: { pets: { id: string; name: string; avatarUrl?: string }[] }) => unknown) => select({ pets: [{ id: 'pet', name: '사랑', avatarUrl: 'https://example.test/target.jpg' }, { id: 'selected-other', name: '다른 아이', avatarUrl: 'https://example.test/other.jpg' }] }),
+  { getState: () => ({ selectedPetId: 'selected-other', pets: [{ id: 'pet', name: '사랑', avatarUrl: 'https://example.test/target.jpg' }, { id: 'selected-other', name: '다른 아이', avatarUrl: 'https://example.test/other.jpg' }] }) },
 ) }));
 jest.mock('../src/components/notifications/BirthdayCelebrationModal', () => 'BirthdayCelebrationModal');
 jest.mock('../src/store/uiStore', () => ({ showToast: jest.fn() }));
@@ -109,6 +109,8 @@ it('opens a verified birthday greeting before read readiness and keeps its pet-s
   await render(); await settle();
   const modal = () => renderer!.root.find(node => (node.type as unknown) === 'BirthdayCelebrationModal');
   expect(modal().props.petName).toBe('사랑');
+  expect(modal().props.petId).toBe('pet');
+  expect(modal().props.petAvatarUrl).toBe('https://example.test/target.jpg');
   expect(mockReady).toHaveBeenLastCalledWith(false);
   await act(async () => modal().props.onShow());
   expect(mockReady).toHaveBeenLastCalledWith(true);
@@ -116,6 +118,37 @@ it('opens a verified birthday greeting before read readiness and keeps its pet-s
   expect(mockDispatch).toHaveBeenCalledWith(expect.objectContaining({ payload: expect.objectContaining({ name: 'NotificationTimeline', params: expect.objectContaining({ params: expect.objectContaining({ petId: 'pet' }) }) }) }));
   mockFocused = false;
   await act(async () => renderer!.update(<QueryClientProvider client={client}><NotificationDetailScreen /></QueryClientProvider>));
+  expect(modal().props.visible).toBe(false);
+  mockFocused = true;
+  await act(async () => renderer!.update(<QueryClientProvider client={client}><NotificationDetailScreen /></QueryClientProvider>));
+  expect(modal().props.visible).toBe(false);
+});
+it('closes only the birthday modal and preserves the underlying detail and read readiness', async () => {
+  mockParams.resolveTargetOnLoad = undefined;
+  mockFetch.mockResolvedValue({ ...item({ kind: 'pet_anniversary', petId: 'pet' }), eventType: 'pet.birthday' });
+  await render(); await settle();
+  const modal = () => renderer!.root.find(node => (node.type as unknown) === 'BirthdayCelebrationModal');
+  await act(async () => modal().props.onShow());
+  await act(async () => modal().props.onClose());
+  expect(modal().props.visible).toBe(false);
+  expect(mockNavigation.goBack).not.toHaveBeenCalled();
+  expect(mockDispatch).not.toHaveBeenCalled();
+  expect(mockReady).toHaveBeenLastCalledWith(true);
+  expect(renderer!.root.findAllByProps({ testID: 'NotificationDetailDesign' }).length).toBeGreaterThan(0);
+});
+it('does not navigate on a late memory response after the birthday modal is closed', async () => {
+  mockParams.resolveTargetOnLoad = undefined;
+  const birthday = { ...item({ kind: 'pet_anniversary', petId: 'pet' }), eventType: 'pet.birthday' };
+  mockFetch.mockResolvedValue(birthday);
+  await render(); await settle();
+  const modal = () => renderer!.root.find(node => (node.type as unknown) === 'BirthdayCelebrationModal');
+  const pending = deferred<UserNotificationItem>();
+  mockFetch.mockReturnValue(pending.promise);
+  let action!: Promise<void>;
+  act(() => { action = modal().props.onOpen(); });
+  act(() => modal().props.onClose());
+  await act(async () => { pending.resolve(birthday); await action; });
+  expect(mockDispatch).not.toHaveBeenCalled();
   expect(modal().props.visible).toBe(false);
 });
 it.each(['notification_detail', 'unavailable'] as const)('retains a readable %s detail instead of redirecting to Home', async kind => {

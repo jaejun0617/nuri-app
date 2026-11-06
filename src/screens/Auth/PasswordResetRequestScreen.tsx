@@ -1,5 +1,7 @@
 import AppTextInput from '../../app/ui/AppTextInput';
 import AppText from '../../app/ui/AppText';
+import LavenderCtaFill from '../../app/ui/LavenderCtaFill';
+import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   KeyboardAvoidingView,
@@ -157,7 +159,8 @@ export default function PasswordResetRequestScreen({ navigation, route }: Props)
                 disabled ? styles.primaryButtonDisabled : null,
               ]}
             >
-              <AppText preset="unifiedLabel" style={styles.primaryButtonText}>
+              <LavenderCtaFill radius={styles.primaryButton.borderRadius} />
+              <AppText preset="unifiedLabel" style={[styles.primaryButtonText, { color: LAVENDER_CTA.text }]}>
                 {submitting
                   ? '메일을 준비하고 있어요...'
                   : remainingSeconds > 0

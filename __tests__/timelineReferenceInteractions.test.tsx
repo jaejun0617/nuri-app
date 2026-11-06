@@ -5,6 +5,7 @@ import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
 import { TIMELINE_DESIGN as C, TIMELINE_TYPE as T } from '../src/theme/timelineDesign';
 import { typography } from '../src/app/theme/tokens/typography';
+import { LAVENDER_CTA } from '../src/app/theme/tokens/productAccent';
 import TimelineButton, { CtaText } from '../src/components/records/TimelineButton';
 import TimelineDeleteDialog from '../src/components/records/TimelineDeleteDialog';
 import RecordPhotoStrip from '../src/components/records/RecordPhotoStrip';
@@ -29,8 +30,8 @@ describe('Timeline reference interactions',()=>{
       const tree=render(<TimelineButton testID="reference-primary" role="primary" onPress={press}><CtaText>기록 남기기</CtaText></TimelineButton>,dark);
       const target=tree.root.find(node=>node.props.testID==='reference-primary' && typeof node.props.style==='function');
       if(!target)throw new Error('Native action missing');
-      expect(StyleSheet.flatten(target.props.style({pressed:false})).backgroundColor).toBe(C.primary);
-      expect(StyleSheet.flatten(target.props.style({pressed:true})).backgroundColor).toBe(C.pressed);
+      expect(StyleSheet.flatten(target.props.style({pressed:false})).backgroundColor).toBe(LAVENDER_CTA.background);
+      expect(StyleSheet.flatten(target.props.style({pressed:true})).backgroundColor).toBe(LAVENDER_CTA.pressed);
       act(()=>target.props.onPress());expect(press).toHaveBeenCalledTimes(1);
       act(()=>tree.update(<ThemeProvider theme={createTheme(dark?'dark':'light')}><TimelineButton testID="reference-primary" role="primary" loading onPress={press}><CtaText>저장 중</CtaText></TimelineButton></ThemeProvider>));
       const loading=tree.root.find(node=>node.props.testID==='reference-primary' && typeof node.props.style==='function');

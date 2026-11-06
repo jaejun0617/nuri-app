@@ -213,7 +213,7 @@ export default function MainScreen() {
         visible={firstPetWelcome !== null}
       />
       {userId && selectedPet && !petLoading && !petErrorMessage ? <HomeBirthdayGreeting
-        key={`${userId}:${selectedPet.id}`} owner={userId} petId={selectedPet.id} petName={selectedPet.name}
+        key={`${userId}:${selectedPet.id}`} owner={userId} petId={selectedPet.id} petName={selectedPet.name} petAvatarUrl={selectedPet.avatarUrl}
         enabled={isLoggedIn && !isPasswordRecoveryActive && profileSyncStatus === 'ready' && welcomeCheckedOwner === userId && !firstPetWelcome && !exitConfirmVisible}
       /> : null}
     </>
