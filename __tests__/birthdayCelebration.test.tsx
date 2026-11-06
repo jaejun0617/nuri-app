@@ -54,6 +54,10 @@ it('uses the actual long pet name, image and independent Back/CTA actions', asyn
   expect(artwork.width).toBeGreaterThan(0);
   expect(artwork.width).toBeLessThanOrEqual(240);
   expect(artwork.height).toBe(artwork.width);
+  const petLabel = tree.root.findAll(node => node.props.children === '아주 긴 실제 아이 이름' && node.props.fontModeOverride === 'jisu')[0];
+  expect(StyleSheet.flatten(petLabel.props.style).fontSize).toBe(15);
+  const greeting = tree.root.findAll(node => node.props.children === '생일을 축하해 ♡' && node.props.fontModeOverride === 'jisu')[0];
+  expect(StyleSheet.flatten(greeting.props.style).fontSize).toBe(22);
   act(() => tree.root.findByType(Modal).props.onRequestClose());
   expect(close).toHaveBeenCalledTimes(1);
   expect(open).not.toHaveBeenCalled();

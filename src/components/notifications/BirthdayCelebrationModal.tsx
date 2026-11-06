@@ -35,12 +35,12 @@ export default function BirthdayCelebrationModal({ visible, petName, today, busy
         </Pressable>
         <ScrollView style={s.scroll} contentContainerStyle={s.content} bounces={false}>
           <Image source={require('../../assets/notifications/birthday-celebration.png')} resizeMode="contain" style={[s.art, { width: artSize, height: artSize }]} accessible={false} />
-          <AppText preset="unifiedLabel" style={[s.eyebrow, { color: theme.colors.textSecondary }]}>{today ? '사랑을 가득 담아' : '기억하고 싶은 특별한 날'}</AppText>
-          <AppText preset="unifiedTitle" styleOverridesPreset accessibilityRole="header" style={[s.title, { color: theme.colors.textPrimary }]}>{petName}의 생일이에요</AppText>
-          <AppText preset="bodySm" style={[s.body, { color: theme.colors.textSecondary }]}>태어나줘서 고마워.{ '\n' }오늘도 행복한 순간이 가득하길.</AppText>
+          <AppText preset="unifiedLabel" fontModeOverride="jisu" styleOverridesPreset style={[s.petName, { color: theme.colors.textSecondary }]}>{petName}</AppText>
+          <AppText preset="unifiedTitle" fontModeOverride="jisu" styleOverridesPreset accessibilityRole="header" style={[s.title, { color: theme.colors.textPrimary }]}>{today ? '생일을 축하해 ♡' : '소중한 생일의 기억 ♡'}</AppText>
+          <AppText preset="bodySm" fontModeOverride="jisu" style={[s.body, { color: theme.colors.textSecondary }]}>태어나줘서 고마워.{ '\n' }사랑과 행복이 가득한 하루 보내!</AppText>
         </ScrollView>
         <CtaButton role="primary" accessibilityLabel="함께한 추억 보기" onPress={onOpen} disabled={busy} loading={busy} style={s.button}>
-          <CtaText preset="unifiedLabel">함께한 추억 보기</CtaText>
+          <CtaText preset="unifiedLabel" fontModeOverride="jisu" styleOverridesPreset style={s.buttonText}>함께한 추억 보기</CtaText>
         </CtaButton>
       </View>
     </View>
@@ -54,8 +54,9 @@ const s = StyleSheet.create({
   scroll: { flexGrow: 0, flexShrink: 1 },
   content: { alignItems: 'center', paddingBottom: 24 },
   art: { alignSelf: 'center', marginBottom: 18 },
-  eyebrow: { textAlign: 'center', marginBottom: 10 },
-  title: { fontSize: 23, lineHeight: 32, fontWeight: '700', letterSpacing: 0, textAlign: 'center', width: '100%' },
-  body: { textAlign: 'center', marginTop: 14, lineHeight: 23 },
+  petName: { fontSize: 15, lineHeight: 22, letterSpacing: 0, textAlign: 'center', width: '100%', marginBottom: 8 },
+  title: { fontSize: 22, lineHeight: 30, letterSpacing: 0, textAlign: 'center', width: '100%' },
+  body: { fontSize: 15, textAlign: 'center', marginTop: 14, lineHeight: 23 },
+  buttonText: { fontSize: 16, lineHeight: 24, textAlign: 'center' },
   button: { minHeight: 50, width: '100%', borderRadius: 16 },
 });
