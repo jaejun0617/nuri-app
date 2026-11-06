@@ -21,8 +21,10 @@ type Props = {
 export default function BirthdayCelebrationModal({ visible, petName, today, busy = false, onClose, onOpen, onShow }: Props) {
   const theme = useTheme();
   const insets = useOptionalSafeAreaInsets();
-  const { height } = useWindowDimensions();
+  const { height, width } = useWindowDimensions();
   const maxHeight = getResponsiveOverlayMaxHeight({ windowHeight: height, topInset: insets.top, bottomInset: insets.bottom, verticalMargin: 20 });
+  // Both dimensions must override the bitmap's intrinsic size inside ScrollView.
+  const artSize = Math.max(0, Math.min(240, width - 94));
   return <Modal transparent animationType="fade" visible={visible} onRequestClose={onClose} onShow={onShow}>
     <View style={[s.backdrop, { backgroundColor: theme.colors.overlay }]}>
       <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="생일 안내 닫기" />
@@ -32,7 +34,7 @@ export default function BirthdayCelebrationModal({ visible, petName, today, busy
           <NuriSemanticIcon family="feather" name="x" size={22} color={theme.colors.textPrimary} preserveOriginal />
         </Pressable>
         <ScrollView style={s.scroll} contentContainerStyle={s.content} bounces={false}>
-          <Image source={require('../../assets/notifications/birthday-celebration.png')} resizeMode="contain" style={s.art} accessible={false} />
+          <Image source={require('../../assets/notifications/birthday-celebration.png')} resizeMode="contain" style={[s.art, { width: artSize, height: artSize }]} accessible={false} />
           <AppText preset="unifiedLabel" style={[s.eyebrow, { color: theme.colors.textSecondary }]}>{today ? '오늘의 특별한 순간' : '기억하고 싶은 특별한 날'}</AppText>
           <AppText preset="unifiedTitle" styleOverridesPreset accessibilityRole="header" style={[s.title, { color: theme.colors.textPrimary }]}>{petName}의 생일이에요</AppText>
           <AppText preset="bodySm" style={[s.body, { color: theme.colors.textSecondary }]}>태어나줘서 고마워.{ '\n' }함께한 소중한 순간을 간직해요.</AppText>
@@ -51,7 +53,7 @@ const s = StyleSheet.create({
   close: { alignSelf: 'flex-end', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   scroll: { flexGrow: 0, flexShrink: 1 },
   content: { alignItems: 'center', paddingBottom: 24 },
-  art: { width: '100%', maxWidth: 240, aspectRatio: 1, alignSelf: 'center', marginBottom: 18 },
+  art: { alignSelf: 'center', marginBottom: 18 },
   eyebrow: { textAlign: 'center', marginBottom: 10 },
   title: { fontSize: 23, lineHeight: 32, fontWeight: '700', letterSpacing: 0, textAlign: 'center', width: '100%' },
   body: { textAlign: 'center', marginTop: 14, lineHeight: 23 },

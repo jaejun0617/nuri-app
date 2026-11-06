@@ -1,6 +1,6 @@
 import React from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Modal } from 'react-native';
+import { Image, Modal, StyleSheet } from 'react-native';
 import Renderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
@@ -50,6 +50,10 @@ it('uses the actual long pet name, image and independent Back/CTA actions', asyn
   let tree!: Renderer.ReactTestRenderer;
   await act(async () => { tree = Renderer.create(<ThemeProvider theme={createTheme('light')}><BirthdayCelebrationModal visible petName="아주 긴 실제 아이 이름" today onClose={close} onOpen={open} /></ThemeProvider>); });
   expect(JSON.stringify(tree.toJSON())).toContain('아주 긴 실제 아이 이름');
+  const artwork = StyleSheet.flatten(tree.root.findByType(Image).props.style);
+  expect(artwork.width).toBeGreaterThan(0);
+  expect(artwork.width).toBeLessThanOrEqual(240);
+  expect(artwork.height).toBe(artwork.width);
   act(() => tree.root.findByType(Modal).props.onRequestClose());
   expect(close).toHaveBeenCalledTimes(1);
   expect(open).not.toHaveBeenCalled();
