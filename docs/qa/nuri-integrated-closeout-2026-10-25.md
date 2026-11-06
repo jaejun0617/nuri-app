@@ -1,5 +1,85 @@
 # NURI 통합 마감 수락 원장
 
+<!-- OS_BOUNDARIES_20261106_BEGIN -->
+## 2026-11-06 OS 경계 검증 증분: OS13 수락, 전체 부분 완료
+
+### 결론과 비교 단위
+
+**OS 영역 PARTIAL, OS13 PASS, OS10 BLOCKED_TEST_CAPABILITY의 잔여 유지, 전체 미동결·STORE HOLD.** 최신 PO 보정 지시에 따라 Master 단독으로 수행했다. 기존 문서33973ba 이후 제품 변경0, 서버 변경0, 앱 빌드·재설치0이다. QA 도구만 수정·보존 설치 후 제거했다. 다른 통합 도메인·디자인·P1/P2·원래7~14는 시작하지 않았다.
+
+증거 루트는 `/Users/shinjaejun/.codex/nuri-os-boundaries-20261106/`다. 기존 `nuri-os-required-20261105`와 원장의 완료 증거를 재사용한다. 실제 기기 시험 종료 및 원복 확인은 **2026-11-06 12:51:45 KST / 03:51:45 UTC**다. 문서 전달/CI 종료 시각은 이 뒤의 `git-delivery.json`을 따른다.
+
+기존 OS 묶음의 직전 미완료는 OS10·OS13 두 개, 이번 완료는 OS13 한 개, 현재 미완료는 OS10 한 개다. **OS11/13→12/13**, 통합2/7·기록0/4는 그대로다. 생일은 기존 U2 업무 원본의 OS 후속 미완료이며 새 OS 분모를 만들지 않는다. 새 제품 결함 확인0, 제품 변경으로 인한 재검증0이다.
+
+| 기존 ID·하위 조건 | 기존 충족 범위 | 이번 실행·관찰값 | 판정·잔여 |
+|---|---|---|---|
+| OS13 연속 입력·독립 중복 알림 진입 | 실제 OS75ms 간격2입력, cold/warm·실패·취소·동일 알림 재시도·읽음·Back | 실제 수신 알림의 PendingIntent를 보존해 두 번 send. MainActivity 진입도 각각1회, 상세1개·동일 서버 읽음·Back1회 Home | PASS. 자연 발생 callback 중복이 아니라 통제 재전달임을 명시 |
+| OS10 이전 PendingIntent | 직전 instrumentation 종료로 최종 UI 미확인 | 같은 PendingIntent를 Google 전환 후 재전달. native 진입1회 뒤 Google 홈·미읽음27·owner 유지, 이전 Kakao read_at 불변, 다른 설치 보존 | 해당 하위 조건 PASS |
+| OS10 원래 등록 Promise 늦은 완료 | D/F는 plain client 서버 dispatch만 PASS | 앱이 만든 Kakao register의 실제200 응답을178.197초 보류 후 원래 interceptor chain으로 반환. 그 사이 정상 logout/Google 로그인. 이후 대기 중 Google register200·Google owner 확정 | 해당 하위 조건 PASS. 원래 response object 반환이며 별도 재전송 아님 |
+| OS10 해제의 늦은 완료 | F 서버200/revoked0·현재/다른 설치 보존 PASS | 기존 performLogout이 revoke Promise를 기다린 뒤 로컬 logout/다음 로그인을 허용하는 직렬 경계 확인 | 원래 revoke 완료 전 새 owner를 만드는 정상 UI 전제는 성립하지 않음. F 서버 수락 보존, 별도 UI 지연 PASS로 확대하지 않음 |
+| U1/OS10 인증 중복 | 정상 제공자→PKCE→세션→Home | 실제 Kakao 복귀 Intent를 보존, 동일 URL 앱 진입2회 추가. PKCE HTTP1회, CODE_EXCHANGE_SUCCESS1회, ROUTE_TARGET_AUTHENTICATED1회 | 통제 앱링크 중복 방지 PASS. Auth Tab ActivityResult 자체의 재전달 수락은 아님 |
+| U1/OS10 취소·이전 인증 결과 | 기존 정상 취소·재시도 | 정상 logout→Google 공식 화면 Back 취소→이전 사용 완료 Kakao callback 재전달. 추가 교환0, CALLBACK_REJECTED→익명 로그인 화면. 새 Kakao 정상 재시도 후 이전 결과 재전달도 거부·현재 세션/Home 보존 | 소비된 이전 결과 하위 조건 PASS. 아직 소비되지 않은 이전 시도의 실제 인증 결과 지연은 BLOCKED_TEST_CAPABILITY |
+| OS10 이전 FCM·snapshot | 실제 FCM 정상 수신·cold metadata·정상 전환·dismiss PASS | Google owner 상태에서 실제 NuriPushService 수신 핸들러에 이전 recipient 입력. badge owner-mismatch/stale/expired-snapshot, 현재 native27·화면·서버 상태 불변 | 통제 native 처리 경계 PASS. 실제 FCM 운송 지연 E2E는 NOT_RUN이며 대체하지 않음 |
+| U2 생일 OS | 기존 계약·원본 일부 및 이번 운영 scheduler 정의 | 기존 QA 생일10/14·10/21·10/28, 현재 정상 복구 창에 해당 원본 없음 | BLOCKED_PRECONDITION. 새 시험 프로필 승인 범위 미확정, 아래 구체안만 준비 |
+
+OS13은 알림 PendingIntent 중복·오래된 알림 진입·목적지 수명 조건으로 닫는다. 아직 미소비 OAuth 결과의 현재 시도 오염 위험은 U1/OS10에 그대로 남기며 OS13 성공으로 대신하지 않는다.
+
+### 실행 경계와 근거
+
+1. **실제 전달과 통제 재전달:** QA transport `eff62ec8-b77d-4d56-be40-a0cd526ed407` 한 건만 생성했다. 정기 worker/FCM accepted1회, 실제 OS 알림의 contentIntent를 확보했다. uptime179493458/179503523의 send에 각각179493466/179503530의 MainActivity 진입이 대응한다. 약10초 간격이며 동시 입력으로 표현하지 않는다. read_at은03:24:21.884455Z 한 값, 최종 상세는 `duplicate-tap-detail.png`, Back은 별도 실제 UI 관찰이다. `os13-duplicate.mp4`32.458초/324 encoded VFR frames를6개 contact sheet로 모두 수동 검토했다. 첫 진입의 기존 Home→상세 전환과 약1.3~6.1초 구간의 상세 로딩 뒤 콘텐츠 확정을 관찰했다. 두 번째 전달 후 잘못된 중간 Home·중복 상세는 관찰되지 않았다. compositor 전체 프레임/자동 시각 PASS가 아니다. 좁은 구간의 detail HTTP200과 서버 읽음은 `operating-evidence.json`에 연결한다.
+2. **이전 알림의 처리 종료:** Google 전환 후 uptime179748172에 같은 실제 PendingIntent를 보내179748176의 세 번째 진입을 확인했다. `old-pending-google-home.png`와 `after-old-pending-and-native.json`은 Googleet 홈·native27·Google owner를 보존한다. 현재 로그인 화면으로 잘못 이동하거나 Kakao 내용을 열지 않았다. 소유 차단은 읽음이나 기존 서버 데이터를 변경하지 않았다.
+3. **원래 응답의 늦은 반환:** `instrumentation-v12.log`에서 서버200179547689→hold179547690→정상 revoke200179613227→Google 실제 PKCE179672885→원래 response 반환179725887→Google register200179727707 순서다. `before-original-response-release.json`에서 Google 홈은 이미 표시됐지만 등록 직렬 큐가 기다려 native owner는null이었다. `after-original-response-settled.json`에서 Google 소유/등록이 확정됐다. `google-before-late-completion.png`는 이름과 달리 release 명령 뒤 캡처이므로 반환 전 화면 증거로 쓰지 않는다. 이전 응답이 Kakao를 다시 bind하지 않았고 다른 Google 설치의 last_seen은 그대로였다. 정상 logout 성공으로 이전 세션을 무효화한 시험이므로 기존 D의 유효 이전 세션409와는 다른 조건이다.
+4. **인증 중복/늦은 소비 결과:** `instrumentation-v14.log`의 실제 Activity Intent 캡처1회는 delivery 횟수가 아니다. 이후 controlled send4회는 실제 앱링크 진입 각각에 대응한다. 처음2회는 원래 callback 후60초 안이며 `auth-trace-v14-duplicate.json`의 CALLBACK_RECEIVED/교환/인증 route 각1회만 남는다. 다음2회는 Google 취소 뒤 익명 상태와 새 Kakao 세션 확정 뒤의 오래된 결과다. `auth-trace-v14-final.json`에 각각 거부→복구가 있고 PKCE는 정상 Kakao 로그인2회에만2회다. 예전 사용 인가 코드를 서버에 다시 교환하지 않았다. `cancelled-attempt-old-result-rejected.png`, `auth-late-retry-final.json`이 근거다.
+5. **도구 한계:** 초기 v11은 OS 알림 도착 전 capture로 준비 종료했다. v12/13의 ActivityResultRegistry 관찰은 lifecycle에서 교체되는 callback을 포착하지 못했다. v14는 실제 MainActivity.getIntent에서 원래 URI를 메모리로만 보존해 앱링크 경계를 관찰했다. ActivityResult 관측0을 callback 없음이나 제품 결함으로 계산하지 않는다. 동일 실패의 무변경 재실행 없이 이 경계에서 종료했다. v14 빌드는 APK 생성/서명 후 기존v13 영수증의 wx 보호로 비정상 종료됐으며 manifest14/서명을 별도 확인하고 새 영수증만 보존했다. 앱 APK는 불변이다.
+6. **native 통제의 한계:** 실제 FCM을 늦춘 것이 아니라 기존 service에 RemoteMessage를 전달한 시험이다. 현재 Google owner에서 이전 Kakao recipient 차단, 같은 owner의 오래된 관측 시각/만료 차단을 각각 확인했다. 임의 메타데이터를 실제 운송 payload로 보고하지 않는다. 단위/계약 검사를 실기기 FCM E2E로 바꾸지 않는다.
+
+### 생일 원본과 다음 한 번의 실행안
+
+실제 전체 `notification_private.scheduler_user_v3` 정의와 pet trigger를 읽었다. 사용자 time_zone의09:00, anniversary 기준일 이후, runtime 활성화 이후이며 due_at부터24시간 내에만 생성한다. 주간/월간 요약3일 복구와 생일1일 복구는 다르다. 현재 연도와 이전 연도를 검사하고 pet ID·기준일·연도 기반 중복 방지를 적용한다. global 수신 가능 조건과 publication의 실제 category 설정을 별도 확인해야 한다. 기존 아이의 생일·cron·기기시각을 변경하지 않았다.
+
+기존 QA 중 다음 생일은 **2027-10-14 09:00 KST**다. 신규 QA 원본에 대한 최소 PO 판단안은 다음과 같다.
+
+- Kakao QA에 `QA-OS-BIRTHDAY-20261107` 시험 아이1개를 정상 아이 등록 화면으로 추가, 생일2025-11-07, 입양일2026-11-06, 사진/체중/기록은 추가하지 않는 범위. 기존 아이를 수정하지 않는다.
+-11/06 등록 완료 시11/07 09:00 KST 정기 scheduler부터 실행 가능하다. 늦으면11/08 09:00 이전 기존 복구 창에 한한다. 실제 생성/FCM/OS/탭/목적지/읽음을 연결하고 날짜 조건이 지나면 새 실행 계획을 정한다. 예약/자동 실행은 만들지 않았다.
+- 새 아이 선택·petStore 갱신과 `nuri_titles_v2_pet_dates`의 칭호 source 갱신이 발생할 수 있다. 최초 아이가 아니므로 첫 아이 흐름을 시험 목적으로 재실행하지 않는다. 다른 알림/칭호 부수 결과는 ID로 추적하고 임의 광역 삭제하지 않는다.
+- 시험 후 원래 누리 선택으로 복원하고, 해당 시험 아이만 기존 정상 삭제 기능으로 정리한다. 관련 알림은 ID 확인 후 개별 삭제하며 audit/칭호 영향의 완전 원복을 미리 보장하지 않는다. **새 프로필 생성은 이번에 실행하지 않았으며 이 범위 승인만 필요하다.**
+
+### 운영 관측과 P0의 분리
+
+고정 창11/04 19:01:13~11/05 19:01:13 KST는 이미 종료됐고 직전 영수증을 재사용했다. 해당 창의 devicev5/v6·workerv2/v3와 창 이후v4를 합치지 않았다. 동일 과거502 로그를 다시 조사하지 않았다.
+
+이번 추가 창은 **11/06 12:15~12:46 KST /03:15~03:46 UTC**다. source별 event first/last와 query window는 `operating-evidence.json`에 있다. postgres230건, function_edge107건, edge702건은 수집된 이벤트이며 연속 완전성을 증명하지 않는다. devicev6 HTTP20035건/4011건, workerv4 HTTP20029건, 해당 조회의40001/PT409/5xx0건이다. 401은03:18:23.695Z의 시작 관측 중1건으로 정확한 원요청 인과는 미확인이고 이후 정상 등록200을 확인했다. 의도한 관측 SQL의 잘못된 함수 시그니처42883 한 건은 제품 오류가 아니다.
+
+DB12:21:35.788939~12:49:09.763866 KST의1653.975초 동안 commit+6045/rollback+0, stats_reset2025-12-08 불변, 과거 loop PID0·30초 초과 client0, 종료 연결22다. 직전 밤 이후 누적rollback+2415의 전체 원인은 이번 표본으로 귀속하지 않는다. scheduler/publication/worker SQL dispatch는 각31 succeeded이나 worker 로그는29건이다. 계측 차이2는 남고 dispatch 성공으로 전달 성공을 대체하지 않는다. 새 fixture의 accepted1과 OS 도착은 별도 확인했다.
+
+이번 raw CPU/메모리/Swap 신규 시계열은 미확보다. 기존 SEVERE·Swap523.86MB 표본·과거502 원인/영향/복구 UNKNOWN·고정 창 공백을 해결 처리하지 않는다. P0_CORE_FIX/P0_SOURCE_ACCEPTANCE/P0_RUNTIME_ACCEPTANCE는 PASS, P0_STABILITY_ACCEPTANCE/P0_FINAL_ACCEPTANCE는 PARTIAL이다.
+
+**제공자 문의 초안, 미발송:** “프로젝트 grmekesqoydylqmyvfke,2026-11-04 10:08:00.104 UTC의 notification-worker-v3 HTTP502/11ms 사건에 대해 gateway request와 execution/deployment 연결, isolate boot/termination/OOM 여부, 함수 진입 및 claim 이전/이후 구분을 요청합니다. 현재 확보 로그에는 function/version/execution 연결이 없고 당시 SQL dispatch 성공만 있습니다. 고정 창11/04 10:01:13~11/05 10:01:13 UTC의 raw CPU 성분·memory commitment·swap IO/OOM 자료와 dispatch/runtime 계측 차이 설명도 요청합니다. 원문 토큰·사용자 데이터는 포함하지 않습니다.” 외부 발송·플랜 변경·재시작은 실행하지 않았다.
+
+### 후보·정리·전달
+
+- 시작 root/branch/HEAD/upstream은 지정 Master 저장소·codex/walk-marker-recovery-20261020·33973baa291b192d3316583785a3e1e8cfbb4770으로 일치했다. 예전 Room B는 쓰지 않았다. 기존 dirty 문서·이미지·미추적 자료 및 supabase/.temp/cli-latest 변경을 보존했다.
+- 앱 제품afd3fe8f40b3db513efbde3282e314dd91556ef7, runtime0523c49eebb0ce08be7c6f8ff0c5f533e9a77d56fd88d86ce8a82da5c3ea8811, APK586cdffe7d5a9f2571f5149cd4c71857e016e1cade28f6a3503c463473bcbcd0은 불변이다. devicev6/workerv4 및 세션/P0/badge migration 일치, 서버/웹/인증 설정 변경0이다. [제품CI42018324530](https://github.com/jaejun0617/nuri-app/actions/runs/42018324530)와347 suites4661·타입·guard를 재사용하며 수동 전체 재검사 없음이다.
+- 물리SM-S937N 기존 bundled Debug/Metro OFF에서 실제 인증·알림·Back·통제 경계를 확인했다. 에뮬레이터01d78a3는 실행/재설치하지 않고 기존 독립 Google 등록의 owner/status/last_seen 보존을 서버에서 확인했다. 새 UI/배지의 에뮬레이터 수락으로 계산하지 않는다.
+- 이번 fixture1건은03:45:03.907295Z 정상 개별 soft-dismiss했다. 다른 알림·기록·사진은 보존했다. 최종 물리Kakao/누리 Home/native0/OS summary없음, 물리Google user_logout revoked, 다른 설치Google active·last_seen11/05 12:39:26.497816Z 불변, 양계정global opt-in true다.
+- 앱UID10402·최초설치2026-06-02 19:16:57·APK·permission hash fce9b61e55931b24c3909fd22fac0b452cae8ab6575d29efbfdb9de23d56ce12·네트워크·fontScale·density를 보존했다. QA 패키지 제거/명령 표식ABSENT/훅 종료 후 앱 정상 재실행을 확인했다. 일반 패키지 조회가 별도user150 접근을 거절한 사실은 보존하며 그 user에는 접근하지 않았다. 대상user0에서 보조 패키지 없음 확인이다. instrumentation 종료의 프로세스 종료를 자연 충돌로 계산하지 않는다.
+- 이번 logout은 정상 서버 요청으로 수행했다. 이전11/05 시험의 서버 세션 잔여 가능성은 현재 계정이나 다른 설치를 강제로 해제해 정리하지 않았다. 원문OAuth code/JWT/PKCE/FCM token은 도구 메모리에서만 처리하고 저장하지 않았다. 증거/영상은 로컬 보존, Git은 아래 marker의 문서 증분5개만 선별 전달한다. 문서 커밋과 자동 CI는 `git-delivery.json`의 실제 결과를 따른다.
+
+### 해결·잔여·다음 실행
+
+해결: OS13 필수 알림 진입 중복/복귀, OS10의 원래 등록 응답·이전 PendingIntent·통제 native 방어, 인증 앱링크 중복/사용 완료 이전 결과·취소 후 재시도. 진행: 문서 증분 전달과 해당 자동 CI 회수. 잔여: OS10 미소비 인증 결과와 실제 지연 FCM E2E, 생일 정상 원본 OS, P0 안정성 자료/위험 판단이다. 이 잔여를 제품 결함으로 단정하거나 다른 성공으로 대신하지 않는다.
+
+| 우선순위 | 원래 작업 번호 또는 추가 범위 | 작업 | 선행 조건 | 담당 | 필요한 입력 | 완료 기준 | 현재 시작 가능 여부 | Astra 권장 추론 강도 | GPT-6.1 Sol 권장 추론 강도 |
+|---|---|---|---|---|---|---|---|---|---|
+|1|3·5 / U1·OS10|미소비 이전 인증 결과의 현재 시도 경계|실제 native 결과를 원래 처리 전에 보존·반환 가능한 관찰 수단|Master|기존 QA 공식 인증. 현 도구는 ActivityResult 관측0|정상 PKCE/취소 정책 아래 현재 시도·세션·owner 보존|BLOCKED_TEST_CAPABILITY. 같은 registry 프로브 반복 금지|High|High|
+|2|5 / OS10·배지|이전 recipient 실제 FCM 지연 E2E|기존 QA 메시지의 실제 수신/처리를 계정 전환과 연결할 유한한 통제 수단|Master|새 계정/권한 변경 불필요, 수단 또는 통제 경계 증거의 수락 판단|실제 FCM 도착과 owner 차단·배지·다른 설치 보존 연결|native 경계는PASS, 실제 전송 지연NOT_RUN|High|High|
+|3|4·5 / U2 생일|정상 scheduler 생일 OS 후속|위 시험 아이1개 생성 범위 승인 또는 기존 due 도달|Master, 승인PO|시험 프로필 범위만 판단|정상 원본→worker/FCM→OS→목적지→읽음·정리|승인 전 생성하지 않음. 승인 시11/07 09:00 KST 실행안|Medium|Medium|
+|4|P0 안정성|과거502·SEVERE·Swap·관측 공백 판정|새 제공자 자료 또는 명시적 잔여 위험 판단|Master, 판단PO|위 문의 초안 발송 승인 또는 자료|공백/영향을 해소하거나 잔여 위험 명시 판정|기존 동일 로그 재조회 종료|Medium|Medium|
+|5|기존1~6·NAV, 원래7~14|다음 우선순위 결정|OS 잔여 판단 후 별도 지시|PO|후속 실행 지시|기존 수락 원장 기준|자동 착수하지 않음|Medium|Medium|
+
+정확한 다음 실행 지점은1번의 **미소비 Auth Tab 결과를 원래 Promise/앱링크 처리 전에 관찰할 수단의 유한한 검증**이다. 코드에 중복 방지가 존재한다는 사실로 실기기 수락을 대신하지 않으며 새 인증 구조는 권장하지 않는다. 두 모델 모두 해당 판단High, 통상 증거 연결/보고Medium 권장이다. 실제 모델·추론 강도는 미확인이고 자동 변경하지 않았다. 문서/CI 전달 후 이번 실행 종료, 다른 영역 AUTO_RESUME_NO, STORE HOLD.
+<!-- OS_BOUNDARIES_20261106_END -->
+
 <!-- OS_REQUIRED_20261105_BEGIN -->
 ## 2026-11-05 OS 필수 잔여 증분 검증: 부분 완료
 
