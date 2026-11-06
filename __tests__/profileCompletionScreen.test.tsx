@@ -137,10 +137,9 @@ describe('confirmed profile completion screen', () => {
       tree?.root.findAllByProps({ testID: 'profile-completion-summary' }),
     ).toHaveLength(0);
   });
-  it('applies the latest PO total-minus-3sp adjustment to every success-screen text role', () => {
+  it('uses the Activity typography for every success-screen text role without viewport font scaling', () => {
     expect([
       styles.title.fontSize,
-      styles.compactTitle.fontSize,
       styles.body.fontSize,
       styles.name.fontSize,
       styles.savedText.fontSize,
@@ -148,7 +147,7 @@ describe('confirmed profile completion screen', () => {
       styles.value.fontSize,
       styles.guide.fontSize,
       styles.buttonText.fontSize,
-    ]).toEqual([29, 25, 14, 21, 11, 11, 17, 11, 18]);
+    ]).toEqual([17, 11, 17, 11, 11, 14, 11, 14]);
   });
   it.each(['wide', 'portrait', 'square'])(
     'keeps the photo window stable for %s input without an image-ratio layout callback',

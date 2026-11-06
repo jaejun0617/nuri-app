@@ -17,6 +17,7 @@ const receipt = { id: 'notice', source: 'user' as const, ownerId: 'owner', reque
 let mockParams: RootStackParamList['NotificationDetail'];
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => mockNavigation,
+  useIsFocused: () => mockFocused,
   useRoute: () => ({ params: mockParams }),
   StackActions: {
     push: (name: string, params: unknown) => ({ type: 'PUSH', payload: { name, params } }),
@@ -33,7 +34,11 @@ jest.mock('../src/store/authStore', () => ({
     },
   }),
 }));
-jest.mock('../src/store/petStore', () => ({ usePetStore: { getState: () => ({ selectedPetId: 'pet', pets: [] }) } }));
+jest.mock('../src/store/petStore', () => ({ usePetStore: Object.assign(
+  (select: (state: { pets: { id: string; name: string }[] }) => unknown) => select({ pets: [{ id: 'pet', name: '사랑' }] }),
+  { getState: () => ({ selectedPetId: 'pet', pets: [{ id: 'pet', name: '사랑' }] }) },
+) }));
+jest.mock('../src/components/notifications/BirthdayCelebrationModal', () => 'BirthdayCelebrationModal');
 jest.mock('../src/store/uiStore', () => ({ showToast: jest.fn() }));
 jest.mock('../src/hooks/useNotificationInbox', () => ({ notificationKeys: { owner: (id: string | null) => ['notifications-v3', id] } }));
 jest.mock('../src/hooks/useNotificationDestinationRead', () => ({
@@ -97,6 +102,21 @@ it('shows an actual request screen while pending, then replaces it once without 
   await act(async () => { await client.invalidateQueries(); });
   await settle();
   expect(mockDispatch).toHaveBeenCalledTimes(1);
+});
+it('opens a verified birthday greeting before read readiness and keeps its pet-specific destination', async () => {
+  mockParams.resolveTargetOnLoad = undefined;
+  mockFetch.mockResolvedValue({ ...item({ kind: 'pet_anniversary', petId: 'pet' }), eventType: 'pet.birthday' });
+  await render(); await settle();
+  const modal = () => renderer!.root.find(node => (node.type as unknown) === 'BirthdayCelebrationModal');
+  expect(modal().props.petName).toBe('사랑');
+  expect(mockReady).toHaveBeenLastCalledWith(false);
+  await act(async () => modal().props.onShow());
+  expect(mockReady).toHaveBeenLastCalledWith(true);
+  await act(async () => modal().props.onOpen());
+  expect(mockDispatch).toHaveBeenCalledWith(expect.objectContaining({ payload: expect.objectContaining({ name: 'NotificationTimeline', params: expect.objectContaining({ params: expect.objectContaining({ petId: 'pet' }) }) }) }));
+  mockFocused = false;
+  await act(async () => renderer!.update(<QueryClientProvider client={client}><NotificationDetailScreen /></QueryClientProvider>));
+  expect(modal().props.visible).toBe(false);
 });
 it.each(['notification_detail', 'unavailable'] as const)('retains a readable %s detail instead of redirecting to Home', async kind => {
   mockFetch.mockResolvedValue(item({ kind }));

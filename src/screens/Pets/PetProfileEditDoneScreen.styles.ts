@@ -1,5 +1,6 @@
 import { StyleSheet } from 'react-native';
 import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
+import { ACTIVITY_READING_TYPE as TYPE } from '../../theme/activityTypography';
 
 export const PROFILE_COMPLETION_COLORS = {
   background: PRODUCT_CANVAS_COLOR,
@@ -16,18 +17,14 @@ export const styles = StyleSheet.create({
   artwork: { alignItems: 'center' },
   title: {
     color: c.ink,
-    fontSize: 29,
-    lineHeight: 39,
-    fontWeight: '800',
+    ...TYPE.title,
     letterSpacing: 0,
     textAlign: 'center',
     marginTop: 8,
   },
-  compactTitle: { fontSize: 25, lineHeight: 35 },
   body: {
     color: c.muted,
-    fontSize: 14,
-    lineHeight: 22,
+    ...TYPE.body,
     letterSpacing: 0,
     textAlign: 'center',
     marginTop: 12,
@@ -63,14 +60,13 @@ export const styles = StyleSheet.create({
   name: {
     flex: 1,
     color: c.ink,
-    fontSize: 21,
-    lineHeight: 29,
+    ...TYPE.title,
     letterSpacing: 0,
     fontWeight: '700',
   },
   saved: { flexDirection: 'row', alignItems: 'center', gap: 5, flexShrink: 1 },
   savedCheck: { width: 22, height: 22 },
-  savedText: { color: c.muted, fontSize: 11, lineHeight: 18, letterSpacing: 0 },
+  savedText: { color: c.muted, ...TYPE.body, letterSpacing: 0 },
   divider: { height: StyleSheet.hairlineWidth, backgroundColor: c.divider },
   row: { flexDirection: 'row', paddingVertical: 11, minHeight: 68 },
   cell: { flex: 1, paddingHorizontal: 9, gap: 3 },
@@ -79,17 +75,15 @@ export const styles = StyleSheet.create({
     borderLeftColor: c.divider,
     paddingLeft: 23,
   },
-  label: { fontSize: 11, lineHeight: 17, color: c.muted, letterSpacing: 0 },
+  label: { ...TYPE.body, color: c.muted, letterSpacing: 0 },
   value: {
-    fontSize: 17,
-    lineHeight: 24,
+    ...TYPE.label,
     color: c.ink,
     fontWeight: '700',
     letterSpacing: 0,
   },
   guide: {
-    fontSize: 11,
-    lineHeight: 18,
+    ...TYPE.body,
     color: c.muted,
     textAlign: 'center',
     letterSpacing: 0,
@@ -116,8 +110,7 @@ export const styles = StyleSheet.create({
   },
   buttonText: {
     flex: 1,
-    fontSize: 18,
-    lineHeight: 26,
+    ...TYPE.label,
     color: '#251255',
     fontWeight: '700',
     textAlign: 'center',

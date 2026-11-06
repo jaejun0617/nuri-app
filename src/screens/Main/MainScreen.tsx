@@ -23,6 +23,7 @@ import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import FirstPetWelcomeModal from '../../components/onboarding/FirstPetWelcomeModal';
+import HomeBirthdayGreeting from '../../components/notifications/HomeBirthdayGreeting';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import {
   consumeFirstPetWelcome,
@@ -56,6 +57,7 @@ export default function MainScreen() {
   const [firstPetWelcome, setFirstPetWelcome] =
     useState<FirstPetWelcomePending | null>(null);
   const [welcomeDismissPending, setWelcomeDismissPending] = useState(false);
+  const [welcomeCheckedOwner, setWelcomeCheckedOwner] = useState<string | null>(null);
   const welcomeDismissInFlightRef = useRef(false);
   const selectedPet = useMemo(
     () =>
@@ -69,6 +71,7 @@ export default function MainScreen() {
 
     if (!isLoggedIn || !userId || petLoading || petsCount === 0) {
       setFirstPetWelcome(null);
+      setWelcomeCheckedOwner(null);
       return () => {
         cancelled = true;
       };
@@ -76,7 +79,7 @@ export default function MainScreen() {
 
     loadFirstPetWelcomePending(userId)
       .then(pending => {
-        if (!cancelled) setFirstPetWelcome(pending);
+        if (!cancelled) { setFirstPetWelcome(pending); setWelcomeCheckedOwner(userId); }
       })
       .catch(error => {
         captureMonitoringException(error);
@@ -209,6 +212,10 @@ export default function MainScreen() {
         submitting={welcomeDismissPending}
         visible={firstPetWelcome !== null}
       />
+      {userId && selectedPet && !petLoading && !petErrorMessage ? <HomeBirthdayGreeting
+        key={`${userId}:${selectedPet.id}`} owner={userId} petId={selectedPet.id} petName={selectedPet.name}
+        enabled={isLoggedIn && !isPasswordRecoveryActive && profileSyncStatus === 'ready' && welcomeCheckedOwner === userId && !firstPetWelcome && !exitConfirmVisible}
+      /> : null}
     </>
   );
 }

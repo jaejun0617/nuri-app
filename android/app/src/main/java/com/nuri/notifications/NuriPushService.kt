@@ -7,6 +7,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.os.Bundle
 import android.window.SplashScreen
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
@@ -36,7 +37,9 @@ class NuriPushService : FirebaseMessagingService() {
     val expiry = try { SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US).apply { timeZone = TimeZone.getTimeZone("UTC"); isLenient = false }.parse(data["expiresAt"] ?: return)?.time ?: return } catch (_: Exception) { return }
     if (expiry <= System.currentTimeMillis()) return
     NuriPushModule.emit("NuriPushReceived", mapOf("recipientUserId" to owner))
-    if (NuriPushModule.foreground) return // No foreground system/banner double.
+    // Keep the real destination in the tray even while Nuri is open. Foreground
+    // arrivals are silent, so the inbox refresh does not cause a second banner.
+    val foreground = NuriPushModule.foreground
     if (!NotificationManagerCompat.from(this).areNotificationsEnabled()) return
     channels(this)
     val intent = Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
@@ -51,6 +54,13 @@ class NuriPushService : FirebaseMessagingService() {
       .setSmallIcon(com.nuri.R.mipmap.ic_launcher)
       .setContentTitle(data["title"]?.take(150) ?: "누리 알림")
       .setContentText(data["body"]?.take(180) ?: "새로운 알림이 도착했어요")
+      .setStyle(NotificationCompat.BigTextStyle().bigText(data["body"]?.take(180) ?: "새로운 알림이 도착했어요"))
+      .setSilent(foreground)
+      .addExtras(Bundle().apply {
+        putString("nuri_notification_id", id)
+        putString("nuri_notification_source", source)
+        putString("nuri_notification_owner", owner)
+      })
       // Each displayed OS notification represents one item, not the inbox unread total.
       .setNumber(1)
       .setTimeoutAfter((expiry - System.currentTimeMillis()).coerceAtLeast(1L))

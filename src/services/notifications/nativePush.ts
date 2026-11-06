@@ -8,6 +8,7 @@ type NativePush = {
   getChannelStates: () => Promise<unknown>;
   getChannelStatusDetails?: () => Promise<unknown>;
   syncInboxBadge?: (owner: string, count: number, observedAt: number, validUntil: number) => Promise<string>;
+  dismissInboxNotification?: (owner: string, id: string, source: string) => Promise<boolean>;
 };
 function bridge(): NativePush | null {
   const raw: unknown = NativeModules.NuriPushNotifications;
@@ -78,6 +79,12 @@ export async function syncNativeInboxBadge(owner: string, count: number, observe
 }
 export async function consumeInitialNotificationTap() {
   return parseNotificationTap(await bridge()?.consumeInitialTap());
+}
+
+/** Called only after the canonical read/delete succeeds, never on a mere tap. */
+export async function dismissNativeInboxNotification(owner: string, id: string, source: 'user' | 'announcement') {
+  if (!uuid.test(owner) || !uuid.test(id)) return false;
+  return bridge()?.dismissInboxNotification?.(owner, id, source) ?? false;
 }
 
 export async function readNativePushChannelStates(): Promise<Record<

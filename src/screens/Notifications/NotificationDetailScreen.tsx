@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { StackActions, useNavigation, useRoute } from '@react-navigation/native';
+import { StackActions, useIsFocused, useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -14,6 +14,8 @@ import { useNotificationDestinationRead } from '../../hooks/useNotificationDesti
 import { useAuthStore } from '../../store/authStore';
 import { usePetStore } from '../../store/petStore';
 import { showToast } from '../../store/uiStore';
+import BirthdayCelebrationModal from '../../components/notifications/BirthdayCelebrationModal';
+import { birthdayPetId, isBirthdayToday } from '../../services/notifications/birthdayCelebration';
 import {
   NotificationCanvas,
   NotificationHeader,
@@ -28,8 +30,11 @@ function NotificationDetailContent() {
     >();
   const { params } = useRoute<RootScreenRoute<'NotificationDetail'>>();
   const insets = useSafeAreaInsets();
+  const focused = useIsFocused();
   const userId = useAuthStore(s => s.session?.user.id ?? null);
   const [busy, setBusy] = useState(false);
+  const [birthdayShown, setBirthdayShown] = useState(false);
+  const ownedPets = usePetStore(s => s.pets);
   const acting = useRef(false);
   const redirected = useRef<string | null>(null);
   const captureCurrent = useOwnerOperation(`${params.source}:${params.id}`);
@@ -71,14 +76,17 @@ function NotificationDetailContent() {
     // Replace only this request screen so Back returns to the original context.
     navigation.dispatch(StackActions.replace(autoDestination.name, autoDestination.params));
   }, [autoDestination, navigation, receipt, userId]);
-  const { readError, retryRead } = useNotificationDestinationRead(receipt, Boolean(!resolvingTarget && detail.data && detail.isSuccess));
+  const birthdayPet = detail.data ? ownedPets.find(pet => pet.id === birthdayPetId(detail.data)) : undefined;
+  const { readError, retryRead } = useNotificationDestinationRead(receipt, Boolean(!resolvingTarget && detail.data && detail.isSuccess && (!birthdayPet || birthdayShown)));
   const onAction = async () => {
     if (acting.current || !receipt) return;
+    const current = captureCurrent();
+    if (!current()) return;
     acting.current = true;
     setBusy(true);
     try {
       const item = await fetchNotificationDetail(params.id, params.source);
-      if (useAuthStore.getState().session?.user.id !== userId || !navigation.isFocused()) return;
+      if (!current() || useAuthStore.getState().session?.user.id !== userId || !navigation.isFocused()) return;
       const target = item.actionTarget;
       if (!target || target.kind === 'unavailable') {
         showToast({
@@ -91,7 +99,12 @@ function NotificationDetailContent() {
       }
       const pets = usePetStore.getState().pets,
         selectedPetId = usePetStore.getState().selectedPetId;
-      if (target.kind === 'notification_detail') {
+      if (birthdayPetId(item) && target.kind === 'pet_anniversary') {
+        navigation.dispatch(StackActions.push('NotificationTimeline', {
+          notificationOpen: receipt, screen: 'TimelineMain',
+          params: { petId: target.petId, ymFilter: null, notificationOpen: receipt },
+        }));
+      } else if (target.kind === 'notification_detail') {
           const month = item.payload?.month;
           if (
             item.payload?.layout === 'monthly_news' &&
@@ -151,6 +164,10 @@ function NotificationDetailContent() {
       ) : (
         <NotificationState message="삭제되었거나 확인할 수 없는 알림이에요" />
       )}
+      {ownerMatches && detail.isSuccess && birthdayPet && detail.data ? <BirthdayCelebrationModal
+        visible={focused && !resolvingTarget} petName={birthdayPet.name} today={isBirthdayToday(detail.data)}
+        busy={busy} onShow={() => setBirthdayShown(true)} onClose={navigation.goBack} onOpen={() => { onAction(); }}
+      /> : null}
     </NotificationCanvas>
   );
 }

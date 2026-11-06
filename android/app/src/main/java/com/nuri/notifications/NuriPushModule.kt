@@ -60,6 +60,18 @@ class NuriPushModule(private val context: ReactApplicationContext) : ReactContex
     val tap = pendingTap; pendingTap = null
     promise.resolve(tap?.let { Arguments.createMap().apply { it.forEach { (key, value) -> putString(key, value) } } })
   }
+  @ReactMethod fun dismissInboxNotification(owner: String, id: String, source: String, promise: Promise) {
+    if (context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getString("owner", null) != owner) {
+      promise.resolve(false); return
+    }
+    val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+    manager.activeNotifications.filter {
+      it.tag == "nuri_push" && it.notification.extras.getString("nuri_notification_owner") == owner &&
+        it.notification.extras.getString("nuri_notification_id") == id &&
+        it.notification.extras.getString("nuri_notification_source") == source
+    }.forEach { manager.cancel(it.tag, it.id) }
+    promise.resolve(true)
+  }
   @ReactMethod fun getChannelStates(promise: Promise) {
     NuriPushService.channels(context)
     val manager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager

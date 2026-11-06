@@ -5,6 +5,7 @@ import {
 } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { useAuthStore } from '../store/authStore';
+import { dismissNativeInboxNotification } from '../services/notifications/nativePush';
 import {
   fetchNotificationPage,
   fetchNotificationBadgeSnapshot,
@@ -102,6 +103,8 @@ export function useNotificationInbox() {
         throw new Error('NURI_NOTIFICATION_ACCOUNT_CHANGED');
       if (item) await dismissUserNotification(item);
       else await dismissAllUserNotifications();
+      if (item && useAuthStore.getState().session?.user.id === userId)
+        await dismissNativeInboxNotification(userId, item.id, item.source).catch(() => {});
       if (useAuthStore.getState().session?.user.id === userId)
         await client.invalidateQueries({
           queryKey: notificationKeys.owner(userId),

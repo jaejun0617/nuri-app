@@ -140,7 +140,7 @@ export default function PetProfileEditDoneScreen() {
         <AppText
           preset="unifiedTitle"
           styleOverridesPreset
-          style={[styles.title, width <= 360 && styles.compactTitle]}
+          style={styles.title}
           accessibilityRole="header"
         >
           프로필 수정 완료!

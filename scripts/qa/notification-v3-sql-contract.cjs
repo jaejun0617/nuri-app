@@ -62,6 +62,7 @@ async function main() {
     '20261028031925_notification_memorial_birthday.sql',
     '20261105072331_notification_inbox_30_day_retention.sql',
     '20261105100451_notification_inbox_badge_snapshot.sql',
+    '20261106050544_notification_birthday_midnight_inbox.sql',
   ]) {
     try {
       await db.exec(
@@ -490,7 +491,58 @@ async function main() {
     assert.deepEqual((await one('select public.claim_notification_deliveries_v3(10) q')).q, []);
     assert.equal((await one("select count(*)::int n from notification_private.delivery_v3 where state='suppressed'")).n, 2);
   });
-  for (const [name, now] of [['before local 09:00', '2026-10-27T23:59:59Z'], ['after the one-day recovery window', '2026-10-29T00:00:00Z']]) {
+  await test('birthday appears at local midnight with one 09:00 delivery and unchanged push recovery cutoff', async () => {
+    await prepareBirthdays();
+    await db.query("select public.manage_user_notification_preferences_v3('{\"anniversary\":true}','Asia/Seoul')");
+    await db.query('select notification_private.scheduler_user_v3($1,$2)', [a, '2026-10-27T15:00:00Z']);
+    await db.query('select notification_private.scheduler_user_v3($1,$2)', [a, '2026-10-28T00:00:00Z']);
+    const rows = (await db.query(`select n.available_at as inbox_at,d.available_at as push_at,d.expires_at,d.next_attempt_at
+      from public.user_notifications n join notification_private.delivery_v3 d on d.notification_id=n.id`)).rows;
+    assert.equal(rows.length, 2);
+    for (const row of rows) {
+      assert.equal(new Date(row.inbox_at).toISOString(), '2026-10-27T15:00:00.000Z');
+      assert.equal(new Date(row.push_at).toISOString(), '2026-10-28T00:00:00.000Z');
+      assert.equal(new Date(row.expires_at).toISOString(), '2026-10-29T00:00:00.000Z');
+      assert.equal(new Date(row.next_attempt_at).toISOString(), new Date(row.push_at).toISOString());
+    }
+  });
+  await test('actual lease cannot send a visible birthday before local 09:00', async () => {
+    await prepareBirthdays();
+    // Choose a real timezone currently before 09:00; no production clock is changed.
+    const zone = await one(`select name, (statement_timestamp() at time zone name)::date as day
+      from pg_timezone_names where extract(hour from statement_timestamp() at time zone name) between 1 and 7
+      order by name limit 1`);
+    await db.query('update public.pets set birth_date=$1::date-interval \'1 year\',adoption_date=null,death_date=null where user_id=$2', [zone.day,a]);
+    await db.query("update notification_private.runtime_v3 set activated_at=statement_timestamp()-interval '2 days'");
+    await db.query("select public.manage_user_notification_preferences_v3('{\"anniversary\":true}',$1)", [zone.name]);
+    await db.query('update public.user_notification_preferences set push_opt_in=true where user_id=$1', [a]);
+    await db.query('select notification_private.scheduler_user_v3($1,statement_timestamp())', [a]);
+    assert.equal((await one('select count(*)::int n from notification_private.inbox_v3($1)', [a])).n, 2);
+    assert.deepEqual((await one('select public.claim_notification_deliveries_v3(10) q')).q, []);
+    assert.equal((await one("select count(*)::int n from notification_private.delivery_v3 where state='pending' and attempts=0 and available_at>statement_timestamp()")).n, 2);
+  });
+  await test('birthday timezone and DST boundaries use local midnight and 09:00, not a fixed nine-hour offset', async () => {
+    await prepareBirthdays();
+    await db.query("update public.pets set birth_date='2020-11-01',adoption_date=null,death_date=null where user_id=$1", [a]);
+    await db.query("select public.manage_user_notification_preferences_v3('{}','America/New_York')");
+    await db.query('select notification_private.scheduler_user_v3($1,$2)', [a, '2026-11-01T04:00:00Z']);
+    const row = await one('select n.available_at as inbox_at,d.available_at as push_at from public.user_notifications n join notification_private.delivery_v3 d on d.notification_id=n.id limit 1');
+    assert.equal(new Date(row.inbox_at).toISOString(), '2026-11-01T04:00:00.000Z');
+    assert.equal(new Date(row.push_at).toISOString(), '2026-11-01T14:00:00.000Z');
+  });
+  for (const field of ['read_at','dismissed_at']) {
+    await test(`birthday already ${field} is suppressed by the unchanged delivery guard`, async () => {
+      await prepareBirthdays();
+      await db.query("select public.manage_user_notification_preferences_v3('{\"anniversary\":true}')");
+      await db.query('update public.user_notification_preferences set push_opt_in=true where user_id=$1', [a]);
+      await db.query('select notification_private.scheduler_user_v3($1,$2)', [a,birthdayNow]);
+      await db.exec(`update public.user_notifications set ${field}=statement_timestamp()`);
+      await db.exec("update notification_private.delivery_v3 set available_at=statement_timestamp(),next_attempt_at=statement_timestamp(),expires_at=statement_timestamp()+interval '1 day'");
+      assert.deepEqual((await one('select public.claim_notification_deliveries_v3(10) q')).q, []);
+      assert.equal((await one("select count(*)::int n from notification_private.delivery_v3 where state='suppressed'")).n, 2);
+    });
+  }
+  for (const [name, now] of [['before local midnight', '2026-10-27T14:59:59Z'], ['after the one-day push recovery window', '2026-10-29T00:00:00Z']]) {
     await test(`birthday scheduler emits no catch-up ${name}`, async () => {
       await prepareBirthdays();
       await db.query('select notification_private.scheduler_user_v3($1,$2)', [a, now]);

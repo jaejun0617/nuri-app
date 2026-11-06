@@ -38,6 +38,8 @@ export function createNotificationOpenReceipt(input: { id: string; source: UserN
  * their readable detail; there is never an arbitrary route string or Home fallback. */
 export function resolveNotificationDestination(item: UserNotificationItem, receipt: NotificationOpenReceipt, _selectedPetId: string | null): Exclude<NotificationDestination, { name: 'UserNotifications' }> {
   const target = item.actionTarget;
+  if (item.eventType === 'pet.birthday' && target?.kind === 'pet_anniversary')
+    return { name: 'NotificationDetail', params: { id: item.id, source: item.source, notificationOpen: receipt } };
   switch (target?.kind) {
     case 'community_comment': return { name: 'CommunityComments', params: { postId: target.postId, commentId: target.commentId, notificationOpen: receipt } };
     case 'community_post': return { name: 'CommunityDetail', params: { postId: target.postId, notificationOpen: receipt } };

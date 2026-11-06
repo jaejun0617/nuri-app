@@ -7,6 +7,7 @@ import { appQueryClient } from '../services/query/appQueryClient';
 import { notificationKeys } from './useNotificationInbox';
 import { useAuthStore } from '../store/authStore';
 import { showToast } from '../store/uiStore';
+import { dismissNativeInboxNotification } from '../services/notifications/nativePush';
 
 /** A native onAppear/transitionEnd plus committed domain success is required.
  * Mount, focus or dispatch alone never consumes an unread notification. */
@@ -55,6 +56,8 @@ export function useNotificationDestinationRead(receipt: NotificationOpenReceipt 
     markUserNotificationRead(receipt).then(async () => {
       if (!isCurrent()) return;
       completed.current = receipt.requestId;
+      await dismissNativeInboxNotification(receipt.ownerId, receipt.id, receipt.source).catch(() => {});
+      if (!isCurrent()) return;
       await appQueryClient.invalidateQueries({ queryKey: notificationKeys.owner(receipt.ownerId) });
     }).catch(() => {
       if (mounted && isCurrent()) {

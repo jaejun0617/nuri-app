@@ -34,6 +34,7 @@ jest.mock('../src/services/local/firstPetWelcome', () => ({
 jest.mock('../src/screens/Main/components/LoggedInHome/LoggedInHome', () => 'LoggedInHome');
 jest.mock('../src/components/common/ConfirmDialog', () => 'ConfirmDialog');
 jest.mock('../src/components/onboarding/FirstPetWelcomeModal', () => 'FirstPetWelcomeModal');
+jest.mock('../src/components/notifications/HomeBirthdayGreeting', () => 'HomeBirthdayGreeting');
 
 test('an unfocused Home cannot open or consume the first-pet welcome before focus', async () => {
   mockFocused = false;
