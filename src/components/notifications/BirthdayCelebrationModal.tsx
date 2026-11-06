@@ -35,9 +35,9 @@ export default function BirthdayCelebrationModal({ visible, petName, today, busy
         </Pressable>
         <ScrollView style={s.scroll} contentContainerStyle={s.content} bounces={false}>
           <Image source={require('../../assets/notifications/birthday-celebration.png')} resizeMode="contain" style={[s.art, { width: artSize, height: artSize }]} accessible={false} />
-          <AppText preset="unifiedLabel" style={[s.eyebrow, { color: theme.colors.textSecondary }]}>{today ? '오늘의 특별한 순간' : '기억하고 싶은 특별한 날'}</AppText>
+          <AppText preset="unifiedLabel" style={[s.eyebrow, { color: theme.colors.textSecondary }]}>{today ? '사랑을 가득 담아' : '기억하고 싶은 특별한 날'}</AppText>
           <AppText preset="unifiedTitle" styleOverridesPreset accessibilityRole="header" style={[s.title, { color: theme.colors.textPrimary }]}>{petName}의 생일이에요</AppText>
-          <AppText preset="bodySm" style={[s.body, { color: theme.colors.textSecondary }]}>태어나줘서 고마워.{ '\n' }함께한 소중한 순간을 간직해요.</AppText>
+          <AppText preset="bodySm" style={[s.body, { color: theme.colors.textSecondary }]}>태어나줘서 고마워.{ '\n' }오늘도 행복한 순간이 가득하길.</AppText>
         </ScrollView>
         <CtaButton role="primary" accessibilityLabel="함께한 추억 보기" onPress={onOpen} disabled={busy} loading={busy} style={s.button}>
           <CtaText preset="unifiedLabel">함께한 추억 보기</CtaText>
@@ -50,7 +50,7 @@ export default function BirthdayCelebrationModal({ visible, petName, today, busy
 const s = StyleSheet.create({
   backdrop: { flex: 1, justifyContent: 'center', paddingHorizontal: 24 },
   panel: { width: '100%', maxWidth: 420, alignSelf: 'center', borderRadius: 28, borderWidth: 1, borderColor: 'rgba(255,255,255,0.78)', padding: 22, overflow: 'hidden' },
-  close: { alignSelf: 'flex-end', width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  close: { alignSelf: 'flex-end', marginRight: -12, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   scroll: { flexGrow: 0, flexShrink: 1 },
   content: { alignItems: 'center', paddingBottom: 24 },
   art: { alignSelf: 'center', marginBottom: 18 },
