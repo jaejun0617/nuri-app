@@ -1,5 +1,74 @@
 # NURI 통합 마감 수락 원장
 
+<!-- OS_FINAL_B_20261107_BEGIN -->
+## 2026-11-07 B단계 생일 정상 원본과 OS05 수락
+
+**기능 검증 완료, QA 선택 원복 판단 1건 보류. OS05 PASS, 기존 OS10·OS13 PASS 보존으로 현재 실행 구성의 OS 13/13을 수락한다. U3의 원래 OS 필수 행이 충족되어 통합 단위는 B1·B2·U3 3/7, 기록 전체는0/4다. 전체 미동결·STORE HOLD.** U2 생일 정상 원본 후속 PASS는17묶음·26eventType 전체 수락이 아니다. P0 core/source/runtime PASS·stability/final PARTIAL을 유지한다. 아래 과거12/13·생일 수신 대기 이력은 삭제하거나 소급 수정하지 않는다.
+
+### 범위·기준·관찰 구간
+
+- Master 단독. PO의11/07 실제 캡처2장을 B단계 입력으로 사용했다. 시작09:18:03 KST(00:18:03 UTC), 실기기·서버 종료 대조09:33:40 KST(00:33:40 UTC). PO 자료의 화면 시각은09:00/09:04이며 정확한 수신 초·당시 앱 전경 여부·PO 탭 이력은 미확인이다. 템플릿의 미기입 항목을 사실로 채우지 않았다.
+- 실제 Master root는 `/Users/shinjaejun/.codex/worktrees/nuri-batch-a-20261020/nuri`, branch `codex/walk-marker-recovery-20261020`, 시작HEAD/새 fetch 후 upstream `3ba8abd2dcd95721ee903b1db619b72ada0e01d8`이다. 기본 cwd의 다른 checkout·Room·agent를 사용하지 않았다. 기존 tracked dirty14개·미추적 문서/이미지 보존, 시작 staged0이다.
+- 제품 `e138c5cc2e80c7e6b102a74fe847aa373ec2be50`, runtime `bfcbd30eaf8638c6f55374d0880014c3acadfbf33cab234ad5ebcd40b6827732`는 기존 영수증 기준이다. 이번 실제 기기 APK hash `6a94b9be9fa76e1da42bc97583fba556c890a3ad148bc314e055b1ac457edc6c`와 시작/종료 비교가 일치한다. source/Android/서버 제품 diff0, 물리SM-S937N·UID10402·서명/설치일·권한 보존·Metro OFF다.
+- 실제 remote 조회: device-v3 v6/worker-v3 v4 ACTIVE 및 기존 배포 digest 일치, migration `20261106050544`·`20261104100113` 존재, scheduler 본문 MD5 `64da20a3981d98992a5b9d08bfa6af07` 시작/종료 불변. schema/cron/RLS/배포·제품 수정0이다. 구버전 에뮬레이터는 실행하지 않았고 독립Google 등록의active·owner·opt-in 보존만 서버에서 대조했다. 최신 물리 UI 수락으로 전용하지 않았다.
+- 증거 루트: `/Users/shinjaejun/.codex/nuri-os-final-b-20261107/`. `checkpoint.json`, `candidate-identity.json`, `candidate-final.json`, `acceptance.json`이 기준·해시·판정 범위를 소유한다. 원문 자격정보 없이 QA 식별자/해시·시각으로 연결했으며 개인 화면 캡처는 Git에 넣지 않는다.
+
+### U2: 11/07 정상 생일 원본 후속 PASS
+
+정상 원본은 `c1893b49-ad7d-4ff5-8800-c7c0a4197ba4`, delivery는 `fff9d340-a1bd-401e-94ec-fdf1c2129a02`다. pet `569a0e07-1dab-4823-b748-2da5f38448ff`, source `pets`, version `2025-11-07:2026`, event `pet.birthday`, target `pet_anniversary`가 모두 같은 승인 Kakao QA 아이를 가리킨다.11/06 복구 원본이나 QA transport를 합치지 않았다.
+
+| 단계 | 같은 원본의 실제 관찰(KST) | 증거 |
+|---|---|---|
+| 정상 생성·수신 조건 |11/07 00:00:00.093990 생성,09:00 외부 전송 가능,11/08 09:00 복구 종료. global/category ON·Asia/Seoul·물리 등록active | `birthday-server-initial.json` |
+| 실제 전송 |attempt1·accepted1, 물리 device receipt09:00:02.251827, 오류null | 같은 파일, provider ID는hash만 보존 |
+| OS 표시·런처 | 실제 개별key `0\|com.nuri.app\|169102080\|nuri_push\|10402`, OS 생성09:00:03.028. PO09:00 생일 문구/09:04 배지1, 초기 조회server unread·OS click0 | `po-evidence.json`, `po-1.png`, `po-2.png`, `device-initial.json` |
+| 실제 OS 탭 |09:21:44.802 OS `notification_clicked`, 해당개별key. 새 알림 재발송/딥링크 실행 아님 | `os05-event-log-final.json`, `birthday-tray-before-tap.png` |
+| 목적지·읽음 | 실제 대상 이름의 생일모달. 같은 원본 read09:21:51.904374, canonical/native0 | `birthday-normal-modal.png`, `birthday-read-confirmed.json` |
+| 추억·복귀 | 함께한 추억 보기→해당 아이의 정상 빈 타임라인→Back 상세읽음→기존 Home. Home의 별도 당일 안내X 종료 후 Home 유지 | `birthday-memory-target.png`, `birthday-back-detail.png`, `birthday-prior-route-return.png` |
+
+09:00:00 정각 도착으로 표현하지 않는다. 최초 알림 탭 직후 준비 중 캡처/아직 read null인 표본은 `birthday-normal-destination.png`·`birthday-after-destination.json`에 남기고, 이를 최종 도착/읽음으로 쓰지 않았다. 정상 정기 원본의 실제 OS→목적지→읽음→Back은 PASS지만 당시 앱 전경 여부는UNKNOWN이므로 OS05 전경 증거로 계산하지 않는다. 이번 실행이 모든 compositor frame 무플리커 또는 모든 생일 시간대의 수락은 아니다.
+
+### OS05: 현재 승인된 전경 무음 개별 표시 PASS
+
+**변경 입력/영향/목표:** A단계에 확인한 최신 native의 전경 개별 표시 허용 때문에 구후보 OS0 증거만으로 부족했던 OS05를 보완한다. 이번 제품 입력은 불변이며, 기존 전경 수신·중복 없는 표시·미읽음·목적지 요구만 실행했다. 기존 OS10/13·D/F/K/L-GLOBAL·cold 배지/summary dismiss를 반복하지 않았다.
+
+- 물리 Kakao QA·MainActivity 전경·알림함 미읽음0·canonical0·native0·Nuri OS0 기준을 먼저 저장했다. 기존 미읽음 전체 정리 없이 정상 생일 읽음 이후의 실제 기준값이다.
+- 새 QA transport는 정확히1건 `c7190b17-1bfe-40dc-9695-5ecc164c7acd`, `news.direct`, `qa.transport:os-final-b-1107:foreground-one`이다. 기존 QA allowlist·private emit·정기 worker 경로만 사용했다. 정상 생일 scheduler E2E와 별도이며 일반 사용자 발송·worker 반복 호출0이다.
+- 생성09:25:56.310780→실제 FCM accepted09:26:01.514668/attempt1→동일 앱PID27989의 Firebase SDK bound-service 수신09:26:01.550→개별 OS 생성09:26:01.558/게시09:26:01.559를 연결했다. 수신 trace 자체에는 메시지ID가 없으므로 단일 시험 구간·PID·시각 및 실제 OS extras의 정확한 알림ID/서버device receipt로 상호 연결했다. native 함수 직접 호출이나 instrumentation 수신으로 대체하지 않았다.
+- 대상 개별key는 `0\|com.nuri.app\|-2124849355\|nuri_push\|10402`, 실제 OS `NotificationRecord`와 게시 이벤트 모두 `ONLY_ALERT_ONCE|AUTO_CANCEL|SILENT`, 알림 객체sound=null/vibrate=null/defaults0/groupAlertBehavior1이다. 해당 개별 알림이 실제 트레이에 표시되고 탭된 실행과 연결해 **플랫폼의 무음 처리**를 수락한다. 채널에 sound URI가 있거나 stats.isNoisy=true인 것을 실제 재생으로 해석하지 않았다. 외부 마이크 녹음은 하지 않았다. Samsung `notification_alert`의 `[0,11,0,0,0]`은 기기 event-log-tags와 의미 대응을 확정하지 못해 원문만 보존하며 beep0 또는 특정mute reason으로 임의 해석하지 않는다.
+- 같은 알림 개별 enqueue1회/초기·안정 표본key1개. canonical/app/native0→1, 실제 런처1. Realtime이 먼저 만든 요약key `nuri_inbox_summary`는 개별 표시 후 취소됐으며 안정 상태는개별1/요약0이다. 전체 OS개수=서버미읽음이라는 새 기준은 만들지 않았다. 중복 FCM을 새로 주입한 시험이 아니라 같은 논리 알림의 이번 실제 표시/배지 증폭 없음과 기존 중복 방어 증거를 연결했다.
+- 실제 OS 탭09:27:07.420→같은 제목의 상세→read09:27:08.368903→Back09:27:47 알림함. canonical/app/native0·개별/요약0, 최종 런처 숫자 없음. 배지·읽음 변경은 정상 앱 흐름이며 SQL 읽음 수정0이다.
+- 증거: `os05-baseline.json`, `os05-receipt.json`, `os05-inbox-after.json`, `os05-arrival.json`, `os05-stable-before-tap.json`, `os05-event-log-final.json`, `os05-inbox-one.png`, `os05-individual-tray.png`, `os05-launcher-one.png`, `os05-destination.png`, `os05-read-confirmed.json`, `os05-back-inbox-zero.png`, `launcher-final-zero.png`.
+
+### 수락·정리·남은 범위
+
+| 구분 | 결과 |
+|---|---|
+| 해결 | OS05 기존 증거 공백1행 닫음. 현재OS12/13→13/13, 원래5번U3 PASS. U2 생일 정상 원본의 OS 후속1조건 PASS. 기존B1/B2와 합쳐 통합3/7, 기록0/4는 그대로 |
+| 진행 | 제품 수정·빌드·설치 없음. 문서6개 B증분의 선별 전달/자동CI만 수행하며 아래 영수증으로 최종 결과 연결 |
+| 잔여 | 선택 원복 대상QA-PHOTO 불일치에 따른 생일fixture 정리 판단1건. U1전체·U2나머지17/26·U5·NAV 및 P0 stability/final은 이번 OS 성공과 별개 |
+| 잔여 해결 계획 | QA-PHOTO의 현재 의도를 확인한 뒤 유효한 아이 선택·정확한 생일QA만 정상UI 정리. 다음 기능 검증은 별도 승인 후 U5 기존 미완료부터, P0지원은 별도 발송 승인 후 |
+
+이번 transport1건은 정상 알림함의 개별 삭제/확인으로09:31:29.765243 dismiss 완료했다(`os05-cleanup-receipt.json`). 다른 알림 모두읽음/일괄삭제0. Firebase 관찰 로그 수준은 원래 빈 값으로 복원하고 수집 프로세스를 종료했다. 새 instrumentation/보조패키지/상시훅0, 계정 전환0·새 세션0·네트워크/권한/채널 변경0·Metro OFF·기존 signer/UID/설치 보존이다. 물리 Kakao active와 독립Google 설치 active·전체수신ON도 시작/종료 일치한다.
+
+**선택 원복의 실제 차이:** 인계의 QA-PHOTO `f9474146-9f4d-43bf-8c03-b115fdddfc29`는 현재 정확한ID 조회0행이며 현재Kakao 선택 UI에도 없다. 앱을 열기 전 선택은 관찰하지 못했고 첫 Home에서 생일QA가 선택돼 있었다. 이번 실행은 아이 선택/삭제/재생성0이다. 삭제 원인·시점은UNKNOWN이며 제품 결함으로 단정하지 않는다. 옛 ‘누리’로 강제 선택하지 않고 현재 선택된 생일QA와 정상생일원본을 보존했다(`selection-preservation.json`, `selected-pet-preserved.png`). 이 정리 보류를 숨기거나 새 OS 분모로 추가하지 않는다. 최종 기기는 휴대폰 바탕화면, 앱 내부는 관찰된 생일QA Home, badge0이다.
+
+P0는 과거 고정24h 창의 버전별 관찰·공백과502 원인/영향/복구UNKNOWN, 메모리SEVERE/Swap 잔여를 그대로 보존한다. 이번 OS 성공으로 해결 처리하지 않았다. A단계의 문의 본문/비밀정보 제거 첨부3개는 그대로 준비완료·미발송이며 [공식 Supabase 지원](https://supabase.com/support) 발송 승인이 별도로 필요하다. 같은 과거로그 재조사·플랜/Compute/cron/RLS/서버 재시작0이다.
+
+### 문서 전달과 다음 실행
+
+이번6개 문서의 `OS_FINAL_B_20261107` 블록만 선별하고 기존혼재 변경은 그대로 남긴다. 수락 source of truth는 이 원장, 기술적 이유는 리서치, 재개점은 project-memory4개다. release-checklist의 Store/전체동결 상태는 변경하지 않는다. 제품 입력 불변으로 수동 전체검사·TypeScript·APK 빌드·설치를 반복하지 않는다. diff/비밀정보/기존dirty보존 검증과 문서 push의 필수 자동CI는 별도로 확인한다. 최종 commit/upstream/CI/검사 실제결과는 같은 증거루트의 `git-delivery.json`·`document-ci.json`에 연결한다. 기존제품CI42190973109·A문서CI42213523934와 이번 문서CI를 혼동하지 않는다.
+
+| 우선순위 | 원래 작업 번호 또는 추가 범위 | 작업 | 선행 조건 | 담당 | 필요한 입력 | 완료 기준 | 현재 시작 가능 여부 | Astra 권장 추론 강도 | GPT-6.1 Sol 권장 추론 강도 |
+|---|---|---|---|---|---|---|---|---|---|
+|1|6·U5|사진·일반기록·건강·일정의 기존 필수 잔여|별도 실행 승인·현재 QA 대상 식별|Master|PO 재개 지시|동일작업/새편집·이탈/늦은응답·소유/아이·삭제/예약 경계의 기존 미수락만 닫음|기술적 준비 가능, 승인 전 실행 보류|Medium, 실제 복합 결함 때 High|Medium, 실제 복합 결함 때 High|
+|2|B단계 QA 정리|생일QA와 관련 정상원본의 정리|유효한 종료 선택 확정|Master|QA-PHOTO 부재 상태에서 유지할 아이 지정 또는 생일QA 보존 확인|정상UI 정리·선택 원복·부수효과 기록, 무관 데이터 보존|판단 전 보존|Medium|Medium|
+|3|P0|준비된 문의와첨부3개 발송|별도 외부 발송 승인|Master|Supabase Support 발송 승인|실제 제공자자료로502/메모리/공백 판단, 미확인은 그대로 유지|본문/첨부 준비 완료, 발송 보류|Medium|Medium|
+|4|3·4·NAV-01|U1 별도인증·U2나머지원본·NAV 기존 잔여|U5 다음 우선순위 지시|Master|후속 범위 승인|해당 기존 원장 필수조건만 수락|자동 착수하지 않음|경계 판단 High, 확정 실행 Medium|경계 판단 High, 확정 실행 Medium|
+
+정확한 다음 기능 실행 지점은 **U5의 현재 아이/기존 task를 읽기 전용으로 식별하고, 완료된 Google attempts5 동일task 복구 및 건강/일정 동일UUID 응답 유실 증거를 제외한 첫 미완료 행**이다. 기록0/4는 미구현0%가 아니다. 모델/추론 설정 자동 변경0, 예약/백그라운드관측/자동재개0. 다른 영역·원래7~14를 시작하지 않고 PO 다음 지시를 기다린다.
+<!-- OS_FINAL_B_20261107_END -->
+
 <!-- OS_FINAL_A_20261106_BEGIN -->
 ## 2026-11-06 OS 최종 잔여 판정 A단계: 부분 완료
 
