@@ -1,5 +1,16 @@
 # NURI 통합 마감 수락 원장
 
+## 2026-11-09 U5 동일 실기기 계정 교차 검증
+
+**일반 기록 PASS, 건강 계정 교차 PASS.** 기록 도메인 전체 1/4, U5 부분 완료. 건강의 삭제 직후 요약 표시 관찰은 아래 별도 잔여로 둔다. 기존 통합 3/7, OS 13/13, U3, 11/07 정상 생일 OS 후속 및 P0 core/source/runtime PASS를 보존한다. P0 stability/final PARTIAL, 전체 미동결, STORE HOLD.
+
+- SM-S937N의 기존 bundled Debug에서 정상 UI로 Kakao QA → Google QA → Kakao QA 인증·복귀. 제품 `997595a45fc295d321ab18a851192e4b21e69b3a`, runtime `d5e9d41b848fc26f5fa4b073c8ea8dc4b1874e04b21de93f887acf31bcd198d0`, APK `e4b4f04ca6d6e8c823d3d89d57386aecc8183fd5e9f86178ce8dcb86ace07867`, [기존 제품 CI](https://github.com/jaejun0617/nuri-app/actions/runs/42553748644). 제품·서버 입력 변경, 앱 재빌드·재설치, OS 수락 반복 없음.
+- **건강:** 생일 QA 아이의 시험 체중 `136bc265-f92c-4b7a-a94a-ed8a8c93708c` 한 건이 Kakao 소유로 서버에 확정됐다. 서버 201을 실제 앱 네트워크 계층에서 보류하고 Back 후 정상 인증했다. 앱 PID 20984를 유지한 채 Google owner로 전환된 뒤 취소되지 않은 원래 요청에 응답을 반환했다. Google 건강 화면에 이전 체중·메모가 나타나지 않았고 Google의 두 아이 서버 값(5kg, 5.2kg)은 유지됐다. Kakao 복귀 후 해당 아이의 원래 기록을 조회했다. JS 내부 분기 자체를 계측한 결과는 아니다.
+- **일반 기록:** Kakao 생일 QA 아이의 시험 초안 `QA-U5-1109-XOWNER-DRAFT`를 저장 요청 없이 남겼다. Google의 해당 월 건강 조회와 기록 작성 UI는 Google 아이에 귀속됐고, Google 기록 폼에 이전 초안이 없었다. Kakao 복귀 후 원래 아이의 작성 폼에서 동일 제목이 복원됐다. 기존 CRUD·복구·삭제 캐시·아이 전환 증거에 계정 교차를 연결한다.
+- **정리:** 원래 소유에서 시험 초안을 비우고 해당 체중만 앱으로 삭제했다. 서버의 생일 QA 체중 null·체중 행 0, 누리 6kg 및 두 프로필 지문 유지, 해당 초안·pending 및 업로드 큐 0을 확인했다. 보조 도구를 종료·삭제하고 Kakao QA·누리 선택을 복원했다. 물리 Kakao 및 별도 Google 등록은 active, 물리 Google 등록은 revoked다. 생일 QA 자체와 기존 데이터는 보존했다.
+- **잔여:** 시험 체중 삭제 직후 이력과 측정일은 비었으나 요약에 7.42kg이 한 차례 보였다. 서버는 null이고 같은 아이로 재진입하자 요약도 빈 상태였다. 지속 시간과 재현 조건은 미확인이므로 건강 도메인 전체를 닫지 않는다. 다음 검증은 마지막 체중 삭제 뒤 화면을 유지한 상태로 조회 완료와 요약 값을 대조하는 것이다. 사진 경합·계정 변경 큐, 일정 취소와 늦은 결과 경합은 이전 절의 잔여를 유지한다.
+- **증거:** `/Users/shinjaejun/.codex/nuri-u5-account-20261109/`의 `account-probe.txt`, `held-server.json`, `google-health.json`, `google-composer.json`, `kakao-draft-restored.json`, `kakao-weight-cleaned{,-reentry}.json`, `kakao-final-server.json`, `google-and-registry-final.json`, `final-inventory.txt`. 기존 기술 결정 변경 없음.
+
 <!-- U5_REMAINDERS_20261109_BEGIN -->
 ## 2026-11-09 U5 실기기 잔여 증분 수락
 
