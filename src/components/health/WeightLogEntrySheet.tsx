@@ -42,6 +42,8 @@ import {
   type PetWeightLogSource,
 } from '../../services/supabase/petWeightLogs';
 import { getBrandedErrorMeta } from '../../services/app/errors';
+import { appQueryClient } from '../../services/query/appQueryClient';
+import { useAuthStore } from '../../store/authStore';
 import { showToast } from '../../store/uiStore';
 import { getKstYmd, safeYmd } from '../../utils/date';
 import { useOwnerOperation } from '../../hooks/useOwnerOperation';
@@ -58,6 +60,26 @@ type Props = {
   onClose: () => void;
   onCommitted?: (result: PetWeightLogMutationResult) => void;
 };
+
+function invalidateDetachedWeightResult(
+  owner: string | undefined,
+  petId: string,
+  result: PetWeightLogMutationResult,
+) {
+  if (
+    !owner ||
+    useAuthStore.getState().session?.user.id !== owner ||
+    result.changedLog?.userId !== owner ||
+    result.changedLog.petId !== petId
+  ) {
+    return;
+  }
+
+  // A closed entry must not apply its snapshot to a newer form or pet.
+  appQueryClient
+    .invalidateQueries({ queryKey: ['health-report', 'month', petId] })
+    .catch(() => {});
+}
 
 function normalizeWeightInput(value: string): number {
   const numeric = Number(value.trim());
@@ -187,6 +209,7 @@ export default function WeightLogEntrySheet({
   const handleSave = useCallback(async () => {
     const current = captureEntry();
     if (mutation.current || !current()) return;
+    const owner = useAuthStore.getState().session?.user.id;
     const operation = Symbol('weight-save');
     mutation.current = operation;
     try {
@@ -199,7 +222,10 @@ export default function WeightLogEntrySheet({
         note,
         source: entrySource,
       });
-      if (!current()) return;
+      if (!current()) {
+        invalidateDetachedWeightResult(owner, petId, result);
+        return;
+      }
 
       showToast({
         tone: 'success',
@@ -238,13 +264,17 @@ export default function WeightLogEntrySheet({
   const performDelete = useCallback(
     async (current: () => boolean) => {
       if (!initialLog || mutation.current || !current()) return;
+      const owner = useAuthStore.getState().session?.user.id;
       const operation = Symbol('weight-delete');
       mutation.current = operation;
       setDeleteError(null);
       try {
         setDeleting(true);
         const result = await deletePetWeightLog({ logId: initialLog.id });
-        if (!current()) return;
+        if (!current()) {
+          invalidateDetachedWeightResult(owner, petId, result);
+          return;
+        }
         showToast({
           tone: 'info',
           title: '체중 기록을 지웠어요',
@@ -273,6 +303,7 @@ export default function WeightLogEntrySheet({
       healthStyle,
       initialLog,
       onCommitted,
+      petId,
       petName,
     ],
   );

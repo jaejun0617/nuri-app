@@ -29,6 +29,7 @@ export function useHealthReportMonth(input: {
   const query = useQuery({
     queryKey: ['health-report', 'month', input.petId, normalizedMonthKey],
     enabled: Boolean(input.petId),
+    refetchOnMount: true,
     staleTime: 30 * 1000,
     gcTime: 10 * 60 * 1000,
     queryFn: async () => {

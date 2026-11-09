@@ -11,6 +11,7 @@ import {
   type PetWeightLogMutationResult,
 } from '../src/services/supabase/petWeightLogs';
 import { showToast } from '../src/store/uiStore';
+import { appQueryClient } from '../src/services/query/appQueryClient';
 
 type State = { session: { user: { id: string } } | null };
 let mockState: State = { session: { user: { id: 'A' } } };
@@ -120,6 +121,7 @@ afterEach(async () => {
   await act(async () => renderer?.unmount());
   renderer = undefined;
   jest.restoreAllMocks();
+  appQueryClient.clear();
   expect(mockListeners.size).toBe(0);
 });
 
@@ -178,6 +180,34 @@ it.each(['pet', 'hidden', 'unmount', 'owner'] as const)(
       expect(
         tree().root.findByProps({ testID: 'weight-entry-save' }).props.disabled,
       ).toBe(false);
+  },
+);
+
+it.each(['A', 'B'])(
+  'invalidates only the committed pet cache after Back with current owner %s',
+  async currentOwner => {
+    const key = ['health-report', 'month', 'pet', '2026-10'];
+    const otherKey = ['health-report', 'month', 'other', '2026-10'];
+    appQueryClient.setQueryData(key, { weightLogs: [] });
+    appQueryClient.setQueryData(otherKey, { weightLogs: [] });
+    const pending = deferred<PetWeightLogMutationResult>();
+    jest.mocked(upsertPetWeightLog).mockReturnValueOnce(pending.promise);
+    let saving!: Promise<void>;
+    act(() => {
+      saving = save();
+      tree().root.findByType(Modal).props.onRequestClose();
+    });
+    if (currentOwner !== 'A') owner(currentOwner);
+    await act(async () => {
+      pending.resolve(saved);
+      await saving;
+    });
+    expect(appQueryClient.getQueryState(key)?.isInvalidated).toBe(
+      currentOwner === 'A',
+    );
+    expect(appQueryClient.getQueryState(otherKey)?.isInvalidated).toBe(false);
+    expect(committed).not.toHaveBeenCalled();
+    expect(close).toHaveBeenCalledTimes(1);
   },
 );
 
