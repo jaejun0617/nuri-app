@@ -15,6 +15,7 @@ import {
   type PetSchedule,
 } from '../src/services/supabase/schedules';
 import {
+  clearScheduleNotification,
   getScheduleNotificationSettings,
   upsertScheduleNotification,
 } from '../src/services/schedules/notifications';
@@ -77,6 +78,7 @@ jest.mock('../src/services/schedules/notifications', () => ({
   requestScheduleNotificationPermission: jest.fn().mockResolvedValue('granted'),
   getScheduleNotificationSettings: jest.fn(),
   upsertScheduleNotification: jest.fn(),
+  clearScheduleNotification: jest.fn().mockReturnValue({ status: 'cleared' }),
   getScheduleNotificationSyncFeedback: jest.fn().mockReturnValue(null),
 }));
 
@@ -195,6 +197,10 @@ describe('single schedule reminder form contract', () => {
     const root = await render(<ScheduleEditScreen />);
     expect(hasText(root, '알림 반복')).toBe(false);
     expect(hasText(root, '매주')).toBe(true);
+    jest.mocked(fetchScheduleById).mockResolvedValueOnce({
+      ...legacy,
+      reminderMinutes: [5],
+    });
     await press(root, '일정 수정하기');
     expect(updateSchedule).toHaveBeenCalledWith(
       expect.objectContaining({ reminderMinutes: [5], repeatRule: 'weekly' }),
@@ -204,6 +210,21 @@ describe('single schedule reminder form contract', () => {
       expect.any(Object),
     );
     expect(legacy.reminderMinutes).toEqual([5, 10, 15]);
+  });
+
+  it('clears only the edited alarm when another device deleted the row before the update response', async () => {
+    const root = await render(<ScheduleEditScreen />);
+    jest.mocked(fetchScheduleById).mockRejectedValueOnce({ code: 'PGRST116' });
+
+    await press(root, '일정 수정하기');
+
+    expect(updateSchedule).toHaveBeenCalledTimes(1);
+    expect(fetchScheduleById).toHaveBeenCalledTimes(2);
+    expect(clearScheduleNotification).toHaveBeenCalledWith(legacy.id);
+    expect(upsertScheduleNotification).not.toHaveBeenCalled();
+    expect(mockNavigation.replace).toHaveBeenCalledWith(
+      'ScheduleList', expect.objectContaining({ petId: legacy.petId }),
+    );
   });
 
   it('edit helper uses real settings and refreshes capability after selection', async () => {

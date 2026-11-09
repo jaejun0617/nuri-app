@@ -79,6 +79,7 @@ import {
 import {
   checkScheduleNotificationPermission,
   captureScheduleNotificationLifecycle,
+  clearScheduleNotification,
   getScheduleNotificationHelperText,
   getScheduleNotificationSyncFeedback,
   requestScheduleNotificationPermission,
@@ -395,22 +396,48 @@ export default function ScheduleEditScreen() {
         syncStatus: schedule.syncStatus,
       });
 
-      const notificationResult = await upsertScheduleNotification(
-        {
-          id: schedule.id,
-          petId: schedule.petId,
-          title: title.trim(),
-          note: note.trim() || null,
-          startsAt: startsAtIso,
-          repeatRule,
-          reminderMinutes,
-          completedAt: schedule.completedAt,
-        },
-        notificationLifecycle,
-      );
-      const notificationFeedback =
-        getScheduleNotificationSyncFeedback(notificationResult);
-      if (notificationFeedback) showToast(notificationFeedback);
+      // The write may have succeeded before another device deleted or changed
+      // the schedule. Do not arm an alarm from the acknowledged form payload.
+      const lifecycleIsCurrent = () =>
+        captureScheduleNotificationLifecycle().generation === notificationLifecycle.generation;
+      if (!lifecycleIsCurrent()) return;
+      let confirmedSchedule: PetSchedule | null;
+      try {
+        confirmedSchedule = await fetchScheduleById(schedule.id);
+      } catch (error) {
+        if (!lifecycleIsCurrent()) return;
+        if (error && typeof error === 'object' && 'code' in error && error.code === 'PGRST116') {
+          confirmedSchedule = null;
+        } else {
+          clearScheduleNotification(schedule.id);
+          Alert.alert(
+            '최신 일정 상태를 확인하지 못했어요',
+            '기기 알림은 예약하지 않았어요. 연결을 확인한 뒤 다시 시도해 주세요.',
+          );
+          return;
+        }
+      }
+      if (!lifecycleIsCurrent()) return;
+      const currentSchedule =
+        confirmedSchedule?.userId === schedule.userId &&
+        confirmedSchedule.petId === schedule.petId &&
+        confirmedSchedule.syncStatus !== 'deleted'
+          ? confirmedSchedule
+          : null;
+      const notificationResult = currentSchedule
+        ? await upsertScheduleNotification(currentSchedule, notificationLifecycle)
+        : clearScheduleNotification(schedule.id);
+      if (!lifecycleIsCurrent()) return;
+      if (currentSchedule) {
+        const feedback = getScheduleNotificationSyncFeedback(notificationResult);
+        if (feedback) showToast(feedback);
+      } else {
+        showToast({
+          tone: 'info',
+          title: '일정이 더 이상 없어요',
+          message: '다른 기기에서 변경되었을 수 있어요.',
+        });
+      }
 
       if (petId) {
         await refresh(petId);
@@ -418,11 +445,19 @@ export default function ScheduleEditScreen() {
           queryKey: ['health-report', 'month', petId],
         });
       }
+      if (!lifecycleIsCurrent()) return;
       if (resolvedReturnTo.screen === 'HealthReport') {
         navigation.popTo('HealthReport', {
           petId: petId ?? undefined,
           initialTab: resolvedReturnTo.initialTab ?? 'records',
           focusYmd: normalizedDate,
+          entrySource: resolvedReturnTo.entrySource,
+        });
+        return;
+      }
+      if (!currentSchedule) {
+        navigation.replace('ScheduleList', {
+          petId,
           entrySource: resolvedReturnTo.entrySource,
         });
         return;
