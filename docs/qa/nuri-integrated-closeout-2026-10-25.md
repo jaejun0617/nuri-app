@@ -2,14 +2,17 @@
 
 ## 2026-11-09 U5 건강·일정 실기기 마감과 사진 편집 경합
 
-**건강·일정·일반 기록 PASS, 사진 부분 수락.** 기록 3/4, 통합 3/7, OS 13/13. 기존 생일·인증·알림 및 P0 core/source/runtime PASS 보존. 전체 미동결, STORE HOLD.
+**건강·일정·일반 기록·사진 PASS, U5 마감.** 기록 4/4, 통합 4/7, OS 13/13. 기존 생일·인증·알림 및 P0 core/source/runtime PASS 보존. 전체 미동결, STORE HOLD.
 
 - 건강: 기존 SM-S937N에서 마지막 7.42kg 행을 삭제한 뒤 화면을 나가지 않았다. 서버 행 0·프로필 체중 null인데 요약만 7.42kg이 조회 이후에도 남았다. `b12f1e5`의 회귀 검사는 구 코드에서 실패했다. 프로필 보조값을 건강 월 캐시와 분리한 APK `3aa62ab0`에서는 같은 화면의 요약 `–kg`, 이력 0, 서버 null을 확인했다. 누리 6kg 및 기존 계정 경계 유지.
-- 사진: 두 Kakao QA 설치에서 시험 추억 `13efcb55-37d8-47b1-92d1-95a3b756353c`의 동일한 두 사진을 열었다. 물리의 이전 참조 변경을 전송 전에 보류하고, 별도 설치의 새 편집을 정상 저장한 뒤 원래 요청을 반환했다. 실제 409, 새 대표·호환·정규 참조와 Storage 객체 불변. 시험 기록과 두 객체를 삭제했고, 실제 전경 복귀 후 남은 시험 작업도 정상 큐 처리로 0. **다른 계정에서 대기 사진 작업이 처리되지 않는 동일 설치 실제 시험은 별도 잔여**다. 단위 검사를 실제 계정 전환으로 계산하지 않는다.
+- 사진 경합: 두 Kakao QA 설치에서 시험 추억 `13efcb55-37d8-47b1-92d1-95a3b756353c`의 동일한 두 사진을 열었다. 물리의 이전 참조 변경을 전송 전에 보류하고, 별도 설치의 새 편집을 정상 저장한 뒤 원래 요청을 반환했다. 실제 409, 새 대표·호환·정규 참조와 Storage 객체 불변. 시험 기록과 두 객체를 삭제했고, 실제 전경 복귀 후 남은 시험 작업도 정상 큐 처리로 0.
+- 사진 계정 격리: 동일 물리 설치에서 시험 추억 `b1ce89d4-ff3c-48a6-9b71-3dffd45945d6`의 첫 Kakao 참조 요청만 전송 전에 실패시켰다. 정상 Google QA 로그인·전경 복귀 후 해당 Kakao 큐 1건·attempts 1·참조와 객체 2개 그대로, 해당 Google RPC 없음. 정상 Kakao QA 복귀·전경 후 원래 요청 200, 처음 계획한 참조 한 개만 확정, 실기기 사진 1장·큐 0. 시험 기록·참조·객체 및 기기 합성 사진 두 개를 정리했다. 별도 제품 변경 없이 기존 소유권 계약을 확인했다.
 - 일정: 물리 수정 HTTP 204를 보류한 동안 다른 Kakao QA 설치에서 해당 일정만 삭제했다. 원래 응답 반환 후 구 후보는 서버 행 0에도 15분 전 알림을 다시 등록했다. `7a91050`에서 최신 서버 행을 재조회하고, 없으면 해당 예약만 취소한다. 새 후보에서 같은 순서로 원래 204를 반환해도 서버 행·기기 예약·게시 모두 0, 전체 일정 빈 상태. 구 후보에서 생긴 시험 예약도 정확한 ID 하나만 취소했다.
 - 추억 상세: `ce9702c`에서 글라스의 좌우 외부 여백만 제거했다. 같은 제목·본문의 실기기 카드 경계 x45–1035 → x0–1080, 텍스트 안쪽 x45–1035 유지. 사진 뷰포트 여백·관련 목록은 기존과 동일하게 유지했다.
 - 제품 `ce9702c5cf32ea1949be085fe17dfb620db5fe57`, runtime `2a09113cf583ae3d9a648cef7e62e1c453dbdf9a4ad2097ea12731355665386d`, 물리 APK `af0b2860b317a5a139b504307a2854a77a08f110fafbcb24eaecc16204226518`, bundled Debug 보존 설치·Metro OFF. 운영 스키마와 알림 정책 변경 없음. TypeScript·대상 lint·건강 66·사진/일정 계약 37·최종 일정/상세 89 PASS. 각각의 실행에 중복 테스트가 포함돼 합산하지 않는다.
 - 증거: `/Users/shinjaejun/.codex/nuri-u5-final-weight-20261109/`의 `original-deleted-still-open.json`, `fixed-deleted-stable.json`, `photo-race-probe.txt`, `photo-{before,new-winner,after-old,cleanup-stable}.json`, `schedule-{race,fixed}-probe.txt`, `schedule-{race,fixed}-alarm-after.json`, `layout-{before,after}.json`, `post-foreground-queue.txt`, `final-server.json`, `combined/installation.json`. 별도 Kakao QA 임시 AVD만 로그아웃·삭제; 기존 Google AVD는 건드리지 않았다.
+- 추가 증거: `photo-owner-probe.txt`, `owner-{pending-baseline,under-google,kakao-recovered,final-cleanup}.json`, `photo-owner-recovered-ui.json`, `final-account-server.json`. 같은 제품 입력이 들어간 `d8dbc9c` [원격 CI](https://github.com/jaejun0617/nuri-app/actions/runs/42561944759) 350 suites·4,691 PASS, 기존 lint 경고 23·오류 0. U1·U2·NAV 및 P0 안정성은 기존 잔여로 보존하고 자동 착수하지 않는다.
+- 시험 기록에 직접 연결된 알림 7건만 앱에서 개별 정리했고, 서버 미정리 행 0. XP 원장·귀속 불명 칭호와 기존 알림 보존. 물리 Kakao·별도 Google 등록 active, 물리 Google만 정상 로그아웃에 따라 revoked. 시험 보조 도구 제거. `qa-inbox-{ids,final}.json`, `final-registration.json`, `final-restored-home.json`.
 
 ## 2026-11-09 U5 동일 실기기 계정 교차 검증
 
