@@ -1,5 +1,52 @@
 # NURI 통합 마감 수락 원장
 
+<!-- U5_REMAINDERS_20261109_BEGIN -->
+## 2026-11-09 U5 실기기 잔여 증분 수락
+
+**U5 부분 완료.** 기존 B1·B2·U3 통합 3/7, OS 13/13 및 11/07 정상 생일 원본 후속 PASS를 보존한다. 네 도메인에 아래 실제 세부 PASS를 추가했지만, 계정 교차와 동시 편집·예약 경계가 남아 도메인 전체는 0/4다. 전체 미동결·STORE HOLD. P0 core/source/runtime PASS·stability/final PARTIAL 유지.
+
+### 기준·범위
+
+- Master 단독, `nuri-batch-a-20261020/nuri` / `codex/walk-marker-recovery-20261020`. 시작 HEAD와 실제 원격 `12b5f95`, 앱 소스 `e138c5c`, 설치 APK `6a94b9be9fa76e1da42bc97583fba556c890a3ad148bc314e055b1ac457edc6c` 일치. 물리 SM-S937N·Kakao QA·Metro OFF·초기 선택 **누리**. 기록 쓰기는 동일 소유가 확인된 기존 생일 QA `569a0e07-1dab-4823-b748-2da5f38448ff`에만 수행했다. 초기 해당 아이 기록·체중·일정·큐 0, 최신 체중 null, 해당 owner/pet 초안과 pending 없음.
+- `QA-PHOTO` ID `f9474146-9f4d-43bf-8c03-b115fdddfc29`는 linked DB의 정확 ID 조회 0행(소유·이름·선택 필터 없음), 현재 Kakao 선택 목록에도 없음. 기존 B단계와 11/06 디자인 영수증의 표시/선택을 대조했으나 연결되는 정상 삭제 영수증은 확인 못했다. 원인·시점 UNKNOWN, 조사 확대·재생성·직접 복원 없음. 생일 QA와 정상 알림 `c1893b49-ad7d-4ff5-8800-c7c0a4197ba4`의 read_at·dismissed_at 상태 보존. 생일 QA 자체 정리는 별도 판단으로 보류.
+- 기존 사진 attempts5는 11:51 동일 task 완료 영수증 `delivery-photo-recovery-1105/qa-upload-direct-acceptance.json`을 재사용한다. 11:46 미복구로 소급하지 않았다. Kakao DB·Storage 응답 유실, 건강 동일 UUID 및 같은 아이의 새 폼 보존, 일정 동일 UUID 및 예약 교체, 기록 중단 복구·삭제 캐시 PASS는 영향 범위와 기존 영수증을 유지한다. OS05·OS10·OS13 재시험 없음.
+
+### 원래 6번: 실제 닫힌 조건과 잔여
+
+| 도메인 | 이번에 새로 확인한 실제 조건 | 전체 수락 전 남은 조건 |
+|---|---|---|
+| 건강 | 서버 201을 보류하고 Back·아이 변경 후 응답 해제. 다른 아이의 6kg 유지. 구 APK의 동일 아이 재진입에서 빈 캐시가 남아 결함 재현. 보정 APK에서는 월 전환 없이 7.31kg 확인. 두 시험 체중 각각 삭제, 생일 QA null·누리 6kg 원복 | 부분 수락. 실기기의 계정 교차 늦은 응답은 미실행. 기존 동일 아이 새 폼·응답 유실 증거와 계정 가드 단위 검사를 실제 교차 인증으로 계산하지 않음 |
+| 일정 | HTTP 201 보류 중 Back 차단과 저장 잠금, 해제 후 동일 UUID 1행·올바른 소유. 완료·삭제 뒤 해당 예약 0. 별도 매주 일정에서 11/09 12:25 실제 게시 및 전달 영수증, 11/16 12:25 다음 예약과 새 토큰을 확인. 앱 삭제 후 행·다음 예약·게시 알림 모두 0 | 부분 수락. 동시 변경 뒤 오래된 저장 결과가 돌아오는 실제 경합 미검증. 저장 잠금 상태에서 가짜 취소·계정 변경을 만들지 않음. 11/16 실제 울림은 기다리지 않았으며 다음 예약 등록·취소까지만 수락 |
+| 일반 기록 | 초안은 누리 폼에 나타나지 않고 원래 QA에만 복원. 정상 생성·같은 UUID 제목 수정·별도 새 생성 UUID. 새 생성 201 뒤 Back 차단, 응답을 의도적으로 끊고 다른 제목으로 재시도해 기존 저장 확인·원본 불변·행 수 불변·수정 초안 보존·실제 상세 복귀. 시험 초안 비우기 및 두 행 삭제, 타임라인 0 | 부분 수락. 동일 설치에서 인증 계정 자체가 바뀐 뒤 초안·조회 귀속의 실기기 증거는 미확보. 저장 도중 Back이 차단된 것은 실행 PASS지만 그 상태에서 이탈 후 응답 시험을 한 것은 아님 |
+| 사진 | 사진 선택기 Back 취소로 첨부 없음. 합성 파일 한 개의 Storage·정규 참조·대표/호환 경로 일치와 상세 사진 표시. 다음 편집에서 제거를 저장하지 않고 Back 시 같은 확정 참조/객체 유지. 본문만 수정해도 사진 유지. 기록 삭제 후 해당 참조·객체 0 | 부분 수락. 이전 업로드 계획과 새 명시 편집이 동시에 도달하는 실제 경합, 계정 변경 후 남은 작업의 귀속 미확인. 한도 재설정·큐 강제 삭제·잠금 해제 없음 |
+
+### 확인 결함과 전달
+
+- 구 후보의 실제 체중 UUID `5d0c9407-2e77-4547-93d6-de86eb6894b6`: 성공 응답이 닫힌 시트에 늦게 도착하자 UI용 `current()` 가드가 월 캐시 동기화까지 생략했다. 건강 조회는 전역 `refetchOnMount: false`를 상속해 서버 7.31kg에도 빈 목록을 유지했다. 월 왕복 조회로만 나타난 상태를 보존했다.
+- `997595a45fc295d321ab18a851192e4b21e69b3a`: 이전 폼의 UI·스냅샷 적용은 계속 차단한다. 현재 소유와 응답 행의 owner/pet이 모두 맞는 저장·삭제 성공만 해당 아이의 건강 캐시를 무효화하고, 건강 월 화면은 stale일 때 재진입 조회한다. DB/RPC/RLS·알림 동작 변경 없음. [기술 결정](../리서치/리서치.md#2026-11-09-늦은-체중-저장과-건강-캐시의-분리).
+- 표적 61 PASS, TypeScript·대상 lint·diff PASS. [동일 제품 CI](https://github.com/jaejun0617/nuri-app/actions/runs/42553748644) 349 suites/4,689 PASS, 핵심 132 PASS, 오류 0/기존 경고 23. 서명·UID·설정·앱 데이터 보존 설치 1회: runtime `d5e9d41b848fc26f5fa4b073c8ea8dc4b1874e04b21de93f887acf31bcd198d0`, APK `e4b4f04ca6d6e8c823d3d89d57386aecc8183fd5e9f86178ce8dcb86ace07867`, SM-S937N bundled Debug/Metro OFF. device-v3 v6·worker-v3 v4 ACTIVE. 보정 후 실제 체중 `f7cc8c58-ab32-4339-9bb8-e904bccea781`로 재현과 정리 완료. 일정은 영향 없는 기존 APK에서 실행, 일반/사진은 새 APK. 제품 커밋과 이번 문서 커밋은 분리한다.
+
+### 이번 QA 정리와 증거
+
+- 로컬 `/Users/shinjaejun/.codex/nuri-u5-20261109/`: `weight-probe.txt`, `weight-fixed-probe.txt`, `fixed-weight-reentry.json`, `schedule-probe.txt`, `schedule-native-{before-complete,completed,deleted}.json`, `record-probe.txt`, `record-{retry-server,recovery-draft}.json`, `photo-{confirmed-server,after-abandon,cleaned}.json`, `all-cleaned.json`, `final-inventory.txt`, `installation.json`. 201 보류와 원래 응답 유실은 독립 판정한다. 일정의 첫 즉시 SQL 조회는 행 확정 전에 돌아왔으므로 서버 판정에는 후속 `schedule-saved.json`을 사용했다.
+- 이번 기록 `771a2dcf-4803-4bba-bd2e-09bb2bd1c6ce`·`646f2e04-5251-4b5e-b384-6c2dd2bd0a83`, 체중 두 행, 일정 `31947357-e57e-4238-a81d-4d9423549741`·`c540e48c-103a-4bb3-93d3-f3de39f21fb5`만 정상 앱 경로로 삭제. 해당 사진 정규/호환 참조와 Storage 객체 0, 기기 시험 미디어 `1000012906` 삭제 확인, scoped 초안/pending 및 큐 0, 해당 예약 0. 조작 보조의 동시 UI dump 오류·가림으로 인한 초기 탭 미실행은 제품 크래시나 네트워크 실패로 집계하지 않았다.
+- S2 회차 증거: `schedule-first-occurrence.json`, `schedule-next-occurrence.json`, `schedule-s2-notification.txt`, `schedule-next-cancelled.json`, `schedule-s2-cleanup.json`. 부수 알림은 원본 직접 연결 기록 5건, XP 2건, S2 일정 1건(`92880354-58b6-4544-973f-2e4b78279c9b`)만 개별 dismiss (서버 확인 8건). XP 원장 2행과 이번 시험으로 귀속을 확정하지 못한 칭호·레벨 알림은 보존했다.
+- 기존 생일·다른 데이터 변경 없음. 시험 보조 패키지 제거, 훅 종료·마커 없음. 계정·권한·네트워크 변경 없음, 시험 전 **Kakao QA·누리 선택·휴대폰 바탕화면** 복원. 에뮬레이터 미연결 및 미실행. 기존 물리 Kakao·별도 Google 등록 모두 active/opt_in 확인.
+
+### 종료·다음 실행
+
+- **해결:** 건강 캐시 실결함 1건과 위 세부 조건, 이번 QA 데이터와 도구 정리. **진행:** 없음. **잔여:** 표의 도메인별 미검증 경계, 생일 QA 별도 정리 판단, U1/U2/NAV 및 P0 안정성. **잔여 해결 계획:** 기존 QA 계정으로 로그인 가능한 시점에 실제 소유 전환부터 관찰. 동일 Kakao QA의 두 번째 설치가 준비되면 같은 기록의 이전 계획 보류→새 명시 편집→이전 작업 재개 순서로 사진을 우선 확인하고, 일정의 늦은 결과와 취소 경합을 확인한다. 이미 PASS인 복구·CRUD·회차 전환은 반복하지 않는다.
+
+| 우선순위 | 원래 작업 번호 또는 추가 범위 | 작업 | 선행 조건 | 담당 | 필요한 입력 | 완료 기준 | 현재 시작 가능 여부 | Astra 권장 추론 강도 | GPT-6.1 Sol 권장 추론 강도 |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | 6·U5 건강/기록 | 동일 설치 계정 교차 | 기존 QA만 정상 인증·복귀 | Master | Google 로그인과 Kakao 복귀 인증 가능 시점 | 이전 계정 응답·초안·조회가 현재 계정에 반영되지 않음 | 인증 준비 전 보류 | Medium | Medium |
+| 2 | 6·U5 사진 | 이전 계획과 새 편집의 실제 경합 | 동일 Kakao QA의 두 번째 설치 | Master | 보조 설치 인증 | 새 편집의 확정 참조 보존, 이전 작업의 큐/파일 안전 정리 | 두 번째 인증 설치 없음 | High | High |
+| 3 | 6·U5 일정 | 취소와 늦은 결과 경합 | 유효한 시험 일정과 도달 가능한 경합 | Master | 교차 설치가 필요한 경계의 인증 | 해당 일정 예약만 유지/취소, 오래된 예약 부활 없음 | 교차 경합은 인증 대기 | Medium, 결함 시 High | Medium, 결함 시 High |
+| 4 | U1·U2·NAV·P0·QA 정리 | 별도 잔여 판단 | 기존 원장 및 PO 범위 지시 | Master | 생일 QA 정리 또는 P0 발송의 별도 판단 | 각각 독립 수락 및 위험 정리 | 자동 착수하지 않음 | Medium | Medium |
+
+전체 미동결·STORE HOLD. P0 문의 미발송, 7~14 미착수. 추론 설정을 변경하지 않았다.
+<!-- U5_REMAINDERS_20261109_END -->
+
 <!-- OS_FINAL_B_20261107_BEGIN -->
 ## 2026-11-07 B단계 생일 정상 원본과 OS05 수락
 
