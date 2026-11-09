@@ -1,5 +1,16 @@
 # NURI 통합 마감 수락 원장
 
+## 2026-11-09 U5 건강·일정 실기기 마감과 사진 편집 경합
+
+**건강·일정·일반 기록 PASS, 사진 부분 수락.** 기록 3/4, 통합 3/7, OS 13/13. 기존 생일·인증·알림 및 P0 core/source/runtime PASS 보존. 전체 미동결, STORE HOLD.
+
+- 건강: 기존 SM-S937N에서 마지막 7.42kg 행을 삭제한 뒤 화면을 나가지 않았다. 서버 행 0·프로필 체중 null인데 요약만 7.42kg이 조회 이후에도 남았다. `b12f1e5`의 회귀 검사는 구 코드에서 실패했다. 프로필 보조값을 건강 월 캐시와 분리한 APK `3aa62ab0`에서는 같은 화면의 요약 `–kg`, 이력 0, 서버 null을 확인했다. 누리 6kg 및 기존 계정 경계 유지.
+- 사진: 두 Kakao QA 설치에서 시험 추억 `13efcb55-37d8-47b1-92d1-95a3b756353c`의 동일한 두 사진을 열었다. 물리의 이전 참조 변경을 전송 전에 보류하고, 별도 설치의 새 편집을 정상 저장한 뒤 원래 요청을 반환했다. 실제 409, 새 대표·호환·정규 참조와 Storage 객체 불변. 시험 기록과 두 객체를 삭제했고, 실제 전경 복귀 후 남은 시험 작업도 정상 큐 처리로 0. **다른 계정에서 대기 사진 작업이 처리되지 않는 동일 설치 실제 시험은 별도 잔여**다. 단위 검사를 실제 계정 전환으로 계산하지 않는다.
+- 일정: 물리 수정 HTTP 204를 보류한 동안 다른 Kakao QA 설치에서 해당 일정만 삭제했다. 원래 응답 반환 후 구 후보는 서버 행 0에도 15분 전 알림을 다시 등록했다. `7a91050`에서 최신 서버 행을 재조회하고, 없으면 해당 예약만 취소한다. 새 후보에서 같은 순서로 원래 204를 반환해도 서버 행·기기 예약·게시 모두 0, 전체 일정 빈 상태. 구 후보에서 생긴 시험 예약도 정확한 ID 하나만 취소했다.
+- 추억 상세: `ce9702c`에서 글라스의 좌우 외부 여백만 제거했다. 같은 제목·본문의 실기기 카드 경계 x45–1035 → x0–1080, 텍스트 안쪽 x45–1035 유지. 사진 뷰포트 여백·관련 목록은 기존과 동일하게 유지했다.
+- 제품 `ce9702c5cf32ea1949be085fe17dfb620db5fe57`, runtime `2a09113cf583ae3d9a648cef7e62e1c453dbdf9a4ad2097ea12731355665386d`, 물리 APK `af0b2860b317a5a139b504307a2854a77a08f110fafbcb24eaecc16204226518`, bundled Debug 보존 설치·Metro OFF. 운영 스키마와 알림 정책 변경 없음. TypeScript·대상 lint·건강 66·사진/일정 계약 37·최종 일정/상세 89 PASS. 각각의 실행에 중복 테스트가 포함돼 합산하지 않는다.
+- 증거: `/Users/shinjaejun/.codex/nuri-u5-final-weight-20261109/`의 `original-deleted-still-open.json`, `fixed-deleted-stable.json`, `photo-race-probe.txt`, `photo-{before,new-winner,after-old,cleanup-stable}.json`, `schedule-{race,fixed}-probe.txt`, `schedule-{race,fixed}-alarm-after.json`, `layout-{before,after}.json`, `post-foreground-queue.txt`, `final-server.json`, `combined/installation.json`. 별도 Kakao QA 임시 AVD만 로그아웃·삭제; 기존 Google AVD는 건드리지 않았다.
+
 ## 2026-11-09 U5 동일 실기기 계정 교차 검증
 
 **일반 기록 PASS, 건강 계정 교차 PASS.** 기록 도메인 전체 1/4, U5 부분 완료. 건강의 삭제 직후 요약 표시 관찰은 아래 별도 잔여로 둔다. 기존 통합 3/7, OS 13/13, U3, 11/07 정상 생일 OS 후속 및 P0 core/source/runtime PASS를 보존한다. P0 stability/final PARTIAL, 전체 미동결, STORE HOLD.
