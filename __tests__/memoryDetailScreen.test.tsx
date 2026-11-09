@@ -331,7 +331,7 @@ describe('memory detail rendered contract', () => {
     });
     TestRenderer.act(() => tree.unmount());
   });
-  it('keeps the approved unframed story, transparent related rows and larger identity avatar', async () => {
+  it('uses a full-width story surface without changing the content insets or related rows', async () => {
     const tree = await render();
     const main = tree.root.findAll(
       node => node.type === View && node.props.testID === 'memory-detail-post-glass',
@@ -341,7 +341,12 @@ describe('memory detail rendered contract', () => {
     );
     expect(main).toHaveLength(1);
     expect(related).toHaveLength(5);
-    expect(StyleSheet.flatten(main[0].props.style)).toMatchObject({ padding: 0, marginHorizontal: 16, backgroundColor: 'transparent' });
+    expect(StyleSheet.flatten(main[0].props.style)).toMatchObject({
+      width: '100%', padding: 0, marginHorizontal: 0, backgroundColor: 'transparent',
+    });
+    expect(styles.postHeader.paddingHorizontal).toBe(16);
+    expect(styles.postBody.paddingHorizontal).toBe(16);
+    expect(styles.postImageViewport.marginHorizontal).toBe(16);
     for (const frame of related) expect(StyleSheet.flatten(frame.props.style)).toMatchObject({
       backgroundColor: 'transparent', borderRadius: 8, marginTop: 0, padding: 6,
     });
