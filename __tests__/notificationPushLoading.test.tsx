@@ -151,13 +151,24 @@ it('does not navigate on a late memory response after the birthday modal is clos
   expect(mockDispatch).not.toHaveBeenCalled();
   expect(modal().props.visible).toBe(false);
 });
-it.each(['notification_detail', 'unavailable'] as const)('retains a readable %s detail instead of redirecting to Home', async kind => {
-  mockFetch.mockResolvedValue(item({ kind }));
+it.each([
+  ['notification_detail', 'news.published'],
+  ['unavailable', 'record.deleted'],
+] as const)('retains a readable %s detail for %s instead of redirecting to Home', async (kind, eventType) => {
+  mockFetch.mockResolvedValue({ ...item({ kind }), eventType });
   await render(); await settle();
   expect(renderer?.root.findAllByProps({ testID: 'NotificationDetailDesign' }).length).toBeGreaterThan(0);
   expect(mockDispatch).not.toHaveBeenCalled();
   expect(mockReady).toHaveBeenLastCalledWith(true);
   expect(mockNavigation.setParams).toHaveBeenCalledWith({ resolveTargetOnLoad: undefined });
+});
+it.each(['inbox', 'push'] as const)('keeps an inaccessible edited record unread from %s', async entry => {
+  mockParams.resolveTargetOnLoad = entry === 'push' ? true : undefined;
+  mockFetch.mockResolvedValue({ ...item({ kind: 'unavailable' }), eventType: 'record.updated' });
+  await render(); await settle();
+  expect(renderer?.root.findAllByProps({ testID: 'NotificationDetailDesign' }).length).toBeGreaterThan(0);
+  expect(mockDispatch).not.toHaveBeenCalled();
+  expect(mockReady).not.toHaveBeenCalledWith(true);
 });
 it('keeps failure retry and Back available without redirecting or reading', async () => {
   mockFetch.mockRejectedValue(new Error('offline'));

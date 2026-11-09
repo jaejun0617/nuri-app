@@ -79,7 +79,11 @@ function NotificationDetailContent() {
     navigation.dispatch(StackActions.replace(autoDestination.name, autoDestination.params));
   }, [autoDestination, navigation, receipt, userId]);
   const birthdayPet = detail.data ? ownedPets.find(pet => pet.id === birthdayPetId(detail.data)) : undefined;
-  const { readError, retryRead } = useNotificationDestinationRead(receipt, Boolean(!resolvingTarget && detail.data && detail.isSuccess && (!birthdayPet || birthdayShown)));
+  // Deletion notices are informational; other unavailable targets were not opened.
+  const canAcknowledgeDetail = detail.data?.actionTarget?.kind !== 'unavailable' ||
+    detail.data.eventType === 'record.deleted';
+  const { readError, retryRead } = useNotificationDestinationRead(receipt,
+    !resolvingTarget && detail.isSuccess && canAcknowledgeDetail && (!birthdayPet || birthdayShown));
   const onAction = async () => {
     if (acting.current || !receipt) return;
     const current = captureCurrent();

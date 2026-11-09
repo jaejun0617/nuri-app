@@ -510,20 +510,18 @@ function normalizePost(
 
 function normalizeComment(
   row: CommunityCommentRow,
+  authorNickname: string | null,
   profilesByUserId: Map<string, CommunityProfileRow>,
   authorSnapshotsByUserId: Map<string, CommunityAuthorSnapshot>,
   likedCommentIds: Set<string>,
   likeCountsByCommentId: Map<string, number>,
 ): CommunityComment {
-  const profile = profilesByUserId.get(row.user_id) ?? null;
-  const authorSnapshot = authorSnapshotsByUserId.get(row.user_id) ?? null;
   const replyTargetProfile = row.reply_target_user_id
     ? profilesByUserId.get(row.reply_target_user_id) ?? null
     : null;
   const replyTargetSnapshot = row.reply_target_user_id
     ? authorSnapshotsByUserId.get(row.reply_target_user_id) ?? null
     : null;
-  const profileNickname = getConfirmedProfileNickname(profile);
   const replyTargetNickname =
     getConfirmedProfileNickname(replyTargetProfile) ??
     replyTargetSnapshot?.nickname ??
@@ -532,10 +530,7 @@ function normalizeComment(
     id: row.id,
     postId: row.post_id,
     authorId: row.user_id,
-    authorNickname:
-      profileNickname ??
-      authorSnapshot?.nickname ??
-      UNKNOWN_COMMUNITY_AUTHOR_NICKNAME,
+    authorNickname: authorNickname ?? UNKNOWN_COMMUNITY_AUTHOR_NICKNAME,
     // Keep provider avatar_url out of comment identity until user-owned avatar
     // editing becomes a first-class profile feature.
     authorAvatarUrl: null,
@@ -556,6 +551,32 @@ function normalizeComment(
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
+}
+
+async function fetchCommentAuthorNicknames(commentIds: string[]) {
+  const ids = [...new Set(commentIds)];
+  const names = new Map<string, string>();
+  for (let offset = 0; offset < ids.length; offset += 100) {
+    const batch = ids.slice(offset, offset + 100);
+    const { data, error } = await supabase.rpc(
+      'community_get_comment_author_nicknames_v1',
+      { p_comment_ids: batch },
+    );
+    if (error) throw error;
+    if (!Array.isArray(data))
+      throw new CommunityDetailReadError('MALFORMED_RESPONSE');
+    for (const row of data) {
+      if (
+        !isRecord(row) ||
+        typeof row.comment_id !== 'string' ||
+        !batch.includes(row.comment_id) ||
+        typeof row.nickname !== 'string'
+      ) continue;
+      const nickname = row.nickname.trim();
+      if (nickname) names.set(row.comment_id, nickname);
+    }
+  }
+  return names;
 }
 
 async function fetchProfilesByUserIds(userIds: string[]) {
@@ -1169,28 +1190,29 @@ export async function fetchCommunityComments(postId: string) {
   return hydrateCommunityCommentRows(rows);
 }
 
-// Bounded discussion RPCs reuse the same public author and like projection.
+// Bounded discussion RPCs reuse the same comment-scoped identity projection.
 export async function hydrateCommunityCommentRows(rows: CommunityCommentRow[]) {
   if (rows.length === 0) return [];
   const currentUserId = await getCommunityCurrentUserId();
-  const commentUserIds = rows.flatMap(row =>
-    [row.user_id, row.reply_target_user_id ?? ''].filter(Boolean),
+  const commentIds = rows.map(row => row.id);
+  const replyTargetIds = rows.flatMap(row =>
+    row.reply_target_user_id ? [row.reply_target_user_id] : [],
   );
   const [
+    authorNicknames,
     profilesByUserId,
     authorSnapshotsByUserId,
     { likedCommentIds, likeCountsByCommentId },
   ] = await Promise.all([
-    fetchProfilesByUserIds(commentUserIds),
-    fetchPublicPostAuthorSnapshotsByUserIds(commentUserIds),
-    fetchLikeMetaForComments(
-      rows.map(row => row.id),
-      currentUserId,
-    ),
+    fetchCommentAuthorNicknames(commentIds),
+    fetchProfilesByUserIds(replyTargetIds),
+    fetchPublicPostAuthorSnapshotsByUserIds(replyTargetIds),
+    fetchLikeMetaForComments(commentIds, currentUserId),
   ]);
   return rows.map(row =>
     normalizeComment(
       row,
+      authorNicknames.get(row.id) ?? null,
       profilesByUserId,
       authorSnapshotsByUserId,
       likedCommentIds,
@@ -1237,24 +1259,26 @@ export async function fetchLatestCommunityCommentPreview(postId: string) {
 
   if (!row) return null;
 
-  const commentUserIds = [row.user_id, row.reply_target_user_id ?? ''].filter(
-    Boolean,
-  );
-  const profilesByUserId = await fetchProfilesByUserIds(commentUserIds);
-  const profile = profilesByUserId.get(row.user_id) ?? null;
+  const replyTargetIds = row.reply_target_user_id
+    ? [row.reply_target_user_id]
+    : [];
+  const [authorNicknames, profilesByUserId] = await Promise.all([
+    fetchCommentAuthorNicknames([row.id]),
+    fetchProfilesByUserIds(replyTargetIds),
+  ]);
   const targetProfile = row.reply_target_user_id
     ? profilesByUserId.get(row.reply_target_user_id) ?? null
     : null;
-  const needsAuthorSnapshot = !getConfirmedProfileNickname(profile);
   const needsTargetSnapshot =
     !!row.reply_target_user_id && !getConfirmedProfileNickname(targetProfile);
   const authorSnapshotsByUserId =
-    needsAuthorSnapshot || needsTargetSnapshot
-      ? await fetchPublicPostAuthorSnapshotsByUserIds(commentUserIds)
+    needsTargetSnapshot
+      ? await fetchPublicPostAuthorSnapshotsByUserIds(replyTargetIds)
       : new Map<string, CommunityAuthorSnapshot>();
 
   return normalizeComment(
     row,
+    authorNicknames.get(row.id) ?? null,
     profilesByUserId,
     authorSnapshotsByUserId,
     new Set<string>(),
@@ -1492,6 +1516,7 @@ export async function createCommunityComment(
       : new Map<string, CommunityAuthorSnapshot>();
   return normalizeComment(
     data,
+    getConfirmedProfileNickname(profilesByUserId.get(data.user_id) ?? null),
     profilesByUserId,
     authorSnapshotsByUserId,
     new Set<string>(),
