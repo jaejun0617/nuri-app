@@ -67,7 +67,6 @@ export function useHealthReportMonth(input: {
         logs: weightResult.logs,
         previousLog: weightResult.previousLog,
         latestSnapshot: weightResult.latestSnapshot,
-        fallbackLatestWeightKg: input.fallbackLatestWeightKg,
       });
 
       return {
@@ -85,9 +84,28 @@ export function useHealthReportMonth(input: {
     },
   });
 
+  const data = useMemo(() => {
+    const month = query.data;
+    const profileWeight = input.fallbackLatestWeightKg;
+    if (
+      !month ||
+      month.weightSummary.latestWeightKg !== null ||
+      profileWeight == null
+    ) {
+      return month;
+    }
+
+    // Keep the current profile fallback out of the server cache; a refetch can
+    // start before the last-weight deletion clears that profile value.
+    return {
+      ...month,
+      weightSummary: { ...month.weightSummary, latestWeightKg: profileWeight },
+    };
+  }, [input.fallbackLatestWeightKg, query.data]);
+
   return {
     monthKey: normalizedMonthKey,
-    data: query.data,
+    data,
     loading: query.isPending || query.isFetching,
     error: query.error instanceof Error ? query.error.message : null,
     refetch: query.refetch,
