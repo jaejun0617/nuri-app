@@ -246,7 +246,7 @@
 - `docs/프로젝트-현황-최종기획/6차-최종-기획서.md`
 - `기획.md`
 
-`SUPERSEDED`는 삭제 대상이라는 뜻이 아니다. 현재 상태 판단만 이 closeout set으로 대체한다.
+`SUPERSEDED`는 삭제 대상이라는 뜻이 아니다. 2026-09-14 당시의 상태 판단만 이 closeout set으로 대체했다. 이후 현재 상태·수락 판단은 [현재 메모리](../../project-memory/현재-프로젝트-상태.md)와 [단일 수락 원장](../../qa/nuri-integrated-closeout-2026-10-25.md)을 따른다.
 
 ### RESEARCH_ONLY (5)
 

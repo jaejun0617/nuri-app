@@ -44,7 +44,7 @@
 ### Fix
 
 - 중복되던 workflow 규칙을 하나의 실행 파이프라인으로 통합했다.
-- SQL 문서 위치 충돌을 해소했다. 앞으로 모든 SQL은 `docs/sql/` 아래에서만 관리한다.
+- 사람이 읽는 SQL 설명·수동 세트는 `docs/sql/`, 버전 migration은 `supabase/migrations/`, 계약 검사·fixture는 `supabase/tests/` 등 실제 소비 경로에 보존한다. docs/sql도 재구축·검사 입력일 수 있으므로 [SQL 가이드](../sql/정리-가이드.md)의 역할·순서를 확인하며 일괄 이동하지 않는다.
 - 승인 필요 기준을 명시적으로 통합했다. 구조 변경, DB 영향, 5개 이상 파일 수정, 외부 서비스 계약 변경은 사전 승인 대상이다.
 
 ### Enhance
