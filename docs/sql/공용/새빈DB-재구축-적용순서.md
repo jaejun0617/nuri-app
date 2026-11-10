@@ -11,21 +11,21 @@
 
 ## 적용 파일 순서
 
-1. [누리-전체초기구성-부트스트랩.sql](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/docs/sql/공용/누리-전체초기구성-부트스트랩.sql)
-2. [타임라인-메모리이미지-최종.sql](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/docs/sql/타임라인-메모리/타임라인-메모리이미지-최종.sql)
-3. [메모리-이미지URL-호환성-추가.sql](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/docs/sql/타임라인-메모리/메모리-이미지URL-호환성-추가.sql)
-4. [메모리-카테고리서브카테고리가격-추가.sql](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/docs/sql/타임라인-메모리/메모리-카테고리서브카테고리가격-추가.sql)
-5. [계정삭제-동의이력-최종.sql](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/docs/sql/인증-계정/계정삭제-동의이력-최종.sql)
-6. [집사꿀팁가이드-운영-최종.sql](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/docs/sql/가이드/집사꿀팁가이드-운영-최종.sql)
-7. [가이드-이미지스토리지-정책.sql](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/docs/sql/가이드/가이드-이미지스토리지-정책.sql)
-8. [펫동반장소-메타-최종.sql](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/docs/sql/펫동반-장소/펫동반장소-메타-최종.sql)
-9. [커뮤니티-운영-최종.sql](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/docs/sql/커뮤니티/커뮤니티-운영-최종.sql)
-10. [반려동물과여행-트러스트레이어-최종.sql](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/docs/sql/반려동물과-여행/반려동물과여행-트러스트레이어-최종.sql)
+1. [누리-전체초기구성-부트스트랩.sql](누리-전체초기구성-부트스트랩.sql)
+2. [타임라인-메모리이미지-최종.sql](../타임라인-메모리/타임라인-메모리이미지-최종.sql)
+3. [메모리-이미지URL-호환성-추가.sql](../타임라인-메모리/메모리-이미지URL-호환성-추가.sql)
+4. [메모리-카테고리서브카테고리가격-추가.sql](../타임라인-메모리/메모리-카테고리서브카테고리가격-추가.sql)
+5. [계정삭제-동의이력-최종.sql](../인증-계정/계정삭제-동의이력-최종.sql)
+6. [집사꿀팁가이드-운영-최종.sql](../가이드/집사꿀팁가이드-운영-최종.sql)
+7. [가이드-이미지스토리지-정책.sql](../가이드/가이드-이미지스토리지-정책.sql)
+8. [펫동반장소-메타-최종.sql](../펫동반-장소/펫동반장소-메타-최종.sql)
+9. [커뮤니티-운영-최종.sql](../커뮤니티/커뮤니티-운영-최종.sql)
+10. [반려동물과여행-트러스트레이어-최종.sql](../반려동물과-여행/반려동물과여행-트러스트레이어-최종.sql)
 
 ## 의도적으로 제외한 파일
 
-- [프로필-닉네임정책-현재로컬미러.sql](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/docs/sql/인증-계정/프로필-닉네임정책-현재로컬미러.sql)
-  - linked remote에 `blocked_nickname_patterns`가 있어 local mirror가 뒤처져 있다.
+- [프로필-닉네임정책-현재로컬미러.sql](../인증-계정/프로필-닉네임정책-현재로컬미러.sql)
+  - 과거에는 linked remote의 `blocked_nickname_patterns` 관련 drift를 제외 이유로 기록했다. 현재 로컬 파일은 2026-03-30 기준 mirror이며 해당 테이블 생성 정의를 포함한다. 재구축 스크립트의 명시적 제외는 유지한다. 이번 안내 보정에서는 운영 DB를 조회하지 않았으므로 현재 local/remote drift와 동등성은 UNKNOWN이다.
 - `레거시/*`
   - 단계별 SQL이므로 재구축 기준에서 제외한다.
 - `*-seed.sql`, `*-점검.sql`, `*-보조.sql`
@@ -35,7 +35,7 @@
 
 자동 적용이 필요하면 아래 스크립트를 쓴다.
 
-- [rebuild_public_schema_from_docs_sql.sh](/Users/shinjaejun/Desktop/Frontend/Nuri-App/nuri/scripts/rebuild_public_schema_from_docs_sql.sh)
+- [rebuild_public_schema_from_docs_sql.sh](../../../scripts/rebuild_public_schema_from_docs_sql.sh)
 
 권장 실행 예시:
 
@@ -50,3 +50,11 @@ bash scripts/rebuild_public_schema_from_docs_sql.sh --db-url "postgresql://..."
 - `pet-profiles`, `memory-images`, `guide-images`, `community-images` bucket이 이미 있는지
 
 하나라도 남아 있으면 기존 프로젝트 위에 잘못 덮는 상황으로 보고 **즉시 중단**한다.
+
+이 사전 확인은 위 대표 객체를 대상으로 하며, 모든 객체가 비어 있음을 완전히 증명하는 검사는 아니다. 새 빈 DB 또는 정해진 public/storage 재구축 직후라는 사용 조건은 그대로 유지한다.
+
+- `SQL_FILES`의 10개 파일은 위 순서대로 각각 별도 `psql` 호출로 실행된다.
+- 중간 실패 시 후속 진행은 중단되지만, 이미 성공한 이전 파일까지 스크립트 차원에서 전체 자동 rollback되지는 않는다.
+- 각 SQL 파일 내부의 트랜잭션과 스크립트 전체의 원자성은 별개다.
+
+정확한 구조와 소비 관계는 [SQL 정리 가이드](../정리-가이드.md)를 따른다. 이 안내는 실행 위험의 설명이며 운영 DB 변경 허가나 현재 운영 schema와의 동등성 확인을 뜻하지 않는다.
