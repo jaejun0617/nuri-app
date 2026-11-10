@@ -6,7 +6,9 @@
 
 ## 문서 지위
 
-이 문서는 현재 NURI v1.0 제품 상태에 대한 canonical answer다. 과거 진행 보고서나 project-memory의 상태 값이 이 문서와 다르면 과거 기록으로 해석한다. 제품 동작의 최종 사실은 실제 source, linked runtime, release artifact와 QA 증적을 함께 확인한다.
+이 문서는 **2026-09-14 NURI v1.0 제품·산출물·수락 스냅샷**이다. 아래 ‘현재’·canonical answer·동결·gate는 그날의 closeout 범위이며 이후 project-memory의 상태를 과거로 밀어내지 않는다. 당시 source·APK·기기·검사·RC·Store 결과는 보존하되 최신 후보의 수락이나 전체 동결로 확대하지 않는다.
+
+오늘의 요약은 [현재 상태](../../project-memory/현재-프로젝트-상태.md), 실제 수락·검증 한계는 [단일 원장](../../qa/nuri-integrated-closeout-2026-10-25.md), 실행 승인·순서는 [우선순위](../../project-memory/다음-작업-우선순위.md)를 따른다. 이 안내 정리는 당시 수락을 취소하거나 현재 동작을 재검증한 결과가 아니다.
 
 문서 closeout commit은 제품 source를 바꾸지 않는다. 검증된 APK의 source 기준은 계속 `944c99961e3259307974e4982fc4776caf5fac1f`다.
 
@@ -100,4 +102,4 @@ Pack03 완료는 General Phase03 완료를 뜻하지 않는다.
 
 ## 다음 판단 기준
 
-현재 자동으로 시작할 구현 작업은 없다. 남은 gate와 실행 조건은 [04-open-gates-and-remaining-work.md](04-open-gates-and-remaining-work.md)를 따른다.
+2026-09-14 당시 자동으로 시작할 구현 작업이 없다는 판단과 남은 gate·실행 조건은 [당시 gate 문서](04-open-gates-and-remaining-work.md)에 보존한다. 오늘의 실행 지시로 재사용하지 않으며 현재 순서는 위 우선순위를 따른다.

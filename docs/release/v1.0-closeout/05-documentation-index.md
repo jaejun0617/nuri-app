@@ -4,7 +4,11 @@
 
 기준 product head: `944c99961e3259307974e4982fc4776caf5fac1f`
 
+이 문서는 **2026-09-14 closeout 묶음과 당시 문서 분류의 색인**이다. 아래 canonical·supporting·historical·superseded의 정의, ‘현재’·‘이번 감사’와 보호 dirty 목록도 당시 범위다. 분류 수량·목록은 새로운 저장소 조사 결과가 아니며 과거 분류만으로 오늘의 요구사항을 폐기하지 않는다. 오늘의 요약은 [현재 상태](../../project-memory/현재-프로젝트-상태.md), 수락은 [단일 원장](../../qa/nuri-integrated-closeout-2026-10-25.md), 실행 순서는 [우선순위](../../project-memory/다음-작업-우선순위.md)를 따른다.
+
 ## 먼저 읽을 문서
+
+아래 순서는 9/14 스냅샷 안에서 근거를 찾는 순서다. 오늘의 제품 판단보다 우선하는 탐색 경로가 아니다.
 
 1. 현재 제품 상태: [01-current-product-state.md](01-current-product-state.md)
 2. 완료/동결 작업: [02-completed-work-ledger.md](02-completed-work-ledger.md)
@@ -12,7 +16,7 @@
 4. 남은 gate: [04-open-gates-and-remaining-work.md](04-open-gates-and-remaining-work.md)
 5. 전체 최종 증적: [NURI-v1.0-final-evidence-closeout.md](NURI-v1.0-final-evidence-closeout.md)
 
-위 closeout 문서 6종이 현재 상태의 canonical set다. 기존 문서가 이 set과 충돌하면 기존 문서는 아래 분류에 따라 supporting, historical 또는 superseded 자료로 해석한다.
+위 closeout 문서 6종은 2026-09-14 당시 상태의 canonical set였다. 이후 지시·코드·수락 원장을 덮어쓰지 않는다. 아래 분류는 당시 감사 결과로 보존한다.
 
 ## 감사 범위
 
@@ -294,7 +298,7 @@
 
 ## Protected pre-existing dirty
 
-다음 파일은 감사에는 포함했지만 이번 closeout에서 수정하거나 stage하지 않는다.
+다음 파일은 2026-09-14 감사에는 포함했지만 당시 closeout에서 수정하거나 stage하지 않은 보호 목록이다. 오늘의 작업 트리 상태나 이번 문서 정리의 승인 범위를 뜻하지 않는다.
 
 - `docs/project-memory/다음-작업-우선순위.md`
 - `docs/project-memory/최근-작업-로그.md`
@@ -303,7 +307,7 @@
 - `src/screens/Main/components/LoggedInHome/LoggedInHome.tsx`
 - `supabase/.temp/cli-latest`
 
-`docs/project-memory/다음-작업-우선순위.md`와 `docs/project-memory/현재-프로젝트-상태.md`는 보존된 과거/누적 상태이며, 현재 product/release status는 이 closeout set에서 읽는다. `docs/project-memory/최근-작업-로그.md`는 historical ledger로 유지한다.
+당시 `docs/project-memory/다음-작업-우선순위.md`와 `docs/project-memory/현재-프로젝트-상태.md`를 과거·누적 상태로 분류하고 product/release status를 이 closeout set에서 읽도록 안내했다. 이는 9/14의 역할 판단이며 이후 갱신된 대표 문서의 현재 역할을 대체하지 않는다. 작업 로그는 날짜별 이력을 소유한다.
 
 ## 유지 규칙
 
