@@ -18,7 +18,7 @@
 
 과거 자료는 `project-memory/아카이브`와 날짜가 명시된 QA·reports에서 찾는다. [9/14 closeout 색인](release/v1.0-closeout/05-documentation-index.md)은 **2026-09-14 당시 제품·release·QA 스냅샷**의 진입점이지 이후 현재 상태·수락·우선순위의 대체 문서가 아니다.
 
-10/29 정리 대응표인 `docs/reports/nuri-storage-docs-cleanup-2026-10-29.md`는 아직 로컬 전용이며 이번 전달에 포함하지 않는다. 저장소 밖 영수증·영상·캡처도 문서 링크만으로 공개되거나 새 수락을 받은 것으로 취급하지 않는다.
+7차까지 로컬 전용이었던 [10/29 정리 보고서](reports/nuri-storage-docs-cleanup-2026-10-29.md), [11/05 모달 감사](reports/nuri-modal-design-audit-2026-11-05.md), [원장 11/04 19:46 보고](qa/nuri-integrated-closeout-2026-10-25.md#2026-11-04-1946-kst-nuri-high-cpu-p0-final-verification-report)는 8차에서 역사 원문을 선별 전달한다. 저장소 밖 영수증·영상·캡처와 원장의 나머지 로컬 변경은 포함하지 않으며 문서 전달을 새 수락으로 계산하지 않는다.
 
 코드 존재, 과거 PASS, 로컬 문서의 서버 상태를 현재 운영·실기기 PASS로 대체하지 않는다. 기존 계획은 구현 완료가 아니며, 과거 완료는 자동으로 허위가 되지 않는다.
 

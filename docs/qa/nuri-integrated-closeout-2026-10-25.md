@@ -857,6 +857,145 @@ L-OS 신규 알림 `a4215a19-53cf-4f7f-b858-592127140a7c`, delivery `bd433178-84
 
 상태: IN_PROGRESS. 전체 동결 아님. Master 단독 수행.
 
+## 2026-11-04 19:46 KST NURI HIGH CPU P0 FINAL VERIFICATION REPORT
+
+> 2026-11-10 MD 정리 8차 전달 안내: 이 절 전체와 15개 하위 절은 11/04 19:46의 고유 역사 원문이다. 뒤의 19:14 배포 보고와 다른 사건이며 `FINAL`은 현재 P0 최종 수락을 뜻하지 않는다. 당시 PASS·PARTIAL·UNKNOWN·관측 창 대기·HARD STOP을 보존하며 현재 수락과 실행 권한으로 바꾸지 않는다. 이번에는 해당 절만 선별 전달하고 원장의 다른 기존 로컬 변경은 포함하지 않는다. E·D와 저장소 밖 영수증·캡처는 공개하지 않았고 현재 존재·내용도 재조회하지 않았다.
+
+### 1. Executive Decision
+
+**P0_FINAL_ACCEPTANCE: PARTIAL. P0 소스·운영 오류 계약은 수락, 실제 지연 경계와 24시간 안정성은 미수락. HARD STOP / 기존 통합 미동결 / STORE HOLD.** 이번 실행은 배포 후 검증·P0 선별 Git/CI만 수행했다. 아래 과거 재개 문구는 이번 종료 상태를 해제하지 않는다.
+
+증거 기준: `p0-cpu-1104/post-deployment-verification.json`(이하 E), 기존 `deployment-observation.json`(이하 D), `remote-stale-check.json`, `postgrest-contract.json`. 모두 `/Users/shinjaejun/.codex/nuri-profile-completion-20261028-urmnPT/` 아래다. 새 경쟁 원장은 만들지 않았다. PO 직접 화면 조작·확인과 읽기 전용 서버/기기 진단을 연결했으며, 이번 실행의 화면 녹화는 없다.
+
+### 2. Actual Repository State
+
+- Master root `/Users/shinjaejun/.codex/worktrees/nuri-batch-a-20261020/nuri`, 브랜치 `codex/walk-marker-recovery-20261020` 유지. 시작 HEAD와 실제 원격은 `1d7334162023ed3903d24389c98d6e2d4153a16e`, 시작 staged 없음.
+- P0 migration1·Edge1·검사3 파일만 명시적으로 stage/검토/commit했다. 최종 소스와 실제 원격 HEAD는 `895ae46a9e33acc63fdd0aefcb641d7acd4c26fa`다. 기존 문서 정리 diff·미추적 보고서/이미지·`supabase/.temp/cli-latest`는 보존하고 커밋에서 제외했다.
+- 이 최종 원장 및 리서치 후속 기록은 로컬 문서 변경이다. 소스 커밋에 포함됐다고 주장하지 않는다. 새 제품 코드·빌드 설정·의존성 변경, 재빌드·재설치는 없다.
+
+### 3. Deployed DB/Edge Identity
+
+- 운영 migration `20261104100113_notification_device_nonretryable_conflict` 존재를 재조회했다. 적용 시각은 기존 D의 19:01:13 KST다. 이번에 재적용하지 않았다.
+- `notification-device-v3` v5 ACTIVE, verify_jwt=true. 재조회한 lock/register5/revoke 정의 해시는 각각 `8ca2a9112fab663f344bdb76c05fdf47`, `cc1c12c2966dad73da6b1fe1307d8abc`, `1350f61776e5da73c68099debb158a14`로 기존 배포 증거와 일치한다. definer/search_path/권한·4인자 폐기 경로 보존.
+- 업무상 거부는 PT409, Edge는409/DEVICE_SESSION_STALE다. 진짜40001은 stale로 숨기지 않는다. release의 PT409 호환은 이전 실제 로컬 PostgREST 증거를 재사용한다. 로컬 P0 5개 파일 SHA256이 기존 검사 당시와 전부 동일하므로 SQL/HTTP/Edge 계약 재실행을 생략했다.
+- 기존 worker v2·session-fence·QA 2계정 제한·cron3·키 보관은 변경하지 않았다. 새 배포·키 회전·프로세스 종료·재시작 없음.
+
+### 4. CPU/Memory/Swap Observation
+
+Supabase Database observability의 동일 그래프 툴팁을 읽었다. 아래는 시점 표시값이며 같은 길이 평균이나 CPU 원인 기여율이 아니다. UI 성분 합계와 Total이 완전히 같지 않아 임의 재계산하지 않았다.
+
+| 지표 | 18:58 KST 배포 전 시점 | 19:27 KST 배포 후 시점 |
+|---|---:|---:|
+| CPU User | 61.13% | 1.25% |
+| CPU System | 23.22% | 0.35% |
+| CPU IOWait | 0.46% | 1.15% |
+| CPU Total 표시값 | 84.82% | 2.78% |
+| Memory commitment | 1.38GB | 1.36GB |
+| Swap | 541.34MB | 504.41MB |
+
+19:28 최신 headline은2.71%였다. High CPU 및 memory SEVERE 배너가 남아 있어 경고 해소나 메모리 문제 해결로 보고하지 않는다. 이전 UNKNOWN이던 성분/Swap의 이번 시점 관측을 추가했으며, 과거 관측을 소급 수정하지 않았다.
+
+### 5. 40001/PT409/Rollback Evidence
+
+- 19:12:52 D와19:27:33·19:40:06 E의 rollback 누적값은 모두861098185로 증가0이다. 통계 초기화 없음. 배포 전 약1513.64/s와 이전 동일 길이 로그 비교는 D를 재사용한다.
+- 19:01:32~19:40:00 로그: PostgreSQL40001 0건, PT409 1건(19:06 승인 stale 진단), HTTP edge 로그313건 중5xx0. 로그 건수와 실제 transaction 수를 혼동하지 않는다.
+- Function Edge 로그70건 중5xx1. 정확히19:08:00.104 `notification-worker-v3`의502/11ms이며 device-v3 오류가 아니다. 같은 오류 계약 결함이라고 단정하지 않는다. 19:41까지 worker39회 중200 38회·502 1회, 원인 UNKNOWN. cron SQL 성공이 이502를 상쇄하지 않는다.
+- 같은 endpoint 집계의 device-v3는14/14 HTTP200, 평균 execution789.43ms·최대2415ms다. register/revoke 혼합 표본이며 동일 부하 전후 지연 개선율 UNKNOWN.
+- 19:40:06 DB numbackends23, 전체 activity29, 최대 연결60. 과거3PID 모두 없음. 장시간 active는 Realtime replication의 WalSenderWaitForWal이며 반복 거부 루프로 분류하지 않았다.
+- 19:31 조회의 NURI scheduler/publication/worker cron은 각각30/30 SQL 실행 성공·active·분당1회 유지. 평균 각각0.700/0.010/0.025초. 전송 성공과 cron dispatch 성공은 별도다.
+
+### 6. A~L Verification Matrix
+
+실제 기기는 SM-S937N(PO 지칭 Galaxy S24), 물리 APK는1d73341 기반 bundled Debug/Metro OFF다. 에뮬레이터는01d78a3 기존 Google 설치이며 두 번째 등록 보존·수신 대상 구분에만 사용했고 UI를 새로 조작하지 않았다. 아래 PASS는 명시한 조건에만 적용된다.
+
+| ID | 이전 수락 | 이번 실행·환경 | DB·API·실제 결과 | 판정·잔여 | 증거 |
+|---|---|---|---|---|---|
+| A | 로컬 HTTP·운영 갱신 | 물리 Google 복귀, Kakao/Google 인증 | 기존 등록 ID active·auth.session 일치, device-v5 HTTP200 | PASS 정상 등록 | E resume/kakao/restored rows·Edge logs |
+| B | 로컬 반복 동일 ID | 물리 복귀의 자동 등록2회 | 19:27:55/56 HTTP200, 같은 ID·다른 설치 유지 | PASS 동일 등록 반복; 임의 연타 전수 아님 | E resume rows·Edge logs |
+| C | 운영 stale409/PT409·행 불변 | 새 재시도 없음 | 배포 후 기존 remote-stale-check 재사용 | PASS 서버 거부; 실기기 직접 stale 미실행 | 기존 remote-stale-check·D |
+| D | 로컬 A→B→A·서버 stale | 실제 지연 네트워크 미실행 | 정상 계정 전환을 지연 요청으로 대체하지 않음 | NOT_RUN 실제 늦은 요청 | 기존 SQL/HTTP, E 정상 전환과 구분 |
+| E | 로컬 revoke1 | 물리 Google 로그아웃, Kakao 로그아웃 | Google19:29:15 revoked/user_logout, Edge200; Kakao도 해제 | PASS 정상 소유자 해제 | E logout/restored rows |
+| F | 로컬 revoke0·새 소유자 유지 | 실제 늦은 해제 미실행 | 로컬 계약은 보존 | NOT_RUN 실제 지연 해제 | 기존 postgrest-contract |
+| G | 로컬 두 설치·active2 | 물리 계정 변경, 에뮬레이터 보존 | emulator Google ID/last_seen 불변 active; Google 알림은 두 ID accepted | PASS 등록 격리; emulator 화면 수신/읽음 동기화 미검증 | E rows·cold receipt |
+| H | 로컬 tombstone·새 세션 | PO 실제 Google→Kakao→Google | native owner·새 세션·active 등록 일치 | PASS 한정 정상 재로그인 | E rows·PO 응답 |
+| I | 로컬 서로 다른 사용자 | 위 provider 전환 | 이전 물리 등록만 revoked, 다른 설치 유지 | PASS 정상 계정 전환; D/F 대체 아님 | E rows |
+| J | 종료/복귀 미실행 | PO 최근 앱에서 누리만 제거 후 OS 탭 | 19:43:18/55 pid 없음,19:44:31 새pid11769·앱 전경·읽음, PO 정상 상세 확인 | PASS 일반 종료 후 복귀1회; Settings 강제 종료 아님 | E coldBefore/coldAfter/read |
+| K | 로컬 멱등·client 검사 | 실제 응답 유실 미실행 | 동일 요청 계약 증거만 재사용 | NOT_RUN 실제 네트워크 응답 유실 | 기존 SQL/HTTP·Jest |
+| L | 로컬 opt-out/활성 계약 | 물리 누리 소식 OFF→ON | service=false일 때 인앱 저장·delivery suppressed·attempts0, 이후true 복구 | PASS 카테고리 한정; 전체 opt-in·OS OFF 미수락 | E preference/off/restored |
+
+실제 지연 요청·해제·응답 유실 시험은 이번 수동 UI와 읽기 전용 관찰로 실행하지 않았다. 이전 QA의401은 PT409 역전시험으로 전용하지 않는다. 안전한 기존 요청 관찰/지연 수단과 원장 조건을 연결한 후속 실행이 필요하며 단위 검사를 실기기 PASS로 올리지 않았다.
+
+### 7. OS Notification Acceptance
+
+- 두 설치의 POST_NOTIFICATIONS granted=true를 확인했다. 이번 실행에서 OS 권한은 변경하지 않았다.
+- Kakao foreground: QA transport `df0bc7e6-982f-4bfe-a210-736ccf30ede2`가 물리 Kakao ID에만 FCM accepted1, PO 인앱 표시 확인. 전경 OS 배너를 생략하는 기존 정책 보존; 단말 알림 목록은 비어 있었다.
+- Kakao background: `aa18ca12-5736-4ee6-b51b-358e1f4b7b7d`, launcher 전경 확인 후 발행. 물리 Kakao에만 accepted1, PO OS 탭·상세 확인, 서버 read_at19:39:17.508. 잘못된 Google 설치 발송 없음.
+- 소식 OFF: `67bb2106-ea16-4082-936c-770de40e01eb`는 인앱 저장, suppressed/attempts0/device_attempts0. 전역push_opt_in은true이므로 전체 opt-out 검증 아님.
+- Google 재로그인 후 일반 프로세스 종료: `1c8031bc-f122-4a66-bedf-87b506aeff5e`는 두 Google 등록에 accepted, 물리 OS 탭·상세·read_at19:44:09.132 확인. 에뮬레이터 FCM accepted를 화면 표시·탭 PASS로 확대하지 않는다.
+- 4건 모두 QA transport이며 실제 댓글/생일 등 업무 원본 E2E가 아니다. 추가 로그인 요구·오류 없이 상세 도달은 PO가 확인했다. 전체 OS/읽음 동기화 수락은 미완료다.
+
+### 8. 24-Hour Stability Status
+
+**24H_STABILITY: PENDING_OBSERVATION_WINDOW.** 배포19:01:13 기준24시간은2026-11-05 19:01:13 KST에 도달한다. 현재 약45분 이하의 관측으로 미래 PASS를 만들지 않는다. 장시간 대기·자동 모니터링을 시작하지 않았다.
+
+### 9. Git Commit and Push Result
+
+- 커밋 `895ae46a9e33acc63fdd0aefcb641d7acd4c26fa`, 제목 `fix(push): reject stale device sessions without transaction retries`, 5파일283추가/11삭제. staged diff와 secret guard를 확인했다.
+- 기본 SSH 인증은 publickey 오류였다. 이미 인증된 gh/keyring으로 동일 GitHub 저장소의 HTTPS 전송을 사용했고 remote/config/보안 설정은 변경하지 않았다. push 직전 원격1d73341 확인, normal fast-forward push 성공, 최종 ls-remote895ae46 일치. force·merge·branch 전환 없음.
+- 최신 원장/리서치의 로컬 후속 문서는 기존 dirty에 덧붙인 상태로 보존한다. 문서 전체를 P0 커밋에 섞지 않았고 원격 문서 최신화 완료라고 주장하지 않는다.
+
+### 10. Local and Remote CI Result
+
+- 5개 파일의 검사 당시 SHA256 불변으로 격리 SQL13/13(PGlite·PG17.6), 실제 PostgREST12회/3 stale=SQL오류3회, Edge10/10, Jest26/26·기존 타입/lint를 재사용했다. source/secret guard와 diff check는 이번 전달 직전 재확인 PASS.
+- 동일895ae46의 [CI41815478530](https://github.com/jaejun0617/nuri-app/actions/runs/41815478530)은19:41:25 KST success. 타입·lint·source/secret guard·critical12 suites/132·full342 suites/4607·후속 diff guard까지 실제 성공했다. SQL/PostgREST/Edge fixture는 이 원격 workflow가 실행한 항목이 아니라 위 로컬 증거다.
+- 물리 앱 SHA1d73341 / runtime `9fd2e7e206904139b9d66906b08d52e20b94664d64cb94c54f0c10de0c27486f` / APK `fbbe4b127cfea2dfebb7a7ac26784542101fd925bcdf1e3372dbc9fcc8bd1ad3` 유지. 에뮬레이터01d78a3 / APK `bcd0f484c2539819bb380734d18ddfdefd323ceb0dfb9808a9cf881e123ab966` 유지. 두 APK를 실제 조회했으며895ae46 앱을 새로 빌드했다고 하지 않는다. 이번 커밋은 서버/QA만 바뀌었다.
+
+### 11. Regression and Security Assessment
+
+보안 검사를 제거하지 않았고 RLS·ACL·세션 fence·QA 제한을 유지했다. 정상 등록·해제·두 설치 격리와 실제 푸시가 관측됐다. 24시간·실제 지연/유실·전체 앱 회귀·Store RC 성능은 미검증이다. 오래된definer view 보안 잔여는 원래10번에 남는다. 새로운 보안 전체 PASS를 선언하지 않는다.
+
+### 12. Existing Integration State
+
+기존 통합2/7·OS11/13·기록0/4를 임의 변경하지 않았다. U1/U2/U3/U5/NAV 및 Google 사진attempts5는 기존 상태를 보존했다. PO의 로그인 로딩 중앙 배치·더 따뜻하고 정제된 문구 요청은 후속 UI 요구로 기록한다. P0 전달에 UI 수정/설치가 섞이지 않았으며, P0 HARD STOP 이후 자동 착수하지 않는다.
+
+### 13. Remaining Risks and Blockers
+
+- 실제 지연 등록/해제 및 응답 유실, 전체 수신OFF·OS OFF 등 최신 필수 수락 미실행. 추가 관찰 가능한 시험 조건을 확정해야 한다.
+- 24시간 창 미충족, worker502 1건 원인 UNKNOWN, 메모리/Swap 경고 잔존. CPU 단독 기여율·동등 API 지연 개선율 UNKNOWN.
+- 원래 Google QA로 복구, Kakao service=true 복구, 두 OS 권한은 시작값true 유지. QA4알림은 근거와15분 전송 만료로 보존했고 행/대기열 삭제는 하지 않았다. 기존 helper·사진·일정 자료·앱 데이터는 건드리지 않았다.
+- 진행 중인 빌드/설치/검사 명령 없음. CI 완료. 추가 사용자 입력 대기 없음. source acceptance와 로컬 문서 전달 상태를 구분한다.
+
+### 14. Final Acceptance Matrix
+
+| 항목 | 판정 | 근거/잔여 |
+|---|---|---|
+| P0_CORE_FIX | PASS | PT409·release·Edge409, 단일 stale요청 반복 없음, 운영3루프 소멸 |
+| P0_RUNTIME_ACCEPTANCE | PARTIAL | 정상 인증/등록/해제/푸시/일반종료 복귀 추가; D/F/K·L전체 등 남음 |
+| P0_STABILITY_ACCEPTANCE | PENDING_OBSERVATION_WINDOW | 단기 개선,24시간 미도달·worker502 원인 미확정 |
+| P0_SOURCE_ACCEPTANCE | PASS |895ae46 정상push·동일SHA 필수CI, 무관dirty 보존 |
+| P0_FINAL_ACCEPTANCE | PARTIAL | 전체필수 미충족, 동결 없음 |
+
+| 구분 | 내용 |
+|---|---|
+| 해결 | P0 선별 전달/CI, 배포 정합성, 정상 계정 전환·등록 격리, 카카오 배경·Google 종료 후 OS 탭/읽음, 소식OFF 차단·설정 복구 |
+| 진행 | 없음: 이번 검증 종료·HARD STOP |
+| 잔여 | D/F/K·L전체 등 실제 조건,24시간 안정성,502 원인, 로컬 문서 선별 전달, 기존 통합·후속UI |
+| 잔여 해결 계획 | PO 후속 범위 승인 후 아래 순서로 수행. 자동재개 없음 |
+
+### 15. Next PO Decision
+
+| 우선순위 | 원래 번호/범위 | 작업 | 선행 조건 | 담당 | 필요한 입력 | 완료 기준 | 현재 시작 가능 여부 | Astra 권장 | GPT-6.1 Sol 권장 |
+|---|---|---|---|---|---|---|---|---|---|
+| 1 | P0 | 24시간 관측·worker502 판정 | 11/05 19:01:13 이후·후속지시 | Master | 운영 읽기 접근 | CPU/rollback/40001/5xx/cron 추세와 위험 판단 | 불가: 창 미충족·STOP | Medium | Medium |
+| 2 | P0 | D/F/K·L전체 필수 실제 경계 | 후속지시·안전한 지연/유실 관찰수단 | Master | 기존 QA와 필요시 직접인증 | 실제 요청/응답/소유상태 연결 | 불가: STOP | High | High |
+| 3 | 추가 UI | 로그인 중앙 로딩·문구 개선 | P0와 분리한 후속 실행 지시 | Master | 기존 승인 UI·이번 PO 요구 | 기존 인증 계약 보존·실기기 표시 수락 | 불가: 자동재개 없음 | Medium | Medium |
+| 4 | 1~6·NAV | 기존 통합 잔여 | 별도 재개 지시 | Master | 기존 원장/QA | 필수 미수락 해소 | 불가 | Medium | Medium |
+| 5 | 7→8→9,10→14 | 기존 후속 우선순위 | 통합 동결·각 PO 지시 | Master/PO | 각 후속 기준 | 각 수락 | 불가: STORE HOLD | Medium | Medium |
+
+다음 첫 실행은 PO 지시 후 배포 기준24시간 창의 충족 여부와 마지막19:40 관측 이후 로그/카운터를 읽기 전용으로 대조하는 것이다. 실제 모델·추론 강도는 미확인, 설정 변경 없음. 권장과 실제를 혼동하지 않는다.
+
+**P1/P2: NOT_STARTED / EXISTING_INTEGRATION: ON_HOLD / STORE: HOLD / AUTO_RESUME: NO.**
+
 ## 2026-11-04 19:14 KST P0 CPU 오류 계약 수정·배포 결과
 
 **P0 구현·배포 완료 / 필수 수락 부분 완료 / HARD STOP / PARTIAL_NOT_FROZEN / STORE HOLD.** 이번 PO 승인은 CPU P0에만 적용됐다. 아래 과거 통합 재개 문구로 다른 작업을 자동 재개하지 않는다. 별도 Room·추가 에이전트, 운영 backend 강제 종료, 프로젝트 재시작, 통계 초기화는 하지 않았다.
