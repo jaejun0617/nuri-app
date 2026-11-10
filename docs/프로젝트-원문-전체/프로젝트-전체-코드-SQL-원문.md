@@ -1,5 +1,7 @@
 # 프로젝트 전체 코드 및 SQL 원문
 
+> 문서 지위: **HISTORICAL_EVIDENCE, 2026-03-21 생성본**. 아래 ‘현재 저장소’는 생성 당시를 뜻하며 최신 구현의 source of truth가 아니다. 현재 코드는 실제 소스와 Git, 실행 migration은 실제 migration 이력을 확인한다. 타임라인 별도 번들의 동일한 34개 코드/SQL 본문은 이 파일을 기준본으로 참조하도록 통합했으며 각 본문 해시를 대조했다. 이 정리로 제품 코드나 SQL을 실행하지 않았다.
+
 생성일: 2026-03-21
 
 이 문서는 현재 저장소의 실제 텍스트 코드 파일과 SQL 파일 원문 전체를 생략 없이 모아둔 번들이다.
@@ -9283,6 +9285,8 @@ export const ASSETS = {
 
 ---
 
+<a id="timeline-snapshot-06"></a>
+
 ## FILE: `src/components/MemoryCard/MemoryCard.tsx`
 
 원본 경로: `src/components/MemoryCard/MemoryCard.tsx`
@@ -11284,6 +11288,8 @@ const styles = StyleSheet.create({
 
 ---
 
+<a id="timeline-snapshot-07"></a>
+
 ## FILE: `src/components/images/OptimizedImage.tsx`
 
 원본 경로: `src/components/images/OptimizedImage.tsx`
@@ -12313,6 +12319,8 @@ export function buildLocationPermissionCopy(
 
 ---
 
+<a id="timeline-snapshot-04"></a>
+
 ## FILE: `src/components/media/PhotoAddCard.tsx`
 
 원본 경로: `src/components/media/PhotoAddCard.tsx`
@@ -12399,6 +12407,8 @@ export default PhotoAddCard;
 ```
 
 ---
+
+<a id="timeline-snapshot-03"></a>
 
 ## FILE: `src/components/navigation/AppNavigationToolbar.tsx`
 
@@ -12927,6 +12937,8 @@ export default memo(function PetThemePicker({
 ```
 
 ---
+
+<a id="timeline-snapshot-05"></a>
 
 ## FILE: `src/components/records/RecordImageGallery.tsx`
 
@@ -15445,6 +15457,8 @@ export function useRecentPetCareGuideSearches() {
 
 ---
 
+<a id="timeline-snapshot-08"></a>
+
 ## FILE: `src/hooks/useSignedMemoryImage.ts`
 
 원본 경로: `src/hooks/useSignedMemoryImage.ts`
@@ -16125,6 +16139,8 @@ export function useWeatherGuide(
 
 ---
 
+<a id="timeline-snapshot-01"></a>
+
 ## FILE: `src/navigation/AppTabsNavigator.tsx`
 
 원본 경로: `src/navigation/AppTabsNavigator.tsx`
@@ -16601,6 +16617,8 @@ export default function RootNavigator() {
 ```
 
 ---
+
+<a id="timeline-snapshot-02"></a>
 
 ## FILE: `src/navigation/TimelineStackNavigator.tsx`
 
@@ -18823,6 +18841,8 @@ export const styles = StyleSheet.create({
 ```
 
 ---
+
+<a id="timeline-snapshot-20"></a>
 
 ## FILE: `src/screens/Common/EditDoneScreen.tsx`
 
@@ -35458,6 +35478,8 @@ export default function PetProfileEditScreen() {
 
 ---
 
+<a id="timeline-snapshot-24"></a>
+
 ## FILE: `src/screens/Records/RecordCreateScreen.styles.ts`
 
 원본 경로: `src/screens/Records/RecordCreateScreen.styles.ts`
@@ -36012,6 +36034,8 @@ export const styles = StyleSheet.create({
 ```
 
 ---
+
+<a id="timeline-snapshot-25"></a>
 
 ## FILE: `src/screens/Records/RecordCreateScreen.tsx`
 
@@ -37037,6 +37061,8 @@ export default function RecordCreateScreen() {
 
 ---
 
+<a id="timeline-snapshot-26"></a>
+
 ## FILE: `src/screens/Records/RecordDetailScreen.styles.ts`
 
 원본 경로: `src/screens/Records/RecordDetailScreen.styles.ts`
@@ -37362,6 +37388,8 @@ export const styles = StyleSheet.create({
 ```
 
 ---
+
+<a id="timeline-snapshot-27"></a>
 
 ## FILE: `src/screens/Records/RecordDetailScreen.tsx`
 
@@ -38162,6 +38190,8 @@ export default function RecordDetailScreen() {
 
 ---
 
+<a id="timeline-snapshot-28"></a>
+
 ## FILE: `src/screens/Records/RecordEditScreen.styles.ts`
 
 원본 경로: `src/screens/Records/RecordEditScreen.styles.ts`
@@ -38486,6 +38516,8 @@ export const styles = StyleSheet.create({
 ```
 
 ---
+
+<a id="timeline-snapshot-29"></a>
 
 ## FILE: `src/screens/Records/RecordEditScreen.tsx`
 
@@ -39479,6 +39511,8 @@ export default function RecordEditScreen() {
 
 ---
 
+<a id="timeline-snapshot-22"></a>
+
 ## FILE: `src/screens/Records/TimelineScreen.styles.ts`
 
 원본 경로: `src/screens/Records/TimelineScreen.styles.ts`
@@ -39878,6 +39912,8 @@ export const styles = StyleSheet.create({
 ```
 
 ---
+
+<a id="timeline-snapshot-23"></a>
 
 ## FILE: `src/screens/Records/TimelineScreen.tsx`
 
@@ -40973,6 +41009,8 @@ export default function TimelineScreen() {
 ```
 
 ---
+
+<a id="timeline-snapshot-30"></a>
 
 ## FILE: `src/screens/Records/components/RecordTagModal.tsx`
 
@@ -44182,6 +44220,8 @@ const styles = StyleSheet.create({
 ```
 
 ---
+
+<a id="timeline-snapshot-21"></a>
 
 ## FILE: `src/screens/Weather/WeatherActivityRecordScreen.tsx`
 
@@ -49612,6 +49652,8 @@ export async function clearPetCreateDraft(): Promise<void> {
 
 ---
 
+<a id="timeline-snapshot-13"></a>
+
 ## FILE: `src/services/local/recordDraft.ts`
 
 원본 경로: `src/services/local/recordDraft.ts`
@@ -49673,6 +49715,8 @@ export async function clearRecordCreateDraft(): Promise<void> {
 ```
 
 ---
+
+<a id="timeline-snapshot-14"></a>
 
 ## FILE: `src/services/local/uploadQueue.ts`
 
@@ -52428,6 +52472,8 @@ export async function pickPhotoAssets(
 ```
 
 ---
+
+<a id="timeline-snapshot-10"></a>
 
 ## FILE: `src/services/memories/categoryMeta.ts`
 
@@ -55472,6 +55518,8 @@ export function buildPetThemePalette(themeColor: string | null | undefined) {
 
 ---
 
+<a id="timeline-snapshot-19"></a>
+
 ## FILE: `src/services/records/date.ts`
 
 원본 경로: `src/services/records/date.ts`
@@ -55563,6 +55611,8 @@ export function formatRecordRelativeTime(record: RecordDateSource, now = new Dat
 ```
 
 ---
+
+<a id="timeline-snapshot-18"></a>
 
 ## FILE: `src/services/records/form.ts`
 
@@ -55797,6 +55847,8 @@ export function validateRecordOccurredAt(value: string) {
 ```
 
 ---
+
+<a id="timeline-snapshot-17"></a>
 
 ## FILE: `src/services/records/imageSources.ts`
 
@@ -57259,6 +57311,8 @@ export async function insertPetCareGuideEvents(
 ```
 
 ---
+
+<a id="timeline-snapshot-16"></a>
 
 ## FILE: `src/services/supabase/memories.ts`
 
@@ -59305,6 +59359,8 @@ export async function deleteFile(bucket: string, path: string) {
 
 ---
 
+<a id="timeline-snapshot-15"></a>
+
 ## FILE: `src/services/supabase/storageMemories.ts`
 
 원본 경로: `src/services/supabase/storageMemories.ts`
@@ -59768,6 +59824,8 @@ export async function uploadPetAvatar(input: {
 
 ---
 
+<a id="timeline-snapshot-11"></a>
+
 ## FILE: `src/services/timeline/heatmap.ts`
 
 원본 경로: `src/services/timeline/heatmap.ts`
@@ -59875,6 +59933,8 @@ export function buildTimelineHeatmap(
 ```
 
 ---
+
+<a id="timeline-snapshot-12"></a>
 
 ## FILE: `src/services/timeline/query.ts`
 
@@ -62090,6 +62150,8 @@ export const usePetStore = create<PetState>((set, get) => ({
 ```
 
 ---
+
+<a id="timeline-snapshot-09"></a>
 
 ## FILE: `src/store/recordStore.ts`
 
@@ -64643,6 +64705,8 @@ grant execute on function public.delete_my_account() to authenticated;
 
 ---
 
+<a id="timeline-snapshot-32"></a>
+
 ## SQL FILE: `docs/sql/공용-릴리즈-묶음/기능-추가/메모리-카테고리-서브카테고리-가격-추가.sql`
 
 원본 경로: `docs/sql/공용-릴리즈-묶음/기능-추가/메모리-카테고리-서브카테고리-가격-추가.sql`
@@ -64670,6 +64734,8 @@ $$;
 ```
 
 ---
+
+<a id="timeline-snapshot-31"></a>
 
 ## SQL FILE: `docs/sql/공용-릴리즈-묶음/전체-초기-구성/누리-전체-초기-구성.sql`
 
@@ -67012,6 +67078,8 @@ order by 1, 2;
 
 ---
 
+<a id="timeline-snapshot-34"></a>
+
 ## SQL FILE: `docs/sql/도메인/타임라인-메모리-이미지-시스템/타임라인-메모리-이미지-운영-스키마-최종.sql`
 
 원본 경로: `docs/sql/도메인/타임라인-메모리-이미지-시스템/타임라인-메모리-이미지-운영-스키마-최종.sql`
@@ -67928,6 +67996,8 @@ commit;
 ```
 
 ---
+
+<a id="timeline-snapshot-33"></a>
 
 ## SQL FILE: `docs/sql/마이그레이션/2026-03-05_메모리-이미지-URL-컬럼-추가.sql`
 
