@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   StyleSheet,
   FlatList,
+  ScrollView,
   Image,
   View,
   Dimensions,
@@ -19,7 +20,6 @@ import OptimizedImage from '../src/components/images/OptimizedImage';
 import { styles } from '../src/screens/Records/RecordDetailScreen.styles';
 import RecordDetailScreen from '../src/screens/Records/RecordDetailScreen';
 import type { MemoryRecord } from '../src/services/supabase/memories';
-import { lightColors } from '../src/app/theme/tokens/colors';
 import { LAVENDER_CTA } from '../src/app/theme/tokens/productAccent';
 import { TIMELINE_TYPE as T } from '../src/theme/timelineDesign';
 import type { SeasonKey } from '../src/theme/seasonal/season';
@@ -174,26 +174,6 @@ describe('memory detail rendered contract', () => {
     mockRecord.category = 'other';
     mockWalkSource = undefined;
     mockWalkScope = { ownerId: 'owner', petId: 'pet', generation: 'first', current: () => true };
-    const rows = [
-      mockRecord,
-      ...Array.from({ length: 7 }, (_, index) => ({
-        ...mockRecord,
-        id: `same-day-${index}`,
-        title: `합성 관련 기록 ${index}`,
-        category: 'diary',
-        occurredAt: '2026-09-01',
-      })),
-    ];
-    mockFetchPage.mockImplementation(
-      async ({ cursor, limit }: { cursor?: string | null; limit: number }) => {
-        const start = Number(cursor ?? 0);
-        return {
-          items: rows.slice(start, start + limit),
-          hasMore: start + limit < rows.length,
-          nextCursor: `${start + limit}`,
-        };
-      },
-    );
   });
   it.each([null, undefined, ''])('hides remembrance for a together pet without querying or changing participation: %s', async deathDate => {
     mockPets.pets = [
@@ -266,9 +246,6 @@ describe('memory detail rendered contract', () => {
       expect(mockManageRemembrance.mock.calls.every(call => call[1] === null)).toBe(true);
     } finally { TestRenderer.act(() => tree.unmount()); }
   });
-  it('removes the default black outline from the more memories action', () => {
-    expect(StyleSheet.flatten(styles.relatedMoreButton)).toMatchObject({ borderWidth: 0 });
-  });
   it.each([[1600, 900], [800, 800], [400, 1600]])('does not paint gray bands around an uncropped %sx%s photo', async (width, height) => {
     mockRecord.imagePaths = ['qa/fit-only.jpg'];
     const size = jest.spyOn(Image, 'getSize').mockImplementation((_uri, success) => success(width, height));
@@ -289,109 +266,35 @@ describe('memory detail rendered contract', () => {
       size.mockRestore();
     }
   });
-  it('uses one vertical list and reserves the measured overlay toolbar once', async () => {
+  it('uses one vertical scroll view and reserves the measured overlay toolbar once', async () => {
     const tree = await render();
-    const lists = tree.root
-      .findAllByType(FlatList)
-      .filter(node => !node.props.horizontal);
-    expect(lists).toHaveLength(1);
-    expect(lists[0].props.testID).toBe('memory-detail-scroll');
-    expect(
-      StyleSheet.flatten(lists[0].props.contentContainerStyle).paddingBottom,
-    ).toBe(88);
-    expect(lists[0].props.scrollEnabled).not.toBe(false);
-    TestRenderer.act(() => tree.unmount());
+    const scroll = tree.root.findByType(ScrollView);
+    expect(scroll.props.testID).toBe('memory-detail-scroll');
+    expect(StyleSheet.flatten(scroll.props.contentContainerStyle).paddingBottom).toBe(88);
   });
-  it('uses a warm history heading and text-only category chips while preserving empty thumbnails', async () => {
+
+  it('keeps the original photo outside the glass and groups the profile, date and story in reading order', async () => {
+    mockRecord.imagePaths = ['qa/story.jpg'];
     const tree = await render();
-    expect(text(tree)).toContain('함께 쌓아온 추억');
-    expect(text(tree)).not.toContain('다른 추억들');
-    const chips = tree.root
-      .findAllByType(View)
-      .filter(
-        node =>
-          Array.isArray(node.props.style) &&
-          node.props.style.includes(styles.categoryChip),
-      );
-    expect(chips).toHaveLength(6);
-    chips.forEach(chip => {
-      expect(chip.findAll(node => node.props.family === 'material')).toHaveLength(
-        0,
-      );
+    const byId = (id: string) =>
+      tree.root.findAllByType(View).find(node => node.props.testID === id)!;
+    const photo = byId('memory-detail-photo-viewport');
+    const glass = byId('memory-detail-post-glass');
+    expect(photo.parent).toBe(glass.parent);
+    expect(photo.parent?.children.indexOf(photo)).toBeLessThan(glass.parent?.children.indexOf(glass) ?? 0);
+    expect(photo.findAllByProps({ testID: 'home-reflective-fill' })).toHaveLength(0);
+    expect(glass.findAll(node => typeof node.type === 'string' && node.props.testID === 'home-reflective-fill')).toHaveLength(1);
+    expect(StyleSheet.flatten(photo.props.style)).toMatchObject({ width: '100%' });
+    expect(StyleSheet.flatten(glass.props.style)).toMatchObject({
+      marginTop: 8,
+      marginHorizontal: 12,
+      padding: 12,
     });
-    const related = tree.root
-      .findAllByType(TouchableOpacity)
-      .filter(node => node.props.testID === 'memory-detail-related-record');
-    related.forEach(card => {
-      expect(
-        card.findAll(
-          node => node.props.family === 'material' && node.props.size === 26,
-        ),
-      ).toHaveLength(1);
-    });
-    TestRenderer.act(() => tree.unmount());
-  });
-  it('uses a full-width story surface without changing the content insets or related rows', async () => {
-    const tree = await render();
-    const main = tree.root.findAll(
-      node => node.type === View && node.props.testID === 'memory-detail-post-glass',
-    );
-    const related = tree.root.findAll(
-      node => node.type === View && node.props.testID === 'memory-detail-related-glass',
-    );
-    expect(main).toHaveLength(1);
-    expect(related).toHaveLength(5);
-    expect(StyleSheet.flatten(main[0].props.style)).toMatchObject({
-      width: '100%', padding: 0, marginHorizontal: 0, backgroundColor: 'transparent',
-    });
-    expect(styles.postHeader.paddingHorizontal).toBe(16);
-    expect(styles.postBody.paddingHorizontal).toBe(16);
-    expect(styles.postImageViewport.marginHorizontal).toBe(16);
-    for (const frame of related) expect(StyleSheet.flatten(frame.props.style)).toMatchObject({
-      backgroundColor: 'transparent', borderRadius: 8, marginTop: 0, padding: 6,
-    });
-    const glass = main[0].findAll(node => typeof node.type === 'string' && node.props.testID === 'home-reflective-fill');
-    expect(glass).toHaveLength(1);
-    expect(StyleSheet.flatten(glass[0].props.style).backgroundColor).toBe('rgba(255, 255, 255, 0.26)');
-    expect(styles.postCard.backgroundColor).not.toBe('#FFFFFF');
-    expect(styles.postAvatar).toMatchObject({ width: 48, height: 48, borderRadius: 24 });
-    expect(styles.relatedThumb).toMatchObject({ width: 72, height: 80 });
-    expect(styles.headerLink.backgroundColor).toBe('transparent');
-    TestRenderer.act(() => tree.unmount());
-  });
-  it('shows each historical date as well as time instead of implying every record is from the same day', async () => {
-    const tree = await render();
-    const related = tree.root.findAllByType(TouchableOpacity).filter(
-      node => node.props.testID === 'memory-detail-related-record',
-    );
-    related.forEach(card => {
-      const copy = card.findAllByType(Text).map(node => node.props.children).join(' ');
-      expect(copy).toContain('2026.09.01');
-      expect(copy).toContain('오후 12:16');
-    });
-    TestRenderer.act(() => tree.unmount());
-  });
-  it('uses the existing KST date fallback for a historical record without an occurred date', async () => {
-    mockFetchPage.mockResolvedValueOnce({
-      items: [{ ...mockRecord, id: 'history-fallback', occurredAt: null, createdAt: '2026-12-31T15:01:00Z' }],
-      hasMore: false,
-      nextCursor: null,
-    });
-    const tree = await render();
-    expect(text(tree)).toContain('2027.01.01');
-    expect(text(tree)).toContain('오전 12:01');
-    TestRenderer.act(() => tree.unmount());
-  });
-  it('uses fixed timeline metadata colors while keeping the historical row hierarchy', () => {
-    for (const style of [styles.postMetaLine, styles.relatedSectionCount, styles.postTagsText]) {
-      expect(StyleSheet.flatten(style)?.color).toBe('#716A9C');
-    }
-    expect(styles.relatedTime.color).toBe(lightColors.textSecondary);
-    expect(styles.tagText.color).toBe('#7D5CE4');
+    const story = glass.findAllByType(Text).map(node => node.props.children).join(' ');
+    expect(story).toMatch(/누리.*2026\.10\.04.*오후 12:16.*합성 상세 기록.*테스트 기록입니다.*#생활.*#미용/);
     expect(styles.postContentText.fontSize).toBe(T.body.fontSize);
-    expect(styles.tagText.fontSize).toBe(T.meta.fontSize);
-    expect(styles.relatedTitle.fontSize).toBe(12);
   });
+
   it('fits original image proportions without crop and opens a dismissible overlay', async () => {
     mockRecord.imagePaths = ['qa/portrait.png'];
     const spy = jest
@@ -468,86 +371,32 @@ describe('memory detail rendered contract', () => {
     TestRenderer.act(() => tree.unmount());
   });
   it.each(['autumn', 'winter', 'spring', 'summer'] as SeasonKey[])(
-    'renders a text-first no-photo story and fixed-palette related action in %s',
+    'keeps text-only records readable and the fixed-palette return button in %s',
     async season => {
       mockSeason = season;
       const tree = await render();
-      expect(text(tree)).toContain('추억 상세');
-      expect(tree.root.findAllByType(FlatList).filter(node => node.props.horizontal)).toHaveLength(0);
+      expect(tree.root.findAllByType(FlatList)).toHaveLength(0);
       expect(text(tree)).toContain(mockRecord.title);
       expect(text(tree)).toContain(mockRecord.content);
-      expect(text(tree)).toContain('5개 표시');
-      expect(
-        tree.root
-          .findAllByType(TouchableOpacity)
-          .filter(node => node.props.testID === 'memory-detail-related-record'),
-      ).toHaveLength(5);
-      const more = tree.root
-        .findAllByType(CtaButton)
-        .find(
-          node => node.props.accessibilityLabel === '다른 추억 5개 더보기',
-        )!;
-      expect(more.props.role).toBe('primary');
-      const button = more.findAllByType(View).find(node => node.props.accessibilityLabel === '다른 추억 5개 더보기');
-      expect(button).toBeDefined();
-      expect(StyleSheet.flatten(button?.props.style).backgroundColor).toBe(LAVENDER_CTA.background);
-      const moreIcon = more.findAll(node => node.props.family === 'feather' && node.props.name === 'chevron-right')[0];
-      expect(moreIcon).toBeDefined();
-      expect(moreIcon.props).toMatchObject({
-        family: 'feather',
-        name: 'chevron-right',
-        color: LAVENDER_CTA.text,
-      });
-      expect(text(tree)).toContain('추억을 더 만나볼까요');
-      expect(text(tree)).not.toContain('추억을 더 만나볼까요?');
-      expect(styles.relatedMoreButtonText).toMatchObject({
-        flex: 1,
-        textAlign: 'center',
-      });
-      expect(
-        more
-          .findAllByType(View)
-          .filter(node => node.props.style === styles.relatedMoreButtonSide),
-      ).toHaveLength(2);
-      expect(styles.relatedMoreButtonSide.width).toBe(18);
-      expect(mockFetchPage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          petId: 'pet',
-          limit: 6,
-          cursor: null,
-        }),
-      );
-      await TestRenderer.act(async () => more.props.onPress());
-      expect(
-        tree.root
-          .findAllByType(TouchableOpacity)
-          .filter(node => node.props.testID === 'memory-detail-related-record'),
-      ).toHaveLength(7);
-      TestRenderer.act(() => tree.unmount());
+      expect(text(tree)).not.toContain('함께 쌓아온 추억');
+      expect(text(tree)).not.toContain('추억을 더 만나볼까요');
+      expect(mockFetchPage).not.toHaveBeenCalled();
+      const back = tree.root.findAllByType(CtaButton).find(node => node.props.accessibilityLabel === '돌아가기')!;
+      expect(back.props.role).toBe('primary');
+      const button = back.findAllByType(View).find(node => node.props.accessibilityLabel === '돌아가기');
+      expect(StyleSheet.flatten(button?.props.style)).toMatchObject({ backgroundColor: LAVENDER_CTA.background, borderWidth: 0 });
     },
   );
-  it('uses stack Back rather than navigating Home, and preserves origin for related record replacement', async () => {
+
+  it.each(['timeline', 'record-gallery'] as const)('returns to the existing %s without creating a fresh list', async entrySource => {
+    mockRoute.params.entrySource = entrySource;
     const tree = await render();
-    TestRenderer.act(() =>
-      tree.root
-        .findAllByType(TouchableOpacity)
-        .find(node => node.props.accessibilityLabel === '추억 상세 뒤로가기')!
-        .props.onPress(),
-    );
+    const back = tree.root.findAllByType(CtaButton).find(node => node.props.accessibilityLabel === '돌아가기')!;
+    TestRenderer.act(() => back.props.onPress());
     expect(mockNavigation.goBack).toHaveBeenCalledTimes(1);
     expect(mockNavigation.navigate).not.toHaveBeenCalled();
-    TestRenderer.act(() =>
-      tree.root
-        .findAllByType(TouchableOpacity)
-        .find(node => node.props.testID === 'memory-detail-related-record')!
-        .props.onPress(),
-    );
-    expect(mockNavigation.replace).toHaveBeenCalledWith(
-      'RecordDetail',
-      expect.objectContaining({ entrySource: 'timeline', petId: 'pet' }),
-    );
-    TestRenderer.act(() => tree.unmount());
   });
+
   it('opens a spacious text-only edit/delete menu while retaining final deletion confirmation', async () => {
     const tree = await render();
     TestRenderer.act(() =>
@@ -668,12 +517,5 @@ describe('memory detail rendered contract', () => {
     expect(mockStore.removeOneLocal).not.toHaveBeenCalled();
     expect(mockNavigation.navigate).not.toHaveBeenCalled();
     expect(mockNavigation.goBack).not.toHaveBeenCalled();
-  });
-  it('shows a retry instead of inventing a zero related count after a read failure', async () => {
-    mockFetchPage.mockRejectedValueOnce(new Error('read failure'));
-    const tree = await render();
-    expect(text(tree)).toContain('관련 기록 다시 불러오기');
-    expect(text(tree)).not.toContain('아직 다른 추억은 없어요.');
-    TestRenderer.act(() => tree.unmount());
   });
 });

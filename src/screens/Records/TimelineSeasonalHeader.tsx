@@ -5,7 +5,7 @@ import { PRODUCT_ACCENT } from '../../app/theme/tokens/productAccent';
 import { MenuGlassSurface } from '../../components/common/MenuGlassSurface';
 import React, { memo } from 'react';
 import {
-  Image,
+  Pressable,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 import AppText from '../../app/ui/AppText';
-import { ASSETS } from '../../assets';
 import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 import {
   TIMELINE_MAIN_CATEGORY_OPTIONS,
@@ -29,9 +28,9 @@ import {
   MAX_ACTIVITY_LEVEL,
 } from '../../services/activity/progressPolicy';
 import type { TotalSummary } from '../../services/home/weeklySummary';
-import type { DailyStreakStatus } from '../../services/activity/dailyStreak';
 import type { SeasonKey } from '../../theme/seasonal/season';
-import { appendKoreanParticle } from '../../utils/koreanParticle';
+
+const GALLERY_SURFACE_RADIUS = 6;
 
 export const TimelineSeasonalControls = memo(
   function TimelineSeasonalControlsView({
@@ -40,9 +39,12 @@ export const TimelineSeasonalControls = memo(
     mainCategory,
     categoryLabel,
     counts,
+    monthScoped = false,
+    sortActive = false,
     transitioning,
     onToggleSort,
     onOpenMonth,
+    onShowAllRecords,
     onPressCategory,
   }: {
     season: SeasonKey;
@@ -51,15 +53,70 @@ export const TimelineSeasonalControls = memo(
     mainCategory: MemoryMainCategory;
     categoryLabel: string;
     counts: TimelineCategoryCounts;
+    monthScoped?: boolean;
+    sortActive?: boolean;
     transitioning: boolean;
     onToggleSort: () => void;
-    onOpenMonth: () => void;
+    onOpenMonth?: () => void;
+    onShowAllRecords?: () => void;
     onPressCategory: (category: MemoryMainCategory) => void;
   }) {
+    const inline = Boolean(onShowAllRecords);
     return (
-      <View style={s.controls} testID="timeline-seasonal-controls">
-        <View style={s.controlRow}>
-          <TouchableOpacity
+      <View style={[s.controls, onShowAllRecords && s.inlineControls]} testID="timeline-seasonal-controls">
+        {onShowAllRecords ? (
+          <View style={[s.controlRow, s.pairedActionRow]} testID="timeline-record-action-row">
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="전체 기록 보기"
+              testID="timeline-month-show-all"
+              onPress={onShowAllRecords}
+              style={[s.pairedAction, s.galleryAction]}
+            >
+              {({ pressed }) => (
+                <View
+                  testID="timeline-gallery-action-surface"
+                  style={[s.category, s.pairedSurface, s.gallerySurface, pressed && s.pressedGallerySurface]}
+                >
+                  <MenuGlassSurface radius={GALLERY_SURFACE_RADIUS} testID="timeline-gallery-action-glass" />
+                  <AppText preset="unifiedMeta" styleOverridesPreset style={[s.categoryText, s.pairedActionText, pressed && s.pressedGalleryText]}>
+                    전체 기록 보기
+                  </AppText>
+                  <NuriSemanticIcon
+                    family="feather"
+                    name="chevron-right"
+                    size={14}
+                    color={pressed ? PRODUCT_ACCENT.pressed : '#566277'}
+                    preserveOriginal
+                    accessible={false}
+                  />
+                </View>
+              )}
+            </Pressable>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityState={{ selected: sortActive }}
+              testID="timeline-sort-action"
+              accessibilityLabel={`정렬 변경, ${sortLabel}`}
+              onPress={onToggleSort}
+              style={s.pairedAction}
+            >
+              {({ pressed }) => {
+                const highlighted = pressed || sortActive;
+                return (
+                  <View style={[s.category, s.pairedSurface, s.trailingSurface, highlighted && s.activeChip]}>
+                    <AppText preset="unifiedMeta" styleOverridesPreset style={[s.categoryText, s.pairedActionText, highlighted && s.activeChipText]}>
+                      {sortLabel}
+                    </AppText>
+                    <NuriSemanticIcon family="feather" name="chevron-down" size={12} color={highlighted ? '#FFFFFF' : '#748096'} preserveOriginal accessible={false} />
+                  </View>
+                );
+              }}
+            </Pressable>
+          </View>
+        ) : null}
+        {!onShowAllRecords ? <View style={[s.controlRow, !onOpenMonth && s.sortOnlyRow]}>
+          {onOpenMonth ? <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel={`기록 월 선택, ${monthLabel}`}
             onPress={onOpenMonth}
@@ -81,7 +138,7 @@ export const TimelineSeasonalControls = memo(
                 preserveOriginal
               />
             </View>
-          </TouchableOpacity>
+          </TouchableOpacity> : null}
           <TouchableOpacity
             accessibilityRole="button"
             accessibilityLabel={`정렬 변경, ${sortLabel}`}
@@ -105,26 +162,31 @@ export const TimelineSeasonalControls = memo(
               />
             </View>
           </TouchableOpacity>
-        </View>
+        </View> : null}
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={s.categories}
+          contentContainerStyle={[s.categories, onShowAllRecords && s.inlineCategories]}
         >
           {TIMELINE_MAIN_CATEGORY_OPTIONS.map(option => {
             const active = option.key === mainCategory;
-            const textColor = active ? '#FFFFFF' : '#748096';
-            const label =
-              option.key === 'other' && active ? categoryLabel : option.label;
+            const showCount = !inline || option.key === 'all';
+            const wideMonthCount = monthScoped && option.key === 'all' && !transitioning && counts.all >= 100;
+            const textColor = inline
+              ? (active ? PRODUCT_ACCENT.pressed : '#566277')
+              : (active ? '#FFFFFF' : '#748096');
+            const label = option.key === 'all' && monthScoped
+              ? '이달 전체'
+              : option.key === 'other' && active ? categoryLabel : option.label;
             return (
               <TouchableOpacity
                 key={option.key}
                 testID={`timeline-category-${option.key}`}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
-                accessibilityLabel={`${label}, ${
+                accessibilityLabel={showCount ? `${label}, ${
                   transitioning ? '집계 중' : `${counts[option.key]}개의 기록`
-                }`}
+                }` : label}
                 onPress={() => onPressCategory(option.key)}
                 activeOpacity={0.85}
                 style={s.categoryTouch}
@@ -133,15 +195,13 @@ export const TimelineSeasonalControls = memo(
                   testID={`timeline-category-surface-${option.key}`}
                   style={[
                     s.category,
-                    active
-                      ? {
-                          backgroundColor: PRODUCT_ACCENT.primary,
-                          borderColor: PRODUCT_ACCENT.primary,
-                        }
-                      : null,
+                    inline && s.inlineTextSurface,
+                    inline && s.inlineCategory,
+                    wideMonthCount && s.wideCountChip,
+                    !inline && active && s.activeChip,
                   ]}
                 >
-                  {option.key === 'all' ? (
+                  {option.key === 'all' && !monthScoped ? (
                     <NuriSemanticIcon
                       family="material"
                       name="view-grid"
@@ -153,17 +213,24 @@ export const TimelineSeasonalControls = memo(
                   <AppText
                     preset="unifiedMeta"
                     styleOverridesPreset
-                    style={[s.categoryText, { color: textColor }]}
+                    style={[s.categoryText, inline && s.inlineChipText, { color: textColor }]}
                   >
                     {label}
                   </AppText>
-                  <AppText
+                  {showCount ? <AppText
                     preset="unifiedMeta"
                     styleOverridesPreset
-                    style={[s.categoryCount, { color: textColor }]}
+                    style={[s.categoryCount, inline && s.inlineChipText, { color: textColor }]}
                   >
-                    {transitioning ? '—' : counts[option.key]}
-                  </AppText>
+                    {transitioning ? '—' : counts[option.key].toLocaleString('ko-KR')}
+                  </AppText> : null}
+                  {inline && active ? (
+                    <View
+                      testID="timeline-category-indicator"
+                      pointerEvents="none"
+                      style={s.selectionIndicator}
+                    />
+                  ) : null}
                 </View>
               </TouchableOpacity>
             );
@@ -180,9 +247,6 @@ export default memo(function TimelineSeasonalHeader({
   level,
   titles,
   summary,
-  dailyStatus,
-  petName,
-  showWalkStatus,
   onPressBack,
   children,
 }: React.PropsWithChildren<{
@@ -192,9 +256,6 @@ export default memo(function TimelineSeasonalHeader({
   level: UserLevelSummary | null;
   titles: UserTitle[];
   summary: TotalSummary | null;
-  dailyStatus: DailyStreakStatus | null;
-  petName: string | null;
-  showWalkStatus: boolean;
   onPressBack: () => void;
 }>) {
   const stack = width < 380 || fontScale >= 1.3;
@@ -311,27 +372,6 @@ export default memo(function TimelineSeasonalHeader({
         </View>
       </View>
       {children}
-      {showWalkStatus ? (
-        <View style={s.walkStatus}>
-          <Image
-            testID="timeline-walk-brand"
-            source={ASSETS.logo}
-            resizeMode="contain"
-            accessibilityRole="image"
-            accessibilityLabel="NURI"
-            style={s.walkBrand}
-          />
-          <AppText preset="unifiedMeta" styleOverridesPreset style={s.walkText}>
-            {dailyStatus?.todayCompleted
-              ? `오늘 산책 완료 · ${dailyStatus.currentStreak}일 연속`
-              : `${appendKoreanParticle(
-                  petName?.trim() || '반려동물',
-                  '와의',
-                  '과의',
-                )} 오늘 산책을 기록해 보세요.`}
-          </AppText>
-        </View>
-      ) : null}
     </View>
   );
 });
@@ -366,7 +406,6 @@ const s = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
   },
-  walkBrand: { width: 20, height: 20 },
   level: {
     fontSize: 20,
     lineHeight: 26,
@@ -430,6 +469,7 @@ const s = StyleSheet.create({
     letterSpacing: 0,
   },
   controls: { paddingTop: 10, paddingBottom: 10, gap: 8 },
+  inlineControls: { paddingTop: 0, paddingBottom: 4, gap: 2 },
   controlRow: {
     marginHorizontal: 18,
     flexDirection: 'row',
@@ -437,6 +477,36 @@ const s = StyleSheet.create({
     justifyContent: 'space-between',
     gap: 8,
   },
+  sortOnlyRow: { justifyContent: 'flex-end' },
+  pairedActionRow: { flexWrap: 'nowrap', alignItems: 'stretch', marginHorizontal: 8 },
+  pairedAction: { width: '36%', minWidth: 90, minHeight: 44, justifyContent: 'center' },
+  galleryAction: { width: 'auto', maxWidth: '60%' },
+  pairedSurface: {
+    alignSelf: 'flex-start',
+    minWidth: 68,
+    minHeight: 30,
+    maxWidth: '100%',
+    paddingHorizontal: 4,
+    paddingVertical: 5,
+    borderRadius: 100,
+    gap: 3,
+  },
+  trailingSurface: { alignSelf: 'flex-end' },
+  gallerySurface: {
+    borderRadius: GALLERY_SURFACE_RADIUS,
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+    paddingHorizontal: 8,
+    gap: 4,
+  },
+  pressedGallerySurface: {
+    backgroundColor: PRODUCT_ACCENT.marker,
+  },
+  wideCountChip: { paddingHorizontal: 12 },
+  pairedActionText: { color: '#243042', fontSize: 13, lineHeight: 18, flexShrink: 1, textAlign: 'center' },
+  pressedGalleryText: { color: PRODUCT_ACCENT.pressed },
+  activeChip: { backgroundColor: PRODUCT_ACCENT.primary, borderColor: PRODUCT_ACCENT.primary },
+  activeChipText: { color: '#FFFFFF' },
   // Keep the tap area independent from the compact visible chip.
   controlTouch: {
     minHeight: 44,
@@ -466,6 +536,7 @@ const s = StyleSheet.create({
     letterSpacing: 0,
   },
   categories: { paddingHorizontal: 18, gap: 8 },
+  inlineCategories: { paddingHorizontal: 8 },
   categoryTouch: {
     minHeight: 44,
     minWidth: 44,
@@ -483,6 +554,21 @@ const s = StyleSheet.create({
     justifyContent: 'center',
     gap: 5,
   },
+  inlineTextSurface: {
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+  },
+  inlineCategory: { paddingHorizontal: 9, paddingVertical: 5 },
+  selectionIndicator: {
+    position: 'absolute',
+    bottom: 0,
+    left: 8,
+    right: 8,
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: PRODUCT_ACCENT.primary,
+  },
+  inlineChipText: { fontSize: 13, lineHeight: 18 },
   categoryText: {
     fontSize: 12,
     lineHeight: 17,
@@ -493,23 +579,6 @@ const s = StyleSheet.create({
     fontSize: 12,
     lineHeight: 17,
     fontWeight: '500',
-    letterSpacing: 0,
-  },
-  walkStatus: {
-    marginHorizontal: 18,
-    marginBottom: 12,
-    borderRadius: 8,
-    backgroundColor: '#F5F7FA',
-    padding: 12,
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
-  },
-  walkText: {
-    flex: 1,
-    fontSize: 12,
-    lineHeight: 18,
-    color: '#4D596B',
     letterSpacing: 0,
   },
 });

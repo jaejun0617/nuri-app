@@ -51,6 +51,7 @@ for (const node of imports) {
 for (const screen of [
   'TimelineScreen',
   'TimelineEntryGateScreen',
+  'RecordGalleryScreen',
   'RecordDetailScreen',
   'RecordEditScreen',
   'MonthlyExpensesScreen',

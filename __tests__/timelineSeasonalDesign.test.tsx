@@ -5,7 +5,6 @@ import { ThemeProvider } from 'styled-components/native';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createTheme } from '../src/app/theme/theme';
-import { ASSETS } from '../src/assets';
 import { MemoryCard } from '../src/components/MemoryCard/MemoryCard';
 import TimelineSeasonalHeader, {
   TimelineSeasonalControls,
@@ -81,9 +80,6 @@ function header(season: SeasonKey, width = 384, fontScale = 1) {
       }}
       titles={[]}
       summary={buildTotalSummary([record])}
-      dailyStatus={null}
-      petName="누리"
-      showWalkStatus={false}
       onPressBack={jest.fn()}
     />
   );
@@ -253,9 +249,6 @@ describe('Timeline seasonal design', () => {
             totalRecords: 10000,
             recordDays: 1000,
           }}
-          dailyStatus={null}
-          petName={null}
-          showWalkStatus={false}
           onPressBack={jest.fn()}
         />,
       );
@@ -328,9 +321,6 @@ describe('Timeline seasonal design', () => {
         level={null}
         titles={[]}
         summary={null}
-        dailyStatus={null}
-        petName={null}
-        showWalkStatus={false}
         onPressBack={jest.fn()}
       />,
     );
@@ -352,9 +342,6 @@ describe('Timeline seasonal design', () => {
             }}
             titles={[]}
             summary={buildTotalSummary([])}
-            dailyStatus={null}
-            petName={null}
-            showWalkStatus={false}
             onPressBack={jest.fn()}
           />
         </ThemeProvider>,
@@ -404,6 +391,77 @@ describe('Timeline seasonal design', () => {
     TestRenderer.act(() => tree.unmount());
   });
 
+  it('places compact all-period and sorting controls above the monthly category chips', () => {
+    const showAll = jest.fn();
+    const toggle = jest.fn();
+    const tree = render(
+      <TimelineSeasonalControls
+        season="spring"
+        sortLabel="오래된순"
+        monthLabel="2026년 10월"
+        mainCategory="all"
+        categoryLabel="전체"
+        counts={buildTimelineCategoryCounts([record])}
+        monthScoped
+        sortActive
+        transitioning={false}
+        onToggleSort={toggle}
+        onShowAllRecords={showAll}
+        onPressCategory={jest.fn()}
+      />,
+    );
+    const row = tree.root.findAllByProps({ testID: 'timeline-record-action-row' })[0];
+    const buttons = row.findAll(node =>
+      typeof node.props.onPress === 'function' &&
+      (node.props.testID === 'timeline-month-show-all' || node.props.testID === 'timeline-sort-action'),
+    );
+    expect(buttons.map(button => button.props.testID)).toEqual([
+      'timeline-month-show-all',
+      'timeline-sort-action',
+    ]);
+    expect(StyleSheet.flatten(row.props.style).justifyContent).toBe('space-between');
+    expect(StyleSheet.flatten(buttons[0].props.style)).toMatchObject({ maxWidth: '60%', minHeight: 44 });
+    expect(StyleSheet.flatten(buttons[1].props.style)).toMatchObject({ width: '36%', minHeight: 44 });
+    expect(row.findAllByProps({ testID: 'timeline-all-records-count' })).toHaveLength(0);
+    const gallerySurface = row.findAllByProps({ testID: 'timeline-gallery-action-surface' })[0];
+    expect(StyleSheet.flatten(gallerySurface.props.style)).toMatchObject({
+      backgroundColor: 'transparent',
+      borderWidth: 0,
+      borderRadius: 6,
+    });
+    expect(gallerySurface.findAllByProps({ testID: 'timeline-gallery-action-glass' }).length).toBeGreaterThan(0);
+    expect(buttons[0].props.accessibilityLabel).toBe('전체 기록 보기');
+    expect(buttons[0].findAll(node => node.props.name === 'chevron-right').length).toBeGreaterThan(0);
+    expect(buttons[1].props.accessibilityState.selected).toBe(true);
+    expect(buttons[1].findAll(node =>
+      node.props.name === 'chevron-down' && node.props.color === '#FFFFFF',
+    ).length).toBeGreaterThan(0);
+    const chips = tree.root.findAllByType(TouchableOpacity);
+    expect(chips.map(chip => chip.props.accessibilityLabel)).toEqual([
+      '이달 전체, 1개의 기록', '산책', '식사', '일기장', '생활',
+    ]);
+    expect(chips[0].findAll(node => node.props.name === 'view-grid')).toHaveLength(0);
+    for (const [index, chip] of chips.entries()) {
+      const surface = chip.findAll(node => node.props.testID?.startsWith('timeline-category-surface-'))[0];
+      expect(StyleSheet.flatten(surface.props.style)).toMatchObject({
+        backgroundColor: 'transparent',
+        borderWidth: 0,
+      });
+      expect(chip.findAllByProps({ testID: 'timeline-category-indicator' }).length > 0).toBe(index === 0);
+      for (const label of chip.findAllByType(Text)) {
+        expect(StyleSheet.flatten(label.props.style).color).toBe(index === 0 ? '#6345BE' : '#566277');
+      }
+    }
+    expect(tree.root.findAll(node => node === row || node === chips[0])).toEqual([row, chips[0]]);
+    TestRenderer.act(() => {
+      buttons[0].props.onPress();
+      buttons[1].props.onPress();
+    });
+    expect(showAll).toHaveBeenCalledTimes(1);
+    expect(toggle).toHaveBeenCalledTimes(1);
+    TestRenderer.act(() => tree.unmount());
+  });
+
   it('keeps day grouping KST-safe, stable across years, and based on complete filtered summaries', () => {
     expect(
       buildTimelineDayHeader('2026-10-04', null, '2026-10-07'),
@@ -444,41 +502,31 @@ describe('Timeline seasonal design', () => {
   });
 
   it.each([
-    ['누리', '누리와의'],
-    ['초코', '초코와의'],
-    ['총콩', '총콩과의'],
-    ['  밤  ', '밤과의'],
-    ['', '반려동물과의'],
-    [null, '반려동물과의'],
-    ['Nuri', 'Nuri와의'],
-    ['별🐾', '별🐾와의'],
-  ])(
-    'uses the selected pet name and safe particles for %s',
-    (petName, phrase) => {
-      const tree = render(
-        <TimelineSeasonalHeader
-          season="autumn"
-          width={384}
-          fontScale={1}
-          level={null}
-          titles={[]}
-          summary={null}
-          dailyStatus={null}
-          petName={petName}
-          showWalkStatus
-          onPressBack={jest.fn()}
-        />,
-      );
-      expect(text(tree)).toContain(`${phrase} 오늘 산책을 기록해 보세요.`);
-      expect(
-        tree.root
-          .findAllByType(Image)
-          .find(node => node.props.testID === 'timeline-walk-brand')!.props
-          .source,
-      ).toBe(ASSETS.logo);
-      TestRenderer.act(() => tree.unmount());
-    },
-  );
+    [99, 9, '99'],
+    [100, 12, '100'],
+    [1000, 12, '1,000'],
+  ])('gives the monthly count the right horizontal space for %i records', (count, monthPadding, label) => {
+    const tree = render(
+      <TimelineSeasonalControls
+        season="spring"
+        sortLabel="최신순"
+        monthLabel="2026년 10월"
+        mainCategory="all"
+        categoryLabel="전체"
+        counts={{ ...buildTimelineCategoryCounts([]), all: count }}
+        monthScoped
+        transitioning={false}
+        onToggleSort={jest.fn()}
+        onShowAllRecords={jest.fn()}
+        onPressCategory={jest.fn()}
+      />,
+    );
+    const surface = (testID: string) => tree.root.findAllByProps({ testID })[0];
+    expect(StyleSheet.flatten(surface('timeline-category-surface-all').props.style).paddingHorizontal).toBe(monthPadding);
+    expect(surface('timeline-category-surface-all').findAllByType(Text).some(node => node.props.children === label)).toBe(true);
+    TestRenderer.act(() => tree.unmount());
+  });
+
 
   it('defaults to the real latest recorded month and emphasizes only its newest day, independent of sorting', () => {
     const records = [
@@ -642,7 +690,6 @@ describe('Timeline seasonal design', () => {
     expect(source).toContain('buildTimelineCategoryCounts(records)');
     expect(source).not.toContain('fetchTimelineCategoryCountsByPet(petId)');
     expect(source).toContain('enabled: isLoggedIn && !isHomeTotalSummaryEntry');
-    expect(source).toContain('petName={notificationOwnerScope ? null : selectedPet?.name ?? null}');
     expect(source).toContain('{notificationPeriod ? (');
     expect(source).not.toContain('모든 아이 · ');
     expect(source).not.toContain(" : '전체 기록'}");

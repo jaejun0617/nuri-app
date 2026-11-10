@@ -80,10 +80,11 @@ describe('memory detail and timeline polish', () => {
       );
     },
   );
-  it('allows original media ratios and keeps compact content-width chips', () => {
+  it('allows original media ratios in a full-width viewport and keeps compact content-width chips', () => {
     expect(StyleSheet.flatten(styles.postImageViewport)).toMatchObject({
-      borderRadius: 18,
+      width: '100%',
     });
+    expect(styles.postImageViewport).not.toHaveProperty('borderRadius');
     expect(StyleSheet.flatten(styles.postImageViewport)).not.toHaveProperty(
       'aspectRatio',
     );

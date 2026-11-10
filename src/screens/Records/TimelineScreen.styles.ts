@@ -10,6 +10,15 @@ const TEXT = '#0B1220';
 
 export const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: LAVENDER_CANVAS.base },
+  timelineControlsCard: { marginHorizontal: 18, paddingVertical: 2 },
+  recordControlsCard: { marginTop: 6 },
+  selectedCategoryCount: {
+    marginHorizontal: 18,
+    marginTop: 4,
+    marginBottom: 4,
+    textAlign: 'right',
+    color: '#77728D',
+  },
   notificationPeriod: {
     marginHorizontal: 18,
     paddingVertical: 8,
@@ -394,6 +403,9 @@ export const styles = StyleSheet.create({
 
   list: { paddingHorizontal: 0, paddingTop: 0 },
   listEmpty: { flexGrow: 1, paddingHorizontal: 0, paddingTop: 0 },
+  monthGridCell: { paddingHorizontal: 2, paddingBottom: 4 },
+  monthGridSquare: { aspectRatio: 1 },
+  monthGridDay: { color: TEXT, paddingHorizontal: 18, paddingTop: 14, paddingBottom: 8 },
   seasonalItem: { marginHorizontal: 18 },
   seasonalDayHeader: {
     flexDirection: 'row',

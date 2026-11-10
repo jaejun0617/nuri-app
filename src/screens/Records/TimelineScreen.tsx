@@ -86,15 +86,12 @@ import {
 import {
   buildTimelineView,
   buildTimelineCategoryCounts,
+  buildTimelineMonthCategoryCounts,
   createEmptyTimelineCategoryCounts,
   humanizeTimelineMonthKey,
   type TimelineCategoryCounts,
   type TimelineSortMode,
 } from '../../services/timeline/query';
-import {
-  getPetDailyStatus,
-  type DailyStreakStatus,
-} from '../../services/activity/dailyStreak';
 import {
   getUserLevelSummary,
   getUserTitles,
@@ -126,9 +123,13 @@ import TimelineSeasonalHeader, {
 import TimelineListFooter from './TimelineListFooter';
 import { LavenderScreenBackground } from '../../components/common/LavenderScreenBackground';
 import TimelineCreateButton from './TimelineCreateButton';
+import TimelineMonthPicker from './TimelineMonthPicker';
+import { RecordGalleryThumbnail } from './RecordGalleryThumbnail';
+import { RECORD_GALLERY_COLUMNS } from './recordGalleryPresentation';
 import {
   buildTimelineDayCounts,
   buildTimelineDayHeader,
+  buildTimelineMonthGrid,
   formatTimelineRecordedMonth,
   getLatestTimelineDayKey,
   getLatestTimelineRecordedDay,
@@ -468,6 +469,7 @@ export default function TimelineScreen() {
     isHomeTotalSummaryEntry || route.params?.notificationEntryId ? route?.params?.ymFilter ?? null : null,
   );
   const [ymModalOpen, setYmModalOpen] = useState(false);
+  const showMonthGrid = Boolean(ymFilter && !route.params?.notificationOpen && !route.params?.notificationPeriod);
   const [mainCategory, setMainCategory] = useState<MainCategory>(() =>
     isHomeTotalSummaryEntry ? mainCategoryFromParams ?? 'all' : 'all',
   );
@@ -491,9 +493,6 @@ export default function TimelineScreen() {
     petId: string;
     records: MemoryRecord[];
   } | null>(null);
-  const [dailyStatus, setDailyStatus] = useState<DailyStreakStatus | null>(
-    null,
-  );
   const [levelSummary, setLevelSummary] = useState<UserLevelSummary | null>(
     null,
   );
@@ -587,6 +586,10 @@ export default function TimelineScreen() {
   const renderedFilteredIds = isHomeTotalSummaryListLoading
     ? EMPTY_TIMELINE_IDS
     : filteredIds;
+  const monthGrid = useMemo(
+    () => showMonthGrid ? buildTimelineMonthGrid(renderedFilteredIds, recordsById, sortMode) : null,
+    [showMonthGrid, renderedFilteredIds, recordsById, sortMode],
+  );
   const notificationPeriod = isHomeTotalSummaryEntry ? undefined : route.params?.notificationPeriod;
   const periodCategoryCounts = useMemo(() => notificationPeriod && summaryRecords?.petId === petId
     ? buildTimelineCategoryCounts(summaryRecords.records, notificationPeriod)
@@ -594,6 +597,14 @@ export default function TimelineScreen() {
   const categoryCounts = notificationScoped ? timelineView.categoryCounts : notificationPeriod ? periodCategoryCounts : timelineCategoryCountsReady
     ? timelineCategoryCounts
     : timelineView.categoryCounts;
+  const monthlyCategoryCounts = useMemo(() => {
+    if (!showMonthGrid || !ymFilter) return null;
+    const records = summaryRecords?.petId === petId
+      ? summaryRecords.records
+      : !hasMore && status === 'ready' ? timelineView.baseItems : null;
+    return records ? buildTimelineMonthCategoryCounts(records, ymFilter) : null;
+  }, [showMonthGrid, ymFilter, summaryRecords, petId, hasMore, status, timelineView.baseItems]);
+  const monthlyCountsPending = showMonthGrid && monthlyCategoryCounts === null;
   const preloadSignatureRef = useRef<string>('');
 
   useEffect(() => {
@@ -617,7 +628,6 @@ export default function TimelineScreen() {
         })
         .catch(() => {
           if (cancelled) return;
-          setTimelineCategoryCounts(timelineView.categoryCounts);
           setTimelineCategoryCountsReady(false);
           setSummaryRecords(null);
         });
@@ -627,7 +637,7 @@ export default function TimelineScreen() {
       cancelled = true;
       task.cancel();
     };
-  }, [isLoggedIn, notificationScoped, petId, timelineEntityVersion, timelineView.categoryCounts]);
+  }, [isLoggedIn, notificationScoped, petId, timelineEntityVersion]);
 
   const totalSummary = useMemo(
     () => notificationScoped ? hasMore ? null : {
@@ -653,10 +663,9 @@ export default function TimelineScreen() {
     latestRecordedMonth,
     setMonth: setYmFilter,
   });
-  const dayCounts = useMemo(() => {
-    if (notificationScoped) return buildTimelineDayCounts(timelineView.filteredItems);
-    if (!summaryRecords || summaryRecords.petId !== petId) return null;
-    const completeView = buildTimelineView({
+  const completeFilteredItems = useMemo(() => {
+    if (notificationScoped || !summaryRecords || summaryRecords.petId !== petId) return null;
+    return buildTimelineView({
       items: summaryRecords.records,
       filters: {
         ymFilter,
@@ -665,8 +674,7 @@ export default function TimelineScreen() {
         query: '',
         sortMode,
       },
-    });
-    return buildTimelineDayCounts(completeView.filteredItems);
+    }).filteredItems;
   }, [
     mainCategory,
     otherSubCategory,
@@ -675,8 +683,13 @@ export default function TimelineScreen() {
     summaryRecords,
     ymFilter,
     notificationScoped,
-    timelineView.filteredItems,
   ]);
+  const dayCounts = useMemo(() => {
+    const items = notificationScoped ? timelineView.filteredItems : completeFilteredItems;
+    return items ? buildTimelineDayCounts(items) : null;
+  }, [completeFilteredItems, notificationScoped, timelineView.filteredItems]);
+  const selectedCategoryCount = completeFilteredItems?.length
+    ?? (petId && !hasMore && status === 'ready' ? filteredIds.length : null);
   const latestVisibleDay = useMemo(
     () =>
       dayCounts
@@ -687,7 +700,6 @@ export default function TimelineScreen() {
 
   useEffect(() => {
     if (!isLoggedIn || !petId) {
-      setDailyStatus(null);
       setLevelSummary(null);
       setEarnedTitles([]);
       return;
@@ -700,19 +712,16 @@ export default function TimelineScreen() {
 
     const task = scheduleIdleTask(() => {
       Promise.all([
-        getPetDailyStatus(petId),
         getUserLevelSummary(),
         getUserTitles(),
       ])
-        .then(([nextDailyStatus, nextLevelSummary, nextTitles]) => {
+        .then(([nextLevelSummary, nextTitles]) => {
           if (cancelled) return;
-          setDailyStatus(nextDailyStatus);
           setLevelSummary(nextLevelSummary);
           setEarnedTitles(nextTitles);
         })
         .catch(() => {
           if (cancelled) return;
-          setDailyStatus(null);
           setLevelSummary(null);
           setEarnedTitles([]);
         });
@@ -801,8 +810,21 @@ export default function TimelineScreen() {
     if (isHomeTotalSummaryEntry) return false;
     if (filteredIds.length === 0) return false;
 
-    const index = filteredIds.indexOf(focusedMemoryId);
+    const index = monthGrid
+      ? monthGrid.listIndexById.get(focusedMemoryId) ?? -1
+      : filteredIds.indexOf(focusedMemoryId);
     if (index < 0) return false;
+
+    if (monthGrid) {
+      const list = listRef.current;
+      if (!list) return false;
+      list.scrollToIndex({ index, animated: true, viewPosition: 0.35 }).then(() => {
+        if (listRef.current === list && useRecordStore.getState().focusedMemoryIdByPet[petId] === focusedMemoryId) {
+          clearFocusedMemoryId(petId);
+        }
+      }).catch(() => {});
+      return true;
+    }
 
     pendingFocusedMemoryIdRef.current = focusedMemoryId;
     targetLayoutOffsetRef.current = null;
@@ -821,12 +843,14 @@ export default function TimelineScreen() {
     });
     return true;
   }, [
+    clearFocusedMemoryId,
     filteredIds,
     finalizeFocusedMemoryScroll,
     focusedMemoryId,
     isFocused,
     isHomeTotalSummaryEntry,
     petId,
+    monthGrid,
   ]);
 
   const handleListContentSizeChange = useCallback(() => {
@@ -849,10 +873,11 @@ export default function TimelineScreen() {
 
     let cancelled = false;
 
-    if (pendingJumpYm === JUMP_TO_ALL) {
+    if (monthGrid || pendingJumpYm === JUMP_TO_ALL) {
       const frame = requestAnimationFrame(() => {
         if (cancelled || !isCurrentHomeEntryGeneration()) return;
-        listRef.current?.scrollToOffset({ offset: 0, animated: true });
+        // Grid index zero is the first date heading, below the Timeline header.
+        listRef.current?.scrollToOffset({ offset: 0, animated: !monthGrid });
         setPendingJumpYm(null);
       });
       return () => {
@@ -878,6 +903,7 @@ export default function TimelineScreen() {
     };
   }, [
     isCurrentHomeEntryGeneration,
+    monthGrid,
     pendingJumpYm,
     timelineView.firstIndexByMonth,
   ]);
@@ -1039,7 +1065,7 @@ export default function TimelineScreen() {
 
       for (const token of viewableItems) {
         if (!token.isViewable) continue;
-        const index = token.index;
+        const index = monthGrid ? monthGrid.recordIndexById.get(token.item) : token.index;
         if (typeof index !== 'number') continue;
         if (index < topVisibleIndex) topVisibleIndex = index;
         if (index > bottomVisibleIndex) bottomVisibleIndex = index;
@@ -1076,7 +1102,7 @@ export default function TimelineScreen() {
       imageWindowRef.current = nextWindow;
       setImageWindow(nextWindow);
     },
-    [],
+    [monthGrid],
   );
 
   const endReachedLockRef = useRef(0);
@@ -1097,19 +1123,13 @@ export default function TimelineScreen() {
   const jumpToYm = useCallback(
     (ym: string | null) => {
       markExplicitMonthSelection();
-      navigation.setParams({notificationPeriod:undefined,notificationEntryId:undefined});
-      setYmModalOpen(false);
-
-      if (!ym) {
-        setYmFilter(null);
-        setPendingJumpYm(JUMP_TO_ALL);
-        return;
+      if (route.params?.notificationPeriod || route.params?.notificationEntryId) {
+        navigation.setParams({ notificationPeriod: undefined, notificationEntryId: undefined });
       }
-
       setYmFilter(ym);
-      setPendingJumpYm(ym);
+      setPendingJumpYm(ym ?? JUMP_TO_ALL);
     },
-    [markExplicitMonthSelection,navigation],
+    [markExplicitMonthSelection, navigation, route.params?.notificationEntryId, route.params?.notificationPeriod],
   );
 
   const showAllNotificationRecords = useCallback(() => {
@@ -1118,6 +1138,15 @@ export default function TimelineScreen() {
     setOtherSubCategory(null);
     setOtherModalOpen(false);
   }, [jumpToYm]);
+
+  const openAllRecords = useCallback(() => {
+    setYmModalOpen(false);
+    if (!petId || route.params?.notificationPeriod || route.params?.notificationOpen) {
+      jumpToYm(null);
+      return;
+    }
+    navigation.navigate('RecordGallery', { petId, entrySource: 'timeline' });
+  }, [jumpToYm, navigation, petId, route.params?.notificationOpen, route.params?.notificationPeriod]);
 
   const onPressMainCategory = useCallback((key: MainCategory) => {
     if (key !== 'other') {
@@ -1210,7 +1239,7 @@ export default function TimelineScreen() {
     : monthLabel;
   const visibleCategoryCounts = isHomeTotalSummaryControlsLoading
     ? EMPTY_TIMELINE_CATEGORY_COUNTS
-    : categoryCounts;
+    : showMonthGrid ? monthlyCategoryCounts ?? EMPTY_TIMELINE_CATEGORY_COUNTS : categoryCounts;
   const floatingCreateButtonBottom = useMemo(
     () => (toolbarHeight ?? insets.bottom) + 12,
     [toolbarHeight, insets.bottom],
@@ -1220,8 +1249,30 @@ export default function TimelineScreen() {
   const walkSourceMap = useMemo(() => new Map((walkSources.data ?? []).map(s => [s.memoryId, s])), [walkSources.data]);
   const renderItem = useCallback<ListRenderItem<string>>(
     ({ item, index }) => {
+      const dayTitle = monthGrid?.dayTitles.get(item);
+      if (dayTitle) {
+        return (
+          <AppText
+            accessibilityRole="header"
+            preset="unifiedLabel"
+            style={styles.monthGridDay}
+            testID={item}
+          >
+            {dayTitle}
+          </AppText>
+        );
+      }
       const record = recordsById[item];
       if (!record) return null;
+      if (showMonthGrid) {
+        return (
+          <View style={styles.monthGridCell}>
+            <View style={styles.monthGridSquare}>
+              <RecordGalleryThumbnail record={record} onOpen={onPressItem} />
+            </View>
+          </View>
+        );
+      }
       const previousRecord =
         index > 0 ? recordsById[filteredIds[index - 1] ?? ''] : null;
       const currentYmd = getRecordDisplayYmd(record);
@@ -1285,11 +1336,19 @@ export default function TimelineScreen() {
       walkSourceMap,
       notificationOwnerScope,
       pets,
+      monthGrid,
+      showMonthGrid,
     ],
   );
 
   const keyExtractor = useCallback((itemId: string) => itemId, []);
-  const getItemType = useCallback(() => 'memory', []);
+  const getItemType = useCallback(
+    (itemId: string) => monthGrid?.dayTitles.has(itemId) ? 'month-day' : 'memory',
+    [monthGrid],
+  );
+  const overrideMonthGridLayout = useCallback((layout: { span?: number }, itemId: string) => {
+    layout.span = monthGrid?.dayTitles.has(itemId) ? RECORD_GALLERY_COLUMNS : 1;
+  }, [monthGrid]);
 
   const listFooterComponent = useMemo(() => (
     <TimelineListFooter
@@ -1392,7 +1451,6 @@ export default function TimelineScreen() {
       imageWindow,
       focusedMemoryId,
       timelineEntityVersion,
-      dailyStatus,
       levelSummary,
       earnedTitles,
       season,
@@ -1400,7 +1458,6 @@ export default function TimelineScreen() {
       latestVisibleDay,
     }),
     [
-      dailyStatus,
       earnedTitles,
       focusedMemoryId,
       imageWindow,
@@ -1437,32 +1494,64 @@ export default function TimelineScreen() {
     [],
   );
   const onOpenMonth = useCallback(() => setYmModalOpen(true), []);
+  const onCloseMonth = useCallback(() => setYmModalOpen(false), []);
+  const showInlineMonthPicker = !isHomeTotalSummaryEntry && !route.params?.notificationOpen && !notificationPeriod;
+  const currentMonth = getKstYmd().slice(0, 7);
+  const pickerMonth = ymFilter ?? latestRecordedMonth ?? availableYmList[0] ?? currentMonth;
+  const currentYear = Number(currentMonth.slice(0, 4));
   const listHeaderComponent = useMemo(
     () => (
       <TimelineSeasonalHeader
         season={season}
         width={listWidth}
         fontScale={fontScale}
-        dailyStatus={dailyStatus}
         level={levelSummary}
         titles={earnedTitles}
         summary={totalSummary}
-        petName={notificationOwnerScope ? null : selectedPet?.name ?? null}
-        showWalkStatus={visibleMainCategory === 'walk'}
         onPressBack={onPressBack}
       >
-        <TimelineSeasonalControls
-          season={season}
-          sortLabel={sortLabel}
-          monthLabel={visibleMonthLabel}
-          mainCategory={visibleMainCategory}
-          categoryLabel={visibleCategoryLabel}
-          counts={visibleCategoryCounts}
-          transitioning={isHomeTotalSummaryControlsLoading || (notificationScoped && hasMore)}
-          onToggleSort={onToggleSort}
-          onOpenMonth={onOpenMonth}
-          onPressCategory={onPressMainCategory}
-        />
+        {showInlineMonthPicker ? (
+          <View style={styles.timelineControlsCard} testID="timeline-period-controls-card">
+            <MenuGlassSurface radius={8} testID="timeline-period-controls-glass" />
+            <TimelineMonthPicker
+              monthKey={pickerMonth}
+              currentYear={currentYear}
+              availableMonths={availableYmList}
+              onMonthChange={jumpToYm}
+            />
+          </View>
+        ) : null}
+        <View
+          style={showInlineMonthPicker ? [styles.timelineControlsCard, styles.recordControlsCard] : undefined}
+          testID={showInlineMonthPicker ? 'timeline-record-controls-card' : undefined}
+        >
+          {showInlineMonthPicker ? <MenuGlassSurface radius={8} testID="timeline-record-controls-glass" /> : null}
+          <TimelineSeasonalControls
+            season={season}
+            sortLabel={sortLabel}
+            monthLabel={visibleMonthLabel}
+            mainCategory={visibleMainCategory}
+            categoryLabel={visibleCategoryLabel}
+            counts={visibleCategoryCounts}
+            monthScoped={showMonthGrid}
+            sortActive={sortMode === 'oldest'}
+            transitioning={isHomeTotalSummaryControlsLoading || monthlyCountsPending || (notificationScoped && hasMore)}
+            onToggleSort={onToggleSort}
+            onOpenMonth={showInlineMonthPicker ? undefined : onOpenMonth}
+            onShowAllRecords={showInlineMonthPicker ? openAllRecords : undefined}
+            onPressCategory={onPressMainCategory}
+          />
+        </View>
+        {showInlineMonthPicker && visibleMainCategory !== 'all' ? (
+          <AppText
+            preset="unifiedMeta"
+            style={styles.selectedCategoryCount}
+            accessibilityLiveRegion="polite"
+            testID="timeline-selected-category-count"
+          >
+            {selectedCategoryCount === null ? '집계 중' : `총 ${selectedCategoryCount.toLocaleString('ko-KR')}개`}
+          </AppText>
+        ) : null}
         {notificationPeriod ? (
           <View style={styles.notificationPeriod} testID="timeline-notification-period">
             <AppText preset="unifiedMeta" style={styles.notificationPeriodText}>
@@ -1476,23 +1565,30 @@ export default function TimelineScreen() {
       season,
       listWidth,
       fontScale,
-      dailyStatus,
       levelSummary,
       totalSummary,
       earnedTitles,
-      selectedPet?.name,
       visibleMainCategory,
+      selectedCategoryCount,
       onPressBack,
       sortLabel,
+      sortMode,
       visibleMonthLabel,
       visibleCategoryLabel,
       visibleCategoryCounts,
+      showMonthGrid,
       isHomeTotalSummaryControlsLoading,
+      monthlyCountsPending,
       onToggleSort,
       onOpenMonth,
       onPressMainCategory,
+      showInlineMonthPicker,
+      pickerMonth,
+      currentYear,
+      availableYmList,
+      jumpToYm,
+      openAllRecords,
       notificationPeriod,
-      notificationOwnerScope,
       notificationScoped,
       hasMore,
     ],
@@ -1581,15 +1677,18 @@ export default function TimelineScreen() {
       <FlashList
         key={
           isHomeTotalSummaryEntry
-            ? `timeline-entry-${entryGeneration}`
-            : 'timeline-default'
+            ? `timeline-entry-${entryGeneration}-${showMonthGrid ? 'grid' : 'list'}`
+            : showMonthGrid ? 'timeline-month-grid' : 'timeline-default'
         }
+        testID={showMonthGrid ? 'timeline-month-grid' : undefined}
+        numColumns={showMonthGrid ? RECORD_GALLERY_COLUMNS : 1}
         ref={listRef}
-        data={renderedFilteredIds}
+        data={monthGrid?.ids ?? renderedFilteredIds}
         keyExtractor={keyExtractor}
         renderItem={renderItem}
         drawDistance={TIMELINE_ITEM_HEIGHT * TIMELINE_WINDOW_SIZE}
         getItemType={getItemType}
+        overrideItemLayout={monthGrid ? overrideMonthGridLayout : undefined}
         extraData={listExtraData}
         contentContainerStyle={[
           renderedFilteredIds.length ? styles.list : styles.listEmpty,
@@ -1615,17 +1714,17 @@ export default function TimelineScreen() {
       />
 
       <Modal
-        visible={ymModalOpen}
+        visible={ymModalOpen && !showInlineMonthPicker}
         transparent
         animationType="fade"
-        onRequestClose={() => setYmModalOpen(false)}
+        onRequestClose={onCloseMonth}
       >
         <Pressable
           style={[
             styles.modalBackdrop,
             { backgroundColor: theme.colors.overlay },
           ]}
-          onPress={() => setYmModalOpen(false)}
+          onPress={onCloseMonth}
         >
           <Pressable
             style={[
@@ -1639,57 +1738,16 @@ export default function TimelineScreen() {
             onPress={() => {}}
           >
             <MenuGlassSurface radius={18} backed />
-            <AppText
-              typographyRole="sectionTitle"
-              preset="unifiedTitle"
-              style={[styles.modalTitle, { color: theme.colors.textPrimary }]}
-            >
-              월/연도 선택
-            </AppText>
-
-            <ScrollView
-              style={styles.modalOptionsScroll}
-              contentContainerStyle={styles.modalOptionsContent}
-              showsVerticalScrollIndicator={false}
-            >
-              <TouchableOpacity
-                activeOpacity={0.9}
-                style={[styles.modalItem, { borderColor: theme.colors.border }]}
-                onPress={() => jumpToYm(null)}
-              >
-                <AppText
-                  preset="unifiedBody"
-                  style={[
-                    styles.modalItemText,
-                    { color: theme.colors.textPrimary },
-                  ]}
-                >
-                  전체 보기
-                </AppText>
-              </TouchableOpacity>
-
-              {availableYmList.map(ym => (
-                <TouchableOpacity
-                  key={ym}
-                  activeOpacity={0.9}
-                  style={[
-                    styles.modalItem,
-                    { borderColor: theme.colors.border },
-                  ]}
-                  onPress={() => jumpToYm(ym)}
-                >
-                  <AppText
-                    preset="unifiedBody"
-                    style={[
-                      styles.modalItemText,
-                      { color: theme.colors.textPrimary },
-                    ]}
-                  >
-                    {humanizeTimelineMonthKey(ym)}
-                  </AppText>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
+            {ymModalOpen && !showInlineMonthPicker ? (
+              <TimelineMonthPicker
+                monthKey={pickerMonth}
+                currentYear={currentYear}
+                availableMonths={availableYmList}
+                onMonthChange={jumpToYm}
+                onClose={onCloseMonth}
+                onShowAll={openAllRecords}
+              />
+            ) : null}
           </Pressable>
         </Pressable>
       </Modal>

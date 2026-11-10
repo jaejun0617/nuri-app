@@ -1,5 +1,6 @@
-import { getRecordDisplayYmd } from '../../services/records/date';
+import { formatRecordMonthDayWithWeekday, getRecordDisplayYmd } from '../../services/records/date';
 import type { MemoryRecord } from '../../services/supabase/memories';
+import { compareTimelineRecords, type TimelineSortMode } from '../../services/timeline/query';
 import { getKstDateParts } from '../../utils/date';
 
 const WEEKDAYS = [
@@ -57,6 +58,41 @@ export function buildTimelineDayHeader(
     subtitle: WEEKDAYS[parts.weekday],
     isWeekend: parts.weekday === 0 || parts.weekday === 6,
   };
+}
+
+export function buildTimelineMonthGrid(
+  recordIds: readonly string[],
+  recordsById: Readonly<Record<string, MemoryRecord>>,
+  sortMode: TimelineSortMode = 'recent',
+) {
+  const ids: string[] = [];
+  const dayTitles = new Map<string, string>();
+  const listIndexById = new Map<string, number>();
+  const recordIndexById = new Map<string, number>();
+  let previousDay: string | null | undefined;
+
+  const records = recordIds.flatMap((id, recordIndex) => {
+    if (!recordsById[id]) return [];
+    recordIndexById.set(id, recordIndex);
+    return [recordsById[id]];
+  });
+  const direction = sortMode === 'recent' ? 1 : -1;
+  // Cursor pages follow creation time; regroup by the displayed date after merging pages.
+  records.sort((left, right) => direction * compareTimelineRecords(left, right));
+
+  for (const record of records) {
+    const day = getRecordDisplayYmd(record);
+    if (day !== previousDay) {
+      const headingId = `month-grid-day:${day ?? 'unknown'}`;
+      ids.push(headingId);
+      dayTitles.set(headingId, formatRecordMonthDayWithWeekday(record) || '날짜 미확인');
+      previousDay = day;
+    }
+    listIndexById.set(record.id, ids.length);
+    ids.push(record.id);
+  }
+
+  return { ids, dayTitles, listIndexById, recordIndexById };
 }
 
 // Only a complete lightweight summary may supply day totals, not an infinite-scroll page.

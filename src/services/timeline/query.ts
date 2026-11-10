@@ -166,6 +166,15 @@ export function buildTimelineCategoryCounts(
   return counts;
 }
 
+export function buildTimelineMonthCategoryCounts(
+  items: readonly MemoryRecord[],
+  monthKey: string,
+): TimelineCategoryCounts {
+  return buildTimelineCategoryCounts(
+    items.filter(item => getTimelineMonthKey(item) === monthKey),
+  );
+}
+
 export function timelineRecordMatchesQuery(record: MemoryRecord, query: string) {
   if (!query) return true;
   const normalizedQuery = normalizeTimelineQuery(query);

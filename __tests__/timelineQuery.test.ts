@@ -1,5 +1,6 @@
 import {
   buildTimelineCategoryCounts,
+  buildTimelineMonthCategoryCounts,
   buildTimelineView,
   compareTimelineRecords,
   getTimelineMonthKey,
@@ -173,6 +174,32 @@ describe('timeline query', () => {
       diary: 0,
       other: 1,
     });
+  });
+
+  it('counts the selected calendar month, including KST fallback dates and zero categories', () => {
+    const walk = buildRecord({
+      id: 'oct-walk', petId: 'pet', title: '산책', category: 'walk',
+      occurredAt: '2026-10-20', createdAt: '2026-11-02T12:00:00Z',
+    });
+    const diary = buildRecord({
+      id: 'nov-diary', petId: 'pet', title: '일기', category: 'diary',
+      createdAt: '2026-10-31T15:00:00Z',
+    });
+    const health = buildRecord({
+      id: 'oct-health', petId: 'pet', title: '건강', category: 'health',
+      occurredAt: '2026-10-20', createdAt: '2026-10-20T12:00:00Z',
+    });
+    const records = [walk, walk, diary, health];
+    expect(buildTimelineMonthCategoryCounts(records, '2026-10')).toEqual({
+      all: 1, walk: 1, meal: 0, health: 0, diary: 0, other: 0,
+    });
+    expect(buildTimelineMonthCategoryCounts(records, '2026-11')).toEqual({
+      all: 1, walk: 0, meal: 0, health: 0, diary: 1, other: 0,
+    });
+    expect(buildTimelineMonthCategoryCounts(records, '2026-09')).toEqual({
+      all: 0, walk: 0, meal: 0, health: 0, diary: 0, other: 0,
+    });
+    expect(buildTimelineCategoryCounts(records).all).toBe(2);
   });
 
   it('month key와 ymd를 timezone 영향 없이 계산한다', () => {

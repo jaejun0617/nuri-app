@@ -143,58 +143,67 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
         style={[styles.overview, stackOverview ? styles.overviewStacked : null]}
       >
         <View style={styles.overviewCopy}>
-          <AppText
-            preset="unifiedLabel"
-            styleOverridesPreset
-            style={[styles.totalLabel, contentTextStyle]}
+          <TouchableOpacity
+            testID="home-summary-all-records"
+            accessibilityRole="button"
+            accessibilityLabel={summary ? `전체 기록 ${summary.totalRecords}개 보기` : '전체 기록 보기'}
+            onPress={onPressAllRecords}
+            activeOpacity={0.9}
+            style={styles.totalAction}
           >
-            전체 기록
-          </AppText>
-          <View
-            testID="home-summary-total"
-            style={styles.totalRow}
-            accessibilityLiveRegion="polite"
-          >
-            {summary ? (
-              <AppText
-                testID="home-summary-total-value"
-                preset="unifiedTitle"
-                typographyRole="celebration"
-                styleOverridesPreset
-                style={[
-                  styles.totalValue,
-                  {
-                    color: totalColor,
-                    fontSize: countFontSize,
-                    lineHeight: countFontSize + 10,
-                  },
-                ]}
-              >
-                {summary.totalRecords}
+            <AppText
+              preset="unifiedLabel"
+              styleOverridesPreset
+              style={[styles.totalLabel, contentTextStyle]}
+            >
+              전체 기록
+            </AppText>
+            <View
+              testID="home-summary-total"
+              style={styles.totalRow}
+              accessibilityLiveRegion="polite"
+            >
+              {summary ? (
                 <AppText
-                  preset="unifiedBody"
+                  testID="home-summary-total-value"
+                  preset="unifiedTitle"
+                  typographyRole="celebration"
                   styleOverridesPreset
-                  style={[styles.totalUnit, { color: totalColor }]}
+                  style={[
+                    styles.totalValue,
+                    {
+                      color: totalColor,
+                      fontSize: countFontSize,
+                      lineHeight: countFontSize + 10,
+                    },
+                  ]}
                 >
-                  {' '}
-                  개
+                  {summary.totalRecords}
+                  <AppText
+                    preset="unifiedBody"
+                    styleOverridesPreset
+                    style={[styles.totalUnit, { color: totalColor }]}
+                  >
+                    {' '}
+                    개
+                  </AppText>
                 </AppText>
-              </AppText>
-            ) : (
-              <View style={styles.pending}>
-                {isLoading ? (
-                  <ActivityIndicator color={accentDeepColor} />
-                ) : null}
-                <AppText
-                  testID="home-summary-pending"
-                  preset="unifiedBody"
-                  style={styles.pendingText}
-                >
-                  {isLoading ? '확인 중' : '확인 필요'}
-                </AppText>
-              </View>
-            )}
-          </View>
+              ) : (
+                <View style={styles.pending}>
+                  {isLoading ? (
+                    <ActivityIndicator color={accentDeepColor} />
+                  ) : null}
+                  <AppText
+                    testID="home-summary-pending"
+                    preset="unifiedBody"
+                    style={styles.pendingText}
+                  >
+                    {isLoading ? '확인 중' : '확인 필요'}
+                  </AppText>
+                </View>
+              )}
+            </View>
+          </TouchableOpacity>
           <TouchableOpacity
             testID="home-summary-days"
             onPress={onPressAllRecords}
@@ -376,6 +385,7 @@ export const styles = StyleSheet.create({
   },
   overviewStacked: { flexDirection: 'column', alignItems: 'stretch' },
   overviewCopy: { flex: 1, minWidth: 0, gap: 4 },
+  totalAction: { gap: 4 },
   totalLabel: {
     fontSize: 16,
     lineHeight: 22,

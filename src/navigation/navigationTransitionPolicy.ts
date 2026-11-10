@@ -66,6 +66,7 @@ const rootRoutes: Record<keyof RootStackParamList, TransitionKind> = {
 const timelineRoutes: Record<keyof TimelineStackParamList, TransitionKind> = {
   TimelineMain: 'preserve',
   TimelineEntryGate: 'preserve',
+  RecordGallery: 'detail',
   RecordDetail: 'detail',
   RecordEdit: 'detail',
   MonthlyExpenses: 'detail',

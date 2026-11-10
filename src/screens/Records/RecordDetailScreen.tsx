@@ -6,7 +6,7 @@ import { useOwnerOperation } from '../../hooks/useOwnerOperation';
 import { LavenderScreenBackground } from '../../components/common/LavenderScreenBackground';
 import { MenuGlassSurface } from '../../components/common/MenuGlassSurface';
 import { TIMELINE_DESIGN as C } from '../../theme/timelineDesign';
-import CtaButton, { CtaIcon, CtaText } from '../../components/records/TimelineButton';
+import CtaButton, { CtaText } from '../../components/records/TimelineButton';
 import { getRecordCareLabel } from '../../services/records/metadata';
 // 파일: src/screens/Records/RecordDetailScreen.tsx
 // 역할:
@@ -30,6 +30,7 @@ import {
   type LayoutChangeEvent,
   Modal,
   Pressable,
+  ScrollView,
   Switch,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
@@ -44,7 +45,6 @@ import type {
   RouteProp,
 } from '@react-navigation/native';
 import {
-  useFocusEffect,
   useNavigation,
   useRoute,
 } from '@react-navigation/native';
@@ -58,30 +58,15 @@ import AppText from '../../app/ui/AppText';
 import TimelineDeleteDialog from '../../components/records/TimelineDeleteDialog';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import OptimizedImage from '../../components/images/OptimizedImage';
-import { useSignedMemoryImage } from '../../hooks/useSignedMemoryImage';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import { getBrandedErrorMeta } from '../../services/app/errors';
 import {
   getRecordDisplayYmd,
 } from '../../services/records/date';
-import {
-  getMemoryImageRefs,
-  getTimelinePrimaryMemoryImageSource,
-} from '../../services/records/imageSources';
-import {
-  getRecordCategoryMeta,
-  getMemoryCategoryChipLabel,
-} from '../../services/memories/categoryMeta';
-import {
-  formatMemoryDetailDate,
-  getMemoryDetailCategoryTone,
-} from '../../services/records/detail';
-import {
-  emptyDetailHistory,
-  fetchNextDetailHistory,
-  type DetailHistoryPage,
-} from '../../services/records/detailHistory';
+import { getMemoryImageRefs } from '../../services/records/imageSources';
+import { getMemoryCategoryChipLabel } from '../../services/memories/categoryMeta';
+import { formatMemoryDetailDate } from '../../services/records/detail';
 import { formatRecordPriceLabel } from '../../services/records/form';
 import type { MemoryRecord } from '../../services/supabase/memories';
 import {
@@ -115,7 +100,7 @@ type PreviewImageSource = {
   uri: string;
 };
 
-const RELATED_IMAGE_HYDRATION_DELAY_MS = 140;
+const DETAIL_IMAGE_HYDRATION_DELAY_MS = 140;
 const DETAIL_EAGER_IMAGE_COUNT = 4;
 function toPreviewImageSources(
   imagePaths: ReturnType<typeof getMemoryImageRefs>,
@@ -155,12 +140,10 @@ const FeedPostCard = memo(function FeedPostCardView({
   item,
   petName,
   petAvatarUrl,
-  imagePriority = 'primary',
 }: {
   item: MemoryRecord;
   petName: string;
   petAvatarUrl: string | null;
-  imagePriority?: 'primary' | 'related';
 }) {
   const [previewImageSources, setPreviewImageSources] = useState<
     PreviewImageSource[]
@@ -262,7 +245,7 @@ const FeedPostCard = memo(function FeedPostCardView({
                 .finally(() => {
                   if (mounted) setImagesResolved(true);
                 });
-            }, RELATED_IMAGE_HYDRATION_DELAY_MS);
+            }, DETAIL_IMAGE_HYDRATION_DELAY_MS);
           })
           .catch(() => {
             if (mounted) {
@@ -273,45 +256,19 @@ const FeedPostCard = memo(function FeedPostCardView({
       });
     }
 
-    async function hydrateDeferredImages() {
-      if (imagePaths.length === 0) {
-        if (mounted) setPreviewImageSources([]);
-        return;
+    hydratePrimaryFirstImage().catch(() => {
+      if (mounted) {
+        setPreviewImageSources([]);
+        setImagesResolved(true);
       }
-
-      const urls = await getMemoryImageSignedUrlsCached(
-        imagePaths.map(image => image.value),
-      );
-      if (!mounted) return;
-
-      setPreviewImageSources(toPreviewImageSources(imagePaths, urls, item.id));
-      setImagesResolved(true);
-    }
-
-    if (imagePriority === 'primary') {
-      hydratePrimaryFirstImage().catch(() => {
-        if (mounted) {
-          setPreviewImageSources([]);
-          setImagesResolved(true);
-        }
-      });
-    } else {
-      delayTimer = setTimeout(() => {
-        hydrateDeferredImages().catch(() => {
-          if (mounted) {
-            setPreviewImageSources([]);
-            setImagesResolved(true);
-          }
-        });
-      }, RELATED_IMAGE_HYDRATION_DELAY_MS);
-    }
+    });
 
     return () => {
       mounted = false;
       if (delayTimer) clearTimeout(delayTimer);
       if (frameId !== null) cancelAnimationFrame(frameId);
     };
-  }, [imagePaths, imagePriority, imageRetry, item.id]);
+  }, [imagePaths, imageRetry, item.id]);
 
   useEffect(() => {
     if (imageIndex < imagePaths.length) return;
@@ -329,7 +286,7 @@ const FeedPostCard = memo(function FeedPostCardView({
     () => formatRecordPriceLabel(item.price),
     [item.price],
   );
-  const slideWidth = Math.max(carouselWidth || window.width - 32, 1);
+  const slideWidth = Math.max(carouselWidth || window.width, 1);
 
   const onImageViewportLayout = useCallback(
     (event: LayoutChangeEvent) => {
@@ -371,7 +328,7 @@ const FeedPostCard = memo(function FeedPostCardView({
               uri={previewImage.uri}
               style={styles.postImage}
               resizeMode="contain"
-              priority={imagePriority === 'primary' ? 'high' : 'normal'}
+              priority="high"
             />
           </Pressable>
         ) : (
@@ -392,70 +349,11 @@ const FeedPostCard = memo(function FeedPostCardView({
         )}
       </View>
     ),
-    [imageIndex, imagePriority, imagesResolved, photoHeight, slideWidth],
+    [imageIndex, imagesResolved, photoHeight, slideWidth],
   );
 
   return (
-    <View
-      testID="memory-detail-post-glass"
-      style={styles.postCard}
-    >
-      <MenuGlassSurface radius={0} />
-      <View style={styles.postHeader}>
-        <View style={styles.postHeaderLeft}>
-          {petAvatarUrl ? (
-            <OptimizedImage
-              uri={petAvatarUrl}
-              style={styles.postAvatar}
-              resizeMode="cover"
-              priority="low"
-            />
-          ) : (
-            <View style={[styles.postAvatar, styles.postAvatarFallback]}>
-              <AppText
-                preset="unifiedMeta"
-                style={styles.postAvatarFallbackText}
-              >
-                {avatarFallback}
-              </AppText>
-            </View>
-          )}
-
-          <View style={styles.postHeaderTextWrap}>
-            <View style={styles.petNameRow}>
-              <AppText
-                preset="unifiedBody"
-                styleOverridesPreset
-                style={styles.postPetName}
-              >
-                {petName}
-              </AppText>
-              <View
-                style={[
-                  styles.categoryChip,
-                  { backgroundColor: C.selected },
-                ]}
-              >
-                <AppText
-                  preset="unifiedMeta"
-                  styleOverridesPreset
-                  style={[
-                    styles.categoryText,
-                    { color: C.primary },
-                  ]}
-                >
-                  {getMemoryCategoryChipLabel(item)}
-                </AppText>
-              </View>
-            </View>
-            <AppText preset="unifiedMeta" style={styles.postMetaLine}>
-              {displayDate}
-
-            </AppText>
-          </View>
-        </View>
-      </View>
-
+    <View>
       {imagePaths.length > 0 ? (
         <View
           testID="memory-detail-photo-viewport"
@@ -507,76 +405,134 @@ const FeedPostCard = memo(function FeedPostCardView({
         </View>
       ) : null}
 
-      <View style={styles.postBody}>
-        <AppText
-          preset="unifiedBody"
-          styleOverridesPreset
-          style={styles.postTitleText}
-        >
-          {item.title.trim()}
-        </AppText>
+      <View
+        testID="memory-detail-post-glass"
+        style={[styles.postGlass, imagePaths.length > 0 && styles.postGlassAfterPhoto]}
+      >
+        <MenuGlassSurface radius={8} />
+        <View style={styles.postHeader}>
+          <View style={styles.postHeaderLeft}>
+            {petAvatarUrl ? (
+              <OptimizedImage
+                uri={petAvatarUrl}
+                style={styles.postAvatar}
+                resizeMode="cover"
+                priority="low"
+              />
+            ) : (
+              <View style={[styles.postAvatar, styles.postAvatarFallback]}>
+                <AppText
+                  preset="unifiedMeta"
+                  style={styles.postAvatarFallbackText}
+                >
+                  {avatarFallback}
+                </AppText>
+              </View>
+            )}
 
-        {contentText ? (
+            <View style={styles.postHeaderTextWrap}>
+              <View style={styles.petNameRow}>
+                <AppText
+                  preset="unifiedBody"
+                  styleOverridesPreset
+                  style={styles.postPetName}
+                >
+                  {petName}
+                </AppText>
+                <View
+                  style={[
+                    styles.categoryChip,
+                    { backgroundColor: C.selected },
+                  ]}
+                >
+                  <AppText
+                    preset="unifiedMeta"
+                    styleOverridesPreset
+                    style={[
+                      styles.categoryText,
+                      { color: C.primary },
+                    ]}
+                  >
+                    {getMemoryCategoryChipLabel(item)}
+                  </AppText>
+                </View>
+              </View>
+              <AppText preset="unifiedMeta" style={styles.postMetaLine}>
+                {displayDate}
+              </AppText>
+            </View>
+          </View>
+        </View>
+        <View style={styles.postBody}>
           <AppText
             preset="unifiedBody"
             styleOverridesPreset
-            style={styles.postContentText}
+            style={styles.postTitleText}
           >
-            {contentText}
+            {item.title.trim()}
           </AppText>
-        ) : null}
 
-        {item.metadata?.grooming?.careTypes.length || (priceText && (item.subCategory==='grooming'||item.subCategory==='bathing')) ? (
-          <View testID="memory-detail-care-card" style={{padding:16,borderRadius:14,borderWidth:1,borderColor:'rgba(255,255,255,0.78)',backgroundColor:'transparent',gap:12}}>
-            <MenuGlassSurface radius={14} />
-            <AppText preset="unifiedLabel" style={{color:C.ink}}>관리 항목</AppText>
-            <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>
-              {item.metadata?.grooming?.careTypes.map(code=><View key={code} style={{backgroundColor:C.selected,borderRadius:20,paddingHorizontal:14,paddingVertical:8}}><AppText preset="unifiedMeta" style={{color:C.primary}}>{getRecordCareLabel(code,item.subCategory==='bathing'?'bathing':'grooming')}</AppText></View>)}
-            </View>
-            {priceText && <View style={{borderTopWidth:1,borderColor:C.border,paddingTop:12,gap:6}}><View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12}}><AppText preset="unifiedMeta" style={{color:C.muted}}>{item.subCategory==='bathing'?'목욕·위생 비용':'미용 비용'}</AppText><AppText preset="unifiedTitle" style={{color:C.ink}}>{priceText}</AppText></View><AppText preset="unifiedMeta" style={{color:C.muted,textAlign:'right'}}>기록한 달의 지출에 함께 반영돼요.</AppText></View>}
-          </View>
-        ) : null}
-        {priceText && item.subCategory!=='grooming' && item.subCategory!=='bathing' ? (
-          <AppText preset="unifiedMeta" style={styles.postTagsText}>
-            {item.category === 'health' || item.subCategory === 'hospital' ? '병원·건강 비용' : item.subCategory === 'grooming' ? '미용 비용' : item.subCategory === 'bathing' ? '목욕·위생 비용' : '구매 가격'} {priceText}
-          </AppText>
-        ) : null}
-        {moodMeta ? (
-          <View style={styles.postMoodRow}>
-            <TimelineArtwork name={item.emotion??'neutral'} size={20} />
-            <AppText preset="unifiedMeta" style={styles.postMoodLabel}>
-              {moodMeta.label}
+          {contentText ? (
+            <AppText
+              preset="unifiedBody"
+              styleOverridesPreset
+              style={styles.postContentText}
+            >
+              {contentText}
             </AppText>
-          </View>
-        ) : null}
+          ) : null}
 
-        {item.tags.length ? (
-          <View style={styles.tags}>
-            {Array.from(new Set(item.tags)).map(tag => (
-              <View key={tag} style={styles.tagChip}>
-                <AppText
-                  preset="unifiedMeta"
-                  styleOverridesPreset
-                  style={styles.tagText}
-                >
-                  {tag.startsWith('#') ? tag : `#${tag}`}
-                </AppText>
+          {item.metadata?.grooming?.careTypes.length || (priceText && (item.subCategory==='grooming'||item.subCategory==='bathing')) ? (
+            <View testID="memory-detail-care-card" style={{padding:16,borderRadius:14,borderWidth:1,borderColor:'rgba(255,255,255,0.78)',backgroundColor:'transparent',gap:12}}>
+              <AppText preset="unifiedLabel" style={{color:C.ink}}>관리 항목</AppText>
+              <View style={{flexDirection:'row',flexWrap:'wrap',gap:8}}>
+                {item.metadata?.grooming?.careTypes.map(code=><View key={code} style={{backgroundColor:C.selected,borderRadius:20,paddingHorizontal:14,paddingVertical:8}}><AppText preset="unifiedMeta" style={{color:C.primary}}>{getRecordCareLabel(code,item.subCategory==='bathing'?'bathing':'grooming')}</AppText></View>)}
               </View>
-            ))}
-          </View>
-        ) : null}
+              {priceText && <View style={{borderTopWidth:1,borderColor:C.border,paddingTop:12,gap:6}}><View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',gap:12}}><AppText preset="unifiedMeta" style={{color:C.muted}}>{item.subCategory==='bathing'?'목욕·위생 비용':'미용 비용'}</AppText><AppText preset="unifiedTitle" style={{color:C.ink}}>{priceText}</AppText></View><AppText preset="unifiedMeta" style={{color:C.muted,textAlign:'right'}}>기록한 달의 지출에 함께 반영돼요.</AppText></View>}
+            </View>
+          ) : null}
+          {priceText && item.subCategory!=='grooming' && item.subCategory!=='bathing' ? (
+            <AppText preset="unifiedMeta" style={styles.postTagsText}>
+              {item.category === 'health' || item.subCategory === 'hospital' ? '병원·건강 비용' : item.subCategory === 'grooming' ? '미용 비용' : item.subCategory === 'bathing' ? '목욕·위생 비용' : '구매 가격'} {priceText}
+            </AppText>
+          ) : null}
+          {moodMeta ? (
+            <View style={styles.postMoodRow}>
+              <TimelineArtwork name={item.emotion??'neutral'} size={20} />
+              <AppText preset="unifiedMeta" style={styles.postMoodLabel}>
+                {moodMeta.label}
+              </AppText>
+            </View>
+          ) : null}
 
-        {item.category === 'health' && item.metadata?.health?.care ? (
-          <View style={{ gap: 8, marginTop: 16 }}>
-            {[
-              ['병원', item.metadata.health.care.hospitalName],
-              ['진단·진료', item.metadata.health.care.diagnosis],
-              ['약·복약', item.metadata.health.care.medication],
-            ].filter(([, value]) => Boolean(value)).map(([label, value]) => (
-              <AppText key={label} preset="unifiedBody" style={styles.postTagsText}>{label} · {value}</AppText>
-            ))}
-          </View>
-        ) : null}
+          {item.tags.length ? (
+            <View style={styles.tags}>
+              {Array.from(new Set(item.tags)).map(tag => (
+                <View key={tag} style={styles.tagChip}>
+                  <AppText
+                    preset="unifiedMeta"
+                    styleOverridesPreset
+                    style={styles.tagText}
+                  >
+                    {tag.startsWith('#') ? tag : `#${tag}`}
+                  </AppText>
+                </View>
+              ))}
+            </View>
+          ) : null}
+
+          {item.category === 'health' && item.metadata?.health?.care ? (
+            <View style={{ gap: 8, marginTop: 16 }}>
+              {[
+                ['병원', item.metadata.health.care.hospitalName],
+                ['진단·진료', item.metadata.health.care.diagnosis],
+                ['약·복약', item.metadata.health.care.medication],
+              ].filter(([, value]) => Boolean(value)).map(([label, value]) => (
+                <AppText key={label} preset="unifiedBody" style={styles.postTagsText}>{label} · {value}</AppText>
+              ))}
+            </View>
+          ) : null}
+        </View>
       </View>
       <Modal
         visible={expandedImage !== null}
@@ -610,83 +566,6 @@ const FeedPostCard = memo(function FeedPostCardView({
         </View>
       </Modal>
     </View>
-  );
-});
-
-const RelatedMemoryCard = memo(function RelatedMemoryCardView({
-  item,
-  onPress,
-}: {
-  item: MemoryRecord;
-  onPress: (item: MemoryRecord) => void;
-}) {
-  const image = getTimelinePrimaryMemoryImageSource(item);
-  const { signedUrl } = useSignedMemoryImage(image.value, {
-    variant: 'timeline-thumb',
-    trackLoading: false,
-  });
-  const category = getRecordCategoryMeta(item);
-  const tone = getMemoryDetailCategoryTone(item);
-  return (
-    <TouchableOpacity
-      testID="memory-detail-related-record"
-      accessibilityRole="button"
-      accessibilityLabel={`${category.label}, ${item.title}`}
-      onPress={() => onPress(item)}
-      activeOpacity={0.9}
-      style={styles.relatedAction}
-    >
-      <View
-        testID="memory-detail-related-glass"
-        style={styles.relatedCard}
-      >
-        <MenuGlassSurface radius={8} />
-        <View
-          style={[
-            styles.relatedThumb,
-            { backgroundColor: tone.placeholderColor },
-          ]}
-        >
-          {signedUrl ? (
-            <OptimizedImage
-              uri={signedUrl}
-              style={styles.relatedThumbImage}
-              resizeMode="cover"
-            />
-          ) : (
-            <NuriSemanticIcon family="material" name={category.icon} size={26} />
-          )}
-        </View>
-        <View style={styles.relatedBody}>
-          <View
-            style={[
-              styles.categoryChip,
-              { backgroundColor: C.selected },
-            ]}
-          >
-            <AppText
-              preset="unifiedMeta"
-              styleOverridesPreset
-              style={[styles.categoryText, { color: C.primary }]}
-            >
-              {getMemoryCategoryChipLabel(item)}
-            </AppText>
-          </View>
-          <AppText
-            preset="unifiedBody"
-            numberOfLines={1}
-            styleOverridesPreset
-            style={styles.relatedTitle}
-          >
-            {item.title.trim() || item.content?.trim() || '기록을 남겼어요'}
-          </AppText>
-          <AppText preset="unifiedMeta" style={styles.relatedTime}>
-            {formatMemoryDetailDate(item)}
-          </AppText>
-        </View>
-        <Feather name="chevron-right" size={18} color={styles.relatedTime.color} />
-      </View>
-    </TouchableOpacity>
   );
 });
 
@@ -753,6 +632,7 @@ export default function RecordDetailScreen() {
   const route = useRoute<Route>();
   const petId = route.params?.petId?.trim() || null;
   const memoryId = route.params?.memoryId?.trim() || null;
+  const returnToGallery = route.params?.entrySource === 'record-gallery';
   const titleOwnerId = useAuthStore(state => state.session?.user.id ?? null);
 
   const record = useRecordStore(s => s.selectRecordById(memoryId));
@@ -760,7 +640,6 @@ export default function RecordDetailScreen() {
   const refresh = useRecordStore(s => s.refresh);
   const upsertOneLocal = useRecordStore(s => s.upsertOneLocal);
   const pets = usePetStore(s => s.pets);
-  const recordsById = useRecordStore(s => s.recordsById);
 
   const resolvedPetId = record?.petId?.trim() || petId;
   const captureCurrent = useOwnerOperation(`${titleOwnerId ?? 'guest'}:${resolvedPetId ?? 'none'}:${memoryId ?? 'none'}`);
@@ -856,13 +735,13 @@ export default function RecordDetailScreen() {
           removeOneLocal(pending.petId, pending.memoryId);
           invalidateWalkProduct(walkScope, 'MEMORY_DELETE');
           setDeleteModalVisible(false);
-          if (route.params.notificationOpen) navigation.goBack();
+          if (route.params.notificationOpen || returnToGallery) navigation.goBack();
           else navigation.navigate('TimelineMain', { petId: pending.petId, mainCategory: 'all' });
         }
         if (walkScope.current()) interruptedWalkDelete.current = null;
       }).catch(() => undefined);
     return () => controller.abort();
-  }, [walkScope, isWalkRecord, memoryId, resolvedPetId, upsertOneLocal, removeOneLocal, navigation, route.params.notificationOpen]);
+  }, [walkScope, isWalkRecord, memoryId, resolvedPetId, upsertOneLocal, removeOneLocal, navigation, route.params.notificationOpen, returnToGallery]);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
   const [actionMenuVisible, setActionMenuVisible] = useState(false);
   const [remembrance, setRemembrance] = useState<{
@@ -999,85 +878,7 @@ export default function RecordDetailScreen() {
     setDeleteModalVisible(true);
   }, [hideActionMenu, record, resolvedPetId]);
 
-  const [historyPage, setHistoryPage] =
-    useState<DetailHistoryPage>(emptyDetailHistory);
-  const historyGeneration = useRef(0);
-  const historyBusy = useRef(false);
-  const [relatedStatus, setRelatedStatus] = useState<
-    'loading' | 'ready' | 'error'
-  >('loading');
-  const [relatedRetry, setRelatedRetry] = useState(0);
-  const [relatedOwner, setRelatedOwner] = useState('');
-  const recordId = record?.id;
-  const relatedRequestKey = `${resolvedPetId ?? ''}:${
-    recordId ?? ''
-  }:${relatedRetry}`;
-  const visibleRelatedStatus =
-    relatedOwner === relatedRequestKey ? relatedStatus : 'loading';
   const isHealthDetail = route.params?.entrySource === 'health_report';
-  useFocusEffect(
-    useCallback(() => {
-      const generation = ++historyGeneration.current;
-      const isActive = () => historyGeneration.current === generation;
-      if (!resolvedPetId || !recordId || isHealthDetail) return;
-      historyBusy.current = true;
-      setHistoryPage(emptyDetailHistory());
-      setRelatedStatus('loading');
-      setRelatedOwner(relatedRequestKey);
-      fetchNextDetailHistory({
-        petId: resolvedPetId,
-        currentRecordId: recordId,
-        page: emptyDetailHistory(),
-        isActive,
-      })
-        .then(page => {
-          if (isActive()) {
-            setHistoryPage(page);
-            setRelatedStatus('ready');
-          }
-        })
-        .catch(() => {
-          if (isActive()) setRelatedStatus('error');
-        })
-        .finally(() => {
-          if (isActive()) historyBusy.current = false;
-        });
-      return () => {
-        ++historyGeneration.current;
-        historyBusy.current = false;
-      };
-    }, [isHealthDetail, recordId, relatedRequestKey, resolvedPetId]),
-  );
-
-  const relatedRecords = useMemo(() => {
-    if (relatedOwner !== relatedRequestKey) return [];
-    return historyPage.records.map(item => recordsById[item.id] ?? item);
-  }, [historyPage.records, recordsById, relatedOwner, relatedRequestKey]);
-  const canShowMoreRelatedRecords =
-    historyPage.buffered.length > 0 || historyPage.hasMore;
-  const handlePressMoreRelatedRecords = useCallback(async () => {
-    if (!resolvedPetId || !recordId || historyBusy.current) return;
-    const generation = historyGeneration.current;
-    const isActive = () => historyGeneration.current === generation;
-    historyBusy.current = true;
-    setRelatedStatus('loading');
-    try {
-      const page = await fetchNextDetailHistory({
-        petId: resolvedPetId,
-        currentRecordId: recordId,
-        page: historyPage,
-        isActive,
-      });
-      if (isActive()) {
-        setHistoryPage(page);
-        setRelatedStatus('ready');
-      }
-    } catch {
-      if (isActive()) setRelatedStatus('error');
-    } finally {
-      if (isActive()) historyBusy.current = false;
-    }
-  }, [historyPage, recordId, resolvedPetId]);
 
   const onConfirmDelete = useCallback(async () => {
     if (!resolvedPetId || !record || deleting) return;
@@ -1111,8 +912,7 @@ export default function RecordDetailScreen() {
         navigation.popTo('ScheduleDetail', route.params.scheduleReturn);
       } else if (route.params?.entrySource === 'health_report') {
         navigateToHealthReport();
-      } else if (route.params.notificationOpen) {
-        // The notification stack may start at Detail with no ordinary tab below it.
+      } else if (route.params.notificationOpen || returnToGallery) {
         navigation.goBack();
       } else {
         navigation.navigate('TimelineMain', {
@@ -1140,53 +940,12 @@ export default function RecordDetailScreen() {
     route.params?.entrySource,
     route.params?.scheduleReturn,
     route.params.notificationOpen,
+    returnToGallery,
     navigateToHealthReport,
     walkScope,
     isWalkRecord,
     walkSource,
   ]);
-
-  const renderFeedCard = useCallback(
-    (item: MemoryRecord) => (
-      <View key={item.id}>
-      {walkSource && item.id === memoryId && <AppText preset="unifiedMeta" style={{ paddingHorizontal: 18, paddingVertical: 8 }}>{walkSourceCopy(walkSource)}</AppText>}
-      <FeedPostCard
-        item={item}
-        petName={petName}
-        petAvatarUrl={petAvatarUrl}
-        imagePriority="primary"
-      />
-      </View>
-    ),
-    [petAvatarUrl, petName, walkSource, memoryId],
-  );
-
-  const handlePressRelatedRecord = useCallback(
-    (item: MemoryRecord) => {
-      if (!resolvedPetId) return;
-      navigation.replace('RecordDetail', {
-        petId: resolvedPetId,
-        memoryId: item.id,
-        entrySource: route.params?.entrySource,
-        scheduleReturn: route.params?.scheduleReturn,
-      });
-    },
-    [
-      navigation,
-      resolvedPetId,
-      route.params?.entrySource,
-      route.params?.scheduleReturn,
-    ],
-  );
-
-  const renderRelatedRecord = useCallback(
-    ({ item }: { item: MemoryRecord }) => (
-      <View style={styles.historyRow}>
-        <RelatedMemoryCard item={item} onPress={handlePressRelatedRecord} />
-      </View>
-    ),
-    [handlePressRelatedRecord],
-  );
 
   const retryHydrateRecord = useCallback(() => {
     setHydrateErrorMessage(null);
@@ -1276,112 +1035,38 @@ export default function RecordDetailScreen() {
       <LavenderScreenBackground />
       {detailHeader}
 
-      <FlatList
+      <ScrollView
         testID="memory-detail-scroll"
         style={styles.scroll}
         contentContainerStyle={[
           styles.body,
           { paddingBottom: (toolbarHeight ?? insets.bottom) + 16 },
         ]}
-        data={isHealthDetail ? [] : relatedRecords}
-        keyExtractor={item => item.id}
-        renderItem={renderRelatedRecord}
         showsVerticalScrollIndicator={false}
-        removeClippedSubviews={false}
-        ListHeaderComponent={
-          <>
-            {renderFeedCard(record)}
-            {isHealthDetail ? null : (
-              <View style={styles.relatedSection}>
-                <View style={styles.relatedSectionHeader}>
-                  <AppText
-                    typographyRole="sectionTitle"
-                    preset="unifiedTitle"
-                    style={styles.relatedSectionTitle}
-                  >
-                    함께 쌓아온 추억
-                  </AppText>
-                  <AppText
-                    preset="unifiedMeta"
-                    style={styles.relatedSectionCount}
-                  >
-                    {relatedRecords.length > 0
-                      ? `${relatedRecords.length}개 표시`
-                      : visibleRelatedStatus === 'error'
-                      ? '미확인'
-                      : ''}
-                  </AppText>
-                </View>
-              </View>
-            )}
-          </>
-        }
-        ListFooterComponent={
-          isHealthDetail ? undefined : (
-            <View style={styles.historyFooter}>
-              {visibleRelatedStatus === 'loading' ? (
-                <ActivityIndicator accessibilityLabel="다른 추억 불러오는 중" />
-              ) : visibleRelatedStatus === 'error' ? (
-                <TouchableOpacity
-                  accessibilityRole="button"
-                  style={styles.relatedEmptyCard}
-                  onPress={
-                    relatedRecords.length > 0
-                      ? handlePressMoreRelatedRecords
-                      : () => setRelatedRetry(current => current + 1)
-                  }
-                >
-                  <MenuGlassSurface radius={18} />
-                  <AppText preset="unifiedBody" style={styles.relatedEmptyText}>
-                    관련 기록 다시 불러오기
-                  </AppText>
-                </TouchableOpacity>
-              ) : relatedRecords.length === 0 ? (
-                <View style={styles.relatedEmptyCard}>
-                  <MenuGlassSurface radius={18} />
-                  <AppText preset="unifiedBody" style={styles.relatedEmptyText}>
-                    아직 다른 추억은 없어요.
-                  </AppText>
-                </View>
-              ) : null}
-
-              {canShowMoreRelatedRecords && visibleRelatedStatus === 'ready' ? (
-                <CtaButton
-                  role="primary"
-                  activeOpacity={0.9}
-                  style={styles.relatedMoreButton}
-                  onPress={handlePressMoreRelatedRecords}
-                  accessibilityRole="button"
-                  accessibilityLabel="다른 추억 5개 더보기"
-                >
-                  <View
-                    style={styles.relatedMoreButtonSide}
-                    pointerEvents="none"
-                    accessible={false}
-                  />
-                  <CtaText
-                    preset="unifiedBody"
-                    style={styles.relatedMoreButtonText}
-                  >
-                    추억을 더 만나볼까요
-                  </CtaText>
-                  <View
-                    style={styles.relatedMoreButtonSide}
-                    pointerEvents="none"
-                    accessible={false}
-                  >
-                    <CtaIcon
-                      name="chevron-right"
-                      size={18}
-                      accessible={false}
-                    />
-                  </View>
-                </CtaButton>
-              ) : null}
-            </View>
-          )
-        }
-      />
+      >
+        {walkSource && record.id === memoryId ? (
+          <AppText preset="unifiedMeta" style={styles.walkSource}>
+            {walkSourceCopy(walkSource)}
+          </AppText>
+        ) : null}
+        <FeedPostCard
+          key={record.id}
+          item={record}
+          petName={petName}
+          petAvatarUrl={petAvatarUrl}
+        />
+        {isHealthDetail ? null : (
+          <CtaButton
+            role="primary"
+            activeOpacity={0.9}
+            style={styles.returnButton}
+            onPress={onPressBack}
+            accessibilityLabel="돌아가기"
+          >
+            <CtaText preset="unifiedBody">돌아가기</CtaText>
+          </CtaButton>
+        )}
+      </ScrollView>
 
       <Modal visible={actionMenuVisible} transparent animationType="slide" onRequestClose={closeActionMenu}>
         <View style={[styles.sheetBackdrop,{backgroundColor:C.overlay,justifyContent:'flex-end',paddingHorizontal:0}]}>

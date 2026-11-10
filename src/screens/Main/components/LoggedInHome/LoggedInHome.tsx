@@ -2405,10 +2405,14 @@ export default function LoggedInHome() {
     [activePetId, createHomeTotalSummaryEntryRequestId, navigation],
   );
 
-  const onPressTotalSummaryAllRecords = useCallback(
-    () => onPressTotalSummaryTimeline('all'),
-    [onPressTotalSummaryTimeline],
-  );
+  const onPressRecordGallery = useCallback(() => {
+    if (!activePetId) return;
+    navigation.navigate('TimelineTab', {
+      screen: 'RecordGallery',
+      initial: false,
+      params: { petId: activePetId, entrySource: 'home' },
+    });
+  }, [activePetId, navigation]);
 
   const onPressTotalWalk = useCallback(
     () => onPressTotalSummaryTimeline('walk'),
@@ -2706,7 +2710,7 @@ export default function LoggedInHome() {
       records={recordItems}
       recordStatus={recordStatus}
       onPressCategory={onPressFrequentRecord}
-      onPressAll={onPressTimeline}
+      onPressAll={onPressRecordGallery}
       footer={<WalkHomeFooter petId={activePetId} enabled={deferredHomeDataReady && isScreenFocused && !!sessionUserId} />}
     />
   );
@@ -2752,7 +2756,7 @@ export default function LoggedInHome() {
             onPressWalk={onPressTotalWalk}
             onPressMeal={onPressTotalMeal}
             onPressLife={onPressTotalLife}
-            onPressAllRecords={onPressTotalSummaryAllRecords}
+            onPressAllRecords={onPressRecordGallery}
           />
         </View>
         <View onLayout={ambientSectionLayoutHandlers.recent}>

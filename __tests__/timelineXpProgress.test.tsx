@@ -62,9 +62,6 @@ describe('actual XP data to Timeline progress', () => {
             level={level}
             titles={[]}
             summary={null}
-            dailyStatus={null}
-            petName={null}
-            showWalkStatus={false}
             onPressBack={jest.fn()}
           />
         </ThemeProvider>

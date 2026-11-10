@@ -289,7 +289,7 @@ describe('Total Summary seasonal concept', () => {
     expect(
       renderer.root.findByProps({ testID: 'home-summary-line' }).props.children,
     ).toBe('산책과 식사 기록이 차곡차곡 쌓였어요!');
-    for (const key of ['walk', 'meal', 'life', 'days', 'insight']) {
+    for (const key of ['walk', 'meal', 'life', 'days', 'insight', 'all-records']) {
       renderer.root
         .findByProps({ testID: `home-summary-${key}` })
         .props.onPress();
@@ -297,10 +297,10 @@ describe('Total Summary seasonal concept', () => {
     expect(handlers.onPressWalk).toHaveBeenCalledTimes(1);
     expect(handlers.onPressMeal).toHaveBeenCalledTimes(1);
     expect(handlers.onPressLife).toHaveBeenCalledTimes(1);
-    expect(handlers.onPressAllRecords).toHaveBeenCalledTimes(2);
+    expect(handlers.onPressAllRecords).toHaveBeenCalledTimes(3);
     expect(headerActions(renderer)).not.toHaveLength(0);
     headerActions(renderer)[0].props.onPress();
-    expect(handlers.onPressAllRecords).toHaveBeenCalledTimes(3);
+    expect(handlers.onPressAllRecords).toHaveBeenCalledTimes(4);
     await act(async () => renderer.unmount());
   });
 

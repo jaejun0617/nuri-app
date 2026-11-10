@@ -690,18 +690,20 @@ export async function fetchMemorySummaryRecordsByPet(
 ): Promise<MemoryRecord[]> {
   if (!petId.trim()) return [];
 
-  const { data, error } = await supabase
-    .from('memories')
-    .select(
-      'id, pet_id, title, tags, category, sub_category, occurred_at, created_at',
-    )
-    .eq('pet_id', petId);
+  const records: MemoryRecord[] = [];
+  const pageSize = 500;
+  for (let offset = 0; ; offset += pageSize) {
+    const { data, error } = await supabase
+      .from('memories')
+      .select('id, pet_id, title, tags, category, sub_category, occurred_at, created_at')
+      .eq('pet_id', petId)
+      .order('id', { ascending: true })
+      .range(offset, offset + pageSize - 1);
+    if (error) throw error;
 
-  if (error) throw error;
-
-  return toTimelineCategoryCountRows(data).map(
-    mapTimelineCountRowToMemoryRecord,
-  );
+    records.push(...toTimelineCategoryCountRows(data).map(mapTimelineCountRowToMemoryRecord));
+    if (!data || data.length < pageSize) return records;
+  }
 }
 
 export async function fetchMemoriesByPetDateRange(input: {

@@ -9,6 +9,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
 import TimelineScreen from '../screens/Records/TimelineScreen';
 import TimelineEntryGateScreen from '../screens/Records/TimelineEntryGateScreen';
+import RecordGalleryScreen from '../screens/Records/RecordGalleryScreen';
 import RecordDetailScreen from '../screens/Records/RecordDetailScreen';
 import RecordEditScreen from '../screens/Records/RecordEditScreen';
 import MonthlyExpensesScreen from '../screens/Records/MonthlyExpensesScreen';
@@ -42,6 +43,7 @@ export type TimelineStackParamList = {
       }
     | undefined;
   TimelineEntryGate: HomeTotalSummaryEntryRequest;
+  RecordGallery: { petId: string; entrySource: 'home' | 'timeline' };
   RecordDetail: {
     notificationOpen?: NotificationOpenReceipt;
     petId: string;
@@ -73,6 +75,7 @@ export default function TimelineStackNavigator() {
         component={TimelineEntryGateScreen}
         options={{ animation: 'none' }}
       />
+      <Stack.Screen name="RecordGallery" component={RecordGalleryScreen} />
       <Stack.Screen name="RecordDetail" component={RecordDetailScreen} />
       <Stack.Screen name="RecordEdit" component={RecordEditScreen} />
       <Stack.Screen name="MonthlyExpenses" component={MonthlyExpensesScreen} />

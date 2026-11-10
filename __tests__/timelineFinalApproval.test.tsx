@@ -89,9 +89,6 @@ describe('Timeline final approval contract', () => {
         level={level}
         titles={[]}
         summary={summary}
-        dailyStatus={null}
-        petName={null}
-        showWalkStatus={false}
         onPressBack={jest.fn()}
       />,
     );
