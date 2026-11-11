@@ -2,6 +2,15 @@
 
 커뮤니티만 보완해서는 앱 전체 키보드 품질을 닫을 수 없다. 모든 입력 경로를 먼저 등록하고 같은 실기기 기준으로 확인한 뒤, 공통 원인과 화면별 원인을 나눠 최소 수정해야 한다. 이 보고서는 정적 목록과 교차 검토 결과이며 전역 실기기 QA 완료 보고서가 아니다.
 
+<a id="k02-historical-source"></a>
+## K02 역사 소스 연결의 한계 (2026-11-11 확인)
+
+K02의 원래 참조는 `src/screens/Auth/SignUpScreen.tsx#L796`이다. [당시 정적 inventory](nuri-global-keyboard-audit-2026-10-07-evidence/inventory.json)는 `InputField`의 이메일·비밀번호·확인 호출(796·806·828행), `SignUpScreen`의 legacy aware(984행)·core KAV(1012행) 문맥과 전체 `sourceDiffSha256`을 기록한다. 그러나 해당 파일의 dirty 원문·개별 hash나 그 diff 본문은 이 inventory에 없다.
+
+기록된 HEAD `26891aaed1fbee37141ecbd89e4d4c18970b4a1d`의 동명 파일(blob `1192dce5204c6e9abc699f0304dc1f7493d97b34`)에서 같은 입력 구간은 확인했다. 이는 **HEAD 후보의 부분 문맥 일치**일 뿐 당시 판단 기준인 dirty source 전체와의 동일성 입증이 아니다. 연결된 10/07 후보 QA의 `/private/tmp/nuri-community-search-comment-20261007-162703` 보존 경로는 이번 확인 시 없었고, 사건명·날짜로 한정한 로컬 보존 폴더 탐색에서도 정확한 원본을 특정하지 못했다. 다른 checkout·현재 회원가입 화면으로 대체하지 않았다.
+
+따라서 K02는 **역사 소스 원본 대응 미확인**으로 남긴다. 당시 working 파일의 보존본과 개별 hash, 또는 기록된 `SOURCE_DIFF_SHA256`에 대응하는 diff 및 기반 트리를 확보해야 고정 원본 링크를 확정할 수 있다. K02의 당시 정적 `연결 확인`, 원래 후보·조건·38개 분모와 미실행 기기 판정은 변경하지 않는다. 현재 파일 부재는 당시 감사 실패를 뜻하지 않으며 이번에는 새 제품·기기 검증을 하지 않았다.
+
 ## 1. 범위와 기준
 
 - 기준일: 2026-10-07 KST.
@@ -40,7 +49,7 @@ TypeScript AST로 `src`의 TS/TSX 450개와 `App.tsx`를 검사했다. RN TextIn
 | ID | 영역 | 코드 | 필수 분기·입력 | 현재 처리 | 연결 |
 | --- | --- | --- | --- | --- | --- |
 | K01 | 로그인 | [SignInScreen.tsx](../../src/screens/Auth/SignInScreen.tsx#L871) | 이메일·비밀번호, 계절 login 및 일반 branch | legacy aware | 연결 확인 |
-| K02 | 회원가입 | [SignUpScreen.tsx](../../src/screens/Auth/SignUpScreen.tsx#L796) | 이메일·비밀번호·확인, 계절/일반 branch | legacy aware 또는 core KAV | 연결 확인 |
+| K02 | 회원가입 | [SignUpScreen.tsx 당시 참조·원본 대응 한계](#k02-historical-source) | 이메일·비밀번호·확인, 계절/일반 branch | legacy aware 또는 core KAV | 연결 확인 |
 | K03 | 비밀번호 재설정 요청 | [PasswordResetRequestScreen.tsx](../../src/screens/Auth/PasswordResetRequestScreen.tsx#L124) | 이메일 | core KAV Android undefined | 연결 확인 |
 | K04 | 비밀번호 재설정 | [PasswordResetFormScreen.tsx](../../src/screens/Auth/PasswordResetFormScreen.tsx#L175) | 새 비밀번호·확인; recovery session gate | core KAV Android undefined | 연결 확인 |
 | K05 | 온보딩 닉네임 | [NicknameSetupScreen.tsx](../../src/screens/Auth/NicknameSetupScreen.tsx#L180) | 닉네임·Sticky CTA | controller aware + Sticky | 연결 확인 |
