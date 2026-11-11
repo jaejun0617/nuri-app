@@ -1,5 +1,16 @@
 # Global CTA Role System
 
+## 현재 적용 범위
+
+2026-11-11 안내 보정: 이 문서는 CTA 역할 계약과 **2026-10-06 후보의 팔레트·수락·한계**를 함께 보존한다. 아래 'Current'와 최종 승인·NEXT DESIGN DIRECTION은 당시 후보에 한정한다. 이후 일반 CTA 색상은 [11/06 PO 고정 기준과 명시적 예외](../project-memory/핵심-결정사항.md#2026-11-06-po-고정-모든-후속-디자인의-cta와-글자-크기)를 따른다.
+
+- 현재 [resolveCtaPalette](../../src/app/theme/ctaPalette.ts)는 일반 primary·primarySubtle에 [LAVENDER_CTA](../../src/app/theme/tokens/productAccent.ts)를 사용한다. 계절 인자는 유지돼도 팔레트 선택에는 사용하지 않는다. `solidLavender` 글등록 버튼 예외는 위 PO 결정 범위에 한정한다. 아래 계절 표·흰 Primary 문구를 현재 일반 CTA에 다시 적용하지 않는다.
+- [11/05 아이 포인트색 종료 결정](../project-memory/핵심-결정사항.md#2026-11-05-후속-결정-아이-포인트색-기능-종료)은 아래 개인색 선택 유지 설명의 후속 대체다. 기존 raw/null 호환·저장값·의미색 보호까지 폐기하지 않는다.
+- 역할별 파괴 행동·초안 보호·확대 글꼴과 줄바꿈 등 명시적으로 대체되지 않은 계약은 유지한다. 후속 디자인·글꼴 예외를 이 안내로 전면 변경하지 않으며, 과거 대비·첫 진입 한계의 현재 해결 여부를 새로 판정하지 않는다.
+
+[10/06 승인 기록](../qa/nuri-global-cta-final-approval-2026-10-06.md)은 당시 증거다. 아래 저장소 밖 보고서·캡처는 로컬 전용이며 이번에 존재·내용을 재검증하거나 공개하지 않는다. 현재 수락은 [단일 원장](../qa/nuri-integrated-closeout-2026-10-25.md)에서 확인한다.
+
+<!-- CTA_HISTORY_20261006_BEGIN -->
 ## Source Of Truth
 
 2026-10-06 PO contract: GLOBAL ROLE-BASED CTA SYSTEM. PO subsequently gave final approval and explicitly requested commit, push, freeze and waiting for the next design direction. Current status: APPROVED_FROZEN_WITH_KNOWN_LIMITATIONS, not Store authorization. Candidate validation evidence remains `/private/tmp/nuri-global-cta-role-system-20261006-183103/FINAL_REPORT.md`; approval record is `docs/qa/nuri-global-cta-final-approval-2026-10-06.md`.
@@ -42,3 +53,4 @@ Current candidate: targeted 13 suites/112 tests and final full 179 suites/1,759 
 The candidate's technical acceptance was not a full native PASS. Timeline's empty-state CTA and floating CTA both use solid Primary. Schedule detail's first-entry compositing intermittently washes out the whole screen and reduces observed Primary contrast to 2.66-3.02:1; re-entry restores the exact palette but is not an implementation fix. Keep first-entry and re-entry captures separately. Root cause is not yet confirmed. PO final approval freezes the reported candidate as-is; it does not turn these limitations into fixed defects or authorize corrective work. No runtime edits, new tests, build, install or device operations are part of this approval closeout.
 
 PO visual approval is complete. Selective Git closeout includes the approved CTA files and the preceding schedule-detail implementation they directly depend on. Unrelated dirty files and shared-document sections are excluded. Retain QA, prior evidence, candidate APK and incremental outputs/cache. Cleanup and Store remain on hold; next action is waiting for PO NEXT DESIGN DIRECTION. Future corrective work requires a new explicit instruction.
+<!-- CTA_HISTORY_20261006_END -->

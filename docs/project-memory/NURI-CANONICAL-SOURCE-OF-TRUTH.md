@@ -1,5 +1,14 @@
 # NURI Canonical Source of Truth
 
+## 역할과 적용 시점
+
+2026-11-11 안내 보정: 이 문서는 **2026-08-05 기준선·근거 우선순위·색인의 원문**을 보존한다. 아래의 '현재', 경로·브랜치·기기·QA 계정은 당시 확인값이며 오늘의 실행 환경을 지정하지 않는다. 과거 코드 우선순위를 승인 요구나 실제 수락보다 높은 권한으로 사용하지 않는다.
+
+현재 판단은 [사실별 근거 지도](../engineering/advanced-codex-memory.md#authority-map)를 따른다. 승인된 요구는 [핵심 결정](핵심-결정사항.md#decision-scope-map), 구현은 해당 소스, 적용은 배포·설치 영수증, 수락은 [단일 원장](../qa/nuri-integrated-closeout-2026-10-25.md)으로 구분한다. [현재 상태](현재-프로젝트-상태.md#current-baseline)와 [실행 우선순위](다음-작업-우선순위.md#resume-point)가 현재 요약과 다음 행동을 소유한다.
+
+아래 정책·보호 조건을 날짜만으로 폐기하지 않는다. 적용 범위가 겹치는 명시적 후속 결정만 연결하고, 나머지 요구의 현재 적용성은 관련 작업에서 확인한다. 과거 색인의 '현재 상태'와 '다음 작업'도 8/05 문서 묶음의 이름이다.
+
+<!-- CANONICAL_HISTORY_20260805_BEGIN -->
 기준일: 2026-08-05
 
 ## 우선순위
@@ -48,3 +57,4 @@
 - 다음 작업: `NURI-NEXT-WORK-QUEUE-2026-08-05.md`
 - thread 지도: `NURI-THREAD-MAP-AND-HANDOFF-INDEX.md`
 - repository 정리: `NURI-REPOSITORY-CLEANUP-REPORT-2026-08-05.md`
+<!-- CANONICAL_HISTORY_20260805_END -->

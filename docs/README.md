@@ -18,18 +18,38 @@
 
 과거 자료는 `project-memory/아카이브`와 날짜가 명시된 QA·reports에서 찾는다. [9/14 closeout 색인](release/v1.0-closeout/05-documentation-index.md)은 **2026-09-14 당시 제품·release·QA 스냅샷**의 진입점이지 이후 현재 상태·수락·우선순위의 대체 문서가 아니다.
 
-7차까지 로컬 전용이었던 [10/29 정리 보고서](reports/nuri-storage-docs-cleanup-2026-10-29.md), [11/05 모달 감사](reports/nuri-modal-design-audit-2026-11-05.md), [원장 11/04 19:46 보고](qa/nuri-integrated-closeout-2026-10-25.md#2026-11-04-1946-kst-nuri-high-cpu-p0-final-verification-report)는 8차에서 역사 원문을 선별 전달한다. 저장소 밖 영수증·영상·캡처와 원장의 나머지 로컬 변경은 포함하지 않으며 문서 전달을 새 수락으로 계산하지 않는다.
+7차까지 로컬 전용이었던 [10/29 정리 보고서](reports/nuri-storage-docs-cleanup-2026-10-29.md), [11/05 모달 감사](reports/nuri-modal-design-audit-2026-11-05.md), [원장 11/04 19:46 보고](qa/nuri-integrated-closeout-2026-10-25.md#2026-11-04-1946-kst-nuri-high-cpu-p0-final-verification-report)는 8차에서 역사 원문을 선별 전달했다. 저장소 밖 영수증·영상·캡처와 원장의 나머지 로컬 변경은 포함하지 않으며 문서 전달을 새 수락으로 계산하지 않는다.
 
 코드 존재, 과거 PASS, 로컬 문서의 서버 상태를 현재 운영·실기기 PASS로 대체하지 않는다. 기존 계획은 구현 완료가 아니며, 과거 완료는 자동으로 허위가 되지 않는다.
 
 ## 구현 문서 안내
 
-- 기록·미디어: [타임라인 이미지 시스템](domains/타임라인-메모리-이미지-시스템/타임라인-메모리-이미지-통합-완성본.md)
-- 인증: [social login](domains/auth/social-login-v1.md)
-- 산책: [구현 상세](domains/산책-위치기반-기능/산책-위치기반-기능-구현-상세.md)
-- 현재 알림·NAV·기록 변경: [수락 원장](qa/nuri-integrated-closeout-2026-10-25.md)의 수정/증거 연결
-- SQL 설명·소비 관계: [SQL 정리 가이드](sql/정리-가이드.md). `docs/sql`에도 실제 재구축·검사 입력이 있으며, 파일 존재·운영 적용 이력·현재 운영 정의는 구분한다.
-- 2026-03-21 코드/SQL 원문 번들은 역사적 참고다. 현재 소스를 대신하거나 다시 실행할 SQL 묶음으로 취급하지 않는다.
+2026-11-11 탐색 보정: 아래는 영역별 첫 진입점이며 문서 전체의 구현·배포·수락 완료를 뜻하지 않는다. QA는 해당 후보의 증거, 기획은 승인 범위와 미구현 요구, 리서치는 판단·제안을 소유한다. 최신 판단은 위 역할 표로 돌아가 확인한다.
+
+| 영역 | 첫 진입 문서와 역할 |
+| --- | --- |
+| 인증·세션·온보딩 | [소셜 로그인 계약](domains/auth/social-login-v1.md) |
+| 펫·프로필·날짜·추모 | [프로필 요구사항](domains/아이들-프로필-관리/아이들-프로필-관리-실서비스급-구현-지시문.md), 이행·수락은 원장과 구분 |
+| 홈·전체메뉴 | [메뉴 디자인 QA](qa/nuri-more-menu-redesign-2026-10-08.md), 당시 화면·후보의 기록 |
+| 타임라인·기록·사진 | [이미지 시스템](domains/타임라인-메모리-이미지-시스템/타임라인-메모리-이미지-통합-완성본.md), 최근 디자인은 [로그](project-memory/최근-작업-로그.md) |
+| 커뮤니티·신고 | [아키텍처 기획](커뮤니티-기획/커뮤니티-실서비스급-아키텍처-기획서.md), [운영정책](policies/커뮤니티-운영정책.md) |
+| 일정·예약 | [일정 상세 계약](domains/schedule-detail-design.md) |
+| 건강·체중·지출 | [건강 디자인 QA](qa/nuri-health-redesign-2026-10-09.md), [월별 지출 QA](qa/nuri-glass-forms-monthly-expenses-2026-10-08.md), 도메인 전체 수락 아님 |
+| 인앱·OS 알림 | [이벤트 계약](planning/알림-v3-이벤트-계약-2026-10-25.md), [수락 원장](qa/nuri-integrated-closeout-2026-10-25.md) |
+| GPS 산책·기록·삭제 복구 | [산책 아키텍처](domains/산책-위치기반-기능/nuri-walk-experience-final-architecture-freeze.md), 제목의 freeze는 전체 QA 동결 아님 |
+| 장소·POI·병원·여행 | [주변 산책 장소](domains/산책-위치기반-기능/산책-위치기반-기능-구현-상세.md), [펫동반 장소](domains/펫동반-장소-탐색/펫동반-장소-탐색-구현-상세.md), [병원 설계](리서치/우리동네-동물병원-아키텍처-설계서.md), [여행 정책 구조](domains/반려동물과-여행/반려동물과-여행-펫정책-아키텍처.md) |
+| 날씨·비용·시각자산 | [날씨 API](domains/weather-api-v1.md), [비용 방어](domains/weather-api-cost-defense.md), [시각자산](domains/weather-hero-artwork.md) |
+| 가이드·CMS | [사용자 가이드](domains/집사-꿀팁-가이드/집사-꿀팁-가이드-통합-완성본.md), [CMS 구현](domains/집사-꿀팁-가이드-웹-CMS/웹-CMS-챕터1-구현-상세.md), [공개 전환 조건](domains/집사-꿀팁-가이드/집사-꿀팁-가이드-운영-전환-체크리스트.md) |
+| XP·칭호·랭킹 | [승인 칭호 카탈로그](planning/nuri-title-catalog-v2-approved.md), [랭킹 기획](planning/v1.1.1-ranking-system-spec.md), 실제 지급과 구분 |
+| 공지·고객센터 | [신규 기획의 제안 상태](project-memory/다음-작업-우선순위.md#미승인-후속-제안), 운영 공개 승인 아님 |
+| 튜토리얼·사용법 | [같은 제안의 승인 경계](project-memory/다음-작업-우선순위.md#미승인-후속-제안), 기존 기능과 대조할 미승인 범위 |
+| 디자인·폰트·키보드·NAV | [핵심 결정](project-memory/핵심-결정사항.md#decision-scope-map), [CTA 역할](domains/cta-role-system.md), [긴 폼 표준](engineering/키보드-대응/긴-폼-화면-KeyboardController-단일-스크롤-표준안.md); NAV 수락은 원장 소유 |
+| 구독·결제·광고 | [수익화 검토](planning/NURI-수익화·구독·광고-검토-2026-07-22.md), 제안·운영 상품을 구분 |
+| SQL·빌드·운영 | [SQL 소비 관계](sql/정리-가이드.md), [산출물 절차](engineering/release-artifact-procedure.md), [디스크 기준](engineering/disk-hygiene-policy.md) |
+| 보안·개인정보·공개정책 | [정책 정합성 점검](policies/정책-문서-정합성-점검.md), [운영자 입력](policies/정책-문서-운영자-입력값-체크리스트.md), 실제 게시·법적 적합성 확인과 구분 |
+| 통합 수락·출시·역사 | [단일 원장](qa/nuri-integrated-closeout-2026-10-25.md), [출시 체크리스트](qa/release-checklist.md), [6차 기획 색인](프로젝트-현황-최종기획/6차-최종-기획서.md)의 당시 기준 |
+
+`docs/sql`에도 실제 재구축·검사 입력이 있다. 파일 존재·운영 적용 이력·현재 운영 정의는 구분한다. 2026-03-21 코드/SQL 원문 번들은 역사적 참고이며 현재 소스나 다시 실행할 SQL 묶음이 아니다. 링크한 문서의 로컬 미전달 절·저장소 밖 증거까지 원격에서 읽을 수 있다는 뜻은 아니다. 특히 리서치의 `2026-11-11 U2 증분과 신규 5종의 통합 구현순서` 상세 절은 이번 확인 시 로컬 전용이며 이 안내 보정에 편승 전달하지 않는다.
 
 `docs`는 역할 기준으로 아래처럼 본다.
 
