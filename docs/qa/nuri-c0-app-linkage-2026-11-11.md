@@ -1,5 +1,24 @@
 # NURI C0 앱 연결 재검증 · 2026-11-11
 
+## 2026-11-11 U2 공지 7종 격리 설치본 E2E
+
+**7/7 PASS (격리 설치본 한정).** 기존 제품 소스 `b73de0ffc86ee66dc08925cbef61cf13c2d1bd21`, `emulator-5554`의 `com.nuri.c0qa`, APK SHA-256 `90491c2250af18561dabd6ee52e778bec162b78a72a716dbcc63ba71e9c7a709`를 재사용했다. 보존 APK와 기기 설치 파일이 일치하고, 번들 내장 및 Metro OFF를 확인했다. 새 빌드·설치와 S25 Edge 조작은 없었다.
+
+| eventType | 격리 공지 ID | 최초 서버 읽음 (KST) | 상세·Back |
+| --- | --- | --- | --- |
+| `news.published` | `864fa1d9-eef9-2b4b-a8cd-cccb7f059b82` | 19:35:24.033456 | PASS |
+| `news.monthly_editorial` | `a1fc64db-ec4a-1cff-45e3-abc0f21143ad` | 19:35:32.699074 | PASS, `2026-11` 및 ‘11월의 순간들’ |
+| `service.maintenance_started` | `fc30688d-12aa-3ba3-bcca-028d408f8834` | 19:35:41.317427 | PASS |
+| `service.maintenance_changed` | `c0aae827-56e1-dfc0-b293-07f834b1c105` | 19:35:50.017023 | PASS |
+| `service.maintenance_ended` | `e471cb74-856c-5ca2-9e3c-0c88430d016d` | 19:35:58.667051 | PASS |
+| `service.action_required` | `19767204-f27e-2088-be4c-5db972355f23` | 19:36:07.250782 | PASS |
+| `account.policy` | `8453fcb5-420d-931a-226d-6ad133a012fc` | 19:36:16.018454 | PASS |
+
+- 기존 루프백 격리 DB에 고정 소스의 공지 발행·fanout 계약만 선별 적용했다. 실제 격리 Auth 관리자 세션의 `publish_nuri_announcement_v3`와 수동 `fanout_v3`를 사용했고, 비관리자 발행은 403이었다. 로컬 큐만 기록됐으며 재호출 중복이나 전송 시도는 없었다. 운영 접속·운영 발행·Cron·외부 푸시 없음.
+- 7종 각각 정확한 공지 ID를 앱에서 미읽음으로 확인했다. 탭 직전 `read_at=NULL`, 정확한 상세 표시 후 수신자 서버 읽음, Android Back 1회 후 같은 알림함과 같은 행 복귀 및 미읽음 0을 확인했다. 최초 읽음은 Back과 비활성화 뒤에도 동일하고 다른 계정 읽음은 0건이다. 첫 실행의 미읽음 행 선택은 자동화의 접근성 라벨 조건 때문에 누락됐다. 앱을 수정하지 않고 읽음이 없던 같은 ID를 버전 증가 없이 활성화하여 완료했다.
+- 새 시험 공지 7건은 비활성화하고 읽음 증거는 보존했다. 임시 격리 발행 계정은 삭제했고 원래 합성 계정 2개와 `news.direct` 최초 읽음은 유지했다. `news.direct`는 재실행하지 않았다. 비공개 근거: `~/.codex/nuri-c0-isolated-20261111-7ieTJM/artifacts/announcement-e2e/`의 `results.json`, `cleanup.json`, 이벤트별 화면.
+- 운영 발행·Cron·OS 푸시나 실기기 수락으로 확대하지 않는다. `record.monthly_summary`와 `pet.together_month`는 PO 보류다. 통합 4/7·기존 PASS·C0 미동결·STORE HOLD 유지. 아래는 이전 실행 이력이다.
+
 ## 판정과 기준
 
 - **부분 완료. 원래 C0 미동결, 통합 4/7, STORE HOLD.** U1의 삼성 인터넷 대체 경로 성공과 NAV-01의 가이드 이동·복귀를 추가 관찰했다. U2 비보류 10종에 신규 완전 앱 E2E는 0건이다. 각 하위 증분을 단위 전체 PASS로 올리지 않았다.

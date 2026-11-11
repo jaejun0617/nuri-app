@@ -1,5 +1,9 @@
 # NURI 통합 마감 수락 원장
 
+## 2026-11-11 U2 공지 7종 격리 설치본 검증
+
+**4 · U2 격리 앱 E2E 7/7 PASS.** [이벤트별 원본·설치본·서버 읽음·복귀 증거](nuri-c0-app-linkage-2026-11-11.md#2026-11-11-u2-공지-7종-격리-설치본-e2e). 기존 `news.direct` 격리 결과는 재사용했다. 실제 격리 발행, Metro OFF 설치본의 정확한 상세, 서버 읽음, Android Back을 확인했다. 운영 발행·OS 푸시·정각 Cron·S25 Edge 수락은 이번 증거의 범위가 아니다. `record.monthly_summary`와 `pet.together_month` 보류, 기존 PASS 및 17묶음·26종 유지. U2 전체 수락으로 올리지 않으며 통합 4/7·C0 미동결·STORE HOLD는 그대로다.
+
 ## 2026-11-11 C0 앱 연결 재검증
 
 [증거와 비보류 10종 실행표](nuri-c0-app-linkage-2026-11-11.md). S25 Edge U1 삼성 인터넷 대체 OAuth의 실제 코드 교환→Home과 NAV-01 집사 꿀팁 가이드 정상·빠른 Back을 한정 수락했다. Chrome Auth Tab으로 기존 Google QA를 복원했다. U2 이전 운영 서버 3종·격리 SQL 7종을 재사용했으며, 현재 운영 단건 수신자 권한과 앱 진입 가능한 격리 환경의 공백으로 신규 완전 앱 E2E는 0건이다. 기존 Google QA의 60건·미읽음 29건과 읽음 해시는 보존했다. 월간요약·함께한 달은 PO 보류, 통합 4/7·OS 13/13·기록 4/4·P0 stability/final PARTIAL·SU-544458 대기·C0 미동결·STORE HOLD 유지. 기존 수락 분모를 바꾸지 않았다.
