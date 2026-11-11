@@ -1,5 +1,17 @@
 # NURI Master Task Routing Policy
 
+<a id="historical-scope"></a>
+## 현재 적용 범위: 2026-08-05 라우팅의 역사 기록
+
+이 문서는 **당시 Room 배분·상태·review 계약**을 보존한다. 아래 'Master는 직접 구현하지 않는다', primary/supporting Room, WRITE_LOCKED, 코드 우선순위는 그 운영 방식의 기록이며 현재 Master 단독 작업에 적용하는 활성 의무가 아니다. 기존 제목·원문·당시 PASS는 유지하며 오늘의 제품 수락이나 새 Room 생성 권한으로 사용하지 않는다.
+
+현재 작업은 [AGENTS](../../../AGENTS.md)에서 시작해 [승인 작업 계약](../../engineering/advanced-codex-workflow.md#execution-contract), [계속·중단](../../engineering/advanced-codex-workflow.md#continue-stop), [작업별 검사](../../engineering/advanced-codex-checklist.md#applicability), [사실별 권위](../../engineering/advanced-codex-memory.md#authority-map)를 따른다. 현재 PO가 Master 단독을 지정하면 위임·새 Room 없이 승인 범위에서 직접 수행한다. 실제 코드가 요구사항·수락 원장·실행 승인을 대체하지 않는다.
+
+현행 상태·후속 큐는 [현재 상태](../../project-memory/현재-프로젝트-상태.md#current-baseline)와 [우선순위](../../project-memory/다음-작업-우선순위.md#resume-point)가 소유한다. 파일 수·과거 review 양식 때문에 무관한 전체 검사·빌드·메모리 쓰기를 강제하지 않으며 read-only·STOP·현재 승인 경계를 유지한다. 증거·재사용·미실행은 [검사 결과 계약](../../engineering/advanced-codex-checklist.md#evidence-contract)으로 구분한다.
+
+2026-11-11 변경은 이 역할 안내만 추가한 것이다. 당시 본문은 아래 그대로이며 [개편 로그](../../project-memory/최근-작업-로그.md#2026-11-11-codex-운영지침-개편)의 원본 hash·대응·전달 영수증으로 추적한다. 다음 정상 실행의 실제 자동 로드는 아직 PENDING이다. 이 역사 문서는 매 작업의 필수 전체 읽기 대상이 아니며 당시 Room 이력을 확인할 때만 읽는다.
+
+<!-- ROUTING_HISTORY_20260805_BEGIN -->
 기준일: 2026-08-05
 
 ## 목적
@@ -83,3 +95,5 @@ Master review 판정은 `완료`, `조건부 완료`, `보완 필요`, `실패` 
 5. historical archive와 과거 대화
 
 현재 작업 기준 HEAD는 문서에 하드코딩하지 않고 각 room 시작 시 `git rev-parse HEAD`로 기록한다. `8975ba7`은 최초 canonical/handoff publication lineage일 뿐 현재 작업 HEAD가 아니다.
+
+<!-- ROUTING_HISTORY_20260805_END -->
