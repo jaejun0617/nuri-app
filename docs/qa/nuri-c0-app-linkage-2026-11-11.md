@@ -1,5 +1,20 @@
 # NURI C0 앱 연결 재검증 · 2026-11-11
 
+## 2026-11-11 U2 연 기념일과 추모 격리 설치본 E2E
+
+**2/2 PASS (격리 설치본 한정).** 같은 `emulator-5554`의 `com.nuri.c0qa`를 Metro OFF에서 재사용했다. 제품 소스 `b73de0ffc86ee66dc08925cbef61cf13c2d1bd21`, 설치 APK SHA-256 `90491c2250af18561dabd6ee52e778bec162b78a72a716dbcc63ba71e9c7a709` 일치. 새 빌드·설치나 S25 Edge 조작은 없었다.
+
+| eventType | 격리 알림 ID | 정확한 목적지 | 최초 서버 읽음 (KST) | Back |
+| --- | --- | --- | --- | --- |
+| `pet.together_anniversary` | `d2c6a429-e601-4e61-be89-1d07c1a1fc34` | QA 기념일 누리 타임라인 (`fdb4d0aa-0d68-4206-bb09-10685e1996a1`) | 20:13:28.879289 | PASS, 같은 알림함·행 |
+| `pet.memorial` | `704d57d2-67ea-49e6-abdd-6e04089b7b64` | QA 추모 보리 타임라인 (`fdb4d0aa-0d68-4206-bb09-10685e1996a2`) | 20:13:36.144097 | PASS, 같은 알림함·행 |
+
+- 기존 루프백 격리 DB에 고정 소스의 사용자별 스케줄러와 최소 의존성을 선별 적용했다. 제품 `scheduler_user_v3`를 앱에 로그인된 합성 계정 한 명에만 수동 호출했다. 기존 펫은 날짜 없이 그대로 두고, 합성 펫 2마리의 입양일·추모일과 `America/Noronha` 시간대만 사전 준비했다. 현지 09:00(20:00 KST) 도래와 기존 활성화 시각을 확인한 뒤 실제 현재 시각으로 실행했다. 운영·격리 Cron과 서버 시계를 변경하지 않았다.
+- 추모 미동의 때는 연 기념일만 생성되고, 합성 계정의 추모 동의 후 추모 1건만 추가됐다. 반복 호출로 중복이 없었으며 두 알림 모두 원본 펫 ID 및 `pet_anniversary` 목적지가 일치했다. 다른 이벤트 생성은 0건이다. 로컬 전달 대기 행의 시도는 0회였고 외부 전송 경로는 적용하지 않았다.
+- 설치본에서 각각 미읽음 행을 탭해 정확한 펫 이름이 표시된 타임라인을 확인했다. 탭 전 서버 `read_at=NULL`, 진입 후 해당 행만 읽음으로 변경됐다. Android Back 1회로 같은 알림함·행에 복귀했고 읽음 시각은 불변, 미읽음은 2→1→0이었다. 두 경로 뒤 Home의 기존 펫 선택도 유지됐다.
+- 합성 펫·시험 알림 각 2건과 임시 수신 설정만 정리했다. 기존 계정·펫·`news.direct` 읽음·공지 7종 읽음·런타임 설정은 전후 동일하다. 정리 후 앱 알림함도 이전 단건만 표시했다. 비공개 근거: `~/.codex/nuri-c0-isolated-20261111-7ieTJM/artifacts/pet-dates-e2e/`의 `scheduler-evidence.json`, `results.json`, `cleanup.json` 및 화면.
+- 운영 발송·운영 실기기·자연 Cron·OS 푸시 수락은 아니다. `record.monthly_summary`·`pet.together_month`는 PO 보류다. 기존 PASS·통합 4/7·C0 미동결·STORE HOLD 유지. 알림함 전체 삭제의 네트워크 실패 복구는 이번에 실행하지 않았다.
+
 ## 2026-11-11 U2 공지 7종 격리 설치본 E2E
 
 **7/7 PASS (격리 설치본 한정).** 기존 제품 소스 `b73de0ffc86ee66dc08925cbef61cf13c2d1bd21`, `emulator-5554`의 `com.nuri.c0qa`, APK SHA-256 `90491c2250af18561dabd6ee52e778bec162b78a72a716dbcc63ba71e9c7a709`를 재사용했다. 보존 APK와 기기 설치 파일이 일치하고, 번들 내장 및 Metro OFF를 확인했다. 새 빌드·설치와 S25 Edge 조작은 없었다.

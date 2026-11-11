@@ -1,5 +1,9 @@
 # NURI 통합 마감 수락 원장
 
+## 2026-11-11 U2 연 기념일과 추모 격리 설치본 검증
+
+**4 · U2 `pet.together_anniversary`·`pet.memorial` 격리 앱 E2E 2/2 PASS.** [스케줄러·설치본·정확한 펫·읽음·복귀 증거](nuri-c0-app-linkage-2026-11-11.md#2026-11-11-u2-연-기념일과-추모-격리-설치본-e2e). 정상 사용자별 스케줄러는 합성 계정에서 이 두 펫의 이벤트만 생성했다. Metro OFF 설치본에서 해당 펫 타임라인 진입, 서버 읽음, Android Back과 이전 선택 유지 확인. 운영 발송·Cron 변경·운영 실기기 수락은 없다. 기존 PASS 및 17묶음·26종, 월간요약·함께한 달 보류, 통합 4/7·C0 미동결·STORE HOLD 유지.
+
 ## 2026-11-11 U2 공지 7종 격리 설치본 검증
 
 **4 · U2 격리 앱 E2E 7/7 PASS.** [이벤트별 원본·설치본·서버 읽음·복귀 증거](nuri-c0-app-linkage-2026-11-11.md#2026-11-11-u2-공지-7종-격리-설치본-e2e). 기존 `news.direct` 격리 결과는 재사용했다. 실제 격리 발행, Metro OFF 설치본의 정확한 상세, 서버 읽음, Android Back을 확인했다. 운영 발행·OS 푸시·정각 Cron·S25 Edge 수락은 이번 증거의 범위가 아니다. `record.monthly_summary`와 `pet.together_month` 보류, 기존 PASS 및 17묶음·26종 유지. U2 전체 수락으로 올리지 않으며 통합 4/7·C0 미동결·STORE HOLD는 그대로다.
