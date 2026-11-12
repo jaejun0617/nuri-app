@@ -1,5 +1,13 @@
 # NURI C0 앱 연결 재검증 · 2026-11-11
 
+## 2026-11-12 U2 격리 전체 삭제 실패 복구 준비
+
+- **준비 일부 완료 / 실패 복구 BLOCKED.** 제품 `b73de0ffc86ee66dc08925cbef61cf13c2d1bd21`과 시작 `584c414` 사이 모바일 제품 입력은 동일하다. 기존 AVD `NURI_QA_API35_20261025`의 `emulator-5554`에는 `com.nuri.c0qa`가 없어서 보관 APK를 복구했다. 설치 SHA-256 `90491c2250af18561dabd6ee52e778bec162b78a72a716dbcc63ba71e9c7a709`, 내장 번들·Metro OFF, 새 빌드 0.
+- 앱에서 에뮬레이터 전용 ADB reverse와 임시 루프백 전달기를 거쳐 실제 격리 Kong·Auth·PostgREST에 도달했다. 새 일반 권한 합성 계정으로 로그인하고 인증된 사용자 ID, `get_user_notifications_v3`·`get_user_notification_badge_v3`의 HTTP 200 및 UI·서버 빈 알림함을 대조했다. 첫 시도는 격리 전용 로그인 화면에서 인증 완료 후 홈으로 전환되지 않았다. 두 번째는 앱이 정상 저장한 세션으로 기존 앱을 다시 열어 진입했다. 운영 앱·S25 Edge·운영 DB·외부 발송·Cron은 조작하지 않았다.
+- 현행 전체 삭제는 `UserNotificationsScreen` 확인 → `useNotificationInbox.dismiss(null)` → `dismiss_all_user_notifications_v1()` → `notification_private.dismiss_v3(null,null,true)`다. 제품 정의는 인증 사용자에게 컷오프 현재 가시인 개인 행을 `dismissed_at`으로 숨기고 공지는 버전별 dismiss를 기록한다. 읽음이나 원본 행을 삭제하지 않는다. 다음 요청은 컷오프를 다시 계산하므로 결과 유실을 곧바로 새 전체 삭제로 재시도하지 않는다. 현행 앱은 낙관적 삭제 없이 성공 응답 뒤 owner 캐시를 무효화하며 실패 시 오류 안내와 잠금 해제 경로가 있다. 실패 화면·재조회 효과는 정적 확인과 구분한다.
+- 기존 격리 DB의 `actor_v3`·`inbox_v3`와 dismiss 테이블은 있지만 전체 삭제 RPC와 내부 함수는 없다. 운영 동작의 결함 증거가 아니며, 미존재 RPC 오류를 네트워크 실패로 계산하지 않았다. **A NOT_RUN / B NOT_RUN**, 앱 전체 삭제·실패 주입·알림 fixture·서버 정의 및 권한 변경 0. 다음은 승인된 격리 환경에 고정 제품 정의가 있는 상태에서 전용 수신자만 고정하고 두 경계를 각각 시험하는 것이다.
+- 준비 계정 두 개와 해당 합성 프로필·펫·세션을 정리했다. 기존 두 계정 ID, 프로필·펫·개인 알림·공지 읽음·dismiss·공지·런타임·전송 대기열의 전후 비교값이 일치했다. 두 번째 시도는 알림 환경설정도 비교했고 앱 정상 로그아웃을 확인했다. 임시 전달기와 reverse 제거. 비공개 증거: `/Users/shinjaejun/.codex/nuri-u2-delete-recovery-20261112-03Nwbr/preflight.json`, `preflight-resume.json`. 기존 격리 PASS·월간요약/함께한 달 보류·P0 PARTIAL·통합 4/7·C0 미동결·STORE HOLD 불변.
+
 ## 2026-11-11 U2 연 기념일과 추모 격리 설치본 E2E
 
 **2/2 PASS (격리 설치본 한정).** 같은 `emulator-5554`의 `com.nuri.c0qa`를 Metro OFF에서 재사용했다. 제품 소스 `b73de0ffc86ee66dc08925cbef61cf13c2d1bd21`, 설치 APK SHA-256 `90491c2250af18561dabd6ee52e778bec162b78a72a716dbcc63ba71e9c7a709` 일치. 새 빌드·설치나 S25 Edge 조작은 없었다.
