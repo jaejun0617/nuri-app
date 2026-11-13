@@ -1,5 +1,12 @@
 # NURI C0 앱 연결 재검증 · 2026-11-11
 
+## 2026-11-13 월별 지출 Back 두 경로 실기기 수락
+
+- S25 Edge SM-S937N, `com.nuri.app`, Metro OFF bundled Debug. 제품 보정 `4f874b7`, 빌드 시작 HEAD `b7b99ab`, runtime SHA-256 `9f0e44192fe762708688f118f3ec374b969dc7928de38d6013f4f6aa4d5020e3`. 29.24 GiB에서 빌드를 시작했다. 빌드 중 도구·문서가 변경됐으나 앱 런타임 입력과 기존 보호 산출물은 동일했다.
+- APK `f5766f6957510ef83bcb5dd2dfe37b00291bbc69a0e6ca8bbff6c826249f7fa2`, 내장 번들 `23a866e829e8445d5dc599a54844bd9772ab4b5fff37f13866b413eb8116d2f5`. 기존 서명·UID·최초 설치를 보존했고 설치 후 기기 파일 해시를 확인했다.
+- **헤더 Back PASS / Android Back PASS.** 각각 전체메뉴에서 2026년 11월 지출을 열고 원래 메뉴로 복귀한 뒤 추억 다이어리를 탭했다. 두 실행 모두 복귀 전후 지출·다이어리 행 좌표와 0원 표시가 같았고, 다이어리의 타임라인 헤더가 메뉴 없이 표시됐다. 지출·기록 수정 없음. 다이어리에서 나오는 동작과 모든 전환 프레임은 이번 수락 범위가 아니다.
+- 비공개 실행 근거: `~/.codex/nuri-disk-expansion-20261113-6bsikH/`. 기존 4/7, 두 보류, P0 PARTIAL, C0 미동결, STORE HOLD 유지.
+
 ## 2026-11-13 U1 Google 취소와 NAV-01 실기기 검증
 
 - S25 Edge SM-S937N, Android 17, `com.nuri.app`, 기존 Metro OFF bundled Debug `b73de0f`, 설치 SHA-256 `9e1415c764835b7d4e49c375f1a945e50afaa2d1755f52f50630c160afa93616`. 직전 `db17000`은 Android 전체 삭제 요청/오류 안내만 바꿨다. 이번 실기기 증거는 위 설치본에 한정한다.
