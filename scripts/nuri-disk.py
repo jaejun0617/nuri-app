@@ -50,6 +50,7 @@ ACTIVE = re.compile(
     r"metro/(?:src/)?cli|(?:^|[/\s])(?:jest|yarn|npm|pnpm)(?:\s|$)"
 )
 ARCHIVE = {".apk", ".aab"}
+QA_MEDIA = {".mp4", ".mov", ".webm", ".png", ".jpg", ".jpeg", ".webp"}
 DEPENDENCY_INPUTS = ("package.json", "yarn.lock", ".yarnrc.yml", ".node-version")
 
 
@@ -111,12 +112,17 @@ def archive_file(path):
 
 
 def reviewed_snapshot(path, category, proof):
-    if category == "duplicate":
+    if category in {"duplicate", "qa-duplicate"}:
         retained = Path(proof["retained"])
         info, kept = archive_file(path), archive_file(retained)
         if path == retained or (info.st_dev, info.st_ino) == (kept.st_dev, kept.st_ino):
             raise ValueError("retained artifact is not an independent file")
         expected = proof["sha256"]
+        if category == "qa-duplicate":
+            evidence = Path(proof["evidence"])
+            archive_file(evidence)
+            if file_sha(evidence) != proof["evidenceSha256"]:
+                raise ValueError("QA closeout evidence changed")
         if file_sha(path) != expected or file_sha(retained) != expected:
             raise ValueError("archive bytes do not match the retained artifact")
         identity = (info.st_dev, info.st_ino, info.st_ctime_ns, kept.st_dev, kept.st_ino, expected)
@@ -167,7 +173,9 @@ def reviewed_specs(catalog, completed, root):
     registered = run("git", "worktree", "list", "--porcelain", cwd=root)
     worktrees = {Path(line[9:]) for line in registered.stdout.splitlines() if line.startswith("worktree ")}
     specs = []
-    for row in json.loads(catalog.read_text()):
+    rows = json.loads(catalog.read_text())
+    deletion_paths = {Path(row["path"]) for row in rows}
+    for row in rows:
         path, category = Path(row["path"]), row["category"]
         if not path.is_absolute() or path.resolve() != path:
             raise ValueError("reviewed path must be canonical")
@@ -181,6 +189,24 @@ def reviewed_specs(catalog, completed, root):
                     or not (path.name == "previous-debug-preserved.apk" or path.parent.name == "previous")
                     or retained.name == "previous-debug-preserved.apk" or retained.parent.name == "previous"):
                 raise ValueError("archive duplicate must be a previous-build copy with a canonical retained artifact")
+            priority = 0
+        elif category == "qa-duplicate":
+            retained, evidence = Path(row["retained"]), Path(row["evidence"])
+            for item in (path, retained, evidence):
+                if (not item.is_relative_to(base) or len(item.relative_to(base).parts) < 2
+                        or not item.relative_to(base).parts[0].startswith("nuri-")
+                        or item.resolve() != item
+                        or set(item.relative_to(base).parts[:-1]) & {
+                            "app", "source", "src", "snapshot", "node_modules", ".git",
+                        }):
+                    raise ValueError("QA media and evidence must be in reviewed NURI evidence folders")
+            if (path.suffix.lower() not in ARCHIVE | QA_MEDIA
+                    or retained.suffix.lower() != path.suffix.lower()
+                    or evidence.suffix.lower() not in {".md", ".json", ".txt"}
+                    or row.get("grade") not in {"B", "C"} or not row.get("reason")
+                    or any(x in deletion_paths or not deletion_paths.isdisjoint(x.parents)
+                           for x in (retained, evidence))):
+                raise ValueError("QA duplicate needs an independent retained file and closeout evidence")
             priority = 0
         elif category == "D":
             project = path.parent
@@ -234,6 +260,11 @@ def volumes(paths):
     return result
 
 
+def cleanup_targets(start, recover_gib):
+    return {device: max(TARGET, v["availableBytes"] + recover_gib * GIB)
+            for device, v in start.items()} if recover_gib is not None else {}
+
+
 def inactive(path):
     if process_state():
         return "build or test active, or process state unavailable"
@@ -252,8 +283,9 @@ def open_inventory():
     files = run("/usr/sbin/lsof", "-nP", "-Fn", "-u", str(os.getuid()))
     if files.returncode or not files.stdout.startswith("p") or files.stderr:
         return lambda _: "file-use inventory unavailable"
-    opened = [Path(line[1:]) for line in files.stdout.splitlines() if line.startswith("n/")]
-    return lambda path: ("open files" if any(path == p or path in p.parents for p in opened) else None)
+    opened = {Path(line[1:]) for line in files.stdout.splitlines() if line.startswith("n/")}
+    occupied = opened | {parent for path in opened for parent in path.parents}
+    return lambda path: ("open files" if path in occupied else None)
 
 
 def process_state():
@@ -360,12 +392,15 @@ def inspect(spec, check=inactive):
         "E": "Metro regenerates its transform cache",
         "G": "Cold boot with existing userdata, then save a new Quick Boot snapshot",
         "duplicate": "Restore this path from the independent, hash-identical retained artifact",
+        "qa-duplicate": "Restore from the retained artifact with identical SHA-256",
     }
     row = {"path": str(path), "category": category, "priority": priority,
            "origin": origin if isinstance(origin, str) else origin.get("evidence", "reviewed local catalog"),
            "rebuild": descriptions.get(category, "Regenerate from retained inputs")}
     if category == "duplicate":
         row.update(retained=origin["retained"], sha256=origin["sha256"])
+    if category == "qa-duplicate":
+        row.update({key: origin[key] for key in ("retained", "sha256", "grade", "reason", "evidence")})
     try:
         row.update(reviewed_snapshot(path, category, origin))
         if project and not project_ok(project, path):
@@ -386,6 +421,7 @@ def inventory(specs, check=None):
         busy = process_state()
         check = (lambda _: "build or test active, or process state unavailable") if busy else open_inventory()
     seen = set()
+    ancestors = set()
     rows = []
     for spec in specs:
         path = spec[0]
@@ -393,9 +429,10 @@ def inventory(specs, check=None):
             continue
         if path in seen or any(parent in seen for parent in path.parents):
             continue
-        if any(path in previous.parents for previous in seen):
+        if path in ancestors:
             raise ValueError("overlapping candidate scope")
         seen.add(path)
+        ancestors.update(path.parents)
         rows.append(inspect(spec, check))
     return sorted(rows, key=lambda row: (row["priority"], -row.get("allocatedBytes", 0), row["path"]))
 
@@ -411,7 +448,7 @@ def erase(path, fingerprint, category, proof=None):
             raise ValueError("parent changed")
         if reviewed_snapshot(path, category, proof)["fingerprint"] != fingerprint:
             raise ValueError("candidate changed at deletion")
-        if category == "duplicate":
+        if category in {"duplicate", "qa-duplicate"}:
             os.unlink(path.name, dir_fd=parent)
         else:
             shutil.rmtree(path.name, dir_fd=parent)
@@ -419,13 +456,14 @@ def erase(path, fingerprint, category, proof=None):
         os.close(parent)
 
 
-def apply(rows, specs, measure, emit, check=inactive, remove=erase):
+def apply(rows, specs, measure, emit, check=inactive, remove=erase, targets=None):
     by_path = {str(spec[0]): spec for spec in specs}
+    targets = targets or {}
     for row in rows:
         if row["status"] != "eligible":
             continue
         volume = measure().get(row["device"])
-        if not volume or volume["availableBytes"] >= TARGET:
+        if not volume or volume["availableBytes"] >= targets.get(row["device"], TARGET):
             continue
         spec = by_path.get(row["path"])
         if not spec:
@@ -468,6 +506,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("mode", nargs="?", default="report", choices=("report", "cleanup", "apply-approved", "prebuild"))
     parser.add_argument("--plan", type=Path, help="revalidate the exact candidates from a saved report")
+    parser.add_argument("--recover-gib", type=int, choices=range(1, 21),
+                        help="for a reviewed cleanup, aim to recover this many GiB")
     argv = sys.argv[1:]
     split = argv.index("--") if "--" in argv else len(argv)
     args = parser.parse_args(argv[:split])
@@ -476,6 +516,8 @@ def main():
         parser.error("only prebuild can run a command")
     if args.plan and args.mode not in ("cleanup", "apply-approved"):
         parser.error("--plan is for cleanup")
+    if args.recover_gib is not None and (not args.plan or args.mode not in ("cleanup", "apply-approved")):
+        parser.error("--recover-gib requires cleanup with a reviewed --plan")
     base = Path.home() / ".codex" / "nuri-disk-runs"
     gradle = Path(os.environ.get("GRADLE_USER_HOME", str(Path.home() / ".gradle")))
     if not gradle.is_absolute() or gradle.resolve() != gradle:
@@ -495,9 +537,10 @@ def main():
             os.fsync(receipt.fileno())
         print(f"NURI disk receipt: {receipt.name}", file=sys.stderr, flush=True)
         start = measure()
-        emit("start", mode=args.mode, volumes=start)
-        needs_cleanup = any(v["availableBytes"] < (MINIMUM if args.mode == "prebuild" else TARGET)
-                            for v in start.values())
+        targets = cleanup_targets(start, args.recover_gib)
+        emit("start", mode=args.mode, volumes=start, cleanupTargetBytesByDevice=targets)
+        needs_cleanup = any(v["availableBytes"] < (MINIMUM if args.mode == "prebuild" else targets.get(device, TARGET))
+                            for device, v in start.items())
         try:
             if needs_cleanup:
                 spec = reviewed_report_specs(ROOT, base, gradle)
@@ -515,7 +558,7 @@ def main():
                     if row["status"] == "eligible":
                         print(f'{row["category"]} {row["allocatedBytes"]} allocated bytes: {row["path"]}',
                               file=sys.stderr, flush=True)
-                apply(rows, spec, measure, emit)
+                apply(rows, spec, measure, emit, targets=targets)
             final = measure()
             emit("gate", volumes=final)
             print(json.dumps({"volumes": final, "receipt": receipt.name}, indent=2), flush=True)

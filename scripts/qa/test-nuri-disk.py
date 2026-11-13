@@ -100,6 +100,37 @@ class DiskGuardTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "input changed"):
             disk.reviewed_snapshot(self.path, "D", proof)
 
+    def test_qa_duplicate_requires_unchanged_evidence_and_retained_bytes(self):
+        source, retained = self.root / "repeat.mp4", self.root / "retained.mp4"
+        source.write_bytes(b"capture")
+        retained.write_bytes(b"capture")
+        evidence = self.root / "closeout.md"
+        evidence.write_text("Retained representative")
+        proof = {"retained": str(retained), "sha256": disk.file_sha(source),
+                 "evidence": str(evidence), "evidenceSha256": disk.file_sha(evidence)}
+        record = disk.reviewed_snapshot(source, "qa-duplicate", proof)
+        evidence.write_text("Changed closeout")
+        with self.assertRaisesRegex(ValueError, "evidence changed"):
+            disk.erase(source, record["fingerprint"], "qa-duplicate", proof)
+        self.assertTrue(source.exists())
+        evidence.write_text("Retained representative")
+        retained.write_bytes(b"another capture")
+        with self.assertRaisesRegex(ValueError, "do not match"):
+            disk.erase(source, record["fingerprint"], "qa-duplicate", proof)
+        self.assertTrue(source.exists())
+        retained.write_bytes(b"capture")
+        disk.erase(source, record["fingerprint"], "qa-duplicate", proof)
+        self.assertFalse(source.exists())
+        self.assertEqual(retained.read_bytes(), b"capture")
+
+    def test_reviewed_recovery_can_continue_above_normal_target(self):
+        self.free = disk.TARGET
+        targets = disk.cleanup_targets(self.measure() | {0: {"availableBytes": 80 * disk.GIB}}, 1)
+        self.assertEqual(targets, {self.device: 36 * disk.GIB, 0: 81 * disk.GIB})
+        disk.apply(self.rows(), [self.item], self.measure, self.emit,
+                   lambda _: None, targets=targets)
+        self.assertFalse(self.path.exists())
+
     def test_changed_or_disappeared_candidate_is_not_deleted(self):
         rows = self.rows()
         (self.path / "object.o").write_bytes(b"replacement")
