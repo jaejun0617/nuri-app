@@ -48,6 +48,7 @@
 - JS/TS·스타일·일반 UI는 타입·대상 lint·표적 테스트와 Metro/Fast Refresh를 우선한다. 작은 수정마다 전체 Gradle build·설치를 반복하지 않는다.
 - Native/Kotlin·Manifest·Gradle·네이티브 의존성 또는 번들 입력이 바뀌면 필요한 빌드를 한다. Fast Refresh로 Native 변경을 검증했다고 하지 않는다.
 - 안정화된 한정 묶음의 소스와 runtime 입력을 고정하고 필요한 QA APK를 생성한다. 최종 기능 수락은 Metro OFF 독립 번들 설치본과 조건별 실제 서버·기기 증거로 판정한다. OAuth·알림·cold/warm·Android Back·전환·플리커는 필요한 실제 설치 경계를 확인한다.
+- 승인된 로컬 Android native build는 [디스크 prebuild](disk-hygiene-policy.md#로컬-실행)를 통해 실행한다. 필요 볼륨마다 실제 25 GiB 이상이어야 한다. 종료 시 후보와 증거를 먼저 보존하고 정리 필요 여부를 확인한다.
 - 제품 source SHA, 미커밋 runtime 차이, 환경 설정 hash, APK hash, 설치 기기·시각, Metro 상태, 증거 ID를 연결한다. QA 어댑터·backend·앱 ID가 다르면 별도 후보로 표시한다. Debug/Metro는 Release 성능 증거가 아니다.
 - Fast Refresh의 effect 재실행만으로 제품 경합 결함을 확정하지 않는다. 해당 설치본 또는 독립 근거로 재현 여부를 확인한다.
 - 변경 없는 기존 APK는 적합성을 확인해 재사용한다. 재개·모델 변경·문서 편집 때문에 빌드나 기존 PASS 전체를 반복하지 않는다. 필수 CI와 원장 조건은 생략하지 않는다.
@@ -79,7 +80,7 @@
 ## 보존·전달·보고
 
 - 수정 직전 현재 bytes와 HEAD blob, 기존 index·dirty를 고정한다. 문서 개편처럼 원문 보존이 필요한 작업은 승인된 저장소 밖 위치에 복사하고 독립 복원 hash·별도 inode를 확인한다. 비밀·무관한 자료를 불필요하게 복제하지 않는다.
-- 삭제·정리에는 별도 정확한 대상 승인이 필요하다. 디스크 [15 GB 기준](../project-memory/핵심-결정사항.md#2026-11-11-작업-장비-저장공간-기준)은 재생성 가능 산출물 확인과 보호 범위 판정을 요구하며 사용자 파일·공유 캐시·증적의 자동 삭제 권한이 아니다.
+- [디스크 정책의 조건부 상시 승인](disk-hygiene-policy.md#현재-적용과-삭제-승인-경계) 안에서는 후보를 제시한 후 재승인 없이 처리한다. 범위 밖과 보호 대상의 삭제는 별도 정확한 승인이 필요하다.
 - 변경한 역사 본문의 출처·전체 문맥·표식·링크를 대응한다. 짧은 반복 문자열의 전역 첫 일치로 보존 위치를 결정하지 않는다. 원본 버전·제목·인접 블록·최종 hash를 연결한다.
 - [변화 기반 갱신](advanced-codex-memory.md#update-triggers)으로 필요한 문서만 갱신한다. 읽기 전용이면 갱신 필요성을 보고만 한다.
 - 실제 candidate와 staged diff를 대조하고 승인된 경로·구간만 commit한다. 다른 dirty를 편승시키거나 전체 stage·강제 push·이력 재작성하지 않는다. 일반 push 뒤 고정 commit의 원격 본문과 동일 SHA 필수 CI를 확인한다.

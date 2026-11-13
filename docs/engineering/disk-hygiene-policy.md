@@ -4,11 +4,23 @@
 
 ## 현재 적용과 삭제 승인 경계
 
-2026-11-11 안내 보정: [가용 공간 15 GB 이하 기준](../project-memory/핵심-결정사항.md#2026-11-11-작업-장비-저장공간-기준)은 대용량 작업 전 확보를 우선하는 일반 기준이다. 아래 native build의 **25 GiB headroom·35–40 GiB 목표**와 목적·단위가 다르며 수치를 서로 대체하지 않는다. 이 문서 전체의 작성 시점은 미확인이며 보정일을 원문 작성일로 소급하지 않는다.
+2026-11-13 PO 승인: 로컬 native build 시작 직전 **각 필요 볼륨에 25 GiB 이상**, 정리 목표 **35 GiB**. 25 GiB 이상이면 목표 미달만으로 빌드를 막지 않는다. [15 GB 일반 작업 경고](../project-memory/핵심-결정사항.md#2026-11-11-작업-장비-저장공간-기준)는 목적과 단위가 다르다. 작업 시작, 산출물 보존 후, 각 정리 후, 빌드 직전과 종료 시 실제 가용 bytes와 GiB를 남긴다. 빌드 경로·실제 `GRADLE_USER_HOME`·임시 경로가 같은 볼륨이면 중복 합산하지 않는다. 할당량은 APFS 공유 블록·스냅샷·열린 파일 때문에 회수량의 보장이 아니다.
 
-아래 Threshold·Safe cleanup·closeout의 정리 문구는 **정확한 대상과 삭제가 별도로 승인된 경우에만** 적용한다. [10/05 산출물 보존과 후속 실행 경계](advanced-codex-workflow.md#2026-10-05-po-최신-정책-디자인-반복-빌드-산출물-유지), [현행 보존·정리 기준](advanced-codex-workflow.md#delivery)에 따라 build/cache·승인 APK·증거·dirty·공유 캐시를 자동 삭제하지 않는다. 공간 부족만으로 새 삭제 권한이 생기지 않으며, 승인 없이 정리가 필요하면 대상·보존·재생성 근거를 제시하고 해당 대용량 작업만 대기한다.
+- **A (상시 승인):** 현재 NURI와 종료를 증명한 NURI QA 복사본의 재생성 Android 출력·프로젝트 캐시·native 중간 파일·NURI 전용 종료 캐시. 정확한 경로와 재생성·비사용을 확인한다. 종료 작업을 먼저, 현재 증분 출력은 나중에 처리한다.
+- **B (A 후 25 GiB 미달 시에만):** 실제 Gradle 사용자 홈의 build cache, 현재 wrapper 버전의 transform·생성 JAR·컴파일 DSL 및 식별된 생성 JAR 캐시. Gradle·IDE·빌드의 사용 여부를 확인하지 못하면 보존한다. 다운로드 의존성, `modules-2`, wrapper 배포본은 제외한다.
+- **보호 우선:** APK/AAB·번들·소스맵·심볼·필수 검사/실행 증거는 생성물 밖의 독립 보존본과 SHA-256을 먼저 확인한다. 기존 동등 보존본을 재사용하고 과거 영수증은 덮어쓰지 않는다. 도구가 보호 항목을 찾으면 그 후보를 건너뛴다. 순수 캐시는 통째로 복제하지 않는다. 원본·dirty·설정·키·계정·SQL·문서, SDK/NDK/JDK, 패키지 원문 및 `node_modules` 전체, Docker/AVD, 사용자·OS·다른 프로젝트 자료는 자동 정리하지 않는다. 범위 밖 삭제는 별도 승인 대상이다.
 
-아래 목록은 점검 후보이지 삭제 목록이 아니다. closeout의 '마지막 단계'는 승인된 정리의 순서이며 매 작업마다 cleanup을 의무 실행한다는 뜻이 아니다. 이번 문서 보정에서는 공간 측정·삭제·빌드·기기 작업을 수행하지 않는다. 실제 빌드 필요성은 [Metro 개발과 설치본 수락](advanced-codex-workflow.md#metro-개발과-설치본-최종-수락)을 따른다.
+## 로컬 실행
+
+[디스크 도구](../../scripts/nuri-disk.py)는 macOS의 Python 3.11 이상과 시스템 도구만 사용한다. 프로젝트 루트에서 아래와 같이 실행한다.
+
+- `python3 -B scripts/nuri-disk.py`: 삭제 없는 보고. 작업 전 후보의 정확한 경로·크기·보존/제외 사유와 재생성 비용을 공유한다.
+- `python3 -B scripts/nuri-disk.py apply-approved --plan /absolute/path/to/report.json`: 보고와 현재 후보를 대조하고 승인 안에서 적용한다. 계획 파일은 새 경로를 허용하지 않는다. 종료 QA 복사본을 포함하려면 `~/.codex/nuri-disk-runs/completed-qa.json`에 그 복사본의 절대 `root`와 바깥 완료 근거 `evidence`를 등록한다. 다른 worktree를 자동 탐색하거나 삭제하지 않는다.
+- `python3 -B ../scripts/nuri-disk.py prebuild -- ./gradlew …`: `android/`에서 승인된 Gradle 명령을 실행할 때 사용한다. 필요하면 후보를 보고하고 승인 정리 뒤 재측정한다. 최소치 미달 또는 가용 공간·권한 확인 실패면 Gradle을 시작하지 않는다. NURI 도구를 통과하는 로컬 빌드와 정리는 같은 잠금을 쓴다. 다른 작업은 프로세스·열린 파일을 확인하며 강제 종료하지 않는다.
+
+`yarn android:release:qa`와 `yarn android:release:store`의 공통 로컬 래퍼는 이전 산출물 복제 전과 Gradle 직전에 위 prebuild를 호출한다. 임시 Metro OFF QA 빌드도 동일 guard로 감싼다. 직접 Gradle/IDE·다른 스크립트·CI의 자동 적용을 보장하지 않으며 예약 실행은 없다. 실행 영수증은 `~/.codex/nuri-disk-runs/`에 남는다. 작업 종료 시 증거 보존 후 보고하며 공간이 충분하면 증분 캐시를 유지한다.
+
+아래 보존 블록은 이전 정책의 역사 원문이다. 임계치·정리 예시·별도 승인 경계가 위 현행 규칙과 다르면 위 규칙이 우선한다.
 
 <!-- DISK_POLICY_PRESERVED_BEGIN -->
 ## Threshold

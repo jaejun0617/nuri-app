@@ -34,6 +34,7 @@
 
 - [ ] 현재 PO 범위·성공/중단 조건과 실제 경로·HEAD·index·dirty를 확인했다.
 - [ ] [현재 상태](../project-memory/현재-프로젝트-상태.md#current-baseline), [현재 대기열](../project-memory/다음-작업-우선순위.md#resume-point), [결정 적용 지도](../project-memory/핵심-결정사항.md#decision-scope-map), 직전 관련 [로그](../project-memory/최근-작업-로그.md)를 연결했다.
+- [ ] [로컬 native 빌드](disk-hygiene-policy.md#로컬-실행) 직전 필요 볼륨마다 25 GiB 이상을 실측했다. 생성물 정리 전 필요한 APK·번들·소스맵·심볼·검사 증거의 독립 보존본과 해시를 확인했고, 설치 시 source/runtime·APK·서명·대상 기기를 대조했다.
 - [ ] 승인·요구·구현·배포·수락의 충돌을 종류별로 분리했다. 필요한 최소 근거만 읽고 미확인은 명시했다.
 - [ ] 범위 밖 파일·사용자 데이터·기존 QA·비밀정보 보호와 자기 변경의 복구 단위를 정했다.
 - [ ] 파일 개수가 아닌 권한·발송·비용·데이터·회귀 영향으로 위험을 판단했다.

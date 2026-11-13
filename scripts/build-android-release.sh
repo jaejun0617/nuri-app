@@ -46,6 +46,12 @@ MODE="${1:-}"
 }
 
 SOURCE_HEAD="$(git -C "$REPO_ROOT" rev-parse HEAD)"
+# Check before duplicating the previous artifacts, then gate again at Gradle launch.
+LOCAL_DISK_GUARD=0
+if [[ "$(uname -s)" == "Darwin" && -z "${CI:-}" ]]; then
+  LOCAL_DISK_GUARD=1
+  python3 -B "$SCRIPT_DIR/nuri-disk.py" prebuild
+fi
 # Allocate once per invocation and preserve prior artifacts before Gradle replaces outputs.
 RUN_EVIDENCE_DIR="$(node "$SCRIPT_DIR/qa/release-run-evidence.js" prepare "$REPO_ROOT" "${NURI_RELEASE_INPUT_MANIFEST:-}")"
 export NURI_RELEASE_INPUT_MANIFEST="$RUN_EVIDENCE_DIR/deployment-inputs.json"
@@ -71,7 +77,12 @@ export ORG_GRADLE_PROJECT_nuriSecurityQa=false
 if [[ "$MODE" == "qa" ]]; then
   export ORG_GRADLE_PROJECT_nuriSecurityQa=true
 fi
-./gradlew assembleRelease bundleRelease --no-daemon --console plain
+if [[ "$LOCAL_DISK_GUARD" == 1 ]]; then
+  python3 -B "$SCRIPT_DIR/nuri-disk.py" prebuild -- \
+    ./gradlew assembleRelease bundleRelease --no-daemon --console plain
+else
+  ./gradlew assembleRelease bundleRelease --no-daemon --console plain
+fi
 
 DEFAULT_APK="$REPO_ROOT/android/app/build/outputs/apk/release/app-release.apk"
 [[ -f "$DEFAULT_APK" ]] || {
