@@ -1,5 +1,12 @@
 # NURI C0 앱 연결 재검증 · 2026-11-11
 
+## 2026-11-13 U2 공지 전체 삭제와 재발행 E2E
+
+- **격리 앱 PASS**, 제품 `db17000`, 보존 APK SHA-256 `abaac4a6397b80174c514d948f618cc435d1246a98f8dab7880329c9faea6eae`, `emulator-5554` / `com.nuri.c0qa`, Metro OFF. 기존 로컬 스키마만 별도 DB에 준비해 운영·기존 격리 자료를 복제하지 않았다. 고정 삭제·발행·inbox 정의와 전용 Auth·PostgREST, 합성 수신자·비교 계정·발행자만 사용했다. 스케줄러·발송 경로 없음.
+- 정상 발행 RPC로 `news.published` 한 건을 게시했다. v1을 수신자 앱의 상세와 비교 계정의 정상 읽음 API로 각각 읽은 뒤 시작값을 고정했다. 11:39:24 KST 앱 확인창의 전체 삭제 POST 한 번으로 수신자 v1만 숨김(`dismissed_version=1`), 앱·서버 목록 0. 비교 계정의 v1 목록, 양쪽 최초 읽음, 공지 원본 불변.
+- 같은 공지 ID에 `p_reissue=true`로 v2를 게시했다. 11:39:32 KST 앱 목록 재조회에서 v2 한 건만 미읽음, 서버 `read_at=NULL`·미읽음 1. v1 읽음과 숨김 기록, 원본 ID와 생성 시각은 유지됐다. 재발행에 따른 비교 계정의 v2 노출은 정상이며, 비교 계정 읽음·숨김 데이터는 변경되지 않았다.
+- 새 빌드·제품 소스·운영 발송 없음. 시험 로그아웃 후 전용 DB·Auth·REST·연결을 정리했고 기존 격리 DB의 보호값은 불변이다. 시작 APK `90491c22…` 복귀와 에뮬레이터 종료를 확인했다. 비공개 근거: `~/.codex/nuri-u2-news-version-20261113-AaeA0E/`의 `execution.json`, `ready.json`, `cleanup.json`, 화면 01~04. 기존 PASS·두 PO 보류·4/7·C0 미동결·STORE HOLD 유지.
+
 ## 2026-11-13 U2 격리 전체 삭제 A·B 검증
 
 - **격리 환경 READY, A PASS, B PASS, 정리 COMPLETE.** 기존 `emulator-5554` / `com.nuri.c0qa`, Metro OFF. 제품 기준 `b73de0f`에 이번 전체 삭제 재전송 방지와 결과 미확정 안내를 더한 같은 서명 후보의 설치 APK SHA-256 `abaac4a6397b80174c514d948f618cc435d1246a98f8dab7880329c9faea6eae`, 내장 번들 SHA-256 `8fbc35945b0bf58f377e530e2ba00a64c241847691b69d11d915f30b388cc476`.
