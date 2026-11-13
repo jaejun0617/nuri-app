@@ -987,15 +987,17 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, o
   }, [closeAndNavigate, navigation]);
 
   const openMonthlyExpenses = useCallback((monthKey: string) => {
-    closeAndNavigate(() =>
-      navigation.navigate('AppTabs', {
-        screen: 'TimelineTab',
-        params: {
-          screen: 'MonthlyExpenses',
-          initial: false,
-          params: { monthKey, entrySource: 'more', entryRequestId: Date.now() },
-        },
-      }),
+    closeAndNavigate(
+      () =>
+        navigation.navigate('AppTabs', {
+          screen: 'TimelineTab',
+          params: {
+            screen: 'MonthlyExpenses',
+            initial: false,
+            params: { monthKey, entrySource: 'more', entryRequestId: Date.now() },
+          },
+        }),
+      true,
     );
   }, [closeAndNavigate, navigation]);
 

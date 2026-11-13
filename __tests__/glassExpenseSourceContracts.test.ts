@@ -75,6 +75,13 @@ describe('glass form and expense integration contracts', () => {
     expect(screen).toMatch(/navigation\.navigate\('RecordDetail',\s*\{\s*petId: row\.item\.petId,\s*memoryId: row\.item\.id,?\s*\}\)/);
     expect(screen).not.toContain("entrySource: 'home'");
   });
+  it('opens expenses as a tab destination so returning to More releases the menu input latch', () => {
+    const more = source('src/screens/More/MoreDrawerContent.tsx');
+    const openExpenses = more.split('const openMonthlyExpenses =')[1].split('const onNavigateMoreTab')[0];
+    expect(openExpenses).toMatch(
+      /closeAndNavigate\(\s*\(\) =>\s*navigation\.navigate\('AppTabs', \{[\s\S]*?screen: 'MonthlyExpenses',[\s\S]*?\}\),\s*true,?\s*\)/,
+    );
+  });
   it('uses a glass reminder notice without adding a server write for a past alarm', () => {
     expect(source('src/hooks/useScheduleCreateForm.ts')).toContain(
       'setReminderNoticeVisible(true);',
