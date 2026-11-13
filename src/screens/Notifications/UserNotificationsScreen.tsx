@@ -69,12 +69,16 @@ export default function UserNotificationsScreen() {
       await dismiss(operation.item);
       if (operation.isCurrent()) setPendingDelete(null);
     } catch {
-      if (operation.isCurrent())
+      if (operation.isCurrent()) {
+        if (!operation.item) setPendingDelete(null);
         showToast({
           tone: 'error',
-          title: '알림을 삭제하지 못했어요',
-          message: '연결 상태를 확인하고 다시 시도해주세요.',
+          title: operation.item ? '알림을 삭제하지 못했어요' : '전체 삭제 결과를 확인할 수 없어요',
+          message: operation.item
+            ? '연결 상태를 확인하고 다시 시도해주세요.'
+            : '알림함을 새로고침해 남은 알림을 확인해주세요.',
         });
+      }
     } finally {
       busy.current = false;
       setDeleting(false);

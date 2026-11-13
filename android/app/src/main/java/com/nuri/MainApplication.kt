@@ -6,6 +6,8 @@ import com.facebook.react.ReactApplication
 import com.facebook.react.ReactHost
 import com.facebook.react.ReactNativeApplicationEntryPoint.loadReactNative
 import com.facebook.react.defaults.DefaultReactHost.getDefaultReactHost
+import com.facebook.react.modules.network.NetworkingModule
+import com.nuri.notifications.NotificationBulkDismissRequest
 import com.nuri.notifications.ScheduleNotificationPackage
 import com.nuri.ui.BlurCaptureExclusionPackage
 import com.nuri.ui.LaunchPresentationPackage
@@ -32,6 +34,9 @@ class MainApplication : Application(), ReactApplication {
 
   override fun onCreate() {
     super.onCreate()
+    NetworkingModule.setCustomClientBuilder { builder ->
+      builder.addInterceptor(NotificationBulkDismissRequest)
+    }
     loadReactNative(this)
   }
 }

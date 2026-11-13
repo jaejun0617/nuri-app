@@ -1,5 +1,15 @@
 # NURI C0 앱 연결 재검증 · 2026-11-11
 
+## 2026-11-13 U2 격리 전체 삭제 A·B 검증
+
+- **격리 환경 READY, A PASS, B PASS, 정리 COMPLETE.** 기존 `emulator-5554` / `com.nuri.c0qa`, Metro OFF. 제품 기준 `b73de0f`에 이번 전체 삭제 재전송 방지와 결과 미확정 안내를 더한 같은 서명 후보의 설치 APK SHA-256 `abaac4a6397b80174c514d948f618cc435d1246a98f8dab7880329c9faea6eae`, 내장 번들 SHA-256 `8fbc35945b0bf58f377e530e2ba00a64c241847691b69d11d915f30b388cc476`.
+- 고정 제품 migration `20261025040438_notification_dismissal_compatibility_v3.sql`의 `notification_private.dismiss_v3(uuid,text,boolean)`와 `public.dismiss_all_user_notifications_v1()` 및 해당 ACL만 기존 격리 DB에 임시 적용했다. `actor_v3`, `inbox_v3`, 가시성·수신 검사 함수의 본문/속성과 직접 의존 카탈로그를 대조했다. 일반 사용자 빈 요청 200, 익명 401, 데이터 불변. 정수는 남은 미읽음 수다. 제품 SQL·기존 객체·migration 이력은 변경하지 않았다.
+- **A:** 확인창에서 시작한 요청은 업스트림 전에 소켓을 끊었다. 읽음 1·미읽음 1, 원본·가시·dismiss 상태 불변. 결과 미확정 안내와 잠금 해제 뒤 알림함 재진입으로 데이터를 확인하고 새 확인창에서 직접 재시도했다. 두 항목만 숨겨졌고 최초 읽음·원본 불변, 앱·서버 목록/미읽음 0.
+- **B:** 다른 시험 항목의 정상 POST를 전달하고 독립 DB 조회로 숨김 확정을 확인한 뒤 응답을 앱에 보내지 않았다. 후발 알림 1건을 생성하고 잠금 해제 후 알림함을 다시 열었다. 새 삭제 POST 없이 실제 목록·미읽음 조회에서 기존 행 숨김과 후발 1건의 미읽음·가시 상태를 확인했다. 자동 복구나 지연 성공 응답 재도착을 시험한 것이 아니다.
+- 구 후보는 소켓 단절 직후 각 POST를 2회 추가 전송하려 했고 전달기가 차단했다. 수정 후보에서는 두 실패 모두 전송 계층 재전송 0. 확인창이 막 열린 시점에 자동화 탭이 요청을 만들지 못한 별도 시도는 보존했다. A는 재진입 후 새 확인, B는 안정된 확인창을 관찰한 별도 합성 계정에서 완료했다. TypeScript·대상 lint·Jest 12개·Android 표적 2개 통과.
+- 이번 계정·원본만 정리하고, 추가 함수 두 개는 의존성 강제 삭제 없이 제거했다. 로컬 PostgREST 캐시 재조회 요청, 기존 두 격리 계정·펫·알림·공지 읽음·설정·전송 대기열 및 함수/권한의 시작값 일치. reverse를 제거하고 시작 APK와 에뮬레이터 종료 상태로 복귀했다. 공지는 전체 대상 계약이라 새 공지 fixture를 만들지 않았다. 공지 버전 경계는 기존 계약 증거와 구분하며 이번 A·B의 범위는 개인 알림이다.
+- 비공개 영수증: `/Users/shinjaejun/.codex/nuri-u2-delete-recovery-20261113-OSTwMQ/`의 `ddl-manifest.json`, `ddl-applied.json`, `baseline-e2e.json`, `corrected-A-e2e.json`, `corrected-B-e2e.json`, `ddl-rollback.json`. 운영·S25 Edge·외부 푸시·Cron 무변경. 기존 PASS·두 보류·통합 4/7·P0 PARTIAL·C0 미동결·STORE HOLD 유지.
+
 ## 2026-11-12 U2 격리 전체 삭제 실패 복구 준비
 
 - **준비 일부 완료 / 실패 복구 BLOCKED.** 제품 `b73de0ffc86ee66dc08925cbef61cf13c2d1bd21`과 시작 `584c414` 사이 모바일 제품 입력은 동일하다. 기존 AVD `NURI_QA_API35_20261025`의 `emulator-5554`에는 `com.nuri.c0qa`가 없어서 보관 APK를 복구했다. 설치 SHA-256 `90491c2250af18561dabd6ee52e778bec162b78a72a716dbcc63ba71e9c7a709`, 내장 번들·Metro OFF, 새 빌드 0.

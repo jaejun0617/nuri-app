@@ -4,6 +4,7 @@ import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
 import UserNotificationsScreen from '../src/screens/Notifications/UserNotificationsScreen';
 import { StyleSheet } from 'react-native';
+import { showToast } from '../src/store/uiStore';
 
 const mockDismiss = jest
   .fn<Promise<void>, [unknown]>()
@@ -142,7 +143,7 @@ it('blocks an old confirmation after an account generation changes', async () =>
   await act(async () => dialog().props.onConfirm());
   expect(mockDismiss).not.toHaveBeenCalled();
 });
-it('does not issue a duplicate delete and preserves retry after a failed response', async () => {
+it('does not issue a duplicate bulk delete and asks the user to check an unknown outcome', async () => {
   let reject!: (reason: Error) => void;
   mockDismiss.mockImplementationOnce(
     () =>
@@ -159,11 +160,28 @@ it('does not issue a duplicate delete and preserves retry after a failed respons
   expect(mockDismiss).toHaveBeenCalledTimes(1);
   await act(async () => reject(new Error('NETWORK_FAILURE')));
   expect(dialog().props).toMatchObject({
-    visible: true,
+    visible: false,
     confirmLoading: false,
   });
+  expect(showToast).toHaveBeenCalledWith(expect.objectContaining({
+    title: '전체 삭제 결과를 확인할 수 없어요',
+    message: '알림함을 새로고침해 남은 알림을 확인해주세요.',
+  }));
+  await act(async () => dialog().props.onConfirm());
+  expect(mockDismiss).toHaveBeenCalledTimes(1);
+  act(() => action('notifications-delete-all').props.onPress());
   await act(async () => dialog().props.onConfirm());
   expect(mockDismiss).toHaveBeenCalledTimes(2);
+});
+it('keeps the single-item confirmation available on error', async () => {
+  mockDismiss.mockRejectedValueOnce(new Error('NETWORK_FAILURE'));
+  await render();
+  act(() => action(`notification-delete-user-${mockItem.id}`).props.onPress());
+  await act(async () => dialog().props.onConfirm());
+  expect(dialog().props).toMatchObject({ visible: true, confirmLoading: false });
+  expect(showToast).toHaveBeenCalledWith(expect.objectContaining({
+    title: '알림을 삭제하지 못했어요',
+  }));
 });
 it('opening a row does not delete it', async () => {
   await render();
