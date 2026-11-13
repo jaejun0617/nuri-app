@@ -64,6 +64,42 @@ class DiskGuardTest(unittest.TestCase):
         self.apply()
         self.assertTrue(target.exists())
 
+    def test_duplicate_requires_independent_matching_archive(self):
+        source, retained = self.root / "old.apk", self.root / "retained.apk"
+        source.write_bytes(b"candidate")
+        retained.write_bytes(b"candidate")
+        proof = {"retained": str(retained), "sha256": disk.file_sha(source)}
+        record = disk.reviewed_snapshot(source, "duplicate", proof)
+        disk.erase(source, record["fingerprint"], "duplicate", proof)
+        self.assertFalse(source.exists())
+        self.assertEqual(retained.read_bytes(), b"candidate")
+        source.hardlink_to(retained)
+        with self.assertRaisesRegex(ValueError, "independent"):
+            disk.reviewed_snapshot(source, "duplicate", proof)
+        source.unlink()
+        source.write_bytes(b"another candidate")
+        with self.assertRaisesRegex(ValueError, "do not match"):
+            disk.reviewed_snapshot(source, "duplicate", proof)
+
+    def test_reviewed_dependency_requires_same_install_inputs_and_tree(self):
+        evidence = self.root / "compare.txt"
+        lock = self.root / "yarn.lock"
+        evidence.write_text("compared with immutable install")
+        lock.write_text("lock v1")
+        internal = self.path / "internal"
+        internal.symlink_to(self.path / "object.o")
+        proof = {"inputs": {"yarn.lock": disk.file_sha(lock)}, "evidence": str(evidence),
+                 "evidenceSha256": disk.file_sha(evidence),
+                 "fingerprint": disk.snapshot(self.path, "D")["fingerprint"]}
+        disk.reviewed_snapshot(self.path, "D", proof)
+        internal.unlink()
+        internal.symlink_to(evidence)
+        with self.assertRaisesRegex(ValueError, "symlink"):
+            disk.reviewed_snapshot(self.path, "D", proof)
+        lock.write_text("lock v2")
+        with self.assertRaisesRegex(ValueError, "input changed"):
+            disk.reviewed_snapshot(self.path, "D", proof)
+
     def test_changed_or_disappeared_candidate_is_not_deleted(self):
         rows = self.rows()
         (self.path / "object.o").write_bytes(b"replacement")
@@ -98,12 +134,12 @@ class DiskGuardTest(unittest.TestCase):
         self.assertEqual(self.events, [])
         self.assertTrue(self.path.exists())
 
-    def test_shared_gradle_cache_is_retained_after_minimum(self):
+    def test_recovery_can_continue_to_the_cleanup_target(self):
         self.free = disk.MINIMUM
         item = (self.path, "B", 2, None, "fixture")
         self.apply(self.rows([item]), [item])
-        self.assertTrue(self.path.exists())
-        self.assertEqual(self.events, [])
+        self.assertFalse(self.path.exists())
+        self.assertEqual([event for event, _ in self.events], ["deleting", "deleted"])
 
     def test_prebuild_checks_all_volumes_and_accepts_exact_minimum(self):
         calls = []

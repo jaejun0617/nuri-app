@@ -47,8 +47,10 @@ ACTIVE = re.compile(
     r"GradleDaemon|GradleWrapperMain|KotlinCompileDaemon|^(?:(?:/\S*/)?(?:bash|sh)\s+)?\S*gradlew(?:\s|$)|"
     r"(?:^|[/\s])(?:ninja|cmake|kotlinc|clang(?:\+\+)?|hermesc)(?:\s|$)|"
     r"com\.intellij\.idea\.Main|react-native\s+(?:start|bundle|run-android)|"
-    r"metro/(?:src/)?cli|(?:^|[/\s])jest(?:\s|$)"
+    r"metro/(?:src/)?cli|(?:^|[/\s])(?:jest|yarn|npm|pnpm)(?:\s|$)"
 )
+ARCHIVE = {".apk", ".aab"}
+DEPENDENCY_INPUTS = ("package.json", "yarn.lock", ".yarnrc.yml", ".node-version")
 
 
 def run(*args, cwd=None):
@@ -75,7 +77,7 @@ def snapshot(path, category="A"):
         if info.st_dev != base.st_dev or info.st_uid != os.getuid():
             raise ValueError("different volume or owner")
         # Compiled classes and dex may legitimately include "Capture" or "Credential" in the type name.
-        if entry != path and (
+        if entry != path and category != "D" and (
             (entry.suffix not in {".class", ".dex"} and PROTECTED.fullmatch(entry.name))
             or (category == "A" and entry.suffix.lower() in SOURCE_SUFFIXES)
         ):
@@ -84,7 +86,7 @@ def snapshot(path, category="A"):
             stack.extend(sorted(entry.iterdir(), reverse=True))
         elif stat.S_ISREG(info.st_mode):
             logical += info.st_size
-        else:
+        elif category != "D" or not stat.S_ISLNK(info.st_mode) or not entry.resolve().is_relative_to(path):
             raise ValueError(f"symlink or special file: {entry.relative_to(path)}")
         digest.update(repr((str(entry.relative_to(path)), info.st_dev, info.st_ino, info.st_mode,
                             info.st_size, info.st_mtime_ns, info.st_ctime_ns)).encode())
@@ -93,6 +95,125 @@ def snapshot(path, category="A"):
             allocated += info.st_blocks * 512
     return {"fingerprint": digest.hexdigest(), "device": base.st_dev,
             "logicalBytes": logical, "allocatedBytes": allocated}
+
+
+def file_sha(path):
+    with path.open("rb") as source:
+        return hashlib.file_digest(source, "sha256").hexdigest()
+
+
+def archive_file(path):
+    real_dir(path.parent)
+    info = path.lstat()
+    if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid():
+        raise ValueError("archive is not an owned regular file")
+    return info
+
+
+def reviewed_snapshot(path, category, proof):
+    if category == "duplicate":
+        retained = Path(proof["retained"])
+        info, kept = archive_file(path), archive_file(retained)
+        if path == retained or (info.st_dev, info.st_ino) == (kept.st_dev, kept.st_ino):
+            raise ValueError("retained artifact is not an independent file")
+        expected = proof["sha256"]
+        if file_sha(path) != expected or file_sha(retained) != expected:
+            raise ValueError("archive bytes do not match the retained artifact")
+        identity = (info.st_dev, info.st_ino, info.st_ctime_ns, kept.st_dev, kept.st_ino, expected)
+        return {"fingerprint": hashlib.sha256(repr(identity).encode()).hexdigest(),
+                "device": info.st_dev, "logicalBytes": info.st_size,
+                "allocatedBytes": info.st_blocks * 512 if info.st_nlink == 1 else 0}
+    if category == "D":
+        root = path.parent
+        for name, expected in proof["inputs"].items():
+            source = root / name
+            archive_file(source)
+            if file_sha(source) != expected:
+                raise ValueError("dependency reproduction input changed")
+        if (root / ".git").exists() and not project_ok(root, path):
+            raise ValueError("dependency path is not an ignored, untracked install")
+        proof_file = Path(proof["evidence"])
+        archive_file(proof_file)
+        if file_sha(proof_file) != proof["evidenceSha256"]:
+            raise ValueError("dependency comparison evidence changed")
+        result = snapshot(path, "D")
+        if result["fingerprint"] != proof["fingerprint"]:
+            raise ValueError("dependency tree changed since reproduction review")
+        return result
+    if category == "G":
+        evidence = Path(proof["evidence"])
+        archive_file(evidence)
+        if file_sha(evidence) != proof["evidenceSha256"]:
+            raise ValueError("snapshot closeout evidence changed")
+        devices = run(proof["adb"], "devices", "-l")
+        processes = run("/bin/ps", "-axww", "-o", "comm=")
+        if (devices.returncode or processes.returncode or not processes.stdout or
+                re.search(r"(?m)^emulator-\d+", devices.stdout) or
+                re.search(r"(?im)(?:qemu-system|/emulator$)", processes.stdout) or
+                open_files(path.parent.parent, exclude_self=True)):
+            raise ValueError("emulator is active or its state is unavailable")
+        return snapshot(path, category)
+    return snapshot(path, category)
+
+
+def reviewed_specs(catalog, completed, root):
+    if not catalog.exists():
+        return []
+    info = catalog.lstat()
+    if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o022:
+        raise ValueError("invalid reviewed cleanup catalog")
+    home = Path.home()
+    base = home / ".codex"
+    registered = run("git", "worktree", "list", "--porcelain", cwd=root)
+    worktrees = {Path(line[9:]) for line in registered.stdout.splitlines() if line.startswith("worktree ")}
+    specs = []
+    for row in json.loads(catalog.read_text()):
+        path, category = Path(row["path"]), row["category"]
+        if not path.is_absolute() or path.resolve() != path:
+            raise ValueError("reviewed path must be canonical")
+        if not path.exists():
+            continue
+        if category == "duplicate":
+            retained = Path(row["retained"])
+            if (any(not p.is_relative_to(base) or len(p.relative_to(base).parts) < 2
+                    or not p.relative_to(base).parts[0].startswith("nuri-") for p in (path, retained))
+                    or path.suffix not in ARCHIVE or retained.suffix != path.suffix
+                    or not (path.name == "previous-debug-preserved.apk" or path.parent.name == "previous")
+                    or retained.name == "previous-debug-preserved.apk" or retained.parent.name == "previous"):
+                raise ValueError("archive duplicate must be a previous-build copy with a canonical retained artifact")
+            priority = 0
+        elif category == "D":
+            project = path.parent
+            closed = project in {p for p, _ in completed}
+            registered_qa = project in worktrees and project.is_relative_to(base / "worktrees")
+            verification = (project.parent.is_relative_to(base) and project.parent.parent == base
+                            and project.parent.name.startswith("nuri-disk-expansion-")
+                            and project.name in {"deps-check", "mint-deps"})
+            if (path.name != "node_modules" or project == root or not (closed or registered_qa or verification)
+                    or not set(DEPENDENCY_INPUTS) <= row["inputs"].keys()
+                    or any(name not in (*DEPENDENCY_INPUTS, ".nvmrc") and
+                           not re.fullmatch(r"\.yarn/patches/[\w.+@-]+\.patch", name)
+                           for name in row["inputs"])):
+                raise ValueError("dependency copy outside the reviewed QA scope")
+            evidence = Path(row["evidence"])
+            if not evidence.is_relative_to(base) or evidence.is_relative_to(project):
+                raise ValueError("dependency reproduction evidence must be retained outside the QA project")
+            priority = 1
+        elif category == "G":
+            avd = home / ".android/avd"
+            if (path.parent.name != "snapshots" or path.parent.parent.parent != avd
+                    or not re.fullmatch(r"NURI_[\w]+\.avd", path.parent.parent.name)
+                    or path.name != "default_boot"
+                    or Path(row["adb"]) != home / "Library/Android/sdk/platform-tools/adb"):
+                raise ValueError("not an exact NURI Quick Boot snapshot")
+            evidence = Path(row["evidence"])
+            if not evidence.is_relative_to(base):
+                raise ValueError("snapshot closeout evidence must be retained outside the AVD")
+            priority = 3
+        else:
+            raise ValueError("unknown reviewed cleanup category")
+        specs.append((path, category, priority, None, row))
+    return specs
 
 
 def volumes(paths):
@@ -119,8 +240,9 @@ def inactive(path):
     return open_files(path)
 
 
-def open_files(path):
-    files = run("/usr/sbin/lsof", "-nP", "+D", str(path))
+def open_files(path, exclude_self=False):
+    exclusion = ("-a", "-p", f"^{os.getpid()}") if exclude_self else ()
+    files = run("/usr/sbin/lsof", "-nP", *exclusion, *(("+D",) if path.is_dir() else ()), str(path))
     if files.returncode != 1 or files.stdout or files.stderr:
         return "open files or file-use check unavailable"
     return None
@@ -177,6 +299,14 @@ def qa_roots(catalog):
     return result
 
 
+def reviewed_report_specs(root, base, gradle):
+    completed = qa_roots(base / "completed-qa.json")
+    reviewed = reviewed_specs(base / "reviewed-cleanup.json", completed, root)
+    dependency_roots = {path for path, category, *_ in reviewed if category == "D"}
+    return [*reviewed, *(item for item in candidates(root, completed, gradle)
+                        if not any(parent in dependency_roots for parent in item[0].parents))]
+
+
 def library_modules(root):
     modules = root / "node_modules"
     if not modules.is_dir() or modules.is_symlink():
@@ -195,7 +325,7 @@ def library_modules(root):
 def candidates(root, completed, gradle):
     specs = []
     for project, evidence in [*completed, (root, None)]:
-        priority = 0 if evidence else 1
+        priority = 0 if evidence else 2
         android = project / "android"
         targets = [android / p for p in (
             ".gradle", "build/generated", "app/.cxx",
@@ -211,21 +341,33 @@ def candidates(root, completed, gradle):
     version = re.search(r"/gradle-(\d+\.\d+(?:\.\d+)?)-(?:bin|all)\.zip", wrapper)
     if version:
         cache = gradle / "caches"
-        specs.extend((cache / p, "B", 2, None, "Gradle " + version[1]) for p in (
+        specs.extend((cache / p, "C", 3, None, "Gradle " + version[1]) for p in (
             "build-cache-1", version[1] + "/transforms", version[1] + "/generated-gradle-jars",
             version[1] + "/kotlin-dsl", version[1] + "/groovy-dsl",
             *[p.name for p in cache.glob("jars-*") if re.fullmatch(r"jars-\d+", p.name)],
         ))
+    metro = Path(tempfile.gettempdir()).resolve() / "metro-cache"
+    specs.append((metro, "E", 4, None, "Metro transform cache"))
     return specs
 
 
 def inspect(spec, check=inactive):
     path, category, priority, project, origin = spec
-    row = {"path": str(path), "category": category, "priority": priority, "origin": origin,
-           "rebuild": "NURI Gradle regenerates the selected outputs" if category == "A"
-           else "Gradle regenerates local artifacts from retained dependencies"}
+    descriptions = {
+        "A": "NURI Gradle regenerates the selected outputs",
+        "C": "Gradle regenerates local artifacts from retained dependencies",
+        "D": "Pinned Yarn immutable install with the retained inputs and local changes",
+        "E": "Metro regenerates its transform cache",
+        "G": "Cold boot with existing userdata, then save a new Quick Boot snapshot",
+        "duplicate": "Restore this path from the independent, hash-identical retained artifact",
+    }
+    row = {"path": str(path), "category": category, "priority": priority,
+           "origin": origin if isinstance(origin, str) else origin.get("evidence", "reviewed local catalog"),
+           "rebuild": descriptions.get(category, "Regenerate from retained inputs")}
+    if category == "duplicate":
+        row.update(retained=origin["retained"], sha256=origin["sha256"])
     try:
-        row.update(snapshot(path, category))
+        row.update(reviewed_snapshot(path, category, origin))
         if project and not project_ok(project, path):
             raise ValueError("Git path not ignored or contains tracked content")
         reason = check(path)
@@ -258,7 +400,7 @@ def inventory(specs, check=None):
     return sorted(rows, key=lambda row: (row["priority"], -row.get("allocatedBytes", 0), row["path"]))
 
 
-def erase(path, fingerprint, category):
+def erase(path, fingerprint, category, proof=None):
     if not shutil.rmtree.avoids_symlink_attacks:
         raise ValueError("symlink-safe removal unavailable")
     parent = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
@@ -267,9 +409,12 @@ def erase(path, fingerprint, category):
         live_parent = path.parent.lstat()
         if (parent_stat.st_dev, parent_stat.st_ino) != (live_parent.st_dev, live_parent.st_ino):
             raise ValueError("parent changed")
-        if snapshot(path, category)["fingerprint"] != fingerprint:
+        if reviewed_snapshot(path, category, proof)["fingerprint"] != fingerprint:
             raise ValueError("candidate changed at deletion")
-        shutil.rmtree(path.name, dir_fd=parent)
+        if category == "duplicate":
+            os.unlink(path.name, dir_fd=parent)
+        else:
+            shutil.rmtree(path.name, dir_fd=parent)
     finally:
         os.close(parent)
 
@@ -282,8 +427,6 @@ def apply(rows, specs, measure, emit, check=inactive, remove=erase):
         volume = measure().get(row["device"])
         if not volume or volume["availableBytes"] >= TARGET:
             continue
-        if row["category"] == "B" and volume["availableBytes"] >= MINIMUM:
-            continue
         spec = by_path.get(row["path"])
         if not spec:
             emit("skipped", path=row["path"], reason="outside allowlist")
@@ -295,7 +438,7 @@ def apply(rows, specs, measure, emit, check=inactive, remove=erase):
             continue
         emit("deleting", candidate=row, volume=volume)
         try:
-            remove(spec[0], row["fingerprint"], spec[1])
+            remove(spec[0], row["fingerprint"], spec[1], spec[4])
         except (OSError, ValueError) as exc:
             emit("delete-error", path=row["path"], reason=str(exc), volumes=measure())
         else:
@@ -323,7 +466,7 @@ def lease(base):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("mode", nargs="?", default="report", choices=("report", "apply-approved", "prebuild"))
+    parser.add_argument("mode", nargs="?", default="report", choices=("report", "cleanup", "apply-approved", "prebuild"))
     parser.add_argument("--plan", type=Path, help="revalidate the exact candidates from a saved report")
     argv = sys.argv[1:]
     split = argv.index("--") if "--" in argv else len(argv)
@@ -331,15 +474,15 @@ def main():
     command = argv[split + 1:]
     if command and args.mode != "prebuild":
         parser.error("only prebuild can run a command")
-    if args.plan and args.mode != "apply-approved":
-        parser.error("--plan is for apply-approved")
+    if args.plan and args.mode not in ("cleanup", "apply-approved"):
+        parser.error("--plan is for cleanup")
     base = Path.home() / ".codex" / "nuri-disk-runs"
     gradle = Path(os.environ.get("GRADLE_USER_HOME", str(Path.home() / ".gradle")))
     if not gradle.is_absolute() or gradle.resolve() != gradle:
         raise ValueError("GRADLE_USER_HOME must be absolute and canonical")
-    spec = candidates(ROOT, qa_roots(base / "completed-qa.json"), gradle)
     measure = lambda: volumes((ROOT / "android", gradle, Path(tempfile.gettempdir())))
     if args.mode == "report":
+        spec = reviewed_report_specs(ROOT, base, gradle)
         print(json.dumps({"volumes": measure(), "candidates": inventory(spec)}, indent=2))
         return 0
     if sys.platform != "darwin" or os.environ.get("CI"):
@@ -353,10 +496,11 @@ def main():
         print(f"NURI disk receipt: {receipt.name}", file=sys.stderr, flush=True)
         start = measure()
         emit("start", mode=args.mode, volumes=start)
-        needs_cleanup = any(v["availableBytes"] < (TARGET if args.mode == "apply-approved" else MINIMUM)
+        needs_cleanup = any(v["availableBytes"] < (MINIMUM if args.mode == "prebuild" else TARGET)
                             for v in start.values())
         try:
             if needs_cleanup:
+                spec = reviewed_report_specs(ROOT, base, gradle)
                 rows = json.loads(args.plan.read_text())["candidates"] if args.plan else inventory(spec)
                 # A saved report is only a snapshot, never an allowlist or a priority override.
                 if args.plan:
