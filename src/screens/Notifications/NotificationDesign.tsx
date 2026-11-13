@@ -27,8 +27,10 @@ import type {
   UserNotificationItem,
 } from '../../services/notifications/userNotifications';
 import {
+  isNotificationRead,
   notificationDetailDate,
   notificationRelativeTime,
+  type NotificationListRow,
 } from '../../services/notifications/notificationPresentation';
 
 export const notificationColors = {
@@ -152,7 +154,7 @@ export function EmptyNotificationInbox() {
     </View>
   );
 }
-export const NotificationGroup = memo(function NotificationGroupView({
+function NotificationGroupView<T extends NotificationListRow>({
   label,
   items,
   now,
@@ -162,11 +164,11 @@ export const NotificationGroup = memo(function NotificationGroupView({
   disabled = false,
 }: {
   label: string;
-  items: UserNotificationItem[];
+  items: T[];
   now: Date;
   timeZone: string;
-  onPress: (item: UserNotificationItem) => void;
-  onDelete?: (item: UserNotificationItem) => void;
+  onPress: (item: T) => void;
+  onDelete?: (item: T) => void;
   disabled?: boolean;
 }) {
   return (
@@ -177,7 +179,7 @@ export const NotificationGroup = memo(function NotificationGroupView({
       <View
         style={[
           styles.groupCard,
-          items.some(item => !item.readAt) && styles.unreadCard,
+          items.some(item => !isNotificationRead(item)) && styles.unreadCard,
         ]}
       >
         <MenuGlassSurface radius={20} />
@@ -186,10 +188,11 @@ export const NotificationGroup = memo(function NotificationGroupView({
           return (
             <View key={`${item.source}:${item.id}`} style={styles.rowContainer}>
               <TouchableOpacity
+                testID={`notification-open-${item.source}-${item.id}`}
                 accessibilityRole="button"
                 accessibilityLabel={`${categoryLabels[category]}, ${
                   item.title
-                }${item.readAt ? '' : ', 읽지 않음'}`}
+                }${isNotificationRead(item) ? '' : ', 읽지 않음'}`}
                 activeOpacity={0.75}
                 disabled={disabled}
                 accessibilityState={{ disabled }}
@@ -230,7 +233,7 @@ export const NotificationGroup = memo(function NotificationGroupView({
                   ) : null}
                 </View>
                 <View style={styles.rowTrailing}>
-                  {!item.readAt ? (
+                  {!isNotificationRead(item) ? (
                     <View
                       accessibilityLabel="읽지 않음"
                       style={styles.unreadDot}
@@ -265,7 +268,10 @@ export const NotificationGroup = memo(function NotificationGroupView({
       </View>
     </View>
   );
-});
+}
+export const NotificationGroup = memo(
+  NotificationGroupView,
+) as typeof NotificationGroupView;
 export function NotificationState({
   message,
   retry,

@@ -1,0 +1,7 @@
+{
+  "asset": "inquiry-maltese-v1.png",
+  "reference": "../indoor-activities/nosework-v1.png",
+  "purpose": "Inquiry illustration and support avatar; not a user pet",
+  "generatedSource": "exec-bbb15600-908b-414d-83c3-9f2d4ba399cb.png",
+  "prompt": "Generate a square transparent PNG asset for NURI mobile app 'Contact us' hero, displayed at only 72 dp. Style reference only: attached cute white Maltese NURI render. Create a single miniature 3D mascot bust: same fluffy white Maltese head and front paws, wearing a soft lilac customer support headset with a tiny warm ivory microphone, leaning its paws over a chunky frosted lavender speech bubble with three rounded dots (not text). Warm, friendly stylized animation, plush white fur and translucent satin glass with thin highlights, subtle lavender/ice-blue tones. Centered compact composition with generous padding, all ears paws and headset fully visible. Genuine transparent background, no ground or scene, no large shadow, no text, no logo, no screenshot or UI. Keep silhouette readable at icon scale."
+}

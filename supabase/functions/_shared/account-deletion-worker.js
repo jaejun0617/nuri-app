@@ -1,6 +1,7 @@
 /* global Deno */
 import { createClient } from 'npm:@supabase/supabase-js@2.97.0';
 import { verifyWorkerCredential } from './worker-auth.js';
+import { processDeletedSupportPhotos } from './support-photo-deletion.js';
 
 export const DEFAULT_FINALIZER_LIMIT = 10;
 export const DEFAULT_CLEANUP_LIMIT = 50;
@@ -73,6 +74,10 @@ export async function processAccountDeletionBatch(input) {
     workerId,
     finalizer,
     cleanup,
+    // Deployment enables this only after the support cleanup RPCs are available.
+    supportPhotos: input.supportPhotoCleanupEnabled === true
+      ? await processDeletedSupportPhotos(input.supabase)
+      : { enabled: false },
     durationMs: Date.now() - startedAt,
   };
 

@@ -5,11 +5,13 @@ import {
   TouchableOpacity,
   useWindowDimensions,
   View,
+  type ImageSourcePropType,
   type LayoutChangeEvent,
 } from 'react-native';
 import { useTheme } from 'styled-components/native';
 import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 import AppText from '../../app/ui/AppText';
+import { PRODUCT_CTA } from '../../app/theme/tokens/productAccent';
 import NuriIcon, { type NuriIconName } from '../icons/NuriIcon';
 import NuriSemanticIcon from '../icons/NuriSemanticIcon';
 import { HomeFrostedGlass } from '../home/HomeFrostedGlass';
@@ -23,6 +25,8 @@ export type MoreMenuItem = {
   key: string;
   label: string;
   icon?: string;
+  imageIcon?: ImageSourcePropType;
+  description?: string;
   nuriIcon?: NuriIconName;
   onPress: () => void;
   badge?: 'dot' | null;
@@ -109,6 +113,8 @@ export const MoreIdentityBand = memo(function MoreIdentityBandContent({
   petColor,
   onProfile,
   onPets,
+  subscriberPreview = false,
+  readOnly = false,
 }: {
   loggedIn: boolean;
   nickname: string | null;
@@ -119,6 +125,8 @@ export const MoreIdentityBand = memo(function MoreIdentityBandContent({
   petColor: string;
   onProfile: () => void;
   onPets: () => void;
+  subscriberPreview?: boolean;
+  readOnly?: boolean;
 }) {
   const theme = useTheme();
   const [failedUri, setFailedUri] = useState<string | null>(null);
@@ -135,25 +143,33 @@ export const MoreIdentityBand = memo(function MoreIdentityBandContent({
       <TouchableOpacity
         testID={loggedIn ? 'more-entry-my-profile' : 'more-entry-login'}
         accessibilityRole="button"
-        accessibilityLabel={loggedIn ? `${userLabel}, 닉네임 수정` : '로그인'}
+        accessibilityLabel={readOnly ? `${userLabel}, 내 프로필` : loggedIn ? `${userLabel}, 닉네임 수정` : '로그인'}
         onPress={onProfile}
+        disabled={readOnly}
         activeOpacity={0.65}
         style={styles.identityRow}
       >
         <View style={styles.identityText}>
+          <View style={subscriberPreview ? styles.subscriberTitleRow : undefined}>
           <AppText
             preset="unifiedTitle"
             styleOverridesPreset
-            style={[styles.identityTitle, { color: theme.colors.textPrimary }]}
+            style={[styles.identityTitle, { color: theme.colors.textPrimary }, subscriberPreview && styles.subscriberName]}
           >
             {userLabel}
           </AppText>
+          {subscriberPreview ? <View style={styles.subscriberBadge}>
+            <Image testID="subscriber-preview-crown" source={require('../../assets/support/subscriber-crown-v1.png')}
+              style={styles.subscriberCrown} resizeMode="contain" accessible={false} />
+            <AppText testID="subscriber-preview-badge" preset="unifiedBody" style={styles.subscriberBadgeText}>구독</AppText>
+          </View> : null}
+          </View>
           <AppText
             preset="unifiedBody"
             styleOverridesPreset
             style={[styles.secondary, { color: theme.colors.textSecondary }]}
           >
-            {loggedIn ? '닉네임 수정' : 'NURI 계정'}
+            {readOnly ? '내 프로필' : loggedIn ? '닉네임 수정' : 'NURI 계정'}
           </AppText>
         </View>
         <Chevron />
@@ -169,6 +185,7 @@ export const MoreIdentityBand = memo(function MoreIdentityBandContent({
         accessibilityRole="button"
         accessibilityLabel={`${petLabel}, ${petStatus}, 아이들 프로필 관리`}
         onPress={onPets}
+        disabled={readOnly}
         activeOpacity={0.65}
         style={styles.identityRow}
       >
@@ -253,6 +270,7 @@ const MoreMenuRow = memo(function MoreMenuRowContent({
     item.accessibilityLabel ??
     [
       item.label,
+      item.description,
       item.valueLabel,
       item.badge === 'dot' ? '읽지 않은 알림 있음' : null,
     ]
@@ -274,7 +292,7 @@ const MoreMenuRow = memo(function MoreMenuRowContent({
         item.disabled && styles.disabled,
       ]}
     >
-      {item.icon ? (
+      {item.icon || item.imageIcon ? (
         <Decoration>
           <View
             style={[
@@ -282,13 +300,13 @@ const MoreMenuRow = memo(function MoreMenuRowContent({
               quick && styles.quickIcon,
             ]}
           >
-            <NuriSemanticIcon
+            {item.imageIcon ? <Image testID={`more-icon-${item.key}`} source={item.imageIcon} resizeMode="contain" style={{ width: MORE_MENU.iconSize, height: MORE_MENU.iconSize }} accessible={false} /> : item.icon ? <NuriSemanticIcon
               family="feather"
               name={item.icon}
               semantic={item.nuriIcon}
               size={MORE_MENU.iconSize}
               color={colors.textSecondary}
-            />
+            /> : null}
           </View>
         </Decoration>
       ) : null}
@@ -306,6 +324,12 @@ const MoreMenuRow = memo(function MoreMenuRowContent({
           {item.label}
         </AppText>
         {stacked ? value : null}
+        {item.description ? (
+          <AppText preset="caption" styleOverridesPreset
+            style={[styles.secondary, { color: colors.textSecondary }]}>
+            {item.description}
+          </AppText>
+        ) : null}
       </View>
       {!stacked ? value : null}
       {item.swatch ? (
@@ -325,6 +349,27 @@ const MoreMenuRow = memo(function MoreMenuRowContent({
       ) : null}
       {!item.command ? <Chevron /> : null}
     </TouchableOpacity>
+  );
+});
+
+export const MoreSubscriptionEntry = memo(function MoreSubscriptionEntryContent({
+  subscribed,
+  onPress,
+}: {
+  subscribed: boolean;
+  onPress: () => void;
+}) {
+  const season = useEffectiveSeason();
+  return (
+    <HomeFrostedGlass season={season} borderRadius={8} style={styles.sectionGlass}>
+      <MoreMenuRow stacked item={{
+        key: 'subscription',
+        label: subscribed ? '구독 관리' : '구독하기',
+        description: '사진·기록 확장 · 추억 영상 · 고화질 보관',
+        imageIcon: require('../../assets/support/subscriber-crown-v1.png'),
+        onPress,
+      }} />
+    </HomeFrostedGlass>
   );
 });
 
@@ -406,6 +451,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
   },
   identityText: { flex: 1, minWidth: 0, gap: 4 },
+  subscriberTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  subscriberName: { flexShrink: 1 },
+  subscriberBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: PRODUCT_CTA.subtle, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2, flexShrink: 0 },
+  subscriberBadgeText: { color: PRODUCT_CTA.primary },
+  subscriberCrown: { width: 19, height: 19 },
   identityTitle: {
     fontSize: 18,
     lineHeight: 26,

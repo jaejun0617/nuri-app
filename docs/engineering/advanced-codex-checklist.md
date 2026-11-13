@@ -49,6 +49,8 @@
 - 성능: 관측 병목·selector 범위·객체 재생성 비용으로 memo 필요성 판단. inline callback 자체는 FAIL이 아니다. JS/UI thread, network/decode/render 비용을 분리.
 - 목록/이미지: 설치 버전의 리스트 엔진·고유 key·window/batch·dedup·pagination guard, 썸네일/원본·signed URL·cache·empty/error/loading·안전한 fallback.
 - UI: [고정 디자인](../project-memory/핵심-결정사항.md#2026-11-06-po-고정-모든-후속-디자인의-cta와-글자-크기), theme/AppText·사용자 폰트·큰 글자·긴 문구·keyboard·safe area·터치 영역·screen reader. 승인 화면만 검증.
+- 목록 갱신: 메인 홈을 제외한 서버 목록의 일반 갱신은 활동·칭호의 당겨서 갱신을 우선한다. 빈 목록에서도 동작하고 갱신 중 기존 결과를 유지한다. 동일 기능의 상시 버튼은 두지 않되 조회 실패 재시도, 권한·위치 확인 등 목적이 다른 동작은 구분한다.
+- 모달: 커뮤니티·공지사항·고객센터·구독의 앱 소유 확인·경고는 Android 기본 Alert 대신 [NuriAlert](../../src/app/ui/NuriAlert.ts) 또는 [ConfirmDialog](../../src/components/common/ConfirmDialog.tsx)를 사용한다. 신규 화면과 수정 화면 모두 적용하며, 취소·Android Back·파괴적 동작의 확인을 검증한다. OS 권한·시스템 사진 선택기·외부 제공자 창은 이 규칙의 대상이 아니다.
 - 버전: 실제 React/RN·New Architecture 호환성, ref·cleanup·라이브러리 API. 최신이라는 이유로 바꾸거나 가정하지 않는다.
 - 도메인: [공개 신뢰·moderation·CMS 경계](advanced-codex-workflow.md#code-domain-safety)를 확인. create/update/comment 우회, draft 유실, stable error UX를 영향 경로에서 검증.
 

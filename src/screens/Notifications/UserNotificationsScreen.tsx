@@ -5,13 +5,7 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import {
-  AppState,
-  FlatList,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { AppState, StyleSheet, TouchableOpacity, View } from 'react-native';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { useOwnerOperation } from '../../hooks/useOwnerOperation';
 import {
@@ -22,18 +16,20 @@ import {
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppText from '../../app/ui/AppText';
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
+import SupportDesignReview from '../Support/SupportDesignReview';
+import { useAuthStore } from '../../store/authStore';
 import { useNotificationInbox } from '../../hooks/useNotificationInbox';
 import { useOpenNotification } from '../../hooks/useOpenNotification';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
-import { groupNotifications } from '../../services/notifications/notificationPresentation';
+import NotificationFeed from './NotificationFeed';
 import type { UserNotificationItem } from '../../services/notifications/userNotifications';
 import { openMoreDrawer, showToast } from '../../store/uiStore';
 import {
   EmptyNotificationInbox,
   NotificationCanvas,
-  NotificationGroup,
   NotificationHeader,
   NotificationState,
   notificationColors,
@@ -47,6 +43,8 @@ export default function UserNotificationsScreen() {
   const route = useRoute<RootScreenRoute<'UserNotifications'>>();
   const insets = useSafeAreaInsets();
   const { list, unread, markAll, dismiss, userId } = useNotificationInbox();
+  const ownerSession = useAuthStore(state => state.session);
+  const [showSupportAlerts, setShowSupportAlerts] = useState(false);
   const captureOwner = useOwnerOperation('notification-inbox-delete');
   const { open: openNotification, opening } = useOpenNotification();
   const [now, setNow] = useState(() => new Date());
@@ -73,7 +71,9 @@ export default function UserNotificationsScreen() {
         if (!operation.item) setPendingDelete(null);
         showToast({
           tone: 'error',
-          title: operation.item ? '알림을 삭제하지 못했어요' : '전체 삭제 결과를 확인할 수 없어요',
+          title: operation.item
+            ? '알림을 삭제하지 못했어요'
+            : '전체 삭제 결과를 확인할 수 없어요',
           message: operation.item
             ? '연결 상태를 확인하고 다시 시도해주세요.'
             : '알림함을 새로고침해 남은 알림을 확인해주세요.',
@@ -115,10 +115,6 @@ export default function UserNotificationsScreen() {
     [list.data],
   );
   const timeZone = list.data?.pages[0]?.timeZone ?? 'Asia/Seoul';
-  const groups = useMemo(
-    () => groupNotifications(items, now, timeZone),
-    [items, now, timeZone],
-  );
   const count = unread.data ?? list.data?.pages[0]?.unreadCount ?? 0;
   const empty = list.isSuccess && items.length === 0;
   const onBack = useEntryAwareBackAction({
@@ -158,6 +154,23 @@ export default function UserNotificationsScreen() {
         empty={empty}
         count={count}
       />
+      {__DEV__ ? (
+        <CtaButton
+          role="neutral"
+          testID="support-alerts-isolated-entry"
+          onPress={() => setShowSupportAlerts(true)}
+        >
+          <CtaText>격리 문의 알림</CtaText>
+        </CtaButton>
+      ) : null}
+      {__DEV__ && showSupportAlerts ? (
+        <SupportDesignReview
+          initialPage="isolatedReplyAlerts"
+          ownerSession={ownerSession}
+          ownerRole={null}
+          onDismiss={() => setShowSupportAlerts(false)}
+        />
+      ) : null}
       {!empty ? (
         <View style={styles.summary}>
           <AppText preset="bodyStrong" style={styles.summaryText}>
@@ -209,65 +222,31 @@ export default function UserNotificationsScreen() {
           </AppText>
         </View>
       ) : (
-        <FlatList
-          data={groups}
-          keyExtractor={group => group.key}
-          contentContainerStyle={[
-            styles.content,
-            { paddingBottom: insets.bottom + 32 },
-          ]}
-          renderItem={({ item }) => (
-            <NotificationGroup
-              label={item.label}
-              items={item.items}
-              now={now}
-              timeZone={timeZone}
-              onDelete={confirmRemove}
-              disabled={deleting || marking || opening}
-              onPress={notification => {
-                openNotification({
-                  id: notification.id,
-                  source: notification.source,
-                }).catch(() => {});
-              }}
-            />
-          )}
+        <NotificationFeed
+          items={items}
+          now={now}
+          timeZone={timeZone}
+          bottom={insets.bottom + 32}
+          pending={list.isPending}
+          error={list.isError}
+          loadingMore={list.isFetchingNextPage}
+          moreError={list.isFetchNextPageError}
+          onDelete={confirmRemove}
+          disabled={deleting || marking || opening}
+          onOpen={notification => {
+            openNotification({
+              id: notification.id,
+              source: notification.source,
+            }).catch(() => {});
+          }}
           refreshing={list.isRefetching && !list.isFetchingNextPage}
           onRefresh={refresh}
-          onEndReached={() => {
-            if (
-              list.hasNextPage &&
-              !list.isFetchingNextPage &&
-              !list.isFetchNextPageError
-            )
+          onMore={() => {
+            if (list.hasNextPage && !list.isFetchingNextPage)
               list.fetchNextPage().catch(() => {});
           }}
-          onEndReachedThreshold={0.4}
-          initialNumToRender={4}
-          windowSize={5}
-          ListHeaderComponent={
-            list.isError ? (
-              <NotificationState
-                message="저장된 알림을 보고 있어요. 최신 알림을 다시 확인해주세요."
-                retry={refresh}
-              />
-            ) : undefined
-          }
-          ListFooterComponent={
+          footer={
             <View>
-              {list.isFetchNextPageError ? (
-                <NotificationState
-                  message="다음 알림을 불러오지 못했어요"
-                  retry={() => {
-                    list.fetchNextPage().catch(() => {});
-                  }}
-                />
-              ) : list.isFetchingNextPage ? (
-                <NotificationState
-                  loading
-                  message="이전 알림을 불러오는 중이에요"
-                />
-              ) : null}
               <AppText preset="caption" style={styles.retention}>
                 알림은 도착한 날부터 30일 후 자동 삭제돼요.
               </AppText>

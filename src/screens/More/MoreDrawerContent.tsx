@@ -19,6 +19,9 @@ import AppTextInput from '../../app/ui/AppTextInput';
 import { useSeasonPreference } from '../../app/providers/SeasonPreferenceProvider';
 import { SeasonReviewControls } from '../../components/common/SeasonReviewControls';
 import PostRegistrationLoadingReview from '../Auth/PostRegistrationLoadingReview';
+import SupportDesignReview from '../Support/SupportDesignReview';
+import type { PreviewSubscription } from '../Support/SubscriptionPreview';
+import type { PreviewPage } from '../Support/previewModel';
 import type { SeasonKey } from '../../theme/seasonal/season';
 import { captureMonitoringException } from '../../services/monitoring/sentry';
 import SeasonalAmbientBackground from '../../components/common/SeasonalAmbientBackground';
@@ -68,6 +71,7 @@ import {
   MoreIdentityBand,
   MoreMenuHeader,
   MoreMenuSection,
+  MoreSubscriptionEntry,
   type MoreMenuItem as MenuItemSpec,
 } from '../../components/MoreDrawer/MoreMenuPresentation';
 import { MORE_MENU } from '../../components/MoreDrawer/moreMenuVisualTokens';
@@ -131,6 +135,8 @@ type Props = {
   onRequestClose: () => void;
   onRequestNavigate?: (navigate: () => boolean) => void;
   onRequestTabNavigate?: (navigate: () => boolean) => void;
+  previewSubscription?: PreviewSubscription;
+  onPreviewSubscriptionChange?: (value: PreviewSubscription) => void;
 };
 
 type PasswordModalProps = {
@@ -661,7 +667,10 @@ function LazySettingsModal({ visible, children }: React.PropsWithChildren<{ visi
   return visible || opened ? children : null;
 }
 
-export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, onRequestTabNavigate }: Props) {
+export default function MoreDrawerContent({
+  onRequestClose, onRequestNavigate, onRequestTabNavigate,
+  previewSubscription, onPreviewSubscriptionChange,
+}: Props) {
   const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const theme = useTheme();
@@ -678,6 +687,9 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, o
   const profileSyncStatus = useAuthStore(s => s.profileSyncStatus);
   const isLoggedIn = useAuthStore(s => s.isLoggedIn);
   const session = useAuthStore(s => s.session);
+  const [supportPreviewEntry, setSupportPreviewEntry] = useState<PreviewPage | null>(null);
+  const hasPreviewSubscription = __DEV__ && isLoggedIn &&
+    (previewSubscription?.status === 'active' || previewSubscription?.status === 'canceling');
   const setProfile = useAuthStore(s => s.setProfile);
   const setProfileSyncState = useAuthStore(s => s.setProfileSyncState);
   const pets = usePetStore(s => s.pets);
@@ -1494,6 +1506,10 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, o
   );
   const policyItems = useMemo<MenuItemSpec[]>(
     () => [
+      ...(__DEV__ ? [
+        { key: 'notices', label: '공지사항', icon: 'bell', onPress: () => setSupportPreviewEntry('notices') },
+        { key: 'support', label: '고객센터', icon: 'headphones', onPress: () => setSupportPreviewEntry('help') },
+      ] : []),
       ...(isSecurityQaEnabled ? [{
         key: 'security-validation', label: 'Security validation', icon: 'shield',
         onPress: () => closeAndNavigate(() => navigation.navigate('SecurityValidation')),
@@ -1509,6 +1525,10 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, o
   );
   const accountItems = useMemo<MenuItemSpec[]>(
     () => [
+      ...(__DEV__ ? [{
+        key: 'ad-removal', label: '광고 제거', icon: 'shield',
+        onPress: () => setSupportPreviewEntry('adRemoval'),
+      }] : []),
       {
         key: 'community-blocked-users',
         label: '차단한 사용자 관리',
@@ -1549,6 +1569,12 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, o
 
   const adminItems = useMemo<MenuItemSpec[]>(
     () => [
+      ...(__DEV__ ? [
+        { key: 'notice-admin', label: '공지 관리', icon: 'file-text', onPress: () => setSupportPreviewEntry('isolatedNotices') },
+        { key: 'report-admin', label: '신고내역', icon: 'flag', onPress: () => setSupportPreviewEntry('isolatedReports') },
+        { key: 'support-admin', label: '문의내역', icon: 'message-circle', onPress: () => setSupportPreviewEntry('isolatedTickets') },
+        { key: 'faq-admin-design', label: 'FAQ 관리', icon: 'help-circle', onPress: () => setSupportPreviewEntry('isolatedFaqAdmin') },
+      ] : []),
       {
         key: 'guide-admin',
         label: '가이드 운영',
@@ -1634,9 +1660,16 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, o
             )}
             avatarUri={isLoggedIn ? avatarUri : null}
             petColor={petTheme.primary}
+            subscriberPreview={hasPreviewSubscription}
             onProfile={isLoggedIn ? openProfileEditModal : onPressLogin}
             onPets={isLoggedIn ? openPetManagement : onPressLogin}
           />
+          {__DEV__ && isLoggedIn ? (
+            <MoreSubscriptionEntry
+              subscribed={hasPreviewSubscription}
+              onPress={() => setSupportPreviewEntry('subscription')}
+            />
+          ) : null}
           {isLoggedIn ? (
             <MoreMonthlyExpenseSummary onPress={openMonthlyExpenses} />
           ) : null}
@@ -1654,6 +1687,17 @@ export default function MoreDrawerContent({ onRequestClose, onRequestNavigate, o
           onLayout={handleToolbarLayout}
         />
       </BlurCaptureExclusion>
+
+      {__DEV__ && supportPreviewEntry ? (
+        <SupportDesignReview
+          ownerSession={session}
+          ownerRole={role ?? null}
+          subscription={previewSubscription}
+          onSubscriptionChange={onPreviewSubscriptionChange}
+          initialPage={supportPreviewEntry}
+          onDismiss={() => setSupportPreviewEntry(null)}
+        />
+      ) : null}
 
       <LazySettingsModal visible={profileModalVisible}>
       <ProfileEditModal

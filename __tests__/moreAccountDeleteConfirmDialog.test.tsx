@@ -322,7 +322,7 @@ describe('More account deletion confirmation', () => {
     await TestRenderer.act(async () => renderer.unmount());
   });
 
-  it('keeps all 18 remaining destinations once after removing point color settings', async () => {
+  it('keeps existing and development destinations visible once', async () => {
     let renderer!: TestRenderer.ReactTestRenderer;
 
     await TestRenderer.act(async () => {
@@ -361,6 +361,10 @@ describe('More account deletion confirmation', () => {
       'app-font',
       'notification',
       'user-notifications',
+      'notices',
+      'support',
+      'subscription',
+      'ad-removal',
       'community-blocked-users',
       'policy-center',
       'logout',
@@ -383,6 +387,13 @@ describe('More account deletion confirmation', () => {
         renderer.root.findByProps({ testID: `more-entry-${entryId}` }),
       ).toBeDefined();
     }
+    const headerIds = renderer.root.findAll(node => [
+      'more-identity-band', 'more-entry-subscription', 'more-monthly-expenses-summary',
+    ].includes(String(node.props.testID))).map(node => node.props.testID);
+    expect([...new Set(headerIds)]).toEqual([
+      'more-identity-band', 'more-entry-subscription', 'more-monthly-expenses-summary',
+    ]);
+    expect(renderer.root.findByProps({ testID: 'more-icon-subscription' })).toBeDefined();
     expect(
       renderer.root.findByProps({ testID: 'account-delete-entry' }),
     ).toBeDefined();

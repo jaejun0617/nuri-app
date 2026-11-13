@@ -21,6 +21,8 @@ import {
   BackHandler,
 } from 'react-native';
 import { useIsFocused } from '@react-navigation/native';
+import { useAuthStore } from '../../store/authStore';
+import type { PreviewSubscription } from '../../screens/Support/SubscriptionPreview';
 
 import MoreDrawerContent from '../../screens/More/MoreDrawerContent';
 import { TAB_FADE_TIMING } from '../../navigation/navigationTransitionPolicy';
@@ -36,6 +38,14 @@ function MoreDrawer({ open, onClose, onVisibilityChange }: Props) {
   const { width: drawerWidth } = useWindowDimensions();
   const reduceMotion = useNavigationMotion();
   const focused = useIsFocused();
+  const session = useAuthStore(state => state.session);
+  const [subscriptionReview, setSubscriptionReview] = useState<{
+    session: NonNullable<typeof session>;
+    value: PreviewSubscription;
+  } | null>(null);
+  useEffect(() => {
+    setSubscriptionReview(previous => previous?.session === session ? previous : null);
+  }, [session]);
   const [mounted, setMounted] = useState(open);
   const opacity = useRef(new Animated.Value(open ? 1 : 0)).current;
   const openRef = useRef(open);
@@ -152,6 +162,10 @@ function MoreDrawer({ open, onClose, onVisibilityChange }: Props) {
           onRequestClose={requestClose}
           onRequestNavigate={requestNavigation}
           onRequestTabNavigate={requestTabNavigation}
+          previewSubscription={__DEV__ && subscriptionReview?.session === session
+            ? subscriptionReview.value : undefined}
+          onPreviewSubscriptionChange={__DEV__ && session
+            ? value => setSubscriptionReview({ session, value }) : undefined}
         />
       </View>
     </Animated.View>

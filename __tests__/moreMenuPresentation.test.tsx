@@ -10,6 +10,7 @@ import {
   MoreIdentityBand,
   MoreMenuHeader,
   MoreMenuSection,
+  MoreSubscriptionEntry,
 } from '../src/components/MoreDrawer/MoreMenuPresentation';
 import {
   getMoreMenuColors,
@@ -63,6 +64,17 @@ describe('More presentation contracts (not native pixel QA)', () => {
     mockDimensions = { width: 384, height: 832, scale: 2.8125, fontScale: 1 };
   });
   afterEach(() => jest.restoreAllMocks());
+
+  it('shows the crown and benefits in one subscription entry', async () => {
+    const onPress = jest.fn();
+    const tree = await render(<MoreSubscriptionEntry subscribed onPress={onPress} />);
+    const row = tree.root.findByProps({ testID: 'more-entry-subscription' });
+    expect(row.props.accessibilityLabel).toBe('구독 관리, 사진·기록 확장 · 추억 영상 · 고화질 보관');
+    expect(row.findByProps({ testID: 'more-icon-subscription' })).toBeDefined();
+    await TestRenderer.act(async () => row.props.onPress());
+    expect(onPress).toHaveBeenCalledTimes(1);
+    await TestRenderer.act(async () => tree.unmount());
+  });
 
   it.each([360, 384, 430])(
     'uses two quick columns at %sdp, single-column at larger text',

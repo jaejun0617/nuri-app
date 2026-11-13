@@ -105,10 +105,17 @@ export default function CtaButton({
             ? 'pressed'
             : 'default',
         });
+        const callerRadius = StyleSheet.flatten(
+          typeof style === 'function' ? style({ pressed }) : style,
+        )?.borderRadius ?? 8;
+        // The fill sits inside the 1dp frame; matching outer radii creates corner seams.
+        const fillRadius = typeof callerRadius === 'number'
+          ? Math.max(0, callerRadius - 1)
+          : callerRadius;
         return (
           <CtaContext.Provider value={palette}>
             {variant !== 'solidLavender' && (role === 'primary' || role === 'primarySubtle') && !(!loading && disabled) ? (
-              <LavenderCtaFill pressed={pressed && !loading} radius={StyleSheet.flatten(typeof style === 'function' ? style({ pressed }) : style)?.borderRadius ?? 8} />
+              <LavenderCtaFill pressed={pressed && !loading} radius={fillRadius} />
             ) : null}
             {typeof children === 'function' ? children(palette) : children}
           </CtaContext.Provider>
@@ -146,6 +153,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 8,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
   },

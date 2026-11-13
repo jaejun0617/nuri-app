@@ -2,6 +2,8 @@
 
 ## 현재 적용 범위
 
+2026-11-14 PO 상시 규칙: 새 화면과 수정 화면은 [공통 글라스·누리 CTA 재사용 결정](../project-memory/핵심-결정사항.md#shared-glass-cta-required)을 따른다. 화면별 임의 표면이나 독자적인 등록 버튼을 만들지 않고, 기존 공통 컴포넌트의 역할·상태·접근성 계약을 재사용한다. 아래 역사적 제외 범위는 당시 실행 범위이며, 새 PO가 지정한 문의 글 등록의 공통 재질 적용을 막는 제한이 아니다.
+
 2026-11-11 안내 보정: 이 문서는 CTA 역할 계약과 **2026-10-06 후보의 팔레트·수락·한계**를 함께 보존한다. 아래 'Current'와 최종 승인·NEXT DESIGN DIRECTION은 당시 후보에 한정한다. 이후 일반 CTA 색상은 [11/06 PO 고정 기준과 명시적 예외](../project-memory/핵심-결정사항.md#2026-11-06-po-고정-모든-후속-디자인의-cta와-글자-크기)를 따른다.
 
 - 현재 [resolveCtaPalette](../../src/app/theme/ctaPalette.ts)는 일반 primary·primarySubtle에 [LAVENDER_CTA](../../src/app/theme/tokens/productAccent.ts)를 사용한다. 계절 인자는 유지돼도 팔레트 선택에는 사용하지 않는다. `solidLavender` 글등록 버튼 예외는 위 PO 결정 범위에 한정한다. 아래 계절 표·흰 Primary 문구를 현재 일반 CTA에 다시 적용하지 않는다.

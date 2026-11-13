@@ -63,6 +63,7 @@ Deno.serve(async request => {
       finalizerLimit,
       cleanupLimit,
       cleanupBatchPerBucket,
+      supportPhotoCleanupEnabled: Deno.env.get('SUPPORT_PHOTO_CLEANUP_ENABLED') === 'true',
     });
 
     return jsonResponse({

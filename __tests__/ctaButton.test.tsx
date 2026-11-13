@@ -29,6 +29,15 @@ describe('opt-in action component', () => {
     renderer.root.find(node => typeof node.props.style === 'function');
   const style = (pressed = false) =>
     StyleSheet.flatten(button().props.style({ pressed }));
+  it.each([[8, 7], [16, 15], [0, 0]])('fits the fill inside the %s dp rounded frame', (outer, inner) => {
+    act(() => {
+      renderer = TestRenderer.create(wrap(
+        <CtaButton role="primary" style={{ borderRadius: outer }}><CtaText>구독하기</CtaText></CtaButton>,
+      ));
+    });
+    expect(style()).toMatchObject({ borderRadius: outer, borderWidth: 1, overflow: 'hidden' });
+    expect(StyleSheet.flatten(renderer.root.findByType(LinearGradient).props.style).borderRadius).toBe(inner);
+  });
   it('keeps the two compose controls solid lavender without changing ordinary CTA gradients', () => {
     act(() => { renderer = TestRenderer.create(wrap(<CtaButton role="primary" variant="solidLavender"><CtaText>작성</CtaText></CtaButton>)); });
     expect(style()).toMatchObject({ backgroundColor: '#7D5CE4', borderColor: '#7D5CE4' });

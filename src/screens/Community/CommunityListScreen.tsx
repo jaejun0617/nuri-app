@@ -61,6 +61,8 @@ import { COMMUNITY_PAGE_SIZE_OPTIONS } from '../../types/community';
 import { COMMUNITY_SEARCH_MAX_LENGTH } from '../../services/community/search';
 import { styles } from './CommunityListScreen.styles';
 import CommunityPostListItem from './components/CommunityPostListItem';
+import SupportDesignReview from '../Support/SupportDesignReview';
+import { useAuthStore } from '../../store/authStore';
 import { COMMUNITY_LIST_COLORS } from './communityCategoryPalette';
 import {
   canCreateCommunityPost,
@@ -237,6 +239,8 @@ export default function CommunityListScreen() {
   const [showTopButton, setShowTopButton] = useState(false);
   const [isPageSizeModalVisible, setPageSizeModalVisible] = useState(false);
   const { requireLogin } = useCommunityAuth();
+  const ownerSession = useAuthStore(s => s.session);
+  const [isolatedNotices, setIsolatedNotices] = useState(false);
   const isCreateActionVisible = canCreateCommunityPost(activeFilter);
 
   useEffect(() => {
@@ -756,6 +760,12 @@ export default function CommunityListScreen() {
                   <HeaderHelpButton topic="community" />
                 </AppHeaderLayout>
                 {categoryHeader}
+                {__DEV__ && activeFilter === 'notice' ? (
+                  <CtaButton role="neutral" testID="community-notice-isolated-entry"
+                    onPress={() => setIsolatedNotices(true)}>
+                    <CtaText>격리 공지 연결</CtaText>
+                  </CtaButton>
+                ) : null}
                 {isInlineListLoading ? (
                   <View style={styles.inlineListLoading}>
                     <ActivityIndicator size="small" color={seasonal.primary} />
@@ -867,6 +877,12 @@ export default function CommunityListScreen() {
           </View>
         ) : null}
       </View>
+
+      {__DEV__ && isolatedNotices ? (
+        <SupportDesignReview initialPage="isolatedCommunity" ownerSession={ownerSession}
+          ownerRole={null}
+          onDismiss={() => setIsolatedNotices(false)} />
+      ) : null}
 
       <ConfirmDialog
         confirmRole="neutral"

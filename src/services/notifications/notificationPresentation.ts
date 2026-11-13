@@ -82,15 +82,28 @@ export function notificationRelativeTime(
   return `${Math.floor(elapsed / 3_600_000)}시간 전`;
 }
 
-export function groupNotifications(
-  items: UserNotificationItem[],
+export type NotificationListRow = Pick<
+  UserNotificationItem,
+  'id' | 'category' | 'title' | 'body' | 'createdAt' | 'availableAt'
+> & { source: string } & (
+    | { readAt: string | null; isRead?: never }
+    | { isRead: boolean; readAt?: never }
+  );
+
+/** Cursor-based inboxes expose read state without inventing a read timestamp. */
+export function isNotificationRead(item: NotificationListRow): boolean {
+  return typeof item.isRead === 'boolean' ? item.isRead : Boolean(item.readAt);
+}
+
+export function groupNotifications<T extends NotificationListRow>(
+  items: T[],
   now: Date,
   timeZone: string,
 ) {
   const groups: {
     key: string;
     label: string;
-    items: UserNotificationItem[];
+    items: T[];
   }[] = [];
   const seen = new Set<string>();
   for (const item of items) {
