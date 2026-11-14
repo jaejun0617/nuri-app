@@ -64,6 +64,7 @@ export function buildTimelineMonthGrid(
   recordIds: readonly string[],
   recordsById: Readonly<Record<string, MemoryRecord>>,
   sortMode: TimelineSortMode = 'recent',
+  grouping: 'day' | 'month' = 'day',
 ) {
   const ids: string[] = [];
   const dayTitles = new Map<string, string>();
@@ -82,11 +83,14 @@ export function buildTimelineMonthGrid(
 
   for (const record of records) {
     const day = getRecordDisplayYmd(record);
-    if (day !== previousDay) {
-      const headingId = `month-grid-day:${day ?? 'unknown'}`;
+    const group = grouping === 'month' ? day?.slice(0, 7) ?? null : day;
+    if (group !== previousDay) {
+      const headingId = `month-grid-${grouping}:${group ?? 'unknown'}`;
       ids.push(headingId);
-      dayTitles.set(headingId, formatRecordMonthDayWithWeekday(record) || '날짜 미확인');
-      previousDay = day;
+      dayTitles.set(headingId, grouping === 'month' && group
+        ? `${group.slice(0, 4)}년 ${Number(group.slice(5))}월`
+        : formatRecordMonthDayWithWeekday(record) || '날짜 미확인');
+      previousDay = group;
     }
     listIndexById.set(record.id, ids.length);
     ids.push(record.id);

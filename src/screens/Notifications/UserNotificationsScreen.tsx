@@ -10,6 +10,7 @@ import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { useOwnerOperation } from '../../hooks/useOwnerOperation';
 import {
   useFocusEffect,
+  StackActions,
   useNavigation,
   useRoute,
 } from '@react-navigation/native';
@@ -18,6 +19,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppText from '../../app/ui/AppText';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import SupportDesignReview from '../Support/SupportDesignReview';
+import MixedInboxLogin from '../SupportIsolation/MixedInboxLogin';
+import { useNotificationScope } from '../../app/providers/NotificationScopeProvider';
 import { useAuthStore } from '../../store/authStore';
 import { useNotificationInbox } from '../../hooks/useNotificationInbox';
 import { useOpenNotification } from '../../hooks/useOpenNotification';
@@ -25,7 +28,7 @@ import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 import NotificationFeed from './NotificationFeed';
-import type { UserNotificationItem } from '../../services/notifications/userNotifications';
+import type { InboxItem } from '../../services/notifications/mixedNotifications';
 import { openMoreDrawer, showToast } from '../../store/uiStore';
 import {
   EmptyNotificationInbox,
@@ -43,8 +46,10 @@ export default function UserNotificationsScreen() {
   const route = useRoute<RootScreenRoute<'UserNotifications'>>();
   const insets = useSafeAreaInsets();
   const { list, unread, markAll, dismiss, userId } = useNotificationInbox();
+  const { inbox, select } = useNotificationScope();
   const ownerSession = useAuthStore(state => state.session);
   const [showSupportAlerts, setShowSupportAlerts] = useState(false);
+  const [showMixedLogin, setShowMixedLogin] = useState(false);
   const captureOwner = useOwnerOperation('notification-inbox-delete');
   const { open: openNotification, opening } = useOpenNotification();
   const [now, setNow] = useState(() => new Date());
@@ -52,7 +57,7 @@ export default function UserNotificationsScreen() {
   const [deleting, setDeleting] = useState(false);
   const busy = useRef(false);
   const [pendingDelete, setPendingDelete] = useState<{
-    item: UserNotificationItem | null;
+    item: InboxItem | null;
     isCurrent: () => boolean;
   } | null>(null);
   useEffect(() => {
@@ -84,9 +89,9 @@ export default function UserNotificationsScreen() {
       setDeleting(false);
     }
   };
-  const confirmRemove = (item: UserNotificationItem | null) => {
+  const confirmRemove = (item: InboxItem | null) => {
     if (busy.current || opening || pendingDelete) return;
-    setPendingDelete({ item, isCurrent: captureOwner() });
+    setPendingDelete({ item, isCurrent: inbox?.isCurrent ?? captureOwner() });
   };
   const refetchList = list.refetch;
   const refetchUnread = unread.refetch;
@@ -115,7 +120,7 @@ export default function UserNotificationsScreen() {
     [list.data],
   );
   const timeZone = list.data?.pages[0]?.timeZone ?? 'Asia/Seoul';
-  const count = unread.data ?? list.data?.pages[0]?.unreadCount ?? 0;
+  const count = unread.data ?? list.data?.pages[0]?.unreadCount;
   const empty = list.isSuccess && items.length === 0;
   const onBack = useEntryAwareBackAction({
     entrySource: route.params?.entrySource,
@@ -136,7 +141,7 @@ export default function UserNotificationsScreen() {
     try {
       await markAll();
     } catch {
-      showToast({
+      if (!inbox || inbox.isCurrent()) showToast({
         tone: 'error',
         title: '읽음 상태를 저장하지 못했어요',
         message: '잠시 후 다시 시도해주세요.',
@@ -151,10 +156,10 @@ export default function UserNotificationsScreen() {
       <NotificationHeader
         title="알림함"
         onBack={onBack}
-        empty={empty}
+        empty={empty && count !== undefined}
         count={count}
       />
-      {__DEV__ ? (
+      {__DEV__ && !inbox ? (
         <CtaButton
           role="neutral"
           testID="support-alerts-isolated-entry"
@@ -163,7 +168,7 @@ export default function UserNotificationsScreen() {
           <CtaText>격리 문의 알림</CtaText>
         </CtaButton>
       ) : null}
-      {__DEV__ && showSupportAlerts ? (
+      {__DEV__ && !inbox && showSupportAlerts ? (
         <SupportDesignReview
           initialPage="isolatedReplyAlerts"
           ownerSession={ownerSession}
@@ -171,18 +176,25 @@ export default function UserNotificationsScreen() {
           onDismiss={() => setShowSupportAlerts(false)}
         />
       ) : null}
+      {__DEV__ ? (
+        <CtaButton role="neutral" testID="mixed-inbox-connection"
+          onPress={() => inbox ? select(null) : setShowMixedLogin(true)}>
+          <CtaText>{inbox ? '격리 알림 연결 해제' : '격리 공용 알림 연결'}</CtaText>
+        </CtaButton>
+      ) : null}
+      {__DEV__ && showMixedLogin ? <MixedInboxLogin onClose={() => setShowMixedLogin(false)} /> : null}
       {!empty ? (
         <View style={styles.summary}>
           <AppText preset="bodyStrong" style={styles.summaryText}>
             읽지 않은 알림{' '}
             <AppText preset="bodyStrong" style={styles.count}>
-              {count}개
+              {count === undefined ? '확인 중' : `${count}개`}
             </AppText>
           </AppText>
           <View style={styles.actions}>
             <TouchableOpacity
               accessibilityRole="button"
-              disabled={marking || deleting || count === 0}
+              disabled={marking || deleting || !count}
               onPress={() => {
                 onMarkAll();
               }}
@@ -234,6 +246,14 @@ export default function UserNotificationsScreen() {
           onDelete={confirmRemove}
           disabled={deleting || marking || opening}
           onOpen={notification => {
+            if (__DEV__ && inbox?.isCurrent()) {
+              navigation.dispatch(StackActions.push('ScopedNotificationDestination', {
+                identity: { id: notification.id, source: notification.source },
+                scopeKey: inbox.key,
+              }));
+              return;
+            }
+            if (notification.source === 'support_reply') return;
             openNotification({
               id: notification.id,
               source: notification.source,

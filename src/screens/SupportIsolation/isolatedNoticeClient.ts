@@ -2,6 +2,7 @@ import {
   parseSupportNotificationPage,
   resolveSupportReplyNotification,
 } from '../../services/notifications/supportReplyNotifications';
+import { createMixedNotificationApi } from '../../services/notifications/mixedNotifications';
 
 export type Notice = {
   id: string;
@@ -247,6 +248,9 @@ const origin = 'http://127.0.0.1:56323';
 
 /** DEV transport only. No production client, persisted session, role fixture or token injection. */
 export class IsolatedNoticeClient {
+  readonly mixedNotifications = createMixedNotificationApi((name, args) =>
+    this.request('/rest/v1/rpc/' + name, args),
+  );
   private token: string | null = null;
   private epoch = 0;
   private requests = new Set<AbortController>();
@@ -288,6 +292,8 @@ export class IsolatedNoticeClient {
           'SUPPORT_REQUEST_CONFLICT',
           'SUPPORT_CURSOR_STALE',
           'SUPPORT_UNAVAILABLE',
+          'NURI_NOTIFICATION_UNAVAILABLE',
+          'NURI_NOTIFICATION_AUTH_REQUIRED',
           'SUPPORT_AUTH_REQUIRED',
           'SUPPORT_INVALID_INPUT',
           'SUPPORT_NOT_ASSIGNED',

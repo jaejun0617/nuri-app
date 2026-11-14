@@ -28,6 +28,7 @@ import AppProviders from './src/app/providers/AppProviders';
 import NuriAlertHost from './src/app/ui/NuriAlertHost';
 import GlobalToast from './src/components/common/GlobalToast';
 import RootNavigator from './src/navigation/RootNavigator';
+import { NotificationScopeProvider } from './src/app/providers/NotificationScopeProvider';
 import type { RootStackParamList } from './src/navigation/RootNavigator';
 import { appLinking } from './src/navigation/linking';
 import {
@@ -358,7 +359,9 @@ function App() {
               onReady={handleNavigationReady}
               onStateChange={handleNavigationStateChange}
             >
-              <RootNavigator notificationStartup={notificationStartup} />
+              <NotificationScopeProvider>
+                <RootNavigator notificationStartup={notificationStartup} />
+              </NotificationScopeProvider>
             </NavigationContainer>
             <GlobalToast />
             <NuriAlertHost />

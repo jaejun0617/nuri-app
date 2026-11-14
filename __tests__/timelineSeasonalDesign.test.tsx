@@ -691,6 +691,10 @@ describe('Timeline seasonal design', () => {
     expect(source).not.toContain('fetchTimelineCategoryCountsByPet(petId)');
     expect(source).toContain('enabled: isLoggedIn && !isHomeTotalSummaryEntry');
     expect(source).toContain('{notificationPeriod ? (');
+    expect(source).toContain('numColumns={RECORD_GALLERY_COLUMNS}');
+    expect(source).toContain('data={monthGrid.ids}');
+    expect(source).toContain('testID="timeline-period-controls-card"');
+    expect(source).not.toContain('TimelineWalkMemoryCard');
     expect(source).not.toContain('모든 아이 · ');
     expect(source).not.toContain(" : '전체 기록'}");
     expect(source).toContain('onShowAllRecords={notificationPeriod ? showAllNotificationRecords : undefined}');

@@ -4,6 +4,8 @@ import {
   useQueryClient,
 } from '@tanstack/react-query';
 import { useCallback } from 'react';
+import { useNotificationScope } from '../app/providers/NotificationScopeProvider';
+import { mixedInboxKey, type InboxItem, type MixedCursor } from '../services/notifications/mixedNotifications';
 import { useAuthStore } from '../store/authStore';
 import { dismissNativeInboxNotification } from '../services/notifications/nativePush';
 import {
@@ -12,7 +14,6 @@ import {
   markAllNotificationsRead,
   dismissUserNotification,
   dismissAllUserNotifications,
-  type UserNotificationItem,
   type NotificationCursor,
 } from '../services/notifications/userNotifications';
 
@@ -58,36 +59,61 @@ export function useNotificationPreview() {
 
 export function useNotificationUnreadCount() {
   const userId = useAuthStore(s => s.session?.user.id ?? null);
+  const { inbox } = useNotificationScope();
   return useQuery({
-    queryKey: notificationKeys.unread(userId),
-    queryFn: () => {
+    queryKey: inbox ? [...mixedInboxKey(inbox), 'unread'] : notificationKeys.unread(userId),
+    queryFn: async () => {
+      if (inbox) {
+        if (!inbox.isCurrent()) throw new Error('NURI_NOTIFICATION_ACCOUNT_CHANGED');
+        const snapshot = await inbox.api.unread();
+        if (!inbox.isCurrent()) throw new Error('NURI_NOTIFICATION_ACCOUNT_CHANGED');
+        return snapshot;
+      }
       requireNotificationOwner(userId);
       return fetchNotificationBadgeSnapshot();
     },
     select: snapshot => snapshot.count,
-    enabled: Boolean(userId),
+    enabled: Boolean(inbox?.userId ?? userId),
     staleTime: 15_000,
     refetchOnMount: true,
+    refetchInterval: inbox ? 15_000 : false,
   });
 }
 
 export function useNotificationInbox() {
   const userId = useAuthStore(s => s.session?.user.id ?? null);
+  const { inbox } = useNotificationScope();
   const client = useQueryClient();
   const unread = useNotificationUnreadCount();
   const list = useInfiniteQuery({
-    queryKey: notificationKeys.list(userId),
-    initialPageParam: null as NotificationCursor | null,
-    queryFn: ({ pageParam }) => {
+    queryKey: inbox ? [...mixedInboxKey(inbox), 'list'] : notificationKeys.list(userId),
+    initialPageParam: null as MixedCursor | NotificationCursor | null,
+    queryFn: async ({ pageParam }) => {
+      if (inbox) {
+        if (!inbox.isCurrent() || (pageParam && !('snapshotAt' in pageParam))) throw new Error('NURI_NOTIFICATION_ACCOUNT_CHANGED');
+        const page = await inbox.api.page(pageParam);
+        if (!inbox.isCurrent()) throw new Error('NURI_NOTIFICATION_ACCOUNT_CHANGED');
+        return page;
+      }
       requireNotificationOwner(userId);
+      if (pageParam && 'snapshotAt' in pageParam) throw new Error('NURI_NOTIFICATION_ACCOUNT_CHANGED');
       return fetchNotificationPage({ cursor: pageParam });
     },
     getNextPageParam: page => page.nextCursor ?? undefined,
-    enabled: Boolean(userId),
+    enabled: Boolean(inbox?.userId ?? userId),
     staleTime: 15_000,
     refetchOnMount: true,
   });
   const markAll = useCallback(async () => {
+    if (inbox) {
+      if (!inbox.isCurrent()) throw new Error('NURI_NOTIFICATION_ACCOUNT_CHANGED');
+      try {
+        await inbox.api.command('read');
+      } finally {
+        if (inbox.isCurrent()) await client.invalidateQueries({ queryKey: mixedInboxKey(inbox) });
+      }
+      return;
+    }
     if (!userId || useAuthStore.getState().session?.user.id !== userId)
       throw new Error('NURI_NOTIFICATION_ACCOUNT_CHANGED');
     await markAllNotificationsRead();
@@ -96,9 +122,20 @@ export function useNotificationInbox() {
     await client.invalidateQueries({
       queryKey: notificationKeys.owner(userId),
     });
-  }, [client, userId]);
+  }, [client, inbox, userId]);
   const dismiss = useCallback(
-    async (item: UserNotificationItem | null) => {
+    async (item: InboxItem | null) => {
+      if (inbox) {
+        if (!inbox.isCurrent()) throw new Error('NURI_NOTIFICATION_ACCOUNT_CHANGED');
+        try {
+          await inbox.api.command('hide', item ?? undefined);
+        } finally {
+          // A missing response may mean it committed. Recover by reading, never replaying.
+          if (inbox.isCurrent()) await client.invalidateQueries({ queryKey: mixedInboxKey(inbox) });
+        }
+        return;
+      }
+      if (item?.source === 'support_reply') throw new Error('NURI_NOTIFICATION_ACCOUNT_CHANGED');
       if (!userId || useAuthStore.getState().session?.user.id !== userId)
         throw new Error('NURI_NOTIFICATION_ACCOUNT_CHANGED');
       if (item) await dismissUserNotification(item);
@@ -110,7 +147,7 @@ export function useNotificationInbox() {
           queryKey: notificationKeys.owner(userId),
         });
     },
-    [client, userId],
+    [client, inbox, userId],
   );
-  return { list, unread, markAll, dismiss, userId };
+  return { list, unread, markAll, dismiss, userId: inbox?.key ?? userId };
 }

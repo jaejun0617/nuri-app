@@ -30,3 +30,12 @@ it('retains oldest-first order when selected and emits no headings for an empty 
   ]);
   expect(buildTimelineMonthGrid([], records).ids).toEqual([]);
 });
+
+it('groups an unfiltered timeline in the same four-column presentation by month', () => {
+  const earlier = record('earlier', '2026-09-29');
+  const grid = buildTimelineMonthGrid(['third', 'earlier', 'first', 'second'],
+    { ...records, earlier }, 'recent', 'month');
+  expect(grid.ids).toEqual(['month-grid-month:2026-10', 'first', 'second', 'third', 'month-grid-month:2026-09', 'earlier']);
+  expect([...grid.dayTitles.values()]).toEqual(['2026년 10월', '2026년 9월']);
+  expect(grid.listIndexById.get('earlier')).toBe(5);
+});

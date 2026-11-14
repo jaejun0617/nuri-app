@@ -14,6 +14,12 @@ class NotificationBulkDismissRequestTest {
   private val json = "{}".toRequestBody("application/json".toMediaType())
 
   @Test
+  fun mixedInboxCommandsAreNeverReplayed() {
+    val original = Request.Builder().url("https://example.test/rest/v1/rpc/command_notification_inbox_v4").post(json).build()
+    assertTrue(requireNotNull(NotificationBulkDismissRequest.withoutReplay(original).body).isOneShot())
+  }
+
+  @Test
   fun bulkPostUsesOneShotBodyAndPreservesTheRequest() {
     val original = Request.Builder().url(path).post(json).header("Accept", "application/json").build()
     val request = NotificationBulkDismissRequest.withoutReplay(original)

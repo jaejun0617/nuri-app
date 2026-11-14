@@ -67,6 +67,8 @@ import WalkHistoryScreen from '../screens/Records/WalkHistoryScreen';
 import WalkProductScreen from '../screens/Walk/WalkProductScreen';
 import UserNotificationsScreen from '../screens/Notifications/UserNotificationsScreen';
 import NotificationDetailScreen from '../screens/Notifications/NotificationDetailScreen';
+import ScopedNotificationDestination from '../screens/Notifications/ScopedNotificationDestination';
+import type { InboxKey } from '../services/notifications/mixedNotifications';
 import HomeQuickNotificationsScreen from '../screens/Notifications/HomeQuickNotificationsScreen';
 import NuriRankingScreen from '../screens/Ranking/NuriRankingScreen';
 import PolicyCenterScreen from '../screens/Policy/PolicyCenterScreen';
@@ -263,6 +265,7 @@ export type RootStackParamList = {
   CommunityEdit: { postId: string };
   CommunityBlockedUsers: { entrySource?: ScreenEntrySource } | undefined;
   UserNotifications: { entrySource?: ScreenEntrySource } | undefined;
+  ScopedNotificationDestination: { identity: InboxKey; scopeKey: string };
   NotificationDetail: { id: string; source: 'user'|'announcement'; notificationOpen?: NotificationOpenReceipt; resolveTargetOnLoad?: boolean };
   NotificationTimeline: NavigatorScreenParams<TimelineStackParamList> & { notificationOpen: NotificationOpenReceipt };
   HomeQuickNotifications: undefined;
@@ -598,6 +601,12 @@ export default function RootNavigator({ notificationStartup }: { notificationSta
       />
       <Stack.Screen name="NotificationTimeline" component={TimelineStackNavigator} options={{ headerShown: false }} />
       <Stack.Screen name="NotificationDetail" component={NotificationDetailScreen} options={{headerShown:false}}/>
+      {__DEV__ ? (
+        <Stack.Screen name="ScopedNotificationDestination" options={{ headerShown: false }}>
+          {({ route, navigation }) => <ScopedNotificationDestination
+            identity={route.params.identity} scopeKey={route.params.scopeKey} onBack={navigation.goBack} />}
+        </Stack.Screen>
+      ) : null}
       <Stack.Screen
         name="NuriRanking"
         component={NuriRankingScreen}

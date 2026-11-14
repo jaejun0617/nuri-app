@@ -13,7 +13,8 @@ internal object NotificationBulkDismissRequest : Interceptor {
   internal fun withoutReplay(request: Request): Request {
     val body = request.body ?: return request
     if (request.method != "POST" ||
-      request.url.encodedPath != "/rest/v1/rpc/dismiss_all_user_notifications_v1" ||
+      (request.url.encodedPath != "/rest/v1/rpc/dismiss_all_user_notifications_v1" &&
+        request.url.encodedPath != "/rest/v1/rpc/command_notification_inbox_v4") ||
       body.isOneShot()
     ) return request
 

@@ -14,9 +14,11 @@ import { TIMELINE_DESIGN as C } from '../../theme/timelineDesign';
 export const RecordGalleryThumbnail = memo(function RecordGalleryThumbnailView({
   record,
   onOpen,
+  contextLabel,
 }: {
   record: MemoryRecord;
   onOpen: (record: MemoryRecord) => void;
+  contextLabel?: string;
 }) {
   const image = getTimelinePrimaryMemoryImageSource(record);
   const { signedUrl } = useSignedMemoryImage(image.value, { variant: image.variant });
@@ -27,7 +29,7 @@ export const RecordGalleryThumbnail = memo(function RecordGalleryThumbnailView({
     <Pressable
       testID={`record-gallery-thumbnail-${record.id}`}
       accessibilityRole="button"
-      accessibilityLabel={[title, formatRecordTimelineMeta(record)].filter(Boolean).join(', ')}
+      accessibilityLabel={[contextLabel, title, formatRecordTimelineMeta(record)].filter(Boolean).join(', ')}
       onPress={() => onOpen(record)}
       style={styles.tile}
     >
