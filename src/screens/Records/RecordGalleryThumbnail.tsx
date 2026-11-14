@@ -17,7 +17,7 @@ export const RecordGalleryThumbnail = memo(function RecordGalleryThumbnailView({
   contextLabel,
 }: {
   record: MemoryRecord;
-  onOpen: (record: MemoryRecord) => void;
+  onOpen?: (record: MemoryRecord) => void;
   contextLabel?: string;
 }) {
   const image = getTimelinePrimaryMemoryImageSource(record);
@@ -28,9 +28,9 @@ export const RecordGalleryThumbnail = memo(function RecordGalleryThumbnailView({
   return (
     <Pressable
       testID={`record-gallery-thumbnail-${record.id}`}
-      accessibilityRole="button"
+      accessibilityRole={onOpen ? 'button' : undefined}
       accessibilityLabel={[contextLabel, title, formatRecordTimelineMeta(record)].filter(Boolean).join(', ')}
-      onPress={() => onOpen(record)}
+      onPress={onOpen ? () => onOpen(record) : undefined}
       style={styles.tile}
     >
       {signedUrl ? (

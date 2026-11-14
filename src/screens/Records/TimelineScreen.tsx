@@ -128,6 +128,7 @@ import {
   getLatestTimelineRecordedDay,
 } from './timelinePresentation';
 import { useTimelineInitialMonth } from './useTimelineInitialMonth';
+import type { ScopedTimelineDomain } from '../../services/notifications/scopedDestinationDomain';
 import {
   HOME_TOTAL_SUMMARY_ENTRY_SOURCE,
   invalidateTimelineEntryRequest,
@@ -347,7 +348,15 @@ const ControlsBar = memo(function ControlsBar({
   );
 });
 
-export default function TimelineScreen() {
+type ScopedTimeline = {
+  domain: ScopedTimelineDomain;
+  petId: string | null;
+  period?: { startDate: string; endDate: string };
+  onBack(): void;
+  onContentReady(): void;
+};
+
+export default function TimelineScreen({ isolated }: { isolated?: ScopedTimeline } = {}) {
   const theme = useTheme();
   const insets = useSafeAreaInsets();
   const toolbarHeight = useContext(ToolbarHeightContext);
@@ -371,17 +380,18 @@ export default function TimelineScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<TimelineMainRoute>();
   const isFocused = useIsFocused();
-  const isLoggedIn = useAuthStore(s => s.isLoggedIn);
-  const ownerId = useAuthStore(s => s.session?.user.id ?? null);
+  const isLoggedIn = useAuthStore(s => isolated ? true : s.isLoggedIn);
+  const ownerId = useAuthStore(s => isolated ? null : s.session?.user.id ?? null);
 
-  const pets = usePetStore(s => s.pets);
-  const selectedPetId = usePetStore(s => s.selectedPetId);
+  const pets = usePetStore(s => isolated?.domain.pets ?? s.pets);
+  const selectedPetId = usePetStore(s => isolated ? isolated.petId ?? pets[0]?.id ?? null : s.selectedPetId);
   const entryRequestId = route?.params?.entryRequestId ?? null;
   const isHomeTotalSummaryEntry =
     route?.params?.entrySource === HOME_TOTAL_SUMMARY_ENTRY_SOURCE &&
     entryRequestId !== null;
   const entryGeneration = route?.params?.entryGeneration ?? 0;
-  const petIdFromParams = route?.params?.petId?.trim() || null;
+  const petIdFromParams = isolated?.petId ?? (route?.params?.petId?.trim() || null);
+  const entryPeriod = isolated?.period ?? route.params?.notificationPeriod;
   const mainCategoryFromParams = MAIN_CATEGORY_KEY_SET.has(
     route?.params?.mainCategory ?? 'all',
   )
@@ -403,9 +413,9 @@ export default function TimelineScreen() {
       pets,
       selectedPetId,
       petIdFromParams,
-      Boolean(route.params?.notificationOpen),
+      Boolean(isolated?.petId || route.params?.notificationOpen),
     ),
-    [petIdFromParams, pets, route.params?.notificationOpen, selectedPetId],
+    [isolated?.petId, petIdFromParams, pets, route.params?.notificationOpen, selectedPetId],
   );
   const selectedPet = useMemo(
     () => pets.find(item => item.id === petId) ?? null,
@@ -416,10 +426,11 @@ export default function TimelineScreen() {
     [theme.colors.brand],
   );
 
-  const notificationScoped = Boolean(route.params?.notificationOpen && route.params.notificationScope);
-  const notificationOwnerScope = route.params?.notificationScope === 'owner';
+  const notificationScoped = Boolean(isolated || (route.params?.notificationOpen && route.params.notificationScope));
+  const notificationOwnerScope = isolated ? !isolated.petId : route.params?.notificationScope === 'owner';
   const notificationSource = useNotificationTimeline({
-    enabled: notificationScoped && isLoggedIn,
+    // The embedded destination never falls through to the production record store or API.
+    enabled: !isolated && notificationScoped && isLoggedIn,
     ownerId,
     petIds: notificationOwnerScope ? pets.map(pet => pet.id) : petId ? [petId] : [],
     period: route.params?.notificationPeriod,
@@ -429,25 +440,31 @@ export default function TimelineScreen() {
   const bootstrap = useRecordStore(s => s.bootstrap);
   const storeRefresh = useRecordStore(s => s.refresh);
   const storeLoadMore = useRecordStore(s => s.loadMore);
-  const storeTimelineIds = useRecordStore(s => s.selectTimelineIdsByPetId(petId));
+  const storePetId = isolated ? null : petId;
+  const storeTimelineIds = useRecordStore(s => s.selectTimelineIdsByPetId(storePetId));
   const timelineStatus = useRecordStore(s =>
-    s.selectTimelineStatusByPetId(petId),
+    s.selectTimelineStatusByPetId(storePetId),
   );
-  const storeHasMore = useRecordStore(s => s.selectTimelineHasMoreByPetId(petId));
+  const storeHasMore = useRecordStore(s => s.selectTimelineHasMoreByPetId(storePetId));
   const timelineEntityVersion = useRecordStore(s =>
-    s.selectTimelineEntityVersionByPetId(petId),
+    s.selectTimelineEntityVersionByPetId(storePetId),
   );
   const focusedMemoryId = useRecordStore(s =>
-    petId ? s.focusedMemoryIdByPet[petId] ?? null : null,
+    !isolated && petId ? s.focusedMemoryIdByPet[petId] ?? null : null,
   );
   const clearFocusedMemoryId = useRecordStore(s => s.clearFocusedMemoryId);
-  const recordsById = notificationSource?.recordsById ?? useRecordStore.getState().recordsById;
-  const timelineIds = notificationSource?.ids ?? storeTimelineIds;
-  const hasMore = notificationSource?.hasMore ?? storeHasMore;
-  const status = notificationSource?.status ?? normalizeStatus(timelineStatus);
+  const isolatedRecords = isolated?.domain.records;
+  const isolatedRows = useMemo(() => isolatedRecords ? {
+    byId: Object.fromEntries(isolatedRecords.map(record => [record.id, record])),
+    ids: isolatedRecords.map(record => record.id),
+  } : null, [isolatedRecords]);
+  const recordsById = isolatedRows?.byId ?? notificationSource?.recordsById ?? useRecordStore.getState().recordsById;
+  const timelineIds = isolatedRows?.ids ?? notificationSource?.ids ?? storeTimelineIds;
+  const hasMore = isolated ? false : notificationSource?.hasMore ?? storeHasMore;
+  const status = isolated ? 'ready' : notificationSource?.status ?? normalizeStatus(timelineStatus);
   const refresh = useCallback((id: string) => notificationSource ? notificationSource.refresh() : storeRefresh(id), [notificationSource, storeRefresh]);
   const loadMore = useCallback((id: string) => notificationSource ? notificationSource.loadMore() : storeLoadMore(id), [notificationSource, storeLoadMore]);
-  useNotificationDestinationRead(route.params?.notificationOpen, Boolean(petId && status === 'ready'));
+  useNotificationDestinationRead(isolated ? undefined : route.params?.notificationOpen, Boolean(petId && status === 'ready'));
   const refreshing = status === 'refreshing';
 
   useEffect(() => {
@@ -535,7 +552,7 @@ export default function TimelineScreen() {
       recordsById: recordsSnapshot,
       filters: {
         ymFilter,
-        dateRange: isHomeTotalSummaryEntry ? undefined : route.params?.notificationPeriod,
+        dateRange: isHomeTotalSummaryEntry ? undefined : entryPeriod,
         includeHealth: notificationScoped,
         mainCategory,
         otherSubCategory,
@@ -551,7 +568,7 @@ export default function TimelineScreen() {
     sortMode,
     ymFilter,
     timelineEntityVersion,
-    route.params?.notificationPeriod,
+    entryPeriod,
     isHomeTotalSummaryEntry,
     notificationScoped,
   ]);
@@ -574,7 +591,7 @@ export default function TimelineScreen() {
   const renderedFilteredIds = isHomeTotalSummaryListLoading
     ? EMPTY_TIMELINE_IDS
     : filteredIds;
-  const notificationPeriod = isHomeTotalSummaryEntry ? undefined : route.params?.notificationPeriod;
+  const notificationPeriod = isHomeTotalSummaryEntry ? undefined : entryPeriod;
   const monthGrid = useMemo(
     () => buildTimelineMonthGrid(renderedFilteredIds, recordsById, sortMode, ymFilter || notificationPeriod ? 'day' : 'month'),
     [notificationPeriod, recordsById, renderedFilteredIds, sortMode, ymFilter],
@@ -647,7 +664,7 @@ export default function TimelineScreen() {
   );
   const markExplicitMonthSelection = useTimelineInitialMonth({
     petId,
-    enabled: isLoggedIn && !isHomeTotalSummaryEntry && !route.params?.notificationOpen,
+    enabled: isLoggedIn && !isHomeTotalSummaryEntry && !route.params?.notificationOpen && !isolated,
     latestRecordedMonth,
     setMonth: setYmFilter,
   });
@@ -676,7 +693,7 @@ export default function TimelineScreen() {
     ?? (petId && !hasMore && status === 'ready' ? filteredIds.length : null);
 
   useEffect(() => {
-    if (!isLoggedIn || !petId) {
+    if (isolated || !isLoggedIn || !petId) {
       setLevelSummary(null);
       setEarnedTitles([]);
       return;
@@ -708,7 +725,7 @@ export default function TimelineScreen() {
       cancelled = true;
       task.cancel();
     };
-  }, [isLoggedIn, petId, timelineEntityVersion, isFocused]);
+  }, [isolated, isLoggedIn, petId, timelineEntityVersion, isFocused]);
 
   const listRef = useRef<FlashListRef<string>>(null);
   const entryScrollRequestIdRef = useRef<number | null>(null);
@@ -768,6 +785,7 @@ export default function TimelineScreen() {
   }, [clearFocusedMemoryId, focusedMemoryId, isFocused, isHomeTotalSummaryEntry, monthGrid, petId]);
 
   const handleListContentSizeChange = useCallback(() => {
+    isolated?.onContentReady();
     if (isHomeTotalSummaryEntry && !isHomeTotalSummaryListLoading) {
       entryContentReadyRef.current = true;
       requestAnimationFrame(() => {
@@ -780,6 +798,7 @@ export default function TimelineScreen() {
     consumeHomeTotalSummaryEntryScroll,
     isHomeTotalSummaryEntry,
     isHomeTotalSummaryListLoading,
+    isolated,
   ]);
 
   useEffect(() => {
@@ -821,7 +840,7 @@ export default function TimelineScreen() {
   }, [filteredIds, imageWindow.end, imageWindow.start, recordsById]);
 
   useEffect(() => {
-    if (!isFocused) return;
+    if (isolated || !isFocused) return;
     const immediateSignature = timelinePreloadImageRefs.immediate
       .map(item => `${item.variant}:${item.path}`)
       .join('|');
@@ -883,10 +902,10 @@ export default function TimelineScreen() {
       deferredTask.cancel();
       if (deferredTimer) clearTimeout(deferredTimer);
     };
-  }, [isFocused, timelinePreloadImageRefs]);
+  }, [isolated, isFocused, timelinePreloadImageRefs]);
 
   const onPressCreate = useCallback(() => {
-    if (!petId) return;
+    if (isolated || !petId) return;
     navigation.navigate('RecordCreate', {
       petId,
       returnTo: {
@@ -904,11 +923,11 @@ export default function TimelineScreen() {
         },
       },
     });
-  }, [mainCategory, navigation, otherSubCategory, petId]);
+  }, [isolated, mainCategory, navigation, otherSubCategory, petId]);
 
   const onPressItem = useCallback(
     (item: MemoryRecord) => {
-      if (!pets.some(pet => pet.id === item.petId)) return;
+      if (isolated || !pets.some(pet => pet.id === item.petId)) return;
       navigation.navigate('RecordDetail', {
         petId: item.petId,
         memoryId: item.id,
@@ -916,13 +935,13 @@ export default function TimelineScreen() {
         entrySource: 'timeline',
       });
     },
-    [navigation, pets],
+    [isolated, navigation, pets],
   );
 
   const onRefresh = useCallback(() => {
-    if (!petId) return;
+    if (isolated || !petId) return;
     refresh(petId);
-  }, [petId, refresh]);
+  }, [isolated, petId, refresh]);
 
   const onViewableItemsChanged = useCallback(
     ({
@@ -1011,12 +1030,19 @@ export default function TimelineScreen() {
   }, [jumpToYm]);
 
   const openAllRecords = useCallback(() => {
+    if (isolated) {
+      jumpToYm(null);
+      setMainCategory('all');
+      setOtherSubCategory(null);
+      setOtherModalOpen(false);
+      return;
+    }
     if (!petId || route.params?.notificationPeriod || notificationOwnerScope) {
       showAllNotificationRecords();
       return;
     }
     navigation.navigate('RecordGallery', { petId, entrySource: 'timeline' });
-  }, [navigation, notificationOwnerScope, petId, route.params?.notificationPeriod, showAllNotificationRecords]);
+  }, [isolated, jumpToYm, navigation, notificationOwnerScope, petId, route.params?.notificationPeriod, showAllNotificationRecords]);
 
   const onPressMainCategory = useCallback((key: MainCategory) => {
     if (key !== 'other') {
@@ -1126,12 +1152,12 @@ export default function TimelineScreen() {
     return (
       <View style={styles.monthGridCell}>
         <View style={styles.monthGridSquare}>
-          <RecordGalleryThumbnail record={record} onOpen={onPressItem}
+          <RecordGalleryThumbnail record={record} onOpen={isolated ? undefined : onPressItem}
             contextLabel={notificationOwnerScope ? pets.find(pet => pet.id === record.petId)?.name : undefined} />
         </View>
       </View>
     );
-  }, [monthGrid, notificationOwnerScope, onPressItem, pets, recordsById]);
+  }, [isolated, monthGrid, notificationOwnerScope, onPressItem, pets, recordsById]);
 
   const keyExtractor = useCallback((itemId: string) => itemId, []);
   const getItemType = useCallback(
@@ -1214,7 +1240,7 @@ export default function TimelineScreen() {
         <AppText preset="unifiedBody" style={styles.emptyDesc}>
           {emptyCopy.description}
         </AppText>
-        <CtaButton
+        {isolated ? null : <CtaButton
           role="primary"
           activeOpacity={0.9}
           style={[styles.primary, {}]}
@@ -1223,7 +1249,7 @@ export default function TimelineScreen() {
           <CtaText preset="unifiedBody" style={styles.primaryText}>
             기록 시작하기
           </CtaText>
-        </CtaButton>
+        </CtaButton>}
       </View>
     );
   }, [
@@ -1236,6 +1262,7 @@ export default function TimelineScreen() {
     onPressCreate,
     onRefresh,
     status,
+    isolated,
   ]);
 
   const listExtraData = useMemo(
@@ -1258,7 +1285,7 @@ export default function TimelineScreen() {
   );
 
   const onPressBack = useEntryAwareBackAction({
-    entrySource: route.params?.entrySource,
+    entrySource: isolated ? undefined : route.params?.entrySource,
     onHome: () => {
       if (isHomeTotalSummaryEntry && entryRequestId !== null) {
         invalidateTimelineEntryRequest(entryRequestId);
@@ -1268,13 +1295,13 @@ export default function TimelineScreen() {
     onMore: () => {
       openMoreDrawer();
     },
-    onFallback: () => {
+    onFallback: isolated?.onBack ?? (() => {
       if (route.params?.notificationOpen) {
         navigation.goBack();
         return;
       }
       navigation.navigate('HomeTab');
-    },
+    }),
   });
 
   const onToggleSort = useCallback(
@@ -1460,7 +1487,7 @@ export default function TimelineScreen() {
           { paddingBottom: (toolbarHeight ?? insets.bottom) + 16 },
         ]}
         refreshing={refreshing}
-        onRefresh={onRefresh}
+        onRefresh={isolated ? undefined : onRefresh}
         onEndReached={onEndReached}
         onEndReachedThreshold={0.6}
         onViewableItemsChanged={onViewableItemsChanged}
@@ -1472,11 +1499,11 @@ export default function TimelineScreen() {
         keyboardShouldPersistTaps="handled"
       />
 
-      <TimelineCreateButton
+      {isolated ? null : <TimelineCreateButton
         bottom={floatingCreateButtonBottom}
         rightInset={insets.right}
         onPress={onPressCreate}
-      />
+      />}
 
       <Modal
         visible={otherModalOpen}

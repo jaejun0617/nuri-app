@@ -171,7 +171,7 @@ function normalizeEventType(value: unknown): ActivityXpEventType | null {
   return EVENT_TYPES.has(normalized) ? normalized : null;
 }
 
-function mapLedgerRow(value: unknown): ActivityDashboardLedgerRow | null {
+export function mapLedgerRow(value: unknown): ActivityDashboardLedgerRow | null {
   if (!isRecord(value)) return null;
   const id = toString(value.id);
   const eventType = normalizeEventType(value.event_type);

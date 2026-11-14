@@ -3,6 +3,8 @@ import {
   resolveSupportReplyNotification,
 } from '../../services/notifications/supportReplyNotifications';
 import { createMixedNotificationApi } from '../../services/notifications/mixedNotifications';
+import type { InboxKey } from '../../services/notifications/mixedNotifications';
+import { parseScopedDestinationDomain } from '../../services/notifications/scopedDestinationDomain';
 
 export type Notice = {
   id: string;
@@ -251,6 +253,12 @@ export class IsolatedNoticeClient {
   readonly mixedNotifications = createMixedNotificationApi((name, args) =>
     this.request('/rest/v1/rpc/' + name, args),
   );
+  async notificationDomain(identity: InboxKey) {
+    return parseScopedDestinationDomain(await this.request(
+      '/rest/v1/rpc/get_notification_destination_domain_v4',
+      { p_id: identity.id, p_source: identity.source },
+    ));
+  }
   private token: string | null = null;
   private epoch = 0;
   private requests = new Set<AbortController>();

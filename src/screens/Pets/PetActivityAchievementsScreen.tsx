@@ -65,6 +65,7 @@ import {
 import { getTitleArtwork } from '../../services/activity/titleArtwork';
 import type { HomeTitleBadgeIdentity } from '../../services/activity/homeTitleBadge';
 import { TITLE_VAULT_CATEGORIES } from '../../services/activity/titleVaultV2';
+import type { ScopedActivityDomain } from '../../services/notifications/scopedDestinationDomain';
 
 type Nav = NativeStackNavigationProp<
   RootStackParamList,
@@ -318,6 +319,7 @@ function Summary({
   stack,
   petCardWidth,
   selectedTitle,
+  onContentReady,
 }: {
   dashboard: ActivityDashboardData;
   pet: PetActivityDashboardSummary | null;
@@ -327,6 +329,7 @@ function Summary({
   stack: boolean;
   petCardWidth: number;
   selectedTitle?: HomeTitleBadgeIdentity | null;
+  onContentReady?: () => void;
 }) {
   const categoryItems = [
     { key: 'walk', label: '산책', icon: 'paw' },
@@ -337,7 +340,7 @@ function Summary({
   return (
     <>
       <GrowthCard dashboard={dashboard} stack={stack} selectedTitle={selectedTitle} />
-      <View style={s.section}>
+      <View style={s.section} onLayout={onContentReady}>
         <SectionHeading title="아이별 성장 기록" />
         {dashboard.petSummaries.length ? (
           <ScrollView
@@ -498,15 +501,17 @@ function Summary({
   );
 }
 
-export default function PetActivityAchievementsScreen() {
+export default function PetActivityAchievementsScreen({ isolated }: {
+  isolated?: { domain: ScopedActivityDomain; onBack(): void; onContentReady(): void };
+} = {}) {
   const navigation = useNavigation<Nav>();
   const route = useRoute<RootScreenRoute<'PetActivityAchievements'>>();
   const insets = useSafeAreaInsets();
   const { width, fontScale } = useWindowDimensions();
   const layout = getActivityLayout(width, fontScale);
-  const pets = usePetStore(state => state.pets);
-  const selectedPetId = usePetStore(state => state.selectedPetId);
-  const ownerId = useAuthStore(state => state.session?.user.id ?? null);
+  const pets = usePetStore(state => isolated?.domain.pets ?? state.pets);
+  const selectedPetId = usePetStore(state => isolated ? pets[0]?.id ?? null : state.selectedPetId);
+  const ownerId = useAuthStore(state => isolated ? null : state.session?.user.id ?? null);
   const revision =
     useQuery<number>({
       queryKey: ['walk', ownerId, 'activity-revision'],
@@ -554,8 +559,8 @@ export default function PetActivityAchievementsScreen() {
     else if(route.params?.initialTab)setTab(route.params.initialTab);
   },[route.params?.focusTitleId,route.params?.focusPetId,route.params?.initialTab,selectedPetId]);
   const offsets = useRef<Record<Tab, number>>({ summary: 0, vault: 0 });
-  const dashboard = result?.owner === ownerId ? result.data : null;
-  useNotificationDestinationRead(route.params?.notificationOpen, Boolean(dashboard && !loading && !error));
+  const dashboard = isolated?.domain.dashboard ?? (result?.owner === ownerId ? result.data : null);
+  useNotificationDestinationRead(isolated ? undefined : route.params?.notificationOpen, Boolean(dashboard && !loading && !error));
   const inputs = useMemo(
     () =>
       pets.map(p => ({
@@ -676,7 +681,7 @@ export default function PetActivityAchievementsScreen() {
     }
   };
   const onBack = useEntryAwareBackAction({
-    entrySource: route.params?.entrySource,
+    entrySource: isolated ? undefined : route.params?.entrySource,
     onHome: () =>
       navigation.reset({
         index: 0,
@@ -686,10 +691,11 @@ export default function PetActivityAchievementsScreen() {
       navigation.goBack();
       requestAnimationFrame(() => openMoreDrawer());
     },
-    onFallback: () => navigation.goBack(),
+    onFallback: isolated?.onBack ?? (() => navigation.goBack()),
   });
   const load = useCallback(
     async (refresh: boolean) => {
+      if (isolated) return;
       const request = ++requests.current;
       const current = () =>
         request === requests.current &&
@@ -720,7 +726,7 @@ export default function PetActivityAchievementsScreen() {
         }
       }
     },
-    [inputs, ownerId, revision],
+    [inputs, isolated, ownerId, revision],
   );
   const invalidateRequest = useCallback(() => {
     requests.current++;
@@ -755,7 +761,7 @@ export default function PetActivityAchievementsScreen() {
               accessibilityRole="button"
               accessibilityLabel="뒤로가기"
               style={s.iconButton}
-              onPress={onBack}
+              onPress={isolated?.onBack ?? onBack}
             >
               <Feather name="chevron-left" size={APP_HEADER.backIconSize} color={C.ink} />
             </Pressable>
@@ -778,7 +784,7 @@ export default function PetActivityAchievementsScreen() {
               { key: 'summary', label: '활동 요약' },
               { key: 'vault', label: '칭호 보관함' },
             ] as const
-          ).map(item => (
+          ).filter(item => !isolated || item.key === 'summary').map(item => (
             <Pressable
               key={item.key}
               testID={`activity-tab-${item.key}`}
@@ -814,7 +820,7 @@ export default function PetActivityAchievementsScreen() {
             offsets.current[tab] = event.nativeEvent.contentOffset.y;
           }}
           refreshControl={
-            <RefreshControl
+            isolated ? undefined : <RefreshControl
               refreshing={refreshing}
               onRefresh={() => {
                 load(true);
@@ -869,6 +875,7 @@ export default function PetActivityAchievementsScreen() {
               stack={layout.stack}
               petCardWidth={(width - layout.inset * 2 - 10) / 2}
               selectedTitle={selectedTitleIdentity}
+              onContentReady={isolated?.onContentReady}
             />
           ) : null}
           {dashboard && vault && tab === 'vault' ? (

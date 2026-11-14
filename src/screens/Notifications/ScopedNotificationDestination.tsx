@@ -5,13 +5,16 @@ import { useIsFocused, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNotificationScope } from '../../app/providers/NotificationScopeProvider';
+import { scopedDestinationKey, useNotificationScope } from '../../app/providers/NotificationScopeProvider';
+import { NoticeError } from '../SupportIsolation/isolatedNoticeClient';
 import { mixedInboxKey, type InboxKey } from '../../services/notifications/mixedNotifications';
 import { createNotificationOpenReceipt, resolveNotificationDestination } from '../../services/notifications/openNotification';
 import { InquiryMessage, inquiryDate } from '../Support/InquiryPresentation';
 import { Copy } from '../Support/PreviewPrimitives';
 import TicketPhotoViewer from '../SupportIsolation/TicketPhotoViewer';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
+import TimelineScreen from '../Records/TimelineScreen';
+import PetActivityAchievementsScreen from '../Pets/PetActivityAchievementsScreen';
 import { NotificationCanvas, NotificationDetailDesign, NotificationHeader, NotificationState } from './NotificationDesign';
 
 export function replyIntersectsViewport(top: number, height: number, viewportTop: number, viewportHeight: number) {
@@ -38,7 +41,7 @@ export default function ScopedNotificationDestination({ identity, scopeKey, onBa
   const client = useQueryClient();
   const active = Boolean(scope && focused && foreground);
   const query = useQuery({
-    queryKey: ['scoped-notification-target', scopeKey, identity.source, identity.id],
+    queryKey: [...scopedDestinationKey(scopeKey), identity.source, identity.id],
     enabled: active,
     gcTime: 0,
     retry: false,
@@ -47,13 +50,26 @@ export default function ScopedNotificationDestination({ identity, scopeKey, onBa
     queryFn: async () => {
       if (!scope?.isCurrent()) throw new Error('NURI_NOTIFICATION_ACCOUNT_CHANGED');
       const resolved = await scope.api.target(identity);
+      if (!scope.isCurrent()) throw new Error('NURI_NOTIFICATION_ACCOUNT_CHANGED');
       if (resolved.kind === 'legacy') {
         const receipt = createNotificationOpenReceipt({ id: identity.id, source: resolved.item.source, ownerId: scope.userId });
         const destination = resolveNotificationDestination(resolved.item, receipt, null);
-        // Other domain data cannot be opened through the unrelated production session.
-        if (destination.name !== 'NotificationDetail' || resolved.item.actionTarget?.kind === 'unavailable')
-          throw new Error('NURI_NOTIFICATION_UNAVAILABLE');
-        return resolved;
+        if (destination.name === 'NotificationDetail' && resolved.item.actionTarget?.kind !== 'unavailable') return resolved;
+        const target = resolved.item.actionTarget;
+        if (destination.name === 'NotificationTimeline' &&
+            (target?.kind === 'timeline_period' || target?.kind === 'pet_anniversary')) {
+          const domain = await scope.client.notificationDomain(identity);
+          if (!scope.isCurrent() || domain.kind !== 'timeline') throw new Error('NURI_NOTIFICATION_UNAVAILABLE');
+          return { kind: 'timeline' as const, domain, petId: target.petId ?? null,
+            period: target.kind === 'timeline_period' ? { startDate: target.startDate, endDate: target.endDate } : undefined };
+        }
+        if (destination.name === 'PetActivityAchievements' && target?.kind === 'activity') {
+          const domain = await scope.client.notificationDomain(identity);
+          if (!scope.isCurrent() || domain.kind !== 'activity') throw new Error('NURI_NOTIFICATION_UNAVAILABLE');
+          return { kind: 'activity' as const, domain };
+        }
+        // A scoped target cannot be opened through the unrelated production session.
+        throw new Error('NURI_NOTIFICATION_UNAVAILABLE');
       }
       const thread = await scope.client.ticketThread(resolved.target.ticketId, resolved.target.messageSeq - 1);
       if (!scope.isCurrent() || thread.id !== resolved.target.ticketId ||
@@ -89,8 +105,17 @@ export default function ScopedNotificationDestination({ identity, scopeKey, onBa
       else await scope.api.command('read', identity);
       current.read = true;
       if (scope.isCurrent()) await client.invalidateQueries({ queryKey: mixedInboxKey(scope) });
-    } catch {
-      if (scope.isCurrent() && current.active) setReadError(true);
+    } catch (error) {
+      if (scope.isCurrent() && current.active) {
+        if (error instanceof NoticeError && [
+          'NURI_NOTIFICATION_UNAVAILABLE', 'NURI_NOTIFICATION_AUTH_REQUIRED',
+          'SUPPORT_AUTH_REQUIRED', 'SUPPORT_FORBIDDEN', 'SUPPORT_NOT_FOUND', 'AUTH_REQUIRED',
+        ].includes(error.code)) {
+          current.active = false;
+          current.seen = false;
+          refetchTarget().catch(() => {});
+        } else setReadError(true);
+      }
     } finally {
       current.pending = false;
     }
@@ -109,10 +134,29 @@ export default function ScopedNotificationDestination({ identity, scopeKey, onBa
     const current = visibility.current;
     return () => { current.active = false; };
   }, []);
+  const onDomainLayout = () => {
+    requestAnimationFrame(() => {
+      if (!scope?.isCurrent() || !navigation.isFocused() || AppState.currentState !== 'active') return;
+      visibility.current.seen = true;
+      acknowledge().catch(() => {});
+    });
+  };
+  if (resolved?.kind === 'timeline' || resolved?.kind === 'activity') {
+    return (
+      <View style={styles.flex}>
+        {resolved.kind === 'timeline'
+          ? <TimelineScreen isolated={{ domain: resolved.domain, petId: resolved.petId, period: resolved.period, onBack, onContentReady: onDomainLayout }} />
+          : <PetActivityAchievementsScreen isolated={{ domain: resolved.domain, onBack, onContentReady: onDomainLayout }} />}
+        {readError ? <CtaButton role="neutral" onPress={onDomainLayout}><CtaText>읽음 다시 확인</CtaText></CtaButton> : null}
+      </View>
+    );
+  }
   return (
     <NotificationCanvas top={top}>
       <NotificationHeader title={resolved?.kind === 'support' ? '1:1 문의' : '알림 상세'} onBack={onBack} />
-      {!scope || query.isError ? <NotificationState message="현재 알림을 열 수 없어요" retry={scope ? () => { query.refetch().catch(() => {}); } : undefined} />
+      {!scope || query.isError ? <NotificationState message={query.error instanceof NoticeError &&
+        query.error.code === 'NETWORK_UNCERTAIN' ? '연결 상태를 확인한 뒤 다시 시도해 주세요' : '현재 알림을 열 수 없어요'}
+        retry={scope ? () => { query.refetch().catch(() => {}); } : undefined} />
       : !resolved ? <NotificationState loading message="알림을 확인하고 있어요" />
       : resolved.kind === 'legacy' ? (
         <View style={styles.flex} onLayout={() => {

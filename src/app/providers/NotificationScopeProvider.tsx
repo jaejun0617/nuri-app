@@ -5,6 +5,8 @@ import { mixedInboxKey, type MixedInboxScope } from '../../services/notification
 import type { IsolatedNoticeClient } from '../../screens/SupportIsolation/isolatedNoticeClient';
 
 type ScopedInbox = MixedInboxScope & { client: IsolatedNoticeClient };
+export const scopedDestinationKey = (scopeKey: string) =>
+  ['scoped-notification-target', scopeKey] as const;
 const Scope = createContext<{
   inbox: ScopedInbox | null;
   select(inbox: ScopedInbox | null): void;
@@ -19,11 +21,15 @@ export function NotificationScopeProvider({ children }: React.PropsWithChildren)
   const [inbox, setInbox] = useState<ScopedInbox | null>(null);
   const current = useRef<ScopedInbox | null>(null);
   const query = useQueryClient();
+  function discard(scope: ScopedInbox) {
+    scope.client.dispose();
+    query.removeQueries({ queryKey: mixedInboxKey(scope) });
+    query.removeQueries({ queryKey: scopedDestinationKey(scope.key) });
+  }
   function select(next: ScopedInbox | null) {
     if (!__DEV__) return;
     if (current.current) {
-      current.current.client.dispose();
-      query.removeQueries({ queryKey: mixedInboxKey(current.current) });
+      discard(current.current);
     }
     current.current = next;
     setInbox(next);
@@ -34,6 +40,7 @@ export function NotificationScopeProvider({ children }: React.PropsWithChildren)
       if (next.session !== previous.session && current.current) {
         current.current.client.dispose();
         query.removeQueries({ queryKey: mixedInboxKey(current.current) });
+        query.removeQueries({ queryKey: scopedDestinationKey(current.current.key) });
         current.current = null;
         setInbox(null);
       }
