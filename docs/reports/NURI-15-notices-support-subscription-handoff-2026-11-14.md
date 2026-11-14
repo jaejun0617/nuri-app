@@ -199,3 +199,50 @@ APK는 build 출력 밖 독립 파일로 복사하고 inode·전체 hash 일치�
 전달 후보 목록/hash, 실제 staged/commit diff, normal push·원격 고정 tree 비교와 동일 SHA 필수 CI 결과는 `delivery-candidate.json` 및 `delivery.json`으로 연결한다. 이 보고서에 최종 SHA를 다시 넣기 위한 반복 commit은 하지 않는다. CI 성공은 새로운 운영·제품 E2E 수락이 아니며 실제 결과는 최종보고에서 확정한다.
 
 **해결:** 격리 공통 목록/target·독립 전달·새 Metro OFF 지정 경로·시험 자료 보호. **진행:** 이 문서 작성 시 선별 전달·동일 SHA CI·마감 공간 정리. **잔여:** 정식 혼합 backend/resolver/홈 배지, Release·운영 결정·배포, 실제 결제. **잔여 해결 계획:** §10 첫 작업 한 단위만 다음 지시로 시작하고 현재는 종료·대기한다.
+
+<a id="nuri15-mixed-v4"></a>
+## 13. 후속 실행: 최신 4열 타임라인과 격리 공용 알림 v4
+
+§1~12는 직전 전달 시점의 이력이다. 새 실행의 Master는 `~/.codex/worktrees/nuri-batch-a-20261020/nuri`, 시작 `752b49db1254c363ff9276f191924cbd69e19ce2`, 제품 변경 `78bb0a4cf1112d00cd0b0fdc536670ba87379ac1`이다. 기존 dirty와 미추적 자료는 덮어쓰지 않았다. **격리 backend/resolver PARTIAL. Home·알림함·읽음/숨김 PARTIAL**(핵심 경로 PASS, 아래 미실행 조합 제외). 운영 `NOT_DEPLOYED`, 결제 `NOT_IMPLEMENTED`, 실제 Release `RELEASE_RUNTIME_NOT_RUN`.
+
+### 13.1. 직전 영수증 정정과 정확한 후보
+
+- 직전 `common-inbox-PwbibW/closeout.json`의 시작 SQL은 ticket만 제한했다. `b48a8602-28ba-49cf-93f5-6cd9e67c4495`의 seq 0은 editor 행으로, 끝의 `46a4fdf7-0ff3-4c01-88b2-91618370d4e2` reader seq 2와 같은 주체가 아니다. 이전 reader 결과는 조회 배열에 해당 행이 없어 **행 없음**이며 0으로 쓰지 않는다. 기존 JSON과 독립 기존 결과는 보존한다.
+- 이번 새 회차는 같은 synthetic reader, ticket, reply event와 같은 로컬 DB에서 **행 없음 → seq 2**를 확인했다. 조회와 target은 변경하지 않았으며 표시 후 ack가 cursor를 썼다. 해당 ID·호출 순서·서버 응답·정리 상태는 비공개 `~/.codex/n15-local/mixed-inbox-20261114/verification.json`에 보존한다.
+- 기존 APK `e9f621deb53adfd10739f02a65b76b45c0838fd7b1e9a8bb961b918304e7c433`는 `752b49d` 원격 CI의 전체 입력과 동일하지 않았다. 신규 APK `9a71d9e0de872c833986a086543a9f535ee84822815fe80408cd29c0b6fff435`, 번들 `d8b02b5b016fd14282cb440412f79c13c02382d3b74e420f713d3dac1585727b`. 표적 코드와 신규 SQL은 선별 커밋에 포함했다. APK는 active working input을 사용해 기존 로컬 디자인 등 제품 입력 22건이 커밋과 다르다. `artifact.json`과 `source-input.json`에 파일별 해시·일치 여부를 남겼다. Git CI를 APK 전체 동일성으로 대체하지 않는다.
+- S25 Edge SM-S937N의 `com.nuri.app`에서 동일 서명·appId 10402·firstInstall을 유지한 보존 설치와 기기 APK SHA 일치를 확인했다. Metro OFF 내부 Debug이며 Release가 아니다. 빌드 gate 26.596 GiB로 25 이상, 35 목표 미달. 보호 APK·소스·증거는 삭제하지 않았다.
+
+### 13.2. 변경 요약
+
+- `TimelineScreen`의 옛 1열 분기와 별도 월 선택기를 제거했다. 일반 탭·알림·기간 지정은 같은 `TimelineMain` 4열을 사용한다. 전체는 월 단위, 선택 월/알림 기간은 날짜 단위 그룹. 알림의 대상 펫·기간, 기록 상세, 기존 Back 계약은 유지한다.
+- `20261114041449_notification_mixed_inbox_v4.sql`과 `prepare-mixed-notification-baseline.cjs`는 기존 v3 조회를 재사용한다. 신규 정의는 로컬에만 적용했고 필요한 기존 DDL만 준비했다. 적용 객체를 확인했으나 이 환경에는 전체 migration 적용 이력 표가 없어 13개 이전 migration의 이력 일치를 주장하지 않는다. [출처별 계약](../리서치/리서치.md#2026-11-14-nuri-15-공용-알림-v4-출처-계약) 참고.
+- `mixedNotifications`, `NotificationScopeProvider`, 기존 공용 알림함·Home hook과 `IsolatedNoticeClient`가 한 actor의 계약과 세션별 캐시를 사용한다. 실제 API·정상 Auth·독립 worker다. DEV 격리 연결만 선택하고 운영 계정은 그대로 둔다. target은 현재 권한을 재검사하며 낯선 환경의 기존 도메인으로 우회하지 않는다.
+- `IsolatedSupportReplyScreen`은 목표 seq가 든 페이지를 요청하고 실제 표시·focus·foreground 이후에만 served seq를 ack한다. Android의 기존 전체 삭제 재전송 방지에 v4 명령을 추가했다. 새 공지 게시판·커뮤니티 공지·기존 공지 알림은 별개다.
+
+### 13.3. 확인 결과와 범위
+
+| 조건 | 실제 결과 | 경계 |
+| --- | --- | --- |
+| U2 11/14 함께한 달 | S25 Edge 기본 하단 탭과 기존 알림 행에서 동일 4열 확인. 알림 → 10월 전환 → 기록 상세 → Back으로 같은 위치 → 알림함 | 이미 읽은 기존 행. 배달·신규 unread→read·모든 진입의 개별 실기기 검사는 아님 |
+| 혼합 및 Home | S25 Edge 같은 reader의 3종, Home 3 → 문의 답변 확인 → Back 2. 개인·공지의 상세도 같은 격리 환경에서 확인 | 비상세 기존 도메인 target은 격리에서 닫힘 |
+| 읽음과 긴 대화 | target 무변경, 표시 후 같은 actor 실제 seq 2, 초기 50개 밖 seq 56은 real API에서 served 전 차단·이후 ack, 새 seq 57 미읽음 유지 | 긴 대화의 물리 화면과 실시간 동시 타이밍 조합은 미실행 |
+| 안정적 페이지 | real API 2페이지 이상, 동시각 tie, first-page snapshot 뒤 새 항목, 전체 미읽음과 숨김 비교 | 오래된 타임스탬프를 가진 지연 커밋까지 영구 고정하는 스냅샷 아님 |
+| 읽음·숨김 명령 | 기기 모두 읽음 후 cursor/개인 최초 읽음 보존. 후발 답변 미읽음. 기기 전체 숨김 성공 응답 1회 소실 → 재전송 없이 조회로 빈 목록·0, 원본 문의·cursor 불변. 비교 계정 및 공지 v2 재발행은 API | 정확한 동시 커밋의 모든 조합과 Android 네이티브 단위 실행은 미실행 |
+| 권한·실패 | 익명 차단, 타인 target 404·교차 읽음/숨김 불변, 꺼진 source target 미노출 및 legacy 유지, 기기 응답 단절 복구. 취소를 무시한 이전 계정의 응답 폐기는 앱 transport 단위 검사로 확인 | 물리 계정 전환 중 늦은 응답·열린 화면의 역할 회수 복합 시험은 미실행 |
+| worker·보관 | 사용자 조회 전 worker 독립 확정, 작성/최초 delivery 시각 구분, 재처리해도 동일 event와 시각. 재시도에 의한 신규 노출 없음 | 운영 worker·OS push·실시간 발송 미검증 |
+| 비활성·DEV | 로컬 opt-in 원복, 기존 v3 응답 확인, DEV route 정적 경계 및 표적 검사. 모의 구독은 실권한과 분리 | Release 실기기·복원·딥링크는 별도 후보에서 확인해야 함 |
+
+직전 공지 CRUD·문의 사진·담당 경쟁은 변경되지 않은 출처 계약의 증거로 재사용하되 이번에 다시 실행했다고 표기하지 않는다. 이 증분은 기존 OS 13/13·기록 4/4·통합 4/7에 합산하지 않는다. 기존 두 보류, P0 PARTIAL·SU-544458, C0 미동결, STORE HOLD는 그대로다.
+
+### 13.4. 정리·결정·다음 순서
+
+정확한 합성 owner·시험 ID의 행만 정리 후 기존 자료 digest 일치를 확인했다. 감사·요청 결과는 추적용으로 남겼다. 로컬 정의는 재사용하고 활성 스위치는 원복했다. 시험 worker·전달기와 해당 reverse·Metro를 종료했다. 운영 DB·계정·발송·권한은 변경하지 않았다. 후보, Git 선별 범위, 같은 SHA의 CI와 마감 공간은 비공개 검증·전달 영수증을 따른다.
+
+| 우선순위 | 기존 번호 또는 범위 | 작업 | 선행 조건 | 담당 | 필요한 입력 | 완료 기준 | 현재 시작 가능 여부 | Astra 권장 추론 강도 | GPT-6.1 Sol 권장 추론 강도 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 1 | E · 혼합 알림 | 기존 비상세 target과 계정 전환 표적 검증 | 운영과 분리된 재사용 환경 | Master | 각 대상의 합성 데이터, 두 세션 | 권한·실패·늦은 응답과 해당 화면·Back을 격리에서 확인 | 준비 가능, 자동 착수 안 함 | High | High |
+| 2 | E · 공개 경계 | 실제 Release의 DEV 비노출·구버전 호환 | 표적 검증, Release 별도 승인, 25 GiB 실측 | Master | 고정 입력과 서명 후보 | 메뉴·직접 이동·딥링크·복원 차단, 기존 알림 정상 | 조건 미충족 | High | High |
+| 3 | E · 운영 결정 | 관리 capability·주/대체 담당·큐 확인·연락처/휴무·보관/파기·worker 책임 및 공개 순서 결정 | 소유자와 운영 근거 확보 | PO | 실제 운영자, 승인된 연락 채널/보관 정책, 복구·감시 계획 | 실제 값과 책임을 승인, 미결정 범위는 공개하지 않음 | 의사결정 가능, 운영 쓰기 없음 | High | High |
+| 4 | C → D | 튜토리얼 후 반응형 글꼴 | E 이후 별도 착수 | Master | PO 기획·Metro 시각 승인 | 항목별 별도 수락 | 자동 착수 안 함 | Medium | Medium |
+
+**해결:** 구형 타임라인 분기, 지정 U2 경로, 격리 혼합 목록·홈·답변·명령의 대표 흐름, 영수증 주체 정정. **진행:** 선별 Git 전달과 고정 SHA CI 기록. **잔여:** 비상세 resolver, 물리 세션/권한 경합, 실제 Release 및 운영 결정·배포·실결제. **잔여 해결 계획:** 다음 실행은 표의 1번만 대상으로 한다.
