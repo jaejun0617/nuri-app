@@ -35,6 +35,7 @@ let mockUserId = 'u';
 jest.mock('../src/hooks/useGpsWalkComposer', () => ({ useGpsWalkComposer: () => ({ ready: false }) }));
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
+  useIsFocused: () => true,
   useNavigation: () => mockNavigation,
   useRoute: () => ({
     params: {

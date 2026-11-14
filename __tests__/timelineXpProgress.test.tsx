@@ -186,7 +186,7 @@ describe('actual XP data to Timeline progress', () => {
     );
     expect(screen).toContain('if (!isFocused) return;');
     expect(screen).toContain(
-      '[isLoggedIn, petId, timelineEntityVersion, isFocused]',
+      '[isolated, isLoggedIn, petId, timelineEntityVersion, isFocused]',
     );
     const create = fs.readFileSync(
       path.join(__dirname, '../src/screens/Records/RecordCreateScreen.tsx'),

@@ -19,6 +19,7 @@ import { usePetStore } from '../src/store/petStore';
 
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
+  useIsFocused: () => true,
   useNavigation: () => ({ navigate: jest.fn(), goBack: jest.fn(), canGoBack: () => true, popTo: jest.fn(), addListener: jest.fn((event: string, listener: (value: { data: { closing: boolean } }) => void) => {
     if (event === 'transitionEnd') listener({ data: { closing: false } });
     return jest.fn();

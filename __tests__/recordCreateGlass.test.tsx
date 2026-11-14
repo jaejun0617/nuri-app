@@ -27,6 +27,7 @@ let mockParams: RootStackParamList['RecordCreate'] = { petId: 'glass-qa', initia
 const mockNavigation = { canGoBack: () => true, goBack: jest.fn(), navigate: jest.fn() };
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
+  useIsFocused: () => true,
   useNavigation: () => mockNavigation,
   useRoute: () => ({ params: mockParams }),
   useFocusEffect: (callback: () => void | (() => void)) => {

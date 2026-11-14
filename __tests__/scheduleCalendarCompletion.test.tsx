@@ -87,6 +87,7 @@ jest.mock('react-native-reanimated', () => ({
 }));
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
+  useIsFocused: () => true,
   useNavigation: () => mockNavigation,
   useRoute: () => mockRoute,
   useFocusEffect: (callback: () => void | (() => void)) => {

@@ -367,6 +367,7 @@ describe('More account deletion confirmation', () => {
       'ad-removal',
       'community-blocked-users',
       'policy-center',
+      'tutorial-library',
       'logout',
     ];
 

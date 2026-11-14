@@ -54,6 +54,7 @@ jest.mock('react-native-keyboard-controller', () => {
 });
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
+  useIsFocused: () => true,
   useNavigation: () => mockNavigation,
   useRoute: () => ({
     params: mockParams,
