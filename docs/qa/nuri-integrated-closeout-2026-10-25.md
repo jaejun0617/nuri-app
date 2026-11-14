@@ -3,7 +3,16 @@
 <!-- N15_MIXED_INBOX_V4_BEGIN -->
 ## 2026-11-14 최신 4열 타임라인과 NURI-15 격리 공용 알림
 
-**U2 지정 한 건 관찰:** 11월 14일 ‘함께한 지 한 달이 되었어요’ 기존 수신 행의 진입과 기본 하단 타임라인 탭이 최신 4열 타임라인을 사용한다. S25 Edge의 동일 보존 설치본에서 월 선택·기록 상세·Android Back 후 알림함 복귀를 확인했다. 원래 수신 행은 이미 읽어 미읽음 전후를 재측정하지 않았고 새 OS 발송도 하지 않았다. ‘함께한 달’ 및 ‘월간요약’ 전체 보류를 변경하지 않는다.
+<a id="timeline-four-column-20261114-pass"></a>
+**타임라인 기록 레이아웃 PASS: 4열 단일화, 구형 1열 경로 제거.** 제품 커밋 `78bb0a4`부터 기본 탭·홈 요약·알림 진입은 같은 `TimelineMain`을 사용한다. 로그인 후 기록 영역에는 4열 `FlashList` 하나만 있다. 월 선택·알림 기간은 기록 범위와 월별/일별 묶음만 바꾼다. 제목은 전체 너비를 쓰고, 기록이 적은 묶음은 남은 칸이 비어 있어도 각 기록의 폭은 4열 기준이다.
+
+- **S25 Edge 검증 재사용:** Metro OFF 보존 설치본에서 기본 하단 탭과 ‘함께한 지 한 달이 되었어요’ 알림을 확인했다. 기본 탭 11월은 기록 한 건이 4열 폭의 타일로 표시됐고, 알림 경로 10월 묶음에는 한 줄에 네 타일이 표시됐다. 두 경로 모두 구형 전폭 1열 기록 목록이 없었다. 알림 경로의 월 선택·기록 상세·Android Back도 확인했다. [APK 식별](../reports/NURI-15-notices-support-subscription-handoff-2026-11-14.md#nuri15-mixed-v4).
+- **비공개 증거:** `~/.codex/n15-local/timeline-v4-real-tab.png` (`87a6ea810d4a38e90fbc4f5f9ad9a9e789d5b3cccf3e392f87f4c45cb0b9614d`), `~/.codex/n15-local/u2-together-month-v4-timeline.png` (`26302242bcf0e09071816a6781b76419197cc6327a492ed116c2b3c6909ecea6`). 이번 문서 증분에서 소스와 두 캡처를 대조하고 타임라인·알림 진입 관련 Jest 6개 묶음, 56개 검사를 재실행해 통과했다. 다른 진입은 공통 화면 코드로 확인했고 모든 경로를 실기기에서 개별 재실행하지 않았다.
+
+<a id="u2-together-month-20261114-po-pass"></a>
+**U2 `pet.together_month` 2026-11-14 지정 한 건 PASS (PO 실기기 확인 포함).** PO가 S25 Edge에서 ‘함께한 지 한 달이 되었어요’의 신규 앱 내 수신과 최초 읽음을 직접 확인했다. 대화 첨부 원본(`codex-clipboard-de1f59e7-e367-40aa-98ca-0c165abd8e00.png`, SHA-256 `db42716f4c3c00e3a1ed01bb4cfe0c787325d05d72e1af6cc41ca07f9615dc70`)은 해당 행의 미읽음 표시와 알림함 미읽음 1개를 보여준다. 최초 읽음 동작의 증거는 PO 직접 확인이며, 정지 화면 자체가 동작 전후를 모두 보여주는 것은 아니다.
+
+Master는 같은 수신 건의 읽음 이후 상태를 확인하고, [후속 보존 설치본](../reports/NURI-15-notices-support-subscription-handoff-2026-11-14.md#nuri15-mixed-v4)에서 알림과 기본 하단 탭의 최신 4열, 월 선택, 기록 상세, Android Back 후 알림함 복귀를 검증했다. PO의 최초 수신·읽음을 후속 APK에서 다시 실행한 것으로 기록하지 않는다. 서버 `read_at` 및 OS 푸시는 미검증이다. 첨부 원본의 동일 해시 사본은 비공개 `~/.codex/n15-local/u2-together-month-20261114-po-unread.png`에 보존했다. 이 한 건 외 U2 범위·집계와 두 항목의 전체 보류, 통합 4/7·C0 미동결·STORE HOLD는 그대로다.
 
 **NURI-15 신규 격리 증분 PARTIAL:** 같은 격리 reader의 Home 배지 3 → 공용 개인·공지·문의 혼합 → 정확한 문의 답변 → 동일 주체 행 없음에서 seq 2 → Back 후 2 및 모두 읽음·전체 숨김 응답 단절 복구를 Metro OFF에서 확인했다. 긴 목록·새 응답 경쟁 대표·차단/구버전의 API와 기기 범위, 직전 영수증 정정은 [동일 후보 상세](../reports/NURI-15-notices-support-subscription-handoff-2026-11-14.md#nuri15-mixed-v4)를 따른다. 기존 17묶음/26종 또는 통합 4/7에 합산하지 않는다.
 <!-- N15_MIXED_INBOX_V4_END -->
