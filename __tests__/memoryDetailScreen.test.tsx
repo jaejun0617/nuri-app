@@ -397,7 +397,7 @@ describe('memory detail rendered contract', () => {
     expect(mockNavigation.navigate).not.toHaveBeenCalled();
   });
 
-  it('opens a spacious text-only edit/delete menu while retaining final deletion confirmation', async () => {
+  it('shows a destructive delete entry and still requires final deletion confirmation', async () => {
     const tree = await render();
     TestRenderer.act(() =>
       tree.root
@@ -409,11 +409,11 @@ describe('memory detail rendered contract', () => {
       .findAllByType(Modal)
       .find(node => node.props.visible)!;
     const edit = menu.findAllByType(TouchableOpacity).find(node => node.props.accessibilityLabel === '기록 수정하기');
-    const remove = menu.findAllByType(TouchableOpacity).find(node => node.props.accessibilityLabel === '기록 삭제하기');
+    const remove = menu.findAllByType(CtaButton).find(node => node.props.accessibilityLabel === '기록 삭제하기');
     expect(edit).toBeDefined();
-    expect(remove).toBeDefined();
-    expect(menu.findAllByType(CtaButton).map(node => node.props.role)).toEqual(['neutral']);
     if (!remove) throw new Error('Delete management action missing');
+    expect(remove.props.role).toBe('destructiveEntry');
+    expect(menu.findAllByType(CtaButton).map(node => node.props.role)).toEqual(['destructiveEntry', 'neutral']);
     TestRenderer.act(() => remove.props.onPress());
     expect(mockStore.removeOneLocal).not.toHaveBeenCalled();
     const confirmation = tree.root.findByType(TimelineDeleteDialog);

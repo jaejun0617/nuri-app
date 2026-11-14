@@ -31,7 +31,7 @@ export function getMoreMenuColors(theme: AppTheme, season: SeasonKey) {
     accent: PRODUCT_CTA.primary,
     accentSurface: PRODUCT_CTA.subtle,
     destructive: resolveCtaPalette({
-      role: 'destructiveEntry',
+      role: 'cleanup',
       season,
       colorScheme: theme.mode,
       colors: theme.colors,

@@ -622,7 +622,9 @@ describe('activity and title presentation', () => {
       const layout = getActivityLayout(width, 1);
       expect(width - layout.inset * 2).toBeGreaterThan(280);
       const tree = await render();
-      expect(host(tree, 'activity-scroll')).toBeDefined();
+      const scrollView = host(tree, 'activity-scroll');
+      expect(ReactNative.StyleSheet.flatten(scrollView.props.style).marginBottom).toBe(24);
+      expect(ReactNative.StyleSheet.flatten(scrollView.props.contentContainerStyle).paddingBottom).toBe(20);
       await press(tree, 'activity-tab-vault');
       const cell = host(tree, 'activity-earned-pet_first_health_record');
       expect(ReactNative.StyleSheet.flatten(cell.props.style).width).toBe(

@@ -294,6 +294,7 @@ export default function AdminDesignScreen({
               )}
               <CtaButton
                 role="neutral"
+                variant="opaqueGlass"
                 testID="admin-ticket-list"
                 onPress={back}
               >
@@ -429,7 +430,7 @@ export default function AdminDesignScreen({
                 {editing.document.published ? '수정 내용 게시' : '게시하기'}
               </CtaText>
             </CtaButton>
-            <CtaButton role="neutral" onPress={leaveEditor}>
+            <CtaButton role="neutral" variant="opaqueGlass" onPress={leaveEditor}>
               <CtaText>목록으로</CtaText>
             </CtaButton>
           </>

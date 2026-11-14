@@ -257,7 +257,7 @@ export default function SupportPreviewScreen({
           ) : (
             <Copy>공지를 찾을 수 없어요.</Copy>
           )}
-          <CtaButton role="neutral" onPress={onBack}>
+          <CtaButton testID="notice-list-back" role="neutral" variant="opaqueGlass" onPress={onBack}>
             <CtaText>목록으로</CtaText>
           </CtaButton>
         </>

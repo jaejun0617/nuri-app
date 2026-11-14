@@ -53,11 +53,28 @@ describe('approved CTA role palette', () => {
       expect(whiteContrast('#982936')).toBeGreaterThanOrEqual(4.5);
     },
   );
-  it('separates entry, cleanup, neutral and disabled', () => {
-    expect(palette('destructiveEntry')).toMatchObject({
-      background: 'rgba(255,241,243,0.85)',
-      text: '#B93645',
-    });
+  it('uses the same red and white for enabled destructive entry and confirmation', () => {
+    for (const state of ['default', 'pressed', 'loading'] as const) {
+      expect(palette('destructiveEntry', 'summer', state)).toEqual(
+        palette('destructiveConfirm', 'winter', state),
+      );
+      expect(palette('destructiveEntry', 'summer', state).text).toBe('#FFFFFF');
+    }
+  });
+  it('uses an opaque borderless neutral glass face without affecting other roles', () => {
+    const glass = (role: CtaRole, colorScheme: 'light' | 'dark', state: 'default' | 'pressed' = 'default') =>
+      resolveCtaPalette({ role, season: 'autumn', state, colorScheme, colors, variant: 'opaqueGlass' });
+    for (const mode of ['light', 'dark'] as const) {
+      const face = glass('neutral', mode);
+      expect(face.background).toMatch(/^#[0-9A-F]{6}$/);
+      expect(face.border).toBe('transparent');
+      expect(face.background).not.toBe(glass('neutral', mode, 'pressed').background);
+      const [lighter, darker] = [luminance(face.background), luminance(face.text)].sort((a,b) => b-a);
+      expect((lighter + 0.05) / (darker + 0.05)).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(glass('destructiveConfirm', 'light')).toEqual(palette('destructiveConfirm'));
+  });
+  it('keeps cleanup, neutral and disabled visually distinct', () => {
     expect(palette('cleanup').background).toBe('rgba(255,241,243,0.62)');
     expect(palette('neutral').background).toBe('#F1F3F6');
     expect(palette('disabled')).toEqual(

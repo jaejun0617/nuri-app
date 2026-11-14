@@ -1806,7 +1806,7 @@ export default function LoggedInHome() {
   const insets = useSafeAreaInsets();
   const fallbackTabBarHeight = useBottomTabBarHeight();
   const bottomTabBarHeight = useContext(ToolbarHeightContext) ?? fallbackTabBarHeight;
-  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
+  const { height: windowHeight, width: windowWidth, fontScale } = useWindowDimensions();
   const [heroFrameWidth, setHeroFrameWidth] = useState(windowWidth);
   const { season: ambientSeason } =
     useSeasonPreference();
@@ -2864,7 +2864,11 @@ export default function LoggedInHome() {
     >
       <Screen style={[styles.screen, { backgroundColor: heroColors.statusBar }]}>
         {isScreenFocused ? <StatusBar barStyle="dark-content" /> : null}
-        <View style={{ flex: 1 }} importantForAccessibility={isScreenFocused ? 'auto' : 'no-hide-descendants'}>
+        <View
+          style={{ flex: 1 }}
+          onLayout={handleHomeViewportLayout}
+          importantForAccessibility={isScreenFocused ? 'auto' : 'no-hide-descendants'}
+        >
         {seasonalHomeVisual ? (
           <HomeAmbientBubbleCanvas
             backgroundMode="homePalette"
@@ -2876,12 +2880,14 @@ export default function LoggedInHome() {
         ) : null}
         <ScrollView
           ref={homeScrollRef}
+          testID="logged-in-home-scroll"
           keyboardShouldPersistTaps="handled"
-          style={[styles.scroll, { backgroundColor: 'transparent' }]}
+          // Keep the original photo frame; large profile content scrolls above the overlay tab bar.
+          style={[styles.scroll, { backgroundColor: 'transparent', marginBottom: bottomTabBarHeight }]}
           contentContainerStyle={[
             styles.scrollContent,
             {
-              paddingBottom: Math.max(132, insets.bottom + 108),
+              paddingBottom: Math.max(24, Math.max(132, insets.bottom + 108) - bottomTabBarHeight),
               paddingHorizontal: 0,
               paddingTop: 0,
               gap: 0,
@@ -2889,7 +2895,6 @@ export default function LoggedInHome() {
           ]}
           contentOffset={{ x: 0, y: initialHomeScrollOffset }}
           onContentSizeChange={restoreHomeScrollPosition}
-          onLayout={handleHomeViewportLayout}
           onScroll={handleHomeScroll}
           scrollEventThrottle={16}
           showsVerticalScrollIndicator={false}
@@ -2918,6 +2923,7 @@ export default function LoggedInHome() {
               <HomeHeroInfoPanel
                 colors={heroColors}
                 containerWidth={heroFrameWidth}
+                fontScale={fontScale}
                 petTheme={petTheme}
                 profilePetName={profilePetName}
                 titleBadge={activeHomeTitleBadge?.titleName ?? null}

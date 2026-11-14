@@ -7,7 +7,6 @@ import React, { type PropsWithChildren } from 'react';
 import {
   Image,
   StyleSheet,
-  Text,
   TouchableOpacity,
   useWindowDimensions,
   View,
@@ -17,6 +16,7 @@ import {
 import Feather from 'react-native-vector-icons/Feather';
 import LinearGradient from 'react-native-linear-gradient';
 
+import { ResponsiveNativeText as Text } from '../../app/ui/ResponsiveNativeText';
 import { PRODUCT_ACCENT } from '../../app/theme/tokens/productAccent';
 import { HomeReflectiveGlass } from '../home/HomeReflectiveGlass';
 import { resolveWeatherMetricLayout } from './weatherMetricLayout';

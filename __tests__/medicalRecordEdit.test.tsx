@@ -12,6 +12,7 @@ import { RecordFieldGlass } from '../src/components/records/TimelineFormSurface'
 import { styles as editStyles } from '../src/screens/Records/RecordEditScreen.styles';
 import { styles as createStyles } from '../src/screens/Records/RecordCreateScreen.styles';
 import { Image, StyleSheet, TextInput } from 'react-native';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-controller';
 import { getMemoryImageSignedUrlCached } from '../src/services/supabase/storageMemories';
 import CtaButton from '../src/components/records/TimelineButton';
 import DatePickerModal from '../src/components/date-picker/DatePickerModal';
@@ -142,6 +143,9 @@ describe('medical edit through the single bottom submit action', () => {
     });
     expect(tree.root.findByType(RecordPhotoStrip).props.surfaceVariant).toBe('homeGlass');
     expect(tree.root.findByType(MedicalRecordFields).props.surfaceVariant).toBe('homeGlass');
+    const scroll = tree.root.findByType(KeyboardAwareScrollView);
+    expect(StyleSheet.flatten(scroll.props.style)).toMatchObject({ marginBottom: 18 });
+    expect(StyleSheet.flatten(scroll.props.contentContainerStyle)).toMatchObject({ paddingBottom: 16 });
     for (const grid of tree.root.findAllByType(RecordChoiceGrid)) {
       expect(grid.props.surfaceVariant).toBe('homeGlass');
       expect(typeof grid.props.renderIcon).toBe('function');

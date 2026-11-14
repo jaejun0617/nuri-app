@@ -2,7 +2,6 @@ import { Linking } from 'react-native';
 import type { LinkingOptions } from '@react-navigation/native';
 
 import type { RootStackParamList } from './RootNavigator';
-import { interruptTutorial } from '../services/tutorial/runtime';
 import { AUTH_APP_LINK_ORIGIN, createCallbackDeliveryGuard, normalizeAppLink } from '../services/auth/appLinks';
 
 const PREFIXES = ['nuri://', `${AUTH_APP_LINK_ORIGIN}/`];
@@ -29,7 +28,6 @@ export const appLinking: LinkingOptions<RootStackParamList> = {
     const subscription = Linking.addEventListener('url', ({ url }) => {
       const normalized = normalizeAppLink(url);
       if (normalized && shouldDeliverCallback(normalized)) {
-        interruptTutorial();
         listener(normalized);
       }
     });

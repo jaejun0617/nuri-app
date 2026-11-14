@@ -52,7 +52,9 @@ describe('Weather Home enlarged text flow', () => {
         .find(node => node.props.children === `${weather.windSpeed}m/s`);
       expect(wind?.props.numberOfLines).toBe(fontScale > 1 ? undefined : 1);
       expect(wind?.props.children).toBe('13.5m/s');
-      expect(StyleSheet.flatten(wind?.parent?.props.style).flexShrink).toBe(0);
+      let metric = wind?.parent;
+      while (metric && metric.type !== View) metric = metric.parent;
+      expect(StyleSheet.flatten(metric?.props.style)?.flexShrink).toBe(0);
       const metrics = renderer.root
         .findAllByType(View)
         .filter(node => StyleSheet.flatten(node.props.style)?.width === '50%');

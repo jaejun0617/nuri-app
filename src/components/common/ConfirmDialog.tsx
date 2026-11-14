@@ -16,7 +16,7 @@ import AppText from '../../app/ui/AppText';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import LavenderCtaFill from '../../app/ui/LavenderCtaFill';
 import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
-import { shouldStackCtaPair, type CtaRole } from '../../app/theme/ctaPalette';
+import { shouldStackCtaPair, type CtaRole, type CtaVariant } from '../../app/theme/ctaPalette';
 import { useOptionalSafeAreaInsets } from '../../hooks/useOptionalSafeAreaInsets';
 import { getResponsiveOverlayMaxHeight } from '../../services/app/responsiveLayout';
 import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
@@ -45,6 +45,7 @@ type Props = {
   embedded?: boolean;
   confirmRole?: CtaRole;
   cancelRole?: CtaRole;
+  cancelVariant?: CtaVariant;
   confirmLoading?: boolean;
   surfaceVariant?: 'default' | 'menuGlass';
 };
@@ -98,12 +99,14 @@ function ConfirmDialogBase({
   typographyMode = 'legacy',
   keyboardAware = false,
   embedded = false,
-  confirmRole,
+  confirmRole: explicitConfirmRole,
   cancelRole,
+  cancelVariant,
   confirmLoading = false,
   surfaceVariant = 'default',
 }: Props) {
   const theme = useTheme();
+  const confirmRole = explicitConfirmRole ?? (tone === 'danger' ? 'destructiveConfirm' : undefined);
   const insets = useOptionalSafeAreaInsets();
   const { height: windowHeight, width, fontScale } = useWindowDimensions();
   const stackActions =
@@ -118,7 +121,11 @@ function ConfirmDialogBase({
 
   const petTheme = NEUTRAL_UI_PALETTE;
   const resolvedAccentColor = accentColor ?? petTheme.primary;
-  const lavenderConfirm = tone !== 'danger' && (!accentColor || accentColor === petTheme.primary);
+  const lavenderConfirm =
+    tone !== 'danger' &&
+    confirmRole !== 'destructiveEntry' &&
+    confirmRole !== 'destructiveConfirm' &&
+    (!accentColor || accentColor === petTheme.primary);
   const textPresets =
     typographyMode === 'unified'
       ? {
@@ -219,6 +226,7 @@ function ConfirmDialogBase({
               <CtaButton
                 testID="confirm-dialog-cancel"
                 role={cancelRole}
+                variant={cancelVariant}
                 accessibilityLabel={cancelLabel}
                 style={[
                   styles.button,

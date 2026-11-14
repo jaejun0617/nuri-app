@@ -47,7 +47,6 @@ function AppTextBase({
   align,
   weight,
   allowFontScaling = true,
-  maxFontSizeMultiplier = 2,
   styleOverridesPreset = false,
   style,
   children,
@@ -56,7 +55,7 @@ function AppTextBase({
   const theme = useTheme();
   const { mode } = useAppFontPreference();
   const typographyScope = useTypographyScope();
-  const responsiveBand = useResponsiveTypographyBand();
+  const widthBand = useResponsiveTypographyBand();
   // theme.typography.preset[preset]은 디자인 토큰에 따라 일관된 텍스트 스타일 제공
   const presetStyle = theme.typography.preset[preset];
   const effectiveMode = resolveAppFontMode({
@@ -95,7 +94,7 @@ function AppTextBase({
         // Semantic roles remain classification metadata. The user's app mode
         // owns the family globally, except inside an explicit fixed boundary.
         appFontStyle,
-      ]), responsiveBand, typographyScope === 'fixed' || !allowFontScaling),
+      ]), widthBand, { fixedWidth: typographyScope === 'fixed', allowFontScaling }),
     [
       isUnifiedPreset,
       presetStyle,
@@ -103,7 +102,7 @@ function AppTextBase({
       styleOverridesPreset,
       weight,
       style,
-      responsiveBand,
+      widthBand,
       typographyScope,
       allowFontScaling,
     ],
@@ -113,10 +112,9 @@ function AppTextBase({
     <StyledText
       $color={color}
       $align={align}
-      allowFontScaling={allowFontScaling}
-      maxFontSizeMultiplier={maxFontSizeMultiplier}
       style={composedStyle}
       {...rest}
+      allowFontScaling={false}
     >
       {children}
     </StyledText>

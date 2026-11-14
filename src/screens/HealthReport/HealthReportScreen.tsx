@@ -1,8 +1,8 @@
 import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
-import LavenderCtaFill from '../../app/ui/LavenderCtaFill';
-import { LAVENDER_CTA } from '../../app/theme/tokens/productAccent';
+import { resolveFloatingCreateAppearance } from '../../app/ui/floatingCreateAppearance';
 import React, {
   useCallback,
   useEffect,
@@ -23,6 +23,7 @@ import {
   TouchableOpacity,
   View,
   useWindowDimensions,
+  type LayoutChangeEvent,
 } from 'react-native';
 import { NuriAlert as Alert } from '../../app/ui/NuriAlert';
 import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
@@ -43,6 +44,7 @@ import PetAvatar from '../../components/pets/PetAvatar';
 import { SectionHeaderAction } from '../../app/ui/SectionHeaderAction';
 import WeightTrendChart from '../../components/health/WeightTrendChart';
 import { HomeFrostedGlass } from '../../components/home/HomeFrostedGlass';
+import BlurCaptureExclusion from '../../components/common/BlurCaptureExclusion';
 import { MenuGlassSurface } from '../../components/common/MenuGlassSurface';
 import { MORE_MENU } from '../../components/MoreDrawer/moreMenuVisualTokens';
 import SeasonalAmbientBackground from '../../components/common/SeasonalAmbientBackground';
@@ -768,7 +770,8 @@ export default function HealthReportScreen() {
   const route = useRoute<HealthReportRoute>();
   const theme = useTheme();
   const season = useEffectiveSeason();
-  const { fontScale } = useWindowDimensions();
+  const { width, fontScale } = useWindowDimensions();
+  const createAppearance = resolveFloatingCreateAppearance(width, 'health');
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const pets = usePetStore(s => s.pets);
@@ -776,6 +779,14 @@ export default function HealthReportScreen() {
   const upsertPet = usePetStore(s => s.upsertPet);
   const sessionUserId = useAuthStore(s => s.session?.user?.id ?? null);
   const [recordFilter, setRecordFilter] = useState<RecordFilter>('all');
+  const [toolbarHeight, setToolbarHeight] = useState<number | null>(null);
+  const handleToolbarLayout = useCallback((event: LayoutChangeEvent) => {
+    const height = Math.ceil(event.nativeEvent.layout.height);
+    if (height > 0) setToolbarHeight(height);
+  }, []);
+  const createBottom =
+    (toolbarHeight ?? (56 + Math.max(insets.bottom, Platform.OS === 'android' ? 18 : 10))) + 12;
+  const contentBottom = Math.max(Math.max(insets.bottom, 24) + 110, createBottom + 60);
 
   const resolvedPetId = useMemo(
     () => resolveSelectedPetId(pets, selectedPetId, route.params?.petId),
@@ -1273,7 +1284,9 @@ export default function HealthReportScreen() {
           >
             건강관리
           </HealthText>
-          <View style={[styles.headerSideSlot, styles.headerSideSlotRight]} />
+          <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
+            <HeaderHelpButton topic="healthReport" />
+          </View>
         </AppHeaderLayout>
 
         <View style={styles.centerEmpty}>
@@ -1358,23 +1371,7 @@ export default function HealthReportScreen() {
         </HealthText>
 
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}>
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel="건강 기록하기"
-            activeOpacity={0.7}
-            onPress={openHealthWriteActions}
-            style={styles.headerActionButton}
-          >
-            <LavenderCtaFill radius={22} />
-            <HealthText
-              preset="unifiedMeta"
-              weight="600"
-              color={LAVENDER_CTA.text}
-              style={styles.headerActionText}
-            >
-              기록하기
-            </HealthText>
-          </TouchableOpacity>
+          <HeaderHelpButton topic="healthReport" />
         </View>
       </AppHeaderLayout>
 
@@ -1501,7 +1498,7 @@ export default function HealthReportScreen() {
           key="health-records"
           contentContainerStyle={[
             styles.contentContainer,
-            { paddingBottom: Math.max(insets.bottom, 24) + 90 },
+            { paddingBottom: contentBottom },
           ]}
           showsVerticalScrollIndicator={false}
         >
@@ -1511,9 +1508,10 @@ export default function HealthReportScreen() {
                 이번 달 건강 기록
               </HealthText>
               <HealthText
+                testID="health-monthly-record-count"
                 preset="display"
                 weight="800"
-                style={styles.totalValue}
+                style={[styles.totalValue, width <= 320 && styles.totalValueCompact]}
               >
                 {insightActivityItems.length + insightWeightTimeline.length}건
               </HealthText>
@@ -1566,17 +1564,10 @@ export default function HealthReportScreen() {
             </HealthText>
           </View>
           {recordGroups.length === 0 ? (
-            <View testID="health-records-empty" style={[styles.emptySection, styles.recordsEmpty]}>
+            <View testID="health-records-empty" style={styles.emptySection}>
               <HealthText preset="unifiedTitle" style={styles.recordsEmptyCopy}>
                 이달의 해당 기록이 없어요
               </HealthText>
-              <CtaButton
-                role="primary"
-                onPress={openHealthWriteActions}
-                style={styles.primaryCta}
-              >
-                <CtaText preset="unifiedLabel">건강 기록하기</CtaText>
-              </CtaButton>
             </View>
           ) : (
             recordGroups.map(({ ymd, rows }, index) => (
@@ -1644,7 +1635,7 @@ export default function HealthReportScreen() {
           key="health-weight"
           contentContainerStyle={[
             styles.contentContainer,
-            { paddingBottom: Math.max(insets.bottom, 24) + 110 },
+            { paddingBottom: contentBottom },
           ]}
           showsVerticalScrollIndicator={false}
         >
@@ -1773,7 +1764,7 @@ export default function HealthReportScreen() {
           key="health-insights"
           contentContainerStyle={[
             styles.contentContainer,
-            { paddingBottom: Math.max(insets.bottom, 24) + 110 },
+            { paddingBottom: contentBottom },
           ]}
           showsVerticalScrollIndicator={false}
         >
@@ -1890,17 +1881,6 @@ export default function HealthReportScreen() {
             </View>
             {statsRow}
           </HealthGlassCard>
-          <TouchableOpacity
-            accessibilityRole="button"
-            onPress={openHealthWriteActions}
-            style={styles.addHealthButton}
-          >
-            <LavenderCtaFill radius={9} />
-            <HealthText weight="700" color={LAVENDER_CTA.text}>
-              건강 기록 더하기
-            </HealthText>
-            <Feather name="chevron-right" size={18} color={LAVENDER_CTA.text} />
-          </TouchableOpacity>
         </ScrollView>
       )}
 
@@ -1908,7 +1888,37 @@ export default function HealthReportScreen() {
         activeKey="more"
         onBeforeNavigate={handleBottomNavigationStart}
         onPressMore={handleOpenMoreFromBottomNavigation}
+        onLayout={handleToolbarLayout}
       />
+
+      <BlurCaptureExclusion
+        testID="health-create-capture-boundary"
+        collapsable={false}
+        pointerEvents="box-none"
+        style={[styles.floatingCreatePosition, { bottom: createBottom, right: 16 + insets.right }]}
+      >
+        <CtaButton
+          testID="health-fixed-create"
+          role="primary"
+          variant="solidLavender"
+          solidFaceInset={createAppearance.faceInset}
+          accessibilityLabel="건강 기록하기"
+          style={styles.floatingCreateButton}
+          onPress={openHealthWriteActions}
+        >
+          {palette => (
+            <NuriSemanticIcon
+              family="feather"
+              name="plus"
+              size={createAppearance.iconSize}
+              color={palette.text}
+              preserveOriginal
+              accessible={false}
+              accessibilityElementsHidden
+            />
+          )}
+        </CtaButton>
+      </BlurCaptureExclusion>
 
       <WeightLogEntrySheet
         visible={sheetVisible}
@@ -2129,18 +2139,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  headerActionButton: {
-    minHeight: 42,
-    borderRadius: 22,
-    backgroundColor: colors.tint,
-    paddingHorizontal: 5,
-    minWidth: 72,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
+  floatingCreatePosition: { position: 'absolute' },
+  floatingCreateButton: {
+    width: 48,
+    minHeight: 48,
+    borderRadius: 24,
+    paddingHorizontal: 0,
+    paddingVertical: 0,
   },
-  headerActionText: { fontSize: 14, lineHeight: 19, textAlign: 'center' },
   headerTitle: {
     flex: 1,
     textAlign: 'center',
@@ -2208,6 +2214,7 @@ const styles = StyleSheet.create({
   },
   cardCaption: { fontSize: 14, lineHeight: 20 },
   totalValue: { fontSize: 44, lineHeight: 48 },
+  totalValueCompact: { fontSize: 36, lineHeight: 40 },
   checklistArt: { width: '27%', maxWidth: 115, aspectRatio: 225 / 201 },
   filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   filterChip: {
@@ -2322,7 +2329,6 @@ const styles = StyleSheet.create({
     paddingVertical: 32,
     paddingHorizontal: 8,
   },
-  recordsEmpty: { gap: 20 },
   recordsEmptyCopy: { textAlign: 'center', flexShrink: 1 },
   glassPanel: {
     padding: 14,
@@ -2432,17 +2438,6 @@ const styles = StyleSheet.create({
   densityCaption: { textAlign: 'center', marginTop: 2 },
   insightWeight: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   insightSparkline: { flex: 1, minWidth: 0 },
-  addHealthButton: {
-    minHeight: 44,
-    borderRadius: 9,
-    backgroundColor: colors.button,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 9,
-    marginTop: 2,
-    paddingHorizontal: 8,
-  },
   insightDetailSheet: {
     maxHeight: '72%',
     borderTopLeftRadius: 8,

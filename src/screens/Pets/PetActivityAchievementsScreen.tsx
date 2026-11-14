@@ -806,12 +806,12 @@ export default function PetActivityAchievementsScreen({ isolated }: {
         <ScrollView
           ref={scroll}
           testID="activity-scroll"
-          style={s.flex}
+          style={[s.flex, { marginBottom: insets.bottom }]}
           contentContainerStyle={[
             s.content,
             {
               paddingHorizontal: layout.inset,
-              paddingBottom: insets.bottom + 20,
+              paddingBottom: 20,
             },
           ]}
           showsVerticalScrollIndicator={false}

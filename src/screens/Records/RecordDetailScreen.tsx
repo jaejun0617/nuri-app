@@ -6,7 +6,7 @@ import { useOwnerOperation } from '../../hooks/useOwnerOperation';
 import { LavenderScreenBackground } from '../../components/common/LavenderScreenBackground';
 import { MenuGlassSurface } from '../../components/common/MenuGlassSurface';
 import { TIMELINE_DESIGN as C } from '../../theme/timelineDesign';
-import CtaButton, { CtaText } from '../../components/records/TimelineButton';
+import CtaButton, { CtaIcon, CtaText } from '../../components/records/TimelineButton';
 import { getRecordCareLabel } from '../../services/records/metadata';
 // 파일: src/screens/Records/RecordDetailScreen.tsx
 // 역할:
@@ -1088,7 +1088,17 @@ export default function RecordDetailScreen() {
               ) : <ActivityIndicator accessibilityLabel="추억 활동 확인 중" size="small"/>}
             </View> : null}
             <TouchableOpacity accessibilityRole="button" accessibilityLabel="기록 수정하기" style={styles.sheetActionRow} onPress={onPressEdit} disabled={deleting || savingRemembrance}><TimelineArtwork name="edit" size={24}/><AppText style={styles.sheetActionText}>기록 수정하기</AppText><Feather name="chevron-right" size={18} color={C.muted}/></TouchableOpacity>
-            <TouchableOpacity accessibilityRole="button" accessibilityLabel="기록 삭제하기" style={styles.sheetActionRow} onPress={onPressDelete} disabled={deleting || savingRemembrance}><TimelineArtwork name="delete" size={24}/><AppText style={styles.sheetActionDeleteText}>기록 삭제하기</AppText><Feather name="chevron-right" size={18} color={C.muted}/></TouchableOpacity>
+            <CtaButton
+              role="destructiveEntry"
+              accessibilityLabel="기록 삭제하기"
+              style={styles.sheetActionRow}
+              onPress={onPressDelete}
+              disabled={deleting || savingRemembrance}
+            >
+              <CtaIcon name="trash-2" size={24} />
+              <CtaText style={styles.sheetActionDeleteText}>기록 삭제하기</CtaText>
+              <CtaIcon name="chevron-right" size={18} />
+            </CtaButton>
             <CtaButton role="neutral" style={{marginTop:16}} onPress={closeActionMenu}><CtaText>닫기</CtaText></CtaButton>
           </View>
         </View>

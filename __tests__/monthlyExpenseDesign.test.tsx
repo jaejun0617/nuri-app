@@ -1,5 +1,6 @@
 import React from 'react';
-import { FlatList, Text, TouchableOpacity } from 'react-native';
+import { FlatList, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
@@ -50,6 +51,14 @@ async function press(tree: TestRenderer.ReactTestRenderer, label: string) {
 describe('monthly expenses design and scope', () => {
   beforeEach(() => { mockData = summarizeExpenses([...fixtures]); mockError = false; mockFetching = false; jest.clearAllMocks(); previewGlobal.__NURI_MONTHLY_EXPENSE_PREVIEW__ = false; });
   afterEach(() => { delete previewGlobal.__NURI_MONTHLY_EXPENSE_PREVIEW__; });
+  it('keeps the scrolling viewport above the system bar without adding a second inset', async () => {
+    const tree = await render();
+    const screen = tree.root.findAllByType(SafeAreaView).find(node => node.props.testID === 'monthly-expenses-live');
+    expect(screen?.props.edges).toContain('bottom');
+    const list = tree.root.findByType(FlatList);
+    expect(StyleSheet.flatten(list.props.contentContainerStyle).paddingBottom).toBe(24);
+    await act(async () => tree.unmount());
+  });
   it('keeps the top total independent of all three category tabs and groups every real entry', () => {
     const all = presentMonthlyExpenses(fixtures, null, 'all');
     expect(all.summary).toMatchObject({ total: 290000, medical: 168000, grooming: 65000, shopping: 57000 });

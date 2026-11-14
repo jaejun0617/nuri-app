@@ -31,8 +31,6 @@ import RootNavigator from './src/navigation/RootNavigator';
 import { NotificationScopeProvider } from './src/app/providers/NotificationScopeProvider';
 import type { RootStackParamList } from './src/navigation/RootNavigator';
 import { appLinking } from './src/navigation/linking';
-import { interruptTutorial } from './src/services/tutorial/runtime';
-import { TutorialProvider } from './src/app/providers/TutorialProvider';
 import { ResponsiveTypographyProvider } from './src/app/providers/ResponsiveTypographyProvider';
 import {
   getInitialScheduleNotificationTap,
@@ -105,7 +103,6 @@ function App() {
   const queueNotificationTap=useCallback((tap:NotificationTap)=>{
     const key=`${tap.recipientUserId}:${tap.source}:${tap.id}`,now=Date.now();
     if(lastNotificationTap.current?.key===key&&now-lastNotificationTap.current.at<1000)return;
-    interruptTutorial();
     lastNotificationTap.current={key,at:now};setNotificationTap(tap);
   },[]);
   const notificationOwnerRef=useRef(sessionUserId);
@@ -236,7 +233,6 @@ function App() {
       }
 
       pendingScheduleTapRef.current = tap;
-      interruptTutorial();
       setNavigationStateRevision(previous => previous + 1);
     },
     [],
@@ -366,9 +362,7 @@ function App() {
               onStateChange={handleNavigationStateChange}
             >
               <NotificationScopeProvider>
-                <TutorialProvider initialNavigationReady={navigationReady && initialNotificationChecked && !notificationTap}>
-                  <RootNavigator notificationStartup={notificationStartup} />
-                </TutorialProvider>
+                <RootNavigator notificationStartup={notificationStartup} />
               </NotificationScopeProvider>
             </NavigationContainer>
             <GlobalToast />

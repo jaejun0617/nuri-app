@@ -1,5 +1,7 @@
 import React from 'react';
+import { useWindowDimensions } from 'react-native';
 import CtaButton from '../../app/ui/CtaButton';
+import { resolveFloatingCreateAppearance } from '../../app/ui/floatingCreateAppearance';
 import BlurCaptureExclusion from '../../components/common/BlurCaptureExclusion';
 import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 import { styles } from './TimelineScreen.styles';
@@ -14,6 +16,9 @@ export default function TimelineCreateButton({
   rightInset: number;
   onPress: () => void;
 }) {
+  const { width } = useWindowDimensions();
+  const { faceInset, iconSize } = resolveFloatingCreateAppearance(width, 'timeline');
+
   return (
     <BlurCaptureExclusion
       testID="timeline-create-capture-boundary"
@@ -31,6 +36,7 @@ export default function TimelineCreateButton({
         testID="timeline-fixed-create"
         role="primary"
         variant="solidLavender"
+        solidFaceInset={faceInset}
         accessibilityLabel="기록하기"
         style={styles.floatingCreateButton}
         onPress={onPress}
@@ -38,7 +44,7 @@ export default function TimelineCreateButton({
         <NuriSemanticIcon
           family="feather"
           name="plus"
-          size={24}
+          size={iconSize}
           color="#FFFFFF"
           preserveOriginal
         />

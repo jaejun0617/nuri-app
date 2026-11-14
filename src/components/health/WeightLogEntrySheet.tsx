@@ -705,12 +705,9 @@ export default function WeightLogEntrySheet({
                         취소
                       </AppText>
                     </TouchableOpacity>
-                    <TouchableOpacity
-                      accessibilityRole="button"
-                      accessibilityState={{
-                        busy: deleting,
-                        disabled: deleting,
-                      }}
+                    <CtaButton
+                      role="destructiveConfirm"
+                      loading={deleting}
                       testID="weight-delete-submit"
                       disabled={deleting}
                       onPress={() => {
@@ -721,16 +718,15 @@ export default function WeightLogEntrySheet({
                           return performDelete(currentDelete);
                         }
                       }}
-                      style={[styles.confirmButton, styles.confirmDelete]}
+                      style={styles.confirmButton}
                     >
-                      <AppText
+                      <CtaText
                         preset="unifiedLabel"
-                        color="#FFFFFF"
                         weight="700"
                       >
                         {deleting ? '삭제 중…' : '삭제하기'}
-                      </AppText>
-                    </TouchableOpacity>
+                      </CtaText>
+                    </CtaButton>
                   </View>
                 </View>
               </ScrollView>
@@ -852,7 +848,6 @@ const styles = StyleSheet.create({
     padding: 6,
   },
   cancelButton: { backgroundColor: colors.tint },
-  confirmDelete: { backgroundColor: colors.danger },
   headerRow: {
     flexShrink: 0,
     flexDirection: 'row',

@@ -56,7 +56,7 @@ describe('UserNotifications screen inset layout', () => {
     });
   });
 
-  it('adds the screen-local top gap and preserves the bottom inset contract', async () => {
+  it('keeps the visible list above the system bar and applies the bottom inset once', async () => {
     let renderer!: TestRenderer.ReactTestRenderer;
 
     await act(async () => {
@@ -72,7 +72,7 @@ describe('UserNotifications screen inset layout', () => {
     const rootView = renderer.root.findAllByType(View)[0];
     const rootStyle = StyleSheet.flatten(rootView.props.style);
     expect(rootStyle.paddingTop).toBe(24);
-    expect(rootStyle.paddingBottom).toBeUndefined();
+    expect(rootStyle.paddingBottom).toBe(24);
     expect(rootStyle.paddingLeft).toBeUndefined();
     expect(rootStyle.paddingRight).toBeUndefined();
 
@@ -80,7 +80,7 @@ describe('UserNotifications screen inset layout', () => {
     const listContentStyle = StyleSheet.flatten(
       list.props.contentContainerStyle,
     );
-    expect(listContentStyle.paddingBottom).toBe(56);
+    expect(listContentStyle.paddingBottom).toBe(32);
 
     await act(async () => {
       renderer.unmount();

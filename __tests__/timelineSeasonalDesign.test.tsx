@@ -730,4 +730,16 @@ describe('Timeline seasonal design', () => {
       expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1774, 887]);
     }
   });
+
+  it('keeps the 320 dp timeline viewport above the fixed compose hit area without reserving the toolbar twice', () => {
+    const source = fs.readFileSync(
+      path.join(process.cwd(), 'src/screens/Records/TimelineScreen.tsx'),
+      'utf8',
+    );
+    const grid = source.slice(source.indexOf('testID="timeline-month-grid"'), source.indexOf('ListFooterComponent={listFooterComponent}'));
+    expect(source).toContain('const reserveCreateLane = !isolated && windowWidth <= 320;');
+    expect(grid).toContain('marginBottom: floatingCreateButtonBottom + styles.floatingCreateButton.minHeight + 4');
+    expect(grid).toContain('reserveCreateLane ? null : { paddingBottom:');
+    expect(grid).toContain('numColumns={RECORD_GALLERY_COLUMNS}');
+  });
 });

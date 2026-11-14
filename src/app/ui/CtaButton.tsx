@@ -1,5 +1,5 @@
 import React, { createContext, useContext } from 'react';
-import { Pressable, StyleSheet, type PressableProps } from 'react-native';
+import { Pressable, StyleSheet, View, type PressableProps } from 'react-native';
 import { useTheme } from 'styled-components/native';
 import { useEffectiveSeason } from '../providers/SeasonPreferenceProvider';
 import {
@@ -11,6 +11,7 @@ import {
 import AppText from './AppText';
 import NuriFeatherIcon from '../../components/icons/NuriFeatherIcon';
 import LavenderCtaFill from './LavenderCtaFill';
+import { MenuGlassSurface } from '../../components/common/MenuGlassSurface';
 
 const CtaContext = createContext<CtaPalette | null>(null);
 type Props = Omit<PressableProps, 'children' | 'style' | 'role'> & {
@@ -18,6 +19,7 @@ type Props = Omit<PressableProps, 'children' | 'style' | 'role'> & {
   variant?: CtaVariant;
   loading?: boolean;
   compact?: boolean;
+  solidFaceInset?: number;
   visuallyHidden?: boolean;
   activeOpacity?: number;
   style?: PressableProps['style'];
@@ -30,6 +32,7 @@ export default function CtaButton({
   variant = 'default',
   loading = false,
   compact = false,
+  solidFaceInset,
   visuallyHidden = false,
   activeOpacity: _activeOpacity,
   disabled = false,
@@ -42,6 +45,8 @@ export default function CtaButton({
   const theme = useTheme();
   const season = useEffectiveSeason();
   const blocked = disabled || loading || role === 'disabled';
+  const faceInset = variant === 'solidLavender' ? solidFaceInset : undefined;
+  const borderless = variant === 'opaqueGlass' && role === 'neutral';
   return (
     <Pressable
       {...rest}
@@ -83,9 +88,9 @@ export default function CtaButton({
               typeof layout?.minHeight === 'number' ? layout.minHeight : 0,
             ),
             opacity: visuallyHidden ? 0 : 1,
-            backgroundColor: palette.background,
-            borderColor: palette.border,
-            borderWidth: 1,
+            backgroundColor: faceInset === undefined ? palette.background : 'transparent',
+            borderColor: faceInset === undefined ? palette.border : 'transparent',
+            borderWidth: faceInset === undefined && !borderless ? 1 : 0,
           },
         ];
       }}
@@ -114,6 +119,34 @@ export default function CtaButton({
           : callerRadius;
         return (
           <CtaContext.Provider value={palette}>
+            {borderless && !blocked && theme.mode !== 'dark' ? (
+              <View pointerEvents="none" accessible={false} style={[
+                StyleSheet.absoluteFill,
+                { opacity: pressed ? 0.4 : 1 },
+              ]}>
+                <MenuGlassSurface
+                  testID={rest.testID ? `${rest.testID}-glass` : undefined}
+                  radius={typeof callerRadius === 'number' ? callerRadius : styles.button.borderRadius}
+                  borderless
+                />
+              </View>
+            ) : null}
+            {faceInset !== undefined ? (
+              <View
+                testID={rest.testID ? `${rest.testID}-face` : undefined}
+                pointerEvents="none"
+                accessible={false}
+                style={[styles.insetFace, {
+                  top: faceInset,
+                  right: faceInset,
+                  bottom: faceInset,
+                  left: faceInset,
+                  borderRadius: typeof callerRadius === 'number' ? Math.max(0, callerRadius - faceInset) : callerRadius,
+                  backgroundColor: palette.background,
+                  borderColor: palette.border,
+                }]}
+              />
+            ) : null}
             {variant !== 'solidLavender' && (role === 'primary' || role === 'primarySubtle') && !(!loading && disabled) ? (
               <LavenderCtaFill pressed={pressed && !loading} radius={fillRadius} />
             ) : null}
@@ -147,6 +180,10 @@ export function CtaIcon(props: React.ComponentProps<typeof NuriFeatherIcon>) {
 }
 
 const styles = StyleSheet.create({
+  insetFace: {
+    position: 'absolute',
+    borderWidth: 1,
+  },
   button: {
     minWidth: 0,
     minHeight: 48,

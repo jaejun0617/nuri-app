@@ -37,10 +37,11 @@ describe('nested entry and edit action contracts', () => {
       "navigation.popTo('ScheduleDetail', route.params.scheduleReturn)",
     );
   });
-  it('keeps edit cancellation reachable above the overlay bar without an invented fixed spacer', () => {
+  it('keeps record edit above the system bar without reserving an absent tab bar', () => {
     const edit = source('screens/Records/RecordEditScreen.tsx');
-    expect(edit).toContain('useContext(ToolbarHeightContext)');
-    expect(edit).toMatch(/toolbarHeight \?\? insets.bottom\) \+/);
+    expect(edit).not.toContain('ToolbarHeightContext');
+    expect(edit).toContain('marginBottom: keyboardVisible ? 0 : insets.bottom');
+    expect(edit).toContain('contentContainerStyle={[styles.scrollContent, { paddingBottom: 16 }]}');
     expect(edit).toContain('변경사항 저장');
     expect(edit).toMatch(/style=\{styles.backBtn\}[\s\S]*?onPress=\{safeGoBack\}[\s\S]*?disabled=\{saving\}/);
     expect(edit).not.toMatch(/>\s*(저장|취소)\s*</);

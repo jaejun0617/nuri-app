@@ -29,6 +29,21 @@ describe('opt-in action component', () => {
     renderer.root.find(node => typeof node.props.style === 'function');
   const style = (pressed = false) =>
     StyleSheet.flatten(button().props.style({ pressed }));
+  it('adds borderless menu glass over an opaque face for return actions', () => {
+    const onPress = jest.fn();
+    act(() => {
+      renderer = TestRenderer.create(wrap(
+        <CtaButton testID="list-back" role="neutral" variant="opaqueGlass" onPress={onPress}>
+          <CtaText>목록으로</CtaText>
+        </CtaButton>,
+      ));
+    });
+    expect(style()).toMatchObject({ backgroundColor: '#DCE8EE', borderWidth: 0 });
+    expect(style(true).backgroundColor).toBe('#CADCE5');
+    expect(StyleSheet.flatten(renderer.root.findAllByProps({ testID: 'home-reflective-fill' }).at(-1)?.props.style).borderWidth).toBe(0);
+    act(() => button().props.onPress());
+    expect(onPress).toHaveBeenCalledTimes(1);
+  });
   it.each([[8, 7], [16, 15], [0, 0]])('fits the fill inside the %s dp rounded frame', (outer, inner) => {
     act(() => {
       renderer = TestRenderer.create(wrap(

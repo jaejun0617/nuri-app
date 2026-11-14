@@ -164,7 +164,7 @@ describe('More presentation contracts (not native pixel QA)', () => {
       expect(RN.StyleSheet.flatten(label?.props.style).fontFamily).toBe(
         font === 'jisu' ? 'insungitCutelivelyjisu' : 'PretendardVariable',
       );
-      expect(label?.props.allowFontScaling).toBe(true);
+      expect(label?.props.allowFontScaling).toBe(false);
       await TestRenderer.act(async () => tree.unmount());
     },
   );

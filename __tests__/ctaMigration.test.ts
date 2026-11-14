@@ -99,9 +99,9 @@ describe('CTA source safety guards', () => {
     expect(
       elements(
         'src/components/pets/PetDeleteConfirmDialog.tsx',
-        'TouchableOpacity',
+        'CtaButton',
       ).find(n => n.includes('pet-delete-confirm')),
-    ).toContain('styles.delete');
+    ).toContain('role="destructiveConfirm"');
   });
   it('preserves first-pet shared creation and protected screens', () => {
     const files = (directory: string): string[] =>

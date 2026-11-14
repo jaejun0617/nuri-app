@@ -1022,7 +1022,7 @@ export default function IsolatedNoticeScreen({
               ) : null}
               {draftMeta && saved && !uncertain ? (
                 <CtaButton
-                  role="neutral"
+                  role="destructiveEntry"
                   testID="isolated-delete"
                   disabled={busy}
                   onPress={() =>
@@ -1090,6 +1090,7 @@ export default function IsolatedNoticeScreen({
               <CtaButton
                 testID="isolated-list-back"
                 role="neutral"
+                variant="opaqueGlass"
                 onPress={back}
               >
                 <CtaText>목록으로</CtaText>

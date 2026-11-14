@@ -14,17 +14,19 @@ export const MENU_GLASS_FRAME = {
 export const MenuGlassSurface = memo(function MenuGlassSurfaceView({
   radius = 20,
   backed = false,
+  borderless = false,
   testID = 'menu-glass-surface',
 }: {
   radius?: number;
   backed?: boolean;
+  borderless?: boolean;
   testID?: string;
 }) {
   return (
     <View testID={testID} pointerEvents="none" accessible={false}
       importantForAccessibility="no-hide-descendants"
       style={[StyleSheet.absoluteFill, { borderRadius: radius }, backed && styles.backing]}>
-      <HomeReflectiveGlass borderRadius={radius} style={styles.paint} />
+      <HomeReflectiveGlass borderRadius={radius} borderless={borderless} style={styles.paint} />
     </View>
   );
 });

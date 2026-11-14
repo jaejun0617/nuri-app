@@ -1,10 +1,11 @@
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import AnimalHospitalCard from '../src/components/animalHospital/AnimalHospitalCard';
 import AnimalHospitalDetailScreen from '../src/screens/AnimalHospital/AnimalHospitalDetailScreen';
 import AnimalHospitalListScreen from '../src/screens/AnimalHospital/AnimalHospitalListScreen';
+import Screen from '../src/components/layout/Screen';
 import { buildWalkingTravelLabel } from '../src/services/locationDiscovery/travelMetrics';
 import LocationDiscoveryCard from '../src/components/locationDiscovery/LocationDiscoveryCard';
 import type { AnimalHospitalDiscoveryState } from '../src/hooks/useAnimalHospitalDiscovery';
@@ -422,6 +423,8 @@ describe('NURI-08 place media and initial loading', () => {
     const renderer = await renderElement(<AnimalHospitalListScreen />);
     const output = serialized(renderer);
 
+    expect(StyleSheet.flatten(renderer.root.findByType(Screen).props.style))
+      .toMatchObject({ paddingBottom: 24 });
     expect(output).toContain('병원 목록을 준비하고 있어요');
     expect(output).not.toContain('병원을 찾지 못했어요');
     expect(output).toContain('불러오는 중');
@@ -441,6 +444,17 @@ describe('NURI-08 place media and initial loading', () => {
     expect(hasText(renderer, '누리동물병원')).toBe(true);
     expect(hasText(renderer, '병원 목록을 준비하고 있어요')).toBe(false);
     expect(hasText(renderer, '병원을 찾지 못했어요')).toBe(false);
+  });
+
+  it('Hospital empty list keeps pull-to-refresh without a duplicate refresh button', async () => {
+    const refresh = jest.fn().mockResolvedValue(undefined);
+    setHospitalDiscoveryState({ items: [], refresh });
+    const renderer = await renderElement(<AnimalHospitalListScreen />);
+    const control = renderer.root.findByType(FlatList).props.refreshControl;
+    expect(hasText(renderer, '병원을 찾지 못했어요')).toBe(true);
+    expect(hasText(renderer, '새로고침')).toBe(false);
+    await ReactTestRenderer.act(async () => control.props.onRefresh());
+    expect(refresh).toHaveBeenCalledTimes(1);
   });
 
   it('Hospital loaded row는 searching 중에도 기존 결과와 검색 상태를 유지한다', async () => {

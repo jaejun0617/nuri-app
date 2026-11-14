@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import React from 'react';
-import * as RN from 'react-native';
+import RN from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 
@@ -108,6 +108,9 @@ describe('seasonal editorial Home sections', () => {
   it.each(SEASONS)(
     'keeps the actual Today Tip copy and no CTA in %s',
     async season => {
+      jest.spyOn(RN, 'useWindowDimensions').mockReturnValue({
+        width: 321, height: 800, scale: 3, fontScale: 1,
+      });
       let renderer!: TestRenderer.ReactTestRenderer;
       await act(async () => {
         renderer = TestRenderer.create(
@@ -126,6 +129,30 @@ describe('seasonal editorial Home sections', () => {
       expect(
         renderer.root.findAllByProps({ testID: 'home-today-tip-seasonal-art' }),
       ).not.toHaveLength(0);
+      await act(async () => renderer.unmount());
+    },
+  );
+
+  it.each(SEASONS)(
+    'keeps the Today Tip copy without the ornament frame at 320dp in %s',
+    async season => {
+      jest.spyOn(RN, 'useWindowDimensions').mockReturnValue({
+        width: 320, height: 693, scale: 3, fontScale: 1,
+      });
+      let renderer!: TestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = TestRenderer.create(
+          <ThemeProvider theme={createTheme('light')}>
+            <TodayHomeTipSection season={season} accentColor="#0754DA" />
+          </ThemeProvider>,
+        );
+      });
+      const output = JSON.stringify(renderer.toJSON());
+      expect(output).toContain(TODAY_HOME_TIP.title);
+      expect(output).toContain(TODAY_HOME_TIP.description);
+      expect(
+        renderer.root.findAllByProps({ testID: 'home-today-tip-art-frame' }),
+      ).toHaveLength(0);
       await act(async () => renderer.unmount());
     },
   );

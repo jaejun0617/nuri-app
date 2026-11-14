@@ -16,6 +16,7 @@ import { KeyboardAvoidingView as KeyboardControllerAvoidingView } from 'react-na
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
 import AppText from '../../app/ui/AppText';
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import { MenuGlassSurface } from '../common/MenuGlassSurface';
 import PetDeletionRecoveryMarker from './PetDeletionRecoveryMarker';
 import {
@@ -399,25 +400,21 @@ function PetDeleteConfirmDialog({
                   취소
                 </AppText>
               </TouchableOpacity>
-              <TouchableOpacity
+              <CtaButton
                 testID="pet-delete-confirm"
-                accessibilityRole="button"
+                role="destructiveConfirm"
                 accessibilityLabel={
                   deleting ? '아이 프로필 삭제 중' : '아이 프로필 삭제하기'
                 }
-                accessibilityState={{ disabled: blocked, busy: deleting }}
+                loading={deleting}
                 disabled={blocked}
-                style={[
-                  styles.button,
-                  styles.delete,
-                  blocked && styles.disabled,
-                ]}
+                style={styles.button}
                 onPress={submit}
               >
-                <AppText preset="button" style={styles.deleteText}>
+                <CtaText preset="button" style={styles.deleteText}>
                   {deleting ? '삭제 중…' : '프로필 삭제'}
-                </AppText>
-              </TouchableOpacity>
+                </CtaText>
+              </CtaButton>
             </View>
           </View>
         </View>
@@ -572,8 +569,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderWidth: 1,
   },
-  delete: { backgroundColor: colors.danger },
-  disabled: { opacity: 0.4 },
   cancelText: {
     ...type.dialogAction,
     color: colors.ink,
@@ -585,7 +580,6 @@ const styles = StyleSheet.create({
     ...type.dialogAction,
     includeFontPadding: false,
     textAlignVertical: 'center',
-    color: colors.white,
     textAlign: 'center',
   },
 });

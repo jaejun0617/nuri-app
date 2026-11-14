@@ -2,7 +2,6 @@ import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
 import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
 import { MenuGlassSurface, MENU_GLASS_FRAME } from '../../components/common/MenuGlassSurface';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
-import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, { useCallback, useMemo, useState } from 'react';
 import {
   FlatList,
@@ -136,21 +135,6 @@ export default function AnimalHospitalListScreen() {
             {discoveryState.scope.displayLabel}
           </AppText>
         </View>
-        <CtaButton
-          role="secondary"
-          activeOpacity={0.9}
-          style={[styles.locationRefreshButton, {}]}
-          onPress={() => {
-            discoveryState.refresh().catch(() => {});
-          }}
-        >
-          <CtaText
-            preset="unifiedMeta"
-            style={[styles.locationRefreshButtonText, {}]}
-          >
-            새로고침
-          </CtaText>
-        </CtaButton>
       </View>
       {discoveryState.permission === 'granted' &&
       discoveryState.permissionAccuracy === 'approximate' ? (
@@ -177,8 +161,8 @@ export default function AnimalHospitalListScreen() {
         <LocationDiscoveryStatusCard surfaceVariant="menuGlass"
           icon="navigation"
           title="GPS 신호가 약해요"
-          body="최근 좌표로 먼저 병원을 보여주고 있어요. 실외나 창가에서 새로고침하면 가까운순 정확도가 올라가요."
-          actionLabel="새로고침"
+          body="최근 좌표로 먼저 병원을 보여주고 있어요. 실외나 창가에서 위치를 다시 확인하면 가까운순 정확도가 올라가요."
+          actionLabel="위치 다시 확인"
           onPressAction={() => {
             discoveryState.refresh().catch(() => {});
           }}
@@ -188,7 +172,7 @@ export default function AnimalHospitalListScreen() {
           icon="clock"
           title="새 위치를 다시 확인해 주세요"
           body="저장된 이전 좌표는 거리 계산에 사용하지 않아요. 현재 위치가 확인되면 거리와 순서를 갱신해요."
-          actionLabel="새로고침"
+          actionLabel="위치 다시 확인"
           onPressAction={() => {
             discoveryState.refresh().catch(() => {});
           }}
@@ -198,7 +182,7 @@ export default function AnimalHospitalListScreen() {
   );
 
   return (
-    <Screen noTopInset style={styles.screen}>
+    <Screen noTopInset style={[styles.screen, { paddingBottom: insets.bottom }]}>
         <AppHeaderLayout testID="hospital-list-header" topInset={insets.top} subtitle="아이와 방문할 주변 동물병원을 살펴봐요">
           <View style={{ width: APP_HEADER.targetSize }}>
             <TouchableOpacity
@@ -265,7 +249,11 @@ export default function AnimalHospitalListScreen() {
                   body="잠시만 기다려 주세요."
                 />
               </View>
-            ) : discoveryState.error && discoveryState.items.length === 0 ? (
+            ) : (
+              <FlatList
+                data={visibleItems}
+                ListHeaderComponent={listHeader}
+                ListEmptyComponent={discoveryState.error && discoveryState.items.length === 0 ? (
               <View style={styles.resultsEmptyWrap}>
                 <LocationDiscoveryStatusCard surfaceVariant="menuGlass"
                   icon="alert-circle"
@@ -294,7 +282,7 @@ export default function AnimalHospitalListScreen() {
                   />
                 )}
               </View>
-            ) : visibleItems.length === 0 ? (
+            ) : (
               <View style={styles.resultsEmptyWrap}>
                 <LocationDiscoveryStatusCard surfaceVariant="menuGlass"
                   icon="search"
@@ -302,10 +290,7 @@ export default function AnimalHospitalListScreen() {
                   body="현재 위치 기준 가까운 병원을 다시 확인해 보세요."
                 />
               </View>
-            ) : (
-              <FlatList
-                data={visibleItems}
-                ListHeaderComponent={listHeader}
+            )}
                 keyExtractor={keyExtractor}
                 renderItem={renderItem}
                 style={styles.resultsList}
@@ -321,6 +306,8 @@ export default function AnimalHospitalListScreen() {
                 windowSize={7}
                 refreshControl={
                   <RefreshControl
+                    tintColor={petTheme.primary}
+                    colors={[petTheme.primary]}
                     refreshing={discoveryState.refreshing}
                     onRefresh={() => {
                       discoveryState.refresh().catch(() => {});

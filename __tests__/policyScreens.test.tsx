@@ -1,6 +1,8 @@
 import React from 'react';
 import { APP_HEADER } from '../src/components/navigation/headerAppearance';
+import { AppHeaderLayout } from '../src/components/navigation/AppHeaderLayout';
 import { BackHandler, ScrollView, StyleSheet } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import TestRenderer from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 
@@ -82,6 +84,10 @@ describe('policy presentation screens', () => {
     });
     if (!renderer) throw new Error('PolicyCenterScreen did not mount');
 
+    const header = renderer.root.findByType(AppHeaderLayout);
+    expect(StyleSheet.flatten(header.props.style).backgroundColor).toBeUndefined();
+    expect(StyleSheet.flatten(renderer.root.findByType(SafeAreaView).props.style).backgroundColor)
+      .toBe(createTheme('light').colors.background);
     const scroll = renderer.root.findByProps({ testID: 'policy-center-scroll' });
     expect(scroll.type).toBe(ScrollView);
     expect(StyleSheet.flatten(scroll.props.contentContainerStyle)).toEqual(
@@ -120,10 +126,15 @@ describe('policy presentation screens', () => {
     });
     if (!renderer) throw new Error('PolicyDetailScreen did not mount');
 
+    const header = renderer.root.findByType(AppHeaderLayout);
+    expect(StyleSheet.flatten(header.props.style).backgroundColor).toBeUndefined();
+    expect(StyleSheet.flatten(renderer.root.findByType(SafeAreaView).props.style).backgroundColor)
+      .toBe(createTheme('light').colors.background);
     const scroll = renderer.root.findByProps({ testID: 'policy-detail-scroll' });
     expect(scroll.type).toBe(ScrollView);
+    expect(renderer.root.findByType(SafeAreaView).props.edges).toEqual(['top', 'bottom']);
     expect(StyleSheet.flatten(scroll.props.contentContainerStyle)).toEqual(
-      expect.objectContaining({ paddingBottom: 50 }),
+      expect.objectContaining({ paddingBottom: 32 }),
     );
     expect(
       renderer.root.findByProps({ testID: 'policy-content-review-notice' }),

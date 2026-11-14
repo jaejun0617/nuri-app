@@ -127,7 +127,8 @@ describe('pet profile management reference and safety', () => {
   function button(id: string) {
     const node = renderer.root
       .findAllByType(TouchableOpacity)
-      .find(n => n.props.testID === id);
+      .find(n => n.props.testID === id)
+      ?? renderer.root.find(n => n.props.testID === id && typeof n.props.style === 'function' && n.props.accessibilityRole === 'button');
     if (!node) throw Error('Missing button: ' + id);
     return node;
   }
@@ -258,7 +259,7 @@ describe('pet profile management reference and safety', () => {
       expect(renderer.root.findByType(Image).props.resizeMode).toBe('cover');
     },
   );
-  it('uses final PO font reductions and retains enlarged text support', () => {
+  it('uses the approved nominal pet profile font sizes without OS scaling', () => {
     expect(type.title.fontSize).toBe(22);
     expect(type.managementTitle.fontSize).toBe(19);
     expect(type.value.fontSize).toBe(15);
@@ -275,7 +276,7 @@ describe('pet profile management reference and safety', () => {
     expect(
       renderer.root
         .findAllByType(Text)
-        .every(n => n.props.allowFontScaling !== false),
+        .every(n => n.props.allowFontScaling === false),
     ).toBe(true);
     expect(
       StyleSheet.flatten(view('pet-card-' + pet.id).props.style).height,

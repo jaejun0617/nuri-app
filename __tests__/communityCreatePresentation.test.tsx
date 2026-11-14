@@ -98,7 +98,7 @@ describe('Community create presentation', () => {
     ]);
   });
 
-  it('keeps controlled fields, limits, font scaling and a borderless writing area', () => {
+  it('keeps controlled fields, limits, fixed text size and a borderless writing area', () => {
     const [title, body] = tree.root.findAllByType(TextInput);
     TestRenderer.act(() => {
       title.props.onChangeText('새 제목');
@@ -110,7 +110,7 @@ describe('Community create presentation', () => {
     expect(body.props.maxLength).toBe(5000);
     expect(body.props.multiline).toBe(true);
     for (const input of [title, body]) {
-      expect(input.props.allowFontScaling).not.toBe(false);
+      expect(input.props.allowFontScaling).toBe(false);
       expect(StyleSheet.flatten(input.props.style)).toMatchObject({
         fontSize: 16,
       });

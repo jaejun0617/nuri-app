@@ -18,6 +18,8 @@ import type { HomeEmptyDataState } from './HomeEmptySectionState';
 import { HomeTipSeasonalArtwork } from './HomeTipSeasonalArtwork';
 import { styles as homeStyles } from './LoggedInHome.styles';
 
+const TODAY_HOME_TIP_ARTWORK_MAX_HIDDEN_WIDTH = 320;
+
 export const TODAY_HOME_TIP = {
   badge: '오늘의 팁',
   title:
@@ -56,6 +58,7 @@ export const TodayHomeTipSection = memo(function TodayHomeTipSectionView({
 }) {
   const contentTextStyle = useHomeContentTextStyle();
   const { width, fontScale } = useWindowDimensions();
+  const showArtwork = width > TODAY_HOME_TIP_ARTWORK_MAX_HIDDEN_WIDTH;
   const stack = shouldStackEditorialCopy(width, fontScale);
   return (
     <HomeSectionGlass testID="home-glass-today-tip" style={homeStyles.section}>
@@ -71,7 +74,7 @@ export const TodayHomeTipSection = memo(function TodayHomeTipSectionView({
               {TODAY_HOME_TIP.title}
             </AppText>
           </View>
-          <HomeTipSeasonalArtwork season={season} />
+          {showArtwork ? <HomeTipSeasonalArtwork season={season} /> : null}
         </View>
         <View style={styles.divider} pointerEvents="none" />
         <AppText

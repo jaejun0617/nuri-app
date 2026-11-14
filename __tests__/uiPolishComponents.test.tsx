@@ -10,7 +10,7 @@ import { emptyHealthCareDetails } from '../src/services/records/metadata';
 describe('editorial marker and optional medical fields', () => {
   let tree: TestRenderer.ReactTestRenderer;
   afterEach(() => act(() => tree?.unmount()));
-  it('follows native line wrapping without limiting font scaling or creating accessible decoration', () => {
+  it('follows native line wrapping at the fixed app text size without accessible decoration', () => {
     act(() => {
       tree = TestRenderer.create(
         <ThemeProvider theme={createTheme('light')}>
@@ -19,7 +19,7 @@ describe('editorial marker and optional medical fields', () => {
       );
     });
     const text = tree.root.findByType(Text);
-    expect(text.props.allowFontScaling).not.toBe(false);
+    expect(text.props.allowFontScaling).toBe(false);
     const lines = [
       { x: 0, y: 0, width: 210, height: 24 },
       { x: 0, y: 24, width: 85, height: 24 },

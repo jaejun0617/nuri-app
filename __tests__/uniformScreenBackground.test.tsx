@@ -123,8 +123,8 @@ describe('PO Home and More-menu shared background palette', () => {
     expect(source).toContain('backgroundMode="homePalette"');
     expect(source).toContain('getHomeHeroColors(ambientSeason)');
     expect(source.match(/backgroundColor: heroColors.statusBar/g)).toHaveLength(1);
-    expect(source).toContain("style={[styles.scroll, { backgroundColor: 'transparent' }]}");
     const homeRender = source.slice(source.indexOf('  // 10) render'));
+    expect(homeRender).toMatch(/<ScrollView\b[\s\S]*?style=\{\[styles\.scroll, \{ backgroundColor: 'transparent', marginBottom: bottomTabBarHeight \}\]\}/);
     expect(homeRender.indexOf('<HomeAmbientBubbleCanvas')).toBeLessThan(homeRender.indexOf('<ScrollView'));
     expect(homeRender.match(/<HomeAmbientBubbleCanvas/g)).toHaveLength(1);
     expect(homeRender).not.toContain('<LavenderScreenBackground');

@@ -59,7 +59,6 @@ export default function PolicyCenterScreen() {
         style={[
           styles.header,
           {
-            backgroundColor: theme.colors.surfaceElevated,
             borderBottomColor: theme.colors.border,
           },
         ]}

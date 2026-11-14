@@ -32,7 +32,6 @@ import AppTextInput from '../../app/ui/AppTextInput';
 import { RecordFieldGlass, SeasonalFormBackground, SeasonalFormPanel } from '../../components/records/TimelineFormSurface';
 import React, {
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
@@ -56,7 +55,6 @@ import {
   SafeAreaView,
   useSafeAreaInsets,
 } from 'react-native-safe-area-context';
-import { ToolbarHeightContext } from '../../components/navigation/ToolbarHeightContext';
 import Feather from '../../components/icons/NuriFeatherIcon';
 import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 
@@ -154,7 +152,6 @@ function RecordEditContent() {
   // ---------------------------------------------------------
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const toolbarHeight = useContext(ToolbarHeightContext);
   const insets = useSafeAreaInsets();
   const petId = route.params.petId;
   const petName = usePetDisplayName(petId);
@@ -1007,16 +1004,8 @@ function RecordEditContent() {
         </View>
       ) : <KeyboardAwareScrollView
         ref={scrollRef}
-        style={styles.scroll}
-        contentContainerStyle={[
-          styles.scrollContent,
-          keyboardVisible ? styles.scrollContentKeyboardVisible : null,
-          // The custom tab bar overlays the scene; its measured height owns this inset.
-          {
-            paddingBottom:
-              (keyboardVisible ? 0 : toolbarHeight ?? insets.bottom) + 16,
-          },
-        ]}
+        style={[styles.scroll, { marginBottom: keyboardVisible ? 0 : insets.bottom }]}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 16 }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="none"

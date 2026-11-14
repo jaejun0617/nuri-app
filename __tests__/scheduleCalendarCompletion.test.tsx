@@ -679,6 +679,14 @@ describe('calendar registration and schedule hub completion', () => {
       },
     });
     await mount(<ScheduleListScreen />);
+    expect(byId('header-help-scheduleList').props.accessibilityLabel).toBe('전체 일정 안내');
+    await act(async () => byId('schedule-list-fixed-create').props.onPress());
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('ScheduleCreate', {
+      petId: 'p',
+      entrySource: 'home',
+      returnTo: { screen: 'ScheduleList', entrySource: 'home' },
+    });
+    expect(createSchedule).not.toHaveBeenCalled();
     const item = renderer.root
       .findByType(SectionList)
       .props.renderItem({

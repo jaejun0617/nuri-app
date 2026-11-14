@@ -6,11 +6,11 @@
 
 import AppTextInput from '../../app/ui/AppTextInput';
 import AppText from '../../app/ui/AppText';
+import { ResponsiveNativeText as Text } from '../../app/ui/ResponsiveNativeText';
 import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import React, { useMemo, useState } from 'react';
 import {
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';

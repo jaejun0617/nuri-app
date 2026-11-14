@@ -143,9 +143,12 @@ describe('pet stack content-end spacing', () => {
     const contentScroll = renderer.root.findAllByType(ScrollView).find(
       node => node.props.horizontal !== true && node.props.refreshControl,
     );
-    expect(contentScroll).toBeDefined();
-    expect(StyleSheet.flatten(contentScroll?.props.contentContainerStyle)).toEqual(
-      expect.objectContaining({ paddingBottom: 38 }),
+    if (!contentScroll) throw new Error('Activity scroll viewport missing');
+    expect(StyleSheet.flatten(contentScroll.props.style)).toEqual(
+      expect.objectContaining({ marginBottom: 18 }),
+    );
+    expect(StyleSheet.flatten(contentScroll.props.contentContainerStyle)).toEqual(
+      expect.objectContaining({ paddingBottom: 20 }),
     );
     expect(
       renderer.root.findAll(node => node.props.children === '루틴 새싹'),

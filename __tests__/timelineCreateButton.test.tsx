@@ -10,11 +10,20 @@ import { resolveCtaPalette } from '../src/app/theme/ctaPalette';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 
 let mockSeason: SeasonKey = 'autumn';
+let mockWidth = 320;
+jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
+  __esModule: true,
+  default: () => ({ width: mockWidth, height: 800, scale: 3, fontScale: 1 }),
+}));
 jest.mock('../src/app/providers/SeasonPreferenceProvider', () => ({
   useEffectiveSeason: () => mockSeason,
 }));
 
 describe('Timeline fixed foreground control', () => {
+  beforeEach(() => {
+    mockWidth = 320;
+  });
+
   it.each<SeasonKey>(['autumn', 'winter', 'spring', 'summer'])(
     '%s keeps an accessible white plus and original touch/position outside blur capture',
     season => {
@@ -52,6 +61,16 @@ describe('Timeline fixed foreground control', () => {
         width: 48,
         minHeight: 48,
         borderRadius: 24,
+        backgroundColor: 'transparent',
+      });
+      const face = tree.root.findAllByProps({ testID: 'timeline-fixed-create-face' }).at(-1)!;
+      expect(face.props.pointerEvents).toBe('none');
+      expect(StyleSheet.flatten(face.props.style)).toMatchObject({
+        top: 6,
+        right: 6,
+        bottom: 6,
+        left: 6,
+        borderRadius: 18,
         backgroundColor: resolveCtaPalette({
           role: 'primary',
           variant: 'solidLavender',
@@ -66,7 +85,7 @@ describe('Timeline fixed foreground control', () => {
       )[0];
       expect(plus.props).toMatchObject({
         color: '#FFFFFF',
-        size: 24,
+        size: 18,
         preserveOriginal: true,
       });
       const touch = tree.root.findAll(node =>
@@ -77,6 +96,34 @@ describe('Timeline fixed foreground control', () => {
       act(() => tree.unmount());
     },
   );
+
+  it.each([
+    { width: 360, inset: 5, iconSize: 19 },
+    { width: 384, inset: 5, iconSize: 19 },
+    { width: 412, inset: 2, iconSize: 21 },
+  ])('uses the correct face and icon at $width dp without resizing the touch target', ({ width, inset, iconSize }) => {
+    mockWidth = width;
+    let tree!: TestRenderer.ReactTestRenderer;
+    act(() => {
+      tree = TestRenderer.create(
+        <ThemeProvider theme={createTheme('light')}>
+          <TimelineCreateButton bottom={88} rightInset={4} onPress={jest.fn()} />
+        </ThemeProvider>,
+      );
+    });
+    const button = tree.root.find(node =>
+      node.props.testID === 'timeline-fixed-create' && typeof node.props.style === 'function',
+    );
+    expect(StyleSheet.flatten(button.props.style({ pressed: false }))).toMatchObject({
+      width: 48, minHeight: 48,
+    });
+    const face = tree.root.findAllByProps({ testID: 'timeline-fixed-create-face' }).at(-1)!;
+    expect(StyleSheet.flatten(face.props.style)).toMatchObject({
+      top: inset, right: inset, bottom: inset, left: inset, borderRadius: 24 - inset,
+    });
+    expect(button.find(node => node.props.family === 'feather' && node.props.name === 'plus').props.size).toBe(iconSize);
+    act(() => tree.unmount());
+  });
 
   it('excludes only the backdrop capture pass, with a registered local native view', () => {
     const read = (file: string) =>

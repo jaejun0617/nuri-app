@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import AppText from '../../app/ui/AppText';
+import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import { formatPetAgeLabelFromBirthDate } from '../../services/pets/age';
 import {
   buildPetSpeciesSelection,
@@ -413,9 +414,9 @@ function PetManagementCard({
           ]}
         >
           <MenuGlassSurface radius={14} backed />
-          <TouchableOpacity
+          <CtaButton
             testID={`pet-delete-entry-${pet.id}`}
-            accessibilityRole="button"
+            role="destructiveEntry"
             accessibilityLabel={`${name} 아이 프로필 삭제하기`}
             accessibilityHint="확인 절차를 열며 바로 삭제하지 않습니다."
             style={styles.menuAction}
@@ -425,10 +426,10 @@ function PetManagementCard({
               onPressDelete(pet.id);
             }}
           >
-            <AppText preset="body" style={styles.deleteLabel}>
+            <CtaText preset="body" style={styles.deleteLabel}>
               {name} 프로필 삭제
-            </AppText>
-          </TouchableOpacity>
+            </CtaText>
+          </CtaButton>
         </View>
       </Modal>
     </View>
@@ -565,7 +566,6 @@ const styles = StyleSheet.create({
   },
   deleteLabel: {
     ...type.dialogBody,
-    color: colors.danger,
     textAlign: 'center',
   },
 });

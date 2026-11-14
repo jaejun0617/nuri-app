@@ -7,17 +7,23 @@ import { resolveResponsiveTextStyle } from '../typography/responsiveTypography';
 // Legacy text surfaces keep their exact style, family and native ref.
 export const ResponsiveNativeText = forwardRef<React.ComponentRef<typeof Text>, TextProps>(
   function ResponsiveNativeText({ style, ...props }, ref) {
-    const band = useResponsiveTypographyBand();
-    const fixed = useTypographyScope() === 'fixed' || props.allowFontScaling === false;
-    const resolved = useMemo(() => resolveResponsiveTextStyle(StyleSheet.flatten(style), band, fixed), [band, fixed, style]);
-    return <Text ref={ref} {...props} style={resolved} />;
+    const widthBand = useResponsiveTypographyBand();
+    const fixedWidth = useTypographyScope() === 'fixed';
+    const { allowFontScaling } = props;
+    const resolved = useMemo(() => resolveResponsiveTextStyle(StyleSheet.flatten(style), widthBand, {
+      fixedWidth, allowFontScaling,
+    }), [widthBand, fixedWidth, style, allowFontScaling]);
+    return <Text ref={ref} {...props} allowFontScaling={false} style={resolved} />;
   },
 );
 export const ResponsiveNativeTextInput = forwardRef<React.ComponentRef<typeof TextInput>, TextInputProps>(
   function ResponsiveNativeTextInput({ style, ...props }, ref) {
-    const band = useResponsiveTypographyBand();
-    const fixed = useTypographyScope() === 'fixed' || props.allowFontScaling === false;
-    const resolved = useMemo(() => resolveResponsiveTextStyle(StyleSheet.flatten(style), band, fixed), [band, fixed, style]);
-    return <TextInput ref={ref} {...props} style={resolved} />;
+    const widthBand = useResponsiveTypographyBand();
+    const fixedWidth = useTypographyScope() === 'fixed';
+    const { allowFontScaling } = props;
+    const resolved = useMemo(() => resolveResponsiveTextStyle(StyleSheet.flatten(style), widthBand, {
+      fixedWidth, allowFontScaling,
+    }), [widthBand, fixedWidth, style, allowFontScaling]);
+    return <TextInput ref={ref} {...props} allowFontScaling={false} style={resolved} />;
   },
 );

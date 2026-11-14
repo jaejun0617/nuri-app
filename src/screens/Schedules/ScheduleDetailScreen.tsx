@@ -942,6 +942,7 @@ export default function ScheduleDetailScreen() {
       <ConfirmDialog
         confirmRole="destructiveConfirm"
         cancelRole="neutral"
+        cancelVariant="opaqueGlass"
         confirmLoading={deleting}
         visible={deleteConfirmVisible}
         typographyMode="unified"

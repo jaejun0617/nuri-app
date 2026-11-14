@@ -71,12 +71,14 @@ const Canvas = styled.View`
 export function NotificationCanvas({
   children,
   top,
+  bottom,
 }: {
   children: React.ReactNode;
   top: number;
+  bottom?: number;
 }) {
   return (
-    <Canvas style={{ paddingTop: top }}>
+    <Canvas style={{ paddingTop: top, paddingBottom: bottom }}>
       <StatusBar barStyle="dark-content" />
       <LinearGradient
         pointerEvents="none"

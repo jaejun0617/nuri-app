@@ -2,7 +2,6 @@ import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import { useNotificationDestinationRead } from '../../hooks/useNotificationDestinationRead';
-import { useAutomaticTutorial } from '../../app/providers/TutorialProvider';
 import { useNotificationTimeline } from '../../hooks/useNotificationTimeline';
 import { MenuGlassSurface } from '../../components/common/MenuGlassSurface';
 // 파일: src/screens/Records/TimelineScreen.tsx
@@ -1141,6 +1140,8 @@ export default function TimelineScreen({ isolated }: { isolated?: ScopedTimeline
     () => (toolbarHeight ?? insets.bottom) + 12,
     [toolbarHeight, insets.bottom],
   );
+  // A full-width four-column list cannot share its last visible band with the FAB.
+  const reserveCreateLane = !isolated && windowWidth <= 320;
   const renderItem = useCallback<ListRenderItem<string>>(({ item }) => {
     const dayTitle = monthGrid.dayTitles.get(item);
     if (dayTitle) return (
@@ -1395,10 +1396,6 @@ export default function TimelineScreen({ isolated }: { isolated?: ScopedTimeline
     navigation.navigate('SignIn');
   }, [navigation]);
 
-  const onTutorialTouch = useAutomaticTutorial('timeline', Boolean(
-    !isolated && !notificationScoped && !route.params?.notificationOpen && !isHomeTotalSummaryEntry &&
-    !otherModalOpen && petId && status === 'ready',
-  ));
   if (!isLoggedIn) {
     return (
       <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -1472,13 +1469,15 @@ export default function TimelineScreen({ isolated }: { isolated?: ScopedTimeline
   return (
     <View
       onLayout={onListLayout}
-      onTouchStart={onTutorialTouch}
       style={[styles.screen, { paddingTop: insets.top }]}
     >
       <LavenderScreenBackground testID="timeline-background-gradient" />
       <FlashList
         key={isHomeTotalSummaryEntry ? `timeline-entry-${entryGeneration}` : 'timeline-grid'}
         testID="timeline-month-grid"
+        style={reserveCreateLane ? {
+          marginBottom: floatingCreateButtonBottom + styles.floatingCreateButton.minHeight + 4,
+        } : undefined}
         numColumns={RECORD_GALLERY_COLUMNS}
         ref={listRef}
         data={monthGrid.ids}
@@ -1490,7 +1489,7 @@ export default function TimelineScreen({ isolated }: { isolated?: ScopedTimeline
         extraData={listExtraData}
         contentContainerStyle={[
           renderedFilteredIds.length ? styles.list : styles.listEmpty,
-          { paddingBottom: (toolbarHeight ?? insets.bottom) + 16 },
+          reserveCreateLane ? null : { paddingBottom: (toolbarHeight ?? insets.bottom) + 16 },
         ]}
         refreshing={refreshing}
         onRefresh={isolated ? undefined : onRefresh}

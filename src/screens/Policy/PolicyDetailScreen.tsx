@@ -5,7 +5,7 @@ import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Feather from '../../components/icons/NuriFeatherIcon';
 import { useTheme } from 'styled-components/native';
 
@@ -26,7 +26,6 @@ type PolicyDetailRoute = RouteProp<RootStackParamList, 'PolicyDetail'>;
 export default function PolicyDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<PolicyDetailRoute>();
-  const insets = useSafeAreaInsets();
   const theme = useTheme();
 
 
@@ -71,13 +70,12 @@ export default function PolicyDetailScreen() {
   return (
     <SafeAreaView
       style={[styles.safe, { backgroundColor: theme.colors.background }]}
-      edges={['top']}
+      edges={['top', 'bottom']}
     >
       <AppHeaderLayout subtitle="서비스 이용에 필요한 내용을 확인해요"
         style={[
           styles.header,
           {
-            backgroundColor: theme.colors.surfaceElevated,
             borderBottomColor: theme.colors.border,
           },
         ]}
@@ -105,10 +103,7 @@ export default function PolicyDetailScreen() {
 
       <ScrollView
         testID="policy-detail-scroll"
-        contentContainerStyle={[
-          styles.content,
-          { paddingBottom: Math.max(insets.bottom, 12) + 32 },
-        ]}
+        contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
         {document ? (
@@ -241,7 +236,7 @@ const styles = StyleSheet.create({
 
      ...APP_HEADER.title },
   headerSide: { width: 44 },
-  content: { paddingHorizontal: 20, paddingTop: 24 },
+  content: { paddingHorizontal: 20, paddingTop: 24, paddingBottom: 32 },
   titleBlock: { gap: 8 },
   title: { fontSize: 22, lineHeight: 30, fontWeight: '900' },
   summary: { fontSize: 14, lineHeight: 22, fontWeight: '600' },

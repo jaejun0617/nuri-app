@@ -18,7 +18,9 @@ export const styles = StyleSheet.create({
   },
   headerTitle: { flex: 1, minWidth: 0, textAlign: 'center', ...APP_HEADER.title },
   scroll: { flex: 1 },
-  scrollContent: { paddingHorizontal: 20, paddingBottom: 32 },
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 12 },
+  createPosition: { position: 'absolute' },
+  createButton: { width: 48, minHeight: 48, borderRadius: 24, paddingHorizontal: 0, paddingVertical: 0 },
   subtitle: { marginTop: 8, marginBottom: 14 },
   search: {
     minHeight: 48,

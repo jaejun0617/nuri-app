@@ -27,6 +27,7 @@ let mockLoading = false;
 let mockError: string | null = null;
 let mockSeason = 'autumn';
 let mockFontScale = 1;
+let mockWidth = 360;
 let mockData: NonNullable<ReturnType<typeof useHealthReportMonth>['data']>;
 
 jest.mock('@react-native-masked-view/masked-view', () => {
@@ -45,7 +46,7 @@ jest.mock('@react-native-masked-view/masked-view', () => {
 jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
   __esModule: true,
   default: () => ({
-    width: 360,
+    width: mockWidth,
     height: 800,
     scale: 3,
     fontScale: mockFontScale,
@@ -87,6 +88,7 @@ jest.mock(
 );
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: jest.requireActual('react-native').View,
+  SafeAreaInsetsContext: jest.requireActual<typeof React>('react').createContext(null),
   useSafeAreaInsets: () => ({ top: 24, bottom: 24, left: 0, right: 0 }),
 }));
 
@@ -144,6 +146,7 @@ describe('health redesign preserves feature ownership', () => {
     mockError = null;
     mockSeason = 'autumn';
     mockFontScale = 1;
+    mockWidth = 360;
     mockData = fixture();
     jest.clearAllMocks();
     usePetStore.setState({
@@ -173,6 +176,9 @@ describe('health redesign preserves feature ownership', () => {
     renderer.root
       .findAllByType(RN.TouchableOpacity)
       .find(node => node.props.accessibilityLabel === label);
+  const fixedCreate = () => renderer.root.find(node =>
+    node.props.testID === 'health-fixed-create' && typeof node.props.style === 'function',
+  );
 
   const glassPanels = () =>
     renderer.root.findAll(
@@ -180,6 +186,17 @@ describe('health redesign preserves feature ownership', () => {
         node.type === RN.View &&
         /^health-.*-glass$/.test(String(node.props.testID)),
     );
+
+  it.each([
+    { width: 320, size: 36, lineHeight: 40 },
+    { width: 321, size: 44, lineHeight: 48 },
+  ])('uses the intended monthly count typography at $width dp', async ({ width, size, lineHeight }) => {
+    mockWidth = width;
+    await mount();
+    const count = renderer.root.findAllByProps({ testID: 'health-monthly-record-count' }).at(-1)!;
+    expect(RN.StyleSheet.flatten(count.props.style)).toMatchObject({ fontSize: size, lineHeight });
+    expect(count.props.allowFontScaling).toBe(false);
+  });
 
   it('opens a health memory above the current report rather than revealing the tab underlay', async () => {
     await mount();
@@ -245,6 +262,7 @@ describe('health redesign preserves feature ownership', () => {
     usePetStore.setState({ pets: [], selectedPetId: null });
     await mount();
     expect(output()).toContain('먼저 아이 프로필이 필요해요');
+    expect(renderer.root.findAllByProps({ testID: 'health-fixed-create' })).toHaveLength(0);
     const background = renderer.root.findAllByProps({
       testID: 'seasonal-ambient-background',
     })[0];
@@ -252,6 +270,46 @@ describe('health redesign preserves feature ownership', () => {
     expect(background.props.importantForAccessibility).toBe(
       'no-hide-descendants',
     );
+  });
+
+  it('separates the header guide from the 36 dp floating compose face and clears the toolbar', async () => {
+    await mount();
+    const guide = renderer.root.find(node =>
+      node.props.testID === 'header-help-healthReport' && typeof node.props.onPress === 'function',
+    );
+    expect(guide.props.accessibilityLabel).toBe('건강관리 안내');
+    expect(button('건강 기록하기')).toBeUndefined();
+    const create = fixedCreate();
+    expect(create.props.accessibilityRole).toBe('button');
+    expect(create.props.accessibilityLabel).toBe('건강 기록하기');
+    expect(RN.StyleSheet.flatten(create.props.style({ pressed: false }))).toMatchObject({
+      width: 48, minHeight: 48, backgroundColor: 'transparent',
+    });
+    const face = create.findAllByProps({ testID: 'health-fixed-create-face' }).at(-1)!;
+    expect(RN.StyleSheet.flatten(face.props.style)).toMatchObject({
+      top: 4, bottom: 4, left: 4, right: 4, borderRadius: 20,
+    });
+    const toolbar = renderer.root.find(node => node.type === ('AppNavigationToolbar' as React.ElementType));
+    await act(async () => toolbar.props.onLayout({ nativeEvent: { layout: { height: 98 } } }));
+    const boundary = renderer.root.findAllByProps({ testID: 'health-create-capture-boundary' }).at(-1)!;
+    expect(RN.StyleSheet.flatten(boundary.props.style)).toMatchObject({ position: 'absolute', right: 16, bottom: 110 });
+    await act(async () => guide.props.onPress());
+    expect(output()).toContain('인사이트는 선택한 달의 기록을 요약해요.');
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('keeps the touch area and enlarges the compose face at 412 dp', async () => {
+    mockWidth = 412;
+    await mount();
+    const create = fixedCreate();
+    expect(RN.StyleSheet.flatten(create.props.style({ pressed: false }))).toMatchObject({
+      width: 48, minHeight: 48,
+    });
+    const face = create.findAllByProps({ testID: 'health-fixed-create-face' }).at(-1)!;
+    expect(RN.StyleSheet.flatten(face.props.style)).toMatchObject({
+      top: 2, right: 2, bottom: 2, left: 2, borderRadius: 22,
+    });
+    expect(create.find(node => node.props.family === 'feather' && node.props.name === 'plus').props.size).toBe(21);
   });
 
   it.each(['autumn', 'winter', 'spring', 'summer'] as const)(
@@ -299,7 +357,7 @@ describe('health redesign preserves feature ownership', () => {
     'opens %s as an actual health record instead of a schedule',
     async (label, kind) => {
       await mount();
-      await act(async () => button('건강 기록하기')?.props.onPress());
+      await act(async () => fixedCreate().props.onPress());
       const target = renderer.root
         .findAllByType(RN.TouchableOpacity)
         .find(
@@ -454,7 +512,7 @@ describe('health redesign preserves feature ownership', () => {
     async season => {
       mockSeason = season;
       await mount();
-      await act(async () => button('건강 기록하기')?.props.onPress());
+      await act(async () => fixedCreate().props.onPress());
       expect(output()).toContain('병원·진단 기록');
       expect(output()).toContain('약·복약 기록');
       expect(output()).toContain('병원·검진 일정');
@@ -533,8 +591,9 @@ describe('health redesign preserves feature ownership', () => {
     );
     expect(output()).toContain('이달의 해당 기록이 없어요');
     const empty = renderer.root.findAllByProps({ testID: 'health-records-empty' }).at(-1)!;
-    expect(RN.StyleSheet.flatten(empty.props.style)).toMatchObject({ gap: 20, paddingVertical: 32 });
-    expect(button('건강 기록하기')).toBeDefined();
+    expect(RN.StyleSheet.flatten(empty.props.style)).toMatchObject({ paddingVertical: 32 });
+    expect(empty.findAllByProps({ testID: 'health-fixed-create' })).toHaveLength(0);
+    expect(fixedCreate().props.accessibilityLabel).toBe('건강 기록하기');
   });
 });
 

@@ -2,18 +2,21 @@ import React, { createContext, useContext } from 'react';
 import { useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getResponsiveContentWidth } from '../../services/app/responsiveLayout';
-import { responsiveTypographyBand } from '../typography/responsiveTypography';
+import { DEFAULT_TYPOGRAPHY_BAND, responsiveTypographyBand } from '../typography/responsiveTypography';
 
-const ResponsiveBand = createContext(3);
-export const useResponsiveTypographyBand = () => useContext(ResponsiveBand);
+const ResponsiveTypography = createContext(DEFAULT_TYPOGRAPHY_BAND);
+export const useResponsiveTypographyBand = () => useContext(ResponsiveTypography);
 
-export function ResponsiveTypographyPreview({ width, fontScale, children }: React.PropsWithChildren<{ width: number; fontScale: number }>) {
-  return <ResponsiveBand.Provider value={responsiveTypographyBand(width, fontScale)}>{children}</ResponsiveBand.Provider>;
+export function ResponsiveTypographyPreview({ width, children }: React.PropsWithChildren<{ width: number }>) {
+  return <ResponsiveTypography.Provider value={responsiveTypographyBand(width)}>{children}</ResponsiveTypography.Provider>;
 }
 
 export function ResponsiveTypographyProvider({ children }: React.PropsWithChildren) {
-  const { width, fontScale } = useWindowDimensions();
+  const { width } = useWindowDimensions();
   const { left, right } = useSafeAreaInsets();
-  const band = responsiveTypographyBand(getResponsiveContentWidth(width, left, right), fontScale);
-  return <ResponsiveBand.Provider value={band}>{children}</ResponsiveBand.Provider>;
+  return (
+    <ResponsiveTypographyPreview width={getResponsiveContentWidth(width, left, right)}>
+      {children}
+    </ResponsiveTypographyPreview>
+  );
 }

@@ -3,6 +3,7 @@ import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import AppText from '../../../../app/ui/AppText';
 import Feather from '../../../../components/icons/NuriFeatherIcon';
+import NuriSemanticIcon from '../../../../components/icons/NuriSemanticIcon';
 import { HomeReflectiveGlass } from '../../../../components/home/HomeReflectiveGlass';
 import { getTitleArtwork } from '../../../../services/activity/titleArtwork';
 import { buildPetThemePalette } from '../../../../services/pets/themePalette';
@@ -26,6 +27,7 @@ type Props = {
   colors?: HomeHeroColors;
   petTheme: ReturnType<typeof buildPetThemePalette>;
   containerWidth: number;
+  fontScale?: number;
   profilePetName: string;
   titleBadge: string | null;
   titleBadgeKey?: string | null;
@@ -37,10 +39,11 @@ type Props = {
 };
 
 export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
-  containerWidth, profilePetName, titleBadge, titleBadgeKey, togetherDays, colors = HOME_HERO_COLORS,
+  containerWidth, fontScale = 1, profilePetName, titleBadge, titleBadgeKey, togetherDays, colors = HOME_HERO_COLORS,
   hasMultiplePets, onPressPetSelect, onPressProfileInfo, onPressPetProfileEdit,
 }: Props) {
   const type = getHomeHeroTypography(containerWidth, profilePetName);
+  const expandActions = (type.compact && fontScale > 1) || fontScale >= 1.5;
   const titleArt = getTitleArtwork(titleBadgeKey);
   const titleArtSize = type.nameSize + 3;
   const nameIconSlot = [styles.selectorIconSlot, { width: titleArtSize }];
@@ -78,19 +81,27 @@ export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
       </TouchableOpacity>
       {dayLabel !== null ? (
         <View testID="home-hero-together" accessible accessibilityLabel={`함께한 시간 ${dayLabel}일`} style={styles.together}>
-          <AppText testID="home-hero-together-label" preset="unifiedMeta" styleOverridesPreset style={[styles.togetherText, { color: colors.muted, fontSize: type.labelSize }]}>함께한 시간</AppText>
-          <AppText testID="home-hero-day-value" preset="unifiedMeta" styleOverridesPreset style={[styles.days, { color: colors.ink, fontSize: type.valueSize }]}>{dayLabel}일</AppText>
+          <TogetherHeart testID="home-hero-together-heart-leading" />
+          <View testID="home-hero-together-copy" style={styles.togetherCopy}>
+            <AppText testID="home-hero-together-label" preset="unifiedMeta" styleOverridesPreset style={[styles.togetherText, { color: colors.muted, fontSize: type.labelSize }]}>함께한 시간</AppText>
+            <AppText testID="home-hero-day-value" preset="unifiedMeta" styleOverridesPreset style={[styles.days, { color: colors.ink, fontSize: type.valueSize }]}>{dayLabel}일</AppText>
+          </View>
+          <TogetherHeart testID="home-hero-together-heart-trailing" />
         </View>
       ) : null}
       <View testID="home-hero-profile-actions" style={[styles.profileActions, { marginHorizontal: type.actionInset }]}>
-        <View testID="home-hero-action-balance" accessible={false} importantForAccessibility="no-hide-descendants" pointerEvents="none" style={styles.actionBalance} />
+        {!expandActions ? (
+          <View testID="home-hero-action-balance" accessible={false} importantForAccessibility="no-hide-descendants" pointerEvents="none" style={styles.actionBalance} />
+        ) : null}
         <TouchableOpacity
           testID="home-hero-profile-info" activeOpacity={0.86} accessibilityRole="button"
           accessibilityLabel={`${profilePetName} 더 알아보기`} onPress={onPressProfileInfo}
           style={styles.actionButton}
         >
           <HomeReflectiveGlass testID="home-hero-profile-info-glass" borderRadius={999} style={styles.actionGlass} />
-          <View accessible={false} importantForAccessibility="no-hide-descendants" style={styles.actionIconSlot} />
+          {!expandActions ? (
+            <View accessible={false} importantForAccessibility="no-hide-descendants" style={styles.actionIconSlot} />
+          ) : null}
           <AppText testID="home-hero-profile-info-label" preset="unifiedLabel" styleOverridesPreset numberOfLines={2} ellipsizeMode="tail" style={[styles.actionText, { color: colors.ink, fontSize: type.buttonSize }]}>{profilePetName} 더 알아보기</AppText>
           <View accessible={false} style={styles.actionIconSlot}><Feather name="chevron-right" size={22} color={colors.ink} accessible={false} /></View>
         </TouchableOpacity>
@@ -107,6 +118,21 @@ export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
   );
 });
 
+function TogetherHeart({ testID }: { testID: string }) {
+  return (
+    <View
+      testID={testID}
+      pointerEvents="none"
+      accessible={false}
+      accessibilityElementsHidden
+      importantForAccessibility="no-hide-descendants"
+      style={styles.togetherHeart}
+    >
+      <NuriSemanticIcon family="material" name="heart" preserveOriginal size={13} color={HOME_HERO_ACCENT.primary} />
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   sheetBody: { width: '100%', paddingHorizontal: 16, backgroundColor: 'transparent' },
   info: { width: '100%', paddingBottom: 24, backgroundColor: 'transparent' },
@@ -117,7 +143,9 @@ const styles = StyleSheet.create({
   nameAction: { minHeight: 48, marginTop: 8, marginHorizontal: 24, flexDirection: 'row', alignItems: 'center', alignSelf: 'stretch', justifyContent: 'center', gap: 8 },
   selectorIconSlot: { width: 36, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
   name: { color: HOME_HERO_COLORS.ink, fontWeight: '600', flexShrink: 1, minWidth: 0, textAlign: 'center', includeFontPadding: false },
-  together: { marginTop: 4, minHeight: 32, paddingHorizontal: 24, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'center', columnGap: 10, rowGap: 2 },
+  together: { marginTop: 4, minHeight: 32, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 9 },
+  togetherCopy: { flexDirection: 'row', flexShrink: 1, minWidth: 0, flexWrap: 'wrap', alignItems: 'baseline', justifyContent: 'center', columnGap: 10, rowGap: 2 },
+  togetherHeart: { width: 13, height: 16, flexShrink: 0, alignItems: 'center', justifyContent: 'center', opacity: 0.65 },
   togetherText: { lineHeight: 20, color: HOME_HERO_COLORS.muted, fontWeight: '500', includeFontPadding: false },
   days: { lineHeight: 32, fontWeight: '500', includeFontPadding: false },
   profileActions: { marginTop: 6, flexDirection: 'row', alignItems: 'stretch', gap: 7 },

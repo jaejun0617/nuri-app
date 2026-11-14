@@ -43,11 +43,11 @@ export function shouldStackSummary(width: number, fontScale: number): boolean {
   return width < 350 || fontScale >= 1.3;
 }
 
-export function resolveSummaryCountFontSize(value: number | null): number {
+export function resolveSummaryCountFontSize(value: number | null, compact = false): number {
   const length = value === null ? 1 : String(value).length;
-  if (length <= 2) return 62;
-  if (length === 3) return 46;
-  if (length === 4) return 34;
+  if (length <= 2) return compact ? 54 : 62;
+  if (length === 3) return compact ? 38 : 46;
+  if (length === 4) return compact ? 26 : 34;
   return 24;
 }
 
@@ -89,9 +89,13 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
     ? '전체 기록을 불러오는 중이에요.'
     : '전체 기록을 확인할 수 없어요.';
   const stack = shouldStackSummary(width, fontScale);
-  const stackOverview = stack || String(summary?.totalRecords ?? '').length > 6;
+  const isSmallWidth = width <= 320;
+  const totalDigits = String(summary?.totalRecords ?? '').length;
+  const compactOverview = isSmallWidth && fontScale < 1.3 && totalDigits <= 4;
+  const stackOverview = !compactOverview && (stack || totalDigits > 6);
   const countFontSize = resolveSummaryCountFontSize(
     summary?.totalRecords ?? null,
+    isSmallWidth,
   );
   const metrics = [
     {
@@ -160,7 +164,7 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
             </AppText>
             <View
               testID="home-summary-total"
-              style={styles.totalRow}
+              style={[styles.totalRow, isSmallWidth && styles.totalRowCompact]}
               accessibilityLiveRegion="polite"
             >
               {summary ? (
@@ -245,7 +249,11 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
         </View>
         <View
           testID="home-summary-art-frame"
-          style={[styles.artFrame, stackOverview ? styles.artStacked : null]}
+          style={[
+            styles.artFrame,
+            stackOverview ? styles.artStacked : null,
+            compactOverview ? styles.artCompact : null,
+          ]}
           pointerEvents="none"
           accessible={false}
           accessibilityElementsHidden
@@ -394,6 +402,7 @@ export const styles = StyleSheet.create({
     letterSpacing: 0,
   },
   totalRow: { minHeight: 72, justifyContent: 'center' },
+  totalRowCompact: { minHeight: 64 },
   totalValue: { fontWeight: '700', letterSpacing: 0 },
   totalUnit: {
     fontSize: 17,
@@ -428,6 +437,7 @@ export const styles = StyleSheet.create({
     flexShrink: 0,
   },
   artStacked: { alignSelf: 'center', width: '62%' },
+  artCompact: { width: '44%', maxWidth: 128 },
   art: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
   metrics: { flexDirection: 'row', gap: 8, alignItems: 'stretch' },
   metricsStacked: { flexDirection: 'column' },

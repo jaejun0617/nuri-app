@@ -18,6 +18,7 @@ import { isSecurityQaEnabled } from '../../services/securityQa/config';
 import AppTextInput from '../../app/ui/AppTextInput';
 import { useSeasonPreference } from '../../app/providers/SeasonPreferenceProvider';
 import { SeasonReviewControls } from '../../components/common/SeasonReviewControls';
+import UsbDeviceLayoutControls from '../DevTest/UsbDeviceLayoutControls';
 import PostRegistrationLoadingReview from '../Auth/PostRegistrationLoadingReview';
 import SupportDesignReview from '../Support/SupportDesignReview';
 import type { PreviewSubscription } from '../Support/SubscriptionPreview';
@@ -1514,8 +1515,6 @@ export default function MoreDrawerContent({
         key: 'security-validation', label: 'Security validation', icon: 'shield',
         onPress: () => closeAndNavigate(() => navigation.navigate('SecurityValidation')),
       }] : []),
-      { key: 'tutorial-library', label: '누리 사용법', icon: 'book-open',
-        onPress: () => closeAndNavigate(() => navigation.navigate('TutorialLibrary')) },
       ...(__DEV__ ? [{
         key: 'device-layout-preview', label: '기기별 화면 미리보기', icon: 'smartphone',
         onPress: () => closeAndNavigate(() => navigation.navigate('DeviceLayoutPreview')),
@@ -1682,6 +1681,7 @@ export default function MoreDrawerContent({
           {isLoggedIn ? (
             <SeasonReviewControls season={season} onChange={setReviewSeason} />
           ) : null}
+          {__DEV__ && isLoggedIn ? <UsbDeviceLayoutControls /> : null}
           {__DEV__ ? <PostRegistrationLoadingReview petName={selectedPet?.name} /> : null}
           </View>}
         />

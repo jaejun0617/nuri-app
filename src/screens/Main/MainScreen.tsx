@@ -19,7 +19,6 @@ import React, {
   useState,
 } from 'react';
 import { BackHandler, Platform, View } from 'react-native';
-import { useAutomaticTutorial } from '../../app/providers/TutorialProvider';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
@@ -66,12 +65,6 @@ export default function MainScreen() {
     [pets, selectedPetId],
   );
   const petTheme = NEUTRAL_UI_PALETTE;
-  const onTutorialTouch = useAutomaticTutorial('home', Boolean(
-    isLoggedIn && userId && nickname?.trim() && selectedPet && !petLoading && !petErrorMessage &&
-    !isPasswordRecoveryActive && profileSyncStatus === 'ready' && welcomeCheckedOwner === userId &&
-    !firstPetWelcome && !exitConfirmVisible,
-  ));
-
   useFocusEffect(useCallback(() => {
     let cancelled = false;
 
@@ -192,7 +185,7 @@ export default function MainScreen() {
 
   return (
     <>
-      {isLoggedIn && !isPasswordRecoveryActive ? <View style={homeContainer} onTouchStart={onTutorialTouch}><LoggedInHome /></View> : null}
+      {isLoggedIn && !isPasswordRecoveryActive ? <View style={homeContainer}><LoggedInHome /></View> : null}
       <ConfirmDialog
         confirmRole="primary"
         cancelRole="neutral"

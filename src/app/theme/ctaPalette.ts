@@ -12,8 +12,14 @@ export type CtaRole =
   | 'destructiveConfirm'
   | 'disabled';
 export type CtaState = 'default' | 'pressed' | 'loading' | 'disabled';
-export type CtaVariant = 'default' | 'solidLavender';
+export type CtaVariant = 'default' | 'solidLavender' | 'opaqueGlass';
 export type CtaPalette = { background: string; text: string; border: string };
+
+export const DESTRUCTIVE_CTA = {
+  background: '#B93645',
+  pressed: '#982936',
+  text: '#FFFFFF',
+} as const;
 
 export const SEASON_CTA = {
   autumn: {
@@ -84,6 +90,15 @@ export function resolveCtaPalette({
     const background = pressed ? PRODUCT_CTA.pressed : PRODUCT_CTA.primary;
     return { background, border: background, text: '#FFFFFF' };
   }
+  if (variant === 'opaqueGlass' && role === 'neutral') {
+    return {
+      background: dark
+        ? (pressed ? colors.surfaceElevated : colors.surface)
+        : (pressed ? '#CADCE5' : '#DCE8EE'),
+      border: 'transparent',
+      text: dark ? colors.textPrimary : '#243042',
+    };
+  }
   switch (role) {
     case 'primary':
       return {
@@ -97,13 +112,15 @@ export function resolveCtaPalette({
         text: seasonal.text,
         border: seasonal.border,
       };
-    case 'destructiveConfirm':
-      return {
-        background: pressed ? '#982936' : '#B93645',
-        text: '#FFFFFF',
-        border: pressed ? '#982936' : '#B93645',
-      };
     case 'destructiveEntry':
+    case 'destructiveConfirm': {
+      const background = pressed ? DESTRUCTIVE_CTA.pressed : DESTRUCTIVE_CTA.background;
+      return {
+        background,
+        text: DESTRUCTIVE_CTA.text,
+        border: background,
+      };
+    }
     case 'cleanup':
       return dark
         ? {
@@ -112,15 +129,9 @@ export function resolveCtaPalette({
             border: 'rgba(255,174,184,0.38)',
           }
         : {
-            background:
-              role === 'cleanup'
-                ? 'rgba(255,241,243,0.62)'
-                : 'rgba(255,241,243,0.85)',
-            text: '#B93645',
-            border:
-              role === 'cleanup'
-                ? 'rgba(185,54,69,0.22)'
-                : 'rgba(185,54,69,0.34)',
+            background: 'rgba(255,241,243,0.62)',
+            text: DESTRUCTIVE_CTA.background,
+            border: 'rgba(185,54,69,0.22)',
           };
     case 'secondary':
       return dark

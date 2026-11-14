@@ -38,6 +38,7 @@ import type { CommunityPost } from '../src/types/community';
 
 let mockSeason: SeasonKey = 'autumn';
 let mockInsets = { top: 24, bottom: 24, left: 0, right: 0 };
+let mockWidth = 360;
 const mockRequireLogin = jest.fn((callback: () => void) => callback());
 const mockNavigation = {
   navigate: jest.fn(),
@@ -58,6 +59,10 @@ jest.mock('../src/app/providers/SeasonPreferenceProvider', () => ({
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => mockInsets,
+}));
+jest.mock('react-native/Libraries/Utilities/useWindowDimensions', () => ({
+  __esModule: true,
+  default: () => ({ width: mockWidth, height: 800, scale: 3, fontScale: 1 }),
 }));
 jest.mock('../src/hooks/useCommunityAuth', () => ({
   useCommunityAuth: () => ({
@@ -144,6 +149,7 @@ describe('community seasonal list candidate', () => {
     jest.clearAllMocks();
     mockSeason = 'autumn';
     mockInsets = { top: 24, bottom: 24, left: 0, right: 0 };
+    mockWidth = 360;
     mockRequireLogin.mockImplementation(callback => callback());
     infoSpy = jest.spyOn(console, 'info').mockImplementation(() => {});
     useCommunityStore.setState({
@@ -189,7 +195,12 @@ it.each(['autumn', 'winter', 'spring', 'summer'] as const)('keeps the standard h
   const category = renderer.root.findAllByType(TouchableOpacity).find(n => n.props.style === styles.categoryChip && n.props.accessibilityState.selected);
   expect(StyleSheet.flatten(categoryFace(category)?.props.style).backgroundColor).toBe(PRODUCT_CTA.primary);
   const create = renderer.root.findAll(n => typeof n.props.style === 'function').find(n => n.props.testID === 'community-fixed-create')!;
-  expect(StyleSheet.flatten(create.props.style({pressed:false}))).toMatchObject({backgroundColor: PRODUCT_CTA.primary, width:48, minHeight:48});
+  expect(StyleSheet.flatten(create.props.style({pressed:false}))).toMatchObject({backgroundColor: 'transparent', width:48, minHeight:48});
+  const face = create.findAllByProps({ testID: 'community-fixed-create-face' }).at(-1)!;
+  expect(face.props.pointerEvents).toBe('none');
+  expect(StyleSheet.flatten(face.props.style)).toMatchObject({
+    top: 3, right: 3, bottom: 3, left: 3, borderRadius: 21, backgroundColor: PRODUCT_CTA.primary,
+  });
   expect(mockFetch).not.toHaveBeenCalled();
 });
 
@@ -286,6 +297,7 @@ it.each([0,24,48])('reserves the %s dp status inset once above the shared header
     expect(create?.findByType(NativeFeather).props).toMatchObject({
       name: 'plus',
       color: '#FFFFFF',
+      size: 21,
     });
     expect(
       StyleSheet.flatten(create?.props.style({ pressed: false })),
@@ -349,6 +361,25 @@ it.each([0,24,48])('reserves the %s dp status inset once above the shared header
       'minHeight',
     );
     expect(StyleSheet.flatten(footer.props.style).marginTop).toBe(8);
+  });
+
+  it('enlarges the visible compose button at 412 dp without moving pagination', async () => {
+    mockWidth = 412;
+    await TestRenderer.act(async () => renderer.update(tree()));
+    const list = renderer.root.findByType(FlatList);
+    expect(list.props.ListFooterComponent.props.testID).toBe('community-list-pagination');
+    expect(list.findAllByProps({ testID: 'community-fixed-create' })).toHaveLength(0);
+    const create = renderer.root.find(node =>
+      node.props.testID === 'community-fixed-create' && typeof node.props.style === 'function',
+    );
+    expect(StyleSheet.flatten(create.props.style({ pressed: false }))).toMatchObject({
+      width: 48, minHeight: 48,
+    });
+    const face = create.findAllByProps({ testID: 'community-fixed-create-face' }).at(-1)!;
+    expect(StyleSheet.flatten(face.props.style)).toMatchObject({
+      top: 1, right: 1, bottom: 1, left: 1, borderRadius: 23,
+    });
+    expect(create.findByType(NativeFeather).props.size).toBe(22);
   });
 
   it('stretches only the empty-result cell instead of spacing a populated footer away from posts', async () => {

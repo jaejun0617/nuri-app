@@ -28,7 +28,8 @@ describe('Timeline visual polish', () => {
     expect(create).not.toContain('>기록</CtaText>');
     expect(create).toContain('name="plus"');
     expect(create).toContain('color="#FFFFFF"');
-    expect(create).toContain('size={24}');
+    expect(create).toContain('size={iconSize}');
+    expect(create).toContain('solidFaceInset={faceInset}');
     expect(create).toContain('preserveOriginal');
     expect(source).toContain('useContext(ToolbarHeightContext)');
     expect(source).toContain('(toolbarHeight ?? insets.bottom) + 12');

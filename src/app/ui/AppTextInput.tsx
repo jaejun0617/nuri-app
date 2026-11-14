@@ -28,7 +28,7 @@ const AppTextInput = memo(
       const theme = useTheme();
       const { mode } = useAppFontPreference();
       const typographyScope = useTypographyScope();
-      const band = useResponsiveTypographyBand();
+      const widthBand = useResponsiveTypographyBand();
       const effectiveMode = resolveAppFontMode({
         mode,
         scope: typographyScope,
@@ -42,11 +42,11 @@ const AppTextInput = memo(
             effectiveMode
               ? (theme.typography.appFontMode[effectiveMode] as TextStyle)
               : null,
-          ]), band, typographyScope === 'fixed' || allowFontScaling === false),
-        [allowFontScaling, band, effectiveMode, style, theme.typography, typographyScope],
+          ]), widthBand, { fixedWidth: typographyScope === 'fixed', allowFontScaling }),
+        [allowFontScaling, widthBand, effectiveMode, style, theme.typography, typographyScope],
       );
 
-      return <TextInput ref={ref} {...rest} allowFontScaling={allowFontScaling} style={composedStyle} />;
+      return <TextInput ref={ref} {...rest} allowFontScaling={false} style={composedStyle} />;
     },
   ),
 );

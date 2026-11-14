@@ -152,7 +152,7 @@ export default function UserNotificationsScreen() {
     }
   };
   return (
-    <NotificationCanvas top={insets.top}>
+    <NotificationCanvas top={insets.top} bottom={insets.bottom}>
       <NotificationHeader
         title="알림함"
         onBack={onBack}
@@ -228,7 +228,7 @@ export default function UserNotificationsScreen() {
           <EmptyNotificationInbox />
           <AppText
             preset="caption"
-            style={[styles.retention, { paddingBottom: insets.bottom + 20 }]}
+            style={styles.retention}
           >
             알림은 도착한 날부터 30일 후 자동 삭제돼요.
           </AppText>
@@ -238,7 +238,7 @@ export default function UserNotificationsScreen() {
           items={items}
           now={now}
           timeZone={timeZone}
-          bottom={insets.bottom + 32}
+          bottom={32}
           pending={list.isPending}
           error={list.isError}
           loadingMore={list.isFetchingNextPage}

@@ -3,6 +3,7 @@ import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
 import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
+import { resolveFloatingCreateAppearance } from '../../app/ui/floatingCreateAppearance';
 import React, {
   memo,
   Profiler,
@@ -26,6 +27,7 @@ import {
   RefreshControl,
   ScrollView,
   TouchableOpacity,
+  useWindowDimensions,
   View,
   type ListRenderItem,
 } from 'react-native';
@@ -205,6 +207,8 @@ export default function CommunityListScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
+  const { width } = useWindowDimensions();
+  const createAppearance = resolveFloatingCreateAppearance(width, 'community');
   const theme = useTheme();
   const seasonal = PRODUCT_CTA;
   const toolbarHeight = useContext(ToolbarHeightContext);
@@ -857,8 +861,9 @@ export default function CommunityListScreen() {
                 testID="community-fixed-create"
                 role="primary"
                 variant="solidLavender"
+                solidFaceInset={createAppearance.faceInset}
                 accessibilityLabel="게시글 작성"
-                style={[styles.createButton, { paddingHorizontal: 4 }]}
+                style={styles.createButton}
                 onPress={handlePressCreate}
               >
                 {palette => (
@@ -866,7 +871,7 @@ export default function CommunityListScreen() {
                     family="feather"
                     preserveOriginal
                     name="plus"
-                    size={26}
+                    size={createAppearance.iconSize}
                     color={palette.text}
                     accessible={false}
                     accessibilityElementsHidden

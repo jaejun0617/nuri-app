@@ -1,7 +1,6 @@
 import React, { memo, useEffect, useMemo } from 'react';
 import {
   StyleSheet,
-  Text,
   type StyleProp,
   type TextStyle,
   type ViewStyle,
@@ -19,6 +18,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { useTheme } from 'styled-components/native';
+import { ResponsiveNativeText as Text } from '../../app/ui/ResponsiveNativeText';
 
 import {
   useAppFontPreference,

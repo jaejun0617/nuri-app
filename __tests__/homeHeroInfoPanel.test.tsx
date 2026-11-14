@@ -13,10 +13,10 @@ jest.mock('../src/app/ui/AppText', () => 'AppText');
 describe('approved open Home Hero information', () => {
   let renderer: Renderer.ReactTestRenderer;
   const select = jest.fn(), info = jest.fn(), edit = jest.fn();
-  const render = async (width = 426, name = '누리', badge: string | null = '산책 새싹', days: number | null = 8) => {
+  const render = async (width = 426, name = '누리', badge: string | null = '산책 새싹', days: number | null = 8, fontScale = 1) => {
     await act(async () => {
       renderer = Renderer.create(
-        <HomeHeroInfoPanel containerWidth={width} petTheme={buildPetThemePalette('#7D5CE4')}
+        <HomeHeroInfoPanel containerWidth={width} fontScale={fontScale} petTheme={buildPetThemePalette('#7D5CE4')}
           profilePetName={name} titleBadge={badge} titleBadgeKey={badge === '산책 새싹' ? 'walk_sprout' : null} togetherDays={days} hasMultiplePets
           onPressPetSelect={select} onPressProfileInfo={info} onPressPetProfileEdit={edit} />,
       );
@@ -73,8 +73,18 @@ describe('approved open Home Hero information', () => {
       expect(style.minHeight).toBeGreaterThanOrEqual(48);
       expect(style.height).toBeUndefined();
     }
-    expect(StyleSheet.flatten(node('home-hero-together').props.style).flexWrap).toBe('wrap');
+    expect(StyleSheet.flatten(node('home-hero-together-copy').props.style)).toMatchObject({ flexWrap: 'wrap', flexShrink: 1 });
     expect(node('home-hero-together').props.accessibilityLabel).toBe('함께한 시간 123,456일');
+    const together = renderer.root.findAllByProps({ testID: 'home-hero-together' }).slice(-1)[0];
+    expect(together.children.filter((x): x is Renderer.ReactTestInstance => typeof x !== 'string').map(x => x.props.testID)).toEqual([
+      'home-hero-together-heart-leading', 'home-hero-together-copy', 'home-hero-together-heart-trailing',
+    ]);
+    for (const position of ['leading', 'trailing']) {
+      const heart = renderer.root.findAllByProps({ testID: `home-hero-together-heart-${position}` }).slice(-1)[0];
+      expect(heart.props).toMatchObject({
+        pointerEvents: 'none', accessible: false, importantForAccessibility: 'no-hide-descendants',
+      });
+    }
   });
 
   it('does not invent a title or day count for missing data', async () => {
@@ -82,6 +92,20 @@ describe('approved open Home Hero information', () => {
     expect(renderer.root.findAllByProps({ testID: 'home-hero-title-badge' })).toHaveLength(0);
     expect(renderer.root.findAllByProps({ testID: 'home-hero-together' })).toHaveLength(0);
     expect(StyleSheet.flatten(node('home-hero-title-slot').props.style).minHeight).toBe(28);
+  });
+
+  it.each([
+    [320, 1, false], [320, 1.08, true], [360, 1.15, true],
+    [384, 1.15, false], [412, 1.15, false], [412, 2, true],
+  ] as const)('reserves legible profile actions at %s dp and %s system scale', async (width, scale, expanded) => {
+    const name = '오래함께한반려동물';
+    await render(width, name, '산책 새싹', 1234, scale);
+    expect(renderer.root.findAllByProps({ testID: 'home-hero-action-balance' }).length > 0).toBe(!expanded);
+    expect(node('home-hero-profile-info-label').props.allowFontScaling).not.toBe(false);
+    expect(node('home-hero-profile-info-label').props.numberOfLines).toBe(2);
+    expect(StyleSheet.flatten(node('home-hero-profile-info-label').props.style).fontSize).toBe(width <= 360 ? 12 : 14);
+    expect(node('home-hero-profile-info').props.accessibilityLabel).toBe(`${name} 더 알아보기`);
+    expect(StyleSheet.flatten(node('home-hero-profile-edit').props.style).minHeight).toBe(51);
   });
 
   it('sizes title artwork with the name without changing vertical spacing or duplicating the pill image', async () => {

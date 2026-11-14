@@ -1,14 +1,13 @@
 import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import { buildPetThemePalette } from '../../services/pets/themePalette';
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Image, Modal, Pressable, ScrollView, TouchableOpacity, useWindowDimensions, View } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, type CompositeNavigationProp, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { TimelineStackParamList } from '../../navigation/TimelineStackNavigator';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { ToolbarHeightContext } from '../../components/navigation/ToolbarHeightContext';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import AppText from '../../app/ui/AppText';
 import { ASSETS } from '../../assets';
@@ -57,8 +56,6 @@ export default function MonthlyExpensesScreen() {
     setFilter('all');
   }, [route.params?.monthKey, route.params?.entryRequestId, preview]);
   const query = useMonthlyExpenses(month, !preview);
-  const toolbarHeight = useContext(ToolbarHeightContext);
-  const insets = useSafeAreaInsets();
   const { width, fontScale } = useWindowDimensions();
   const dataReady = preview || Boolean(query.data);
   const error = !preview && query.isError;
@@ -106,7 +103,7 @@ export default function MonthlyExpensesScreen() {
       </TouchableOpacity>}
     </View>
   );
-  return <SafeAreaView testID={preview ? 'monthly-expenses-preview' : 'monthly-expenses-live'} style={styles.screen} edges={['top', 'left', 'right']}>
+  return <SafeAreaView testID={preview ? 'monthly-expenses-preview' : 'monthly-expenses-live'} style={styles.screen} edges={['top', 'bottom', 'left', 'right']}>
     <LavenderScreenBackground testID="monthly-expenses-background-gradient" />
     <AppHeaderLayout subtitle="아이를 위해 기록한 지출을 모아봐요" style={styles.header}>
       <TouchableOpacity accessibilityRole="button" accessibilityLabel="뒤로" style={styles.tool} onPress={onBack}>
@@ -117,8 +114,8 @@ export default function MonthlyExpensesScreen() {
         <NuriSemanticIcon family="feather" name="info" size={APP_HEADER.actionIconSize} color="#706A8A" preserveOriginal />
       </TouchableOpacity>
     </AppHeaderLayout>
-    <FlatList ref={listRef} data={error || loading ? [] : view.rows} keyExtractor={row => row.key} renderItem={renderItem}
-      contentContainerStyle={[styles.content, { paddingHorizontal: layout.gutter, paddingBottom: (toolbarHeight ?? insets.bottom) + 24 }]}
+    <FlatList ref={listRef} testID="monthly-expenses-list" data={error || loading ? [] : view.rows} keyExtractor={row => row.key} renderItem={renderItem}
+      contentContainerStyle={[styles.content, { paddingHorizontal: layout.gutter }]}
       refreshing={!preview && query.isFetching} onRefresh={() => { if (!preview) query.refetch(); }}
       ListHeaderComponent={<>
         <View style={styles.monthRow}>

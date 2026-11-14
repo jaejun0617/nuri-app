@@ -186,7 +186,7 @@ export default function IsolatedCommunityNotices({
                 <CtaText>수정</CtaText>
               </CtaButton>
               <CtaButton
-                role="neutral"
+                role="destructiveEntry"
                 testID="community-notice-hide"
                 disabled={busy}
                 onPress={() =>

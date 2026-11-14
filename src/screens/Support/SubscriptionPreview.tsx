@@ -242,6 +242,7 @@ export default function SubscriptionPreview({
         />
         <CtaButton
           role="neutral"
+          variant="opaqueGlass"
           testID="preview-restore"
           onPress={() =>
             setFeedback(

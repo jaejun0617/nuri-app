@@ -377,6 +377,30 @@ describe('Total Summary seasonal concept', () => {
     await act(async () => renderer.unmount());
   });
 
+  it.each([
+    { width: 320, fontScale: 1, direction: 'row', artWidth: '44%' },
+    { width: 320, fontScale: 1.3, direction: 'column', artWidth: '62%' },
+    { width: 321, fontScale: 1, direction: 'column', artWidth: '62%' },
+    { width: 360, fontScale: 1, direction: 'row', artWidth: '49%' },
+  ])(
+    'positions the keepsake at $width dp with $fontScale font scale',
+    async ({ width, fontScale, direction, artWidth }) => {
+      jest.spyOn(ReactNative, 'useWindowDimensions').mockReturnValue({
+        width, height: 693, scale: 3, fontScale,
+      });
+      let renderer!: TestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = TestRenderer.create(render());
+      });
+      const overview = renderer.root.findByProps({ testID: 'home-summary-overview' });
+      const art = overview.findByProps({ testID: 'home-summary-art-frame' });
+      expect(RN.StyleSheet.flatten(overview.props.style).flexDirection).toBe(direction);
+      expect(RN.StyleSheet.flatten(art.props.style).width).toBe(artWidth);
+      expect(art.props.pointerEvents).toBe('none');
+      await act(async () => renderer.unmount());
+    },
+  );
+
   it.each([320, 360, 400, 430])(
     'bounds art and supports wrapping at %sdp',
     async width => {
@@ -411,13 +435,33 @@ describe('Total Summary seasonal concept', () => {
     },
   );
 
-  it('keeps large counts exact and shrinks by digit count, not viewport width', () => {
+  it('keeps counts exact and fits digit lengths in both width bands', () => {
     expect(resolveSummaryCountFontSize(null)).toBe(62);
     expect(resolveSummaryCountFontSize(24)).toBe(62);
     expect(resolveSummaryCountFontSize(999)).toBe(46);
     expect(resolveSummaryCountFontSize(9999)).toBe(34);
     expect(resolveSummaryCountFontSize(99999)).toBe(24);
+    expect(resolveSummaryCountFontSize(24, true)).toBe(54);
+    expect(resolveSummaryCountFontSize(999, true)).toBe(38);
+    expect(resolveSummaryCountFontSize(9999, true)).toBe(26);
+    expect(resolveSummaryCountFontSize(99999, true)).toBe(24);
   });
+
+  it.each([{ width: 320, size: 54 }, { width: 321, size: 62 }])(
+    'uses the intended home count typography at $width dp',
+    async ({ width, size }) => {
+      jest.spyOn(ReactNative, 'useWindowDimensions').mockReturnValue({
+        width, height: 693, scale: 3, fontScale: 1,
+      });
+      let renderer!: TestRenderer.ReactTestRenderer;
+      await act(async () => {
+        renderer = TestRenderer.create(render());
+      });
+      const count = renderer.root.findByProps({ testID: 'home-summary-total-value' });
+      expect(RN.StyleSheet.flatten(count.props.style)).toMatchObject({ fontSize: size, lineHeight: size + 10 });
+      await act(async () => renderer.unmount());
+    },
+  );
 
   it('adds only Summary decorations using existing canvas and seasonal pearl textures', () => {
     const bubbles = HOME_AMBIENT_SCROLL_BUBBLES.filter(

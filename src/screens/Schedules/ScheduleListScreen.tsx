@@ -1,7 +1,7 @@
 import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
-import { useAutomaticTutorial } from '../../app/providers/TutorialProvider';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
+import { resolveFloatingCreateAppearance } from '../../app/ui/floatingCreateAppearance';
 // 파일: src/screens/Schedules/ScheduleListScreen.tsx
 // 파일 목적:
 // - 선택된 반려동물 기준 일정 목록을 보여주는 일정 도메인의 허브 화면이다.
@@ -34,6 +34,7 @@ import {
 } from 'react-native-safe-area-context';
 import Feather from '../../components/icons/NuriFeatherIcon';
 import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
+import BlurCaptureExclusion from '../../components/common/BlurCaptureExclusion';
 
 import AppTextInput from '../../app/ui/AppTextInput';
 import { useTheme } from 'styled-components/native';
@@ -49,7 +50,7 @@ import {
   type ScheduleListFilter,
 } from '../../services/schedules/listPresentation';
 import AppText from '../../app/ui/AppText';
-import HeaderIconActionButton from '../../components/navigation/HeaderIconActionButton';
+import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
@@ -71,6 +72,7 @@ export default function ScheduleListScreen() {
   const theme = useTheme();
   const season = useEffectiveSeason();
   const { width, fontScale } = useWindowDimensions();
+  const createAppearance = resolveFloatingCreateAppearance(width, 'schedule');
   const compactFilters = width < 380 || fontScale >= 1.3;
   const [filter, setFilter] = useState<ScheduleListFilter>('all');
   const [query, setQuery] = useState('');
@@ -186,9 +188,8 @@ export default function ScheduleListScreen() {
   }, []);
   const headerTopInset = Math.max(insets.top, 12);
 
-  const onTutorialTouch = useAutomaticTutorial('schedule-list', Boolean(petId && petState?.status === 'ready'));
   return (
-    <SafeAreaView style={styles.screen} onTouchStart={onTutorialTouch} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
       <SeasonalAmbientBackground season={season} />
       <AppHeaderLayout subtitle="아이와 함께할 일정을 모아봐요" style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <TouchableOpacity
@@ -207,18 +208,13 @@ export default function ScheduleListScreen() {
         >
           전체 일정
         </AppText>
-        <HeaderIconActionButton
-          preserveOriginal
-          role="primary"
-          accessibilityLabel="일정 추가"
-          onPress={onPressCreate}
-        />
+        <HeaderHelpButton topic="scheduleList" />
       </AppHeaderLayout>
       <SectionList
         testID="schedule-hub-list"
         sections={sections}
         keyExtractor={item => item.key}
-        style={styles.scroll}
+        style={[styles.scroll, { marginBottom: 64 }]}
         contentContainerStyle={styles.scrollContent}
         stickySectionHeadersEnabled={false}
         showsVerticalScrollIndicator={false}
@@ -463,6 +459,24 @@ export default function ScheduleListScreen() {
           </View>
         }
       />
+      <BlurCaptureExclusion
+        collapsable={false}
+        pointerEvents="box-none"
+        style={[styles.createPosition, { bottom: insets.bottom + 12, right: insets.right + 16 }]}
+      >
+        <CtaButton
+          testID="schedule-list-fixed-create"
+          role="primary"
+          variant="solidLavender"
+          solidFaceInset={createAppearance.faceInset}
+          accessibilityLabel="일정 추가"
+          style={styles.createButton}
+          onPress={onPressCreate}
+        >
+          {palette => <NuriSemanticIcon family="feather" name="plus" size={createAppearance.iconSize}
+            color={palette.text} preserveOriginal accessible={false} />}
+        </CtaButton>
+      </BlurCaptureExclusion>
     </SafeAreaView>
   );
 }

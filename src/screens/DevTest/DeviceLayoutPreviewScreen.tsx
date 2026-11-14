@@ -16,9 +16,6 @@ import TimelineMonthPicker from '../Records/TimelineMonthPicker';
 import { RecordGalleryThumbnail } from '../Records/RecordGalleryThumbnail';
 import { NotificationGroup } from '../Notifications/NotificationDesign';
 import { InquiryMessage } from '../Support/InquiryPresentation';
-import { tutorialCatalog } from '../../services/tutorial/catalog';
-import { getTutorialCapture } from '../../services/tutorial/captures';
-import { TutorialScreenExample } from '../Tutorial/TutorialReader';
 import type { MemoryRecord } from '../../services/supabase/memories';
 
 const profiles = [
@@ -27,24 +24,13 @@ const profiles = [
   { width: 384, label: '384dp S25 Edge' },
   { width: 412, label: '412dp 대형' },
 ] as const;
-const screens = ['홈 요약', '타임라인', '알림함', '1:1 문의', '누리 사용법'] as const;
+const screens = ['홈 요약', '타임라인', '알림함', '1:1 문의'] as const;
 const iso = '2026-11-14T00:00:00Z';
 const records: MemoryRecord[] = ['산책', '식사', '일기장', '생활'].map((title, index) => ({
   id: String(index), petId: 'preview-pet', title, category: ['walk', 'meal', 'diary', 'other'][index],
   tags: [], imagePaths: [], createdAt: iso, occurredAt: '2026-11-14',
 }));
 const noAction = () => {};
-
-function TutorialLayoutSample() {
-  const step = tutorialCatalog.timeline.steps[0];
-  const capture = getTutorialCapture('timeline', 0);
-  return <>
-    <AppText preset="unifiedTitle">{step.title}</AppText>
-    <AppText preset="body">{step.body}</AppText>
-    {capture ? <TutorialScreenExample capture={capture} /> : null}
-  </>;
-}
-
 export default function DeviceLayoutPreviewScreen() {
   const navigation = useNavigation();
   const theme = useTheme();
@@ -81,7 +67,7 @@ export default function DeviceLayoutPreviewScreen() {
       </View>
       <AppText preset="unifiedMicro" color={theme.colors.textSecondary}>합성 데이터 · {width}dp · 시스템 글자 {fontScale.toFixed(2)}배</AppText>
       <ScrollView horizontal showsHorizontalScrollIndicator keyboardShouldPersistTaps="handled">
-        <ResponsiveTypographyPreview width={width} fontScale={fontScale}>
+        <ResponsiveTypographyPreview width={width}>
           <View testID="layout-preview-frame" style={[styles.frame, { width }]}>
             <SeasonalFormPanel style={styles.panel}>
               {screen === '홈 요약' ? <TotalSummarySection records={records} season={season} accentDeepColor={theme.colors.brand}
@@ -101,7 +87,6 @@ export default function DeviceLayoutPreviewScreen() {
                 <InquiryMessage outgoing name="내 문의"><AppText preset="body">저장한 사진은 어디에서 수정할 수 있나요?</AppText></InquiryMessage>
                 <InquiryMessage outgoing={false} name="누리팀 답변" showAvatar><AppText preset="body">타임라인의 기록 상세 화면에서 수정할 수 있어요.</AppText></InquiryMessage>
               </> : null}
-              {screen === '누리 사용법' ? <TutorialLayoutSample /> : null}
             </SeasonalFormPanel>
           </View>
         </ResponsiveTypographyPreview>
