@@ -368,6 +368,7 @@ describe('More account deletion confirmation', () => {
       'community-blocked-users',
       'policy-center',
       'tutorial-library',
+      ...(__DEV__ ? ['device-layout-preview'] : []),
       'logout',
     ];
 

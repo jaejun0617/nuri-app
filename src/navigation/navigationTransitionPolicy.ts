@@ -56,6 +56,7 @@ const rootRoutes: Record<keyof RootStackParamList, TransitionKind> = {
   NuriRanking: 'detail',
   PolicyCenter: 'detail',
   TutorialLibrary: 'detail',
+  DeviceLayoutPreview: 'detail',
   PolicyDetail: 'detail',
   RecordCreate: 'detail',
   WalkHistory: 'detail',

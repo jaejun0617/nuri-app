@@ -1516,6 +1516,10 @@ export default function MoreDrawerContent({
       }] : []),
       { key: 'tutorial-library', label: '누리 사용법', icon: 'book-open',
         onPress: () => closeAndNavigate(() => navigation.navigate('TutorialLibrary')) },
+      ...(__DEV__ ? [{
+        key: 'device-layout-preview', label: '기기별 화면 미리보기', icon: 'smartphone',
+        onPress: () => closeAndNavigate(() => navigation.navigate('DeviceLayoutPreview')),
+      }] : []),
       {
         key: 'policy-center',
         label: '약관 및 정책',

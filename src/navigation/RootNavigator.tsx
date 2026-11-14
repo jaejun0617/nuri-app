@@ -73,6 +73,7 @@ import HomeQuickNotificationsScreen from '../screens/Notifications/HomeQuickNoti
 import NuriRankingScreen from '../screens/Ranking/NuriRankingScreen';
 import PolicyCenterScreen from '../screens/Policy/PolicyCenterScreen';
 import TutorialLibrary from '../screens/Tutorial/TutorialLibrary';
+import DeviceLayoutPreviewScreen from '../screens/DevTest/DeviceLayoutPreviewScreen';
 import PolicyDetailScreen from '../screens/Policy/PolicyDetailScreen';
 import CommunityStackHeader from './CommunityStackHeader';
 import type { DeviceCoordinates } from '../services/location/currentPosition';
@@ -273,6 +274,7 @@ export type RootStackParamList = {
   NuriRanking: { entrySource?: ScreenEntrySource } | undefined;
   PolicyCenter: { entrySource?: ScreenEntrySource } | undefined;
   TutorialLibrary: undefined;
+  DeviceLayoutPreview: undefined;
   PolicyDetail: {
     documentId: PolicyDocumentId;
     entrySource?: ScreenEntrySource;
@@ -620,6 +622,7 @@ export default function RootNavigator({ notificationStartup }: { notificationSta
         options={{ headerShown: false }}
       />
       <Stack.Screen name="TutorialLibrary" component={TutorialLibrary} options={{ headerShown: false }} />
+      {__DEV__ ? <Stack.Screen name="DeviceLayoutPreview" component={DeviceLayoutPreviewScreen} options={{ headerShown: false }} /> : null}
       <Stack.Screen
         name="PolicyDetail"
         component={PolicyDetailScreen}

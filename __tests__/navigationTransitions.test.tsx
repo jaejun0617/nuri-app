@@ -128,6 +128,7 @@ describe('actual native navigator transition configuration', () => {
       animation: 'slide_from_right',
       headerShown: false,
     });
+    expect(options('DeviceLayoutPreview').headerShown).toBe(false);
   });
   test('non-development never registers the scoped notification route', async () => {
     const previous = Object.getOwnPropertyDescriptor(global, '__DEV__');
@@ -136,7 +137,8 @@ describe('actual native navigator transition configuration', () => {
       await mount(<RootNavigator />);
       expect(options('UserNotifications').headerShown).toBe(false);
       expect(tree.root.findAll(n =>
-        (n.type as unknown) === 'NativeScreen' && n.props.name === 'ScopedNotificationDestination',
+        (n.type as unknown) === 'NativeScreen' &&
+        ['ScopedNotificationDestination', 'DeviceLayoutPreview'].includes(n.props.name),
       )).toHaveLength(0);
     } finally {
       if (previous) Object.defineProperty(global, '__DEV__', previous);
