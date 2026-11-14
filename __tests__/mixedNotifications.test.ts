@@ -66,15 +66,13 @@ it('discards a former account response even when the transport ignores cancellat
     .mockResolvedValueOnce(new Response(null, { status: 204 }));
   try {
     await a.login('a@example.test', 'password-a');
-    const pending = expect(a.mixedNotifications.page()).rejects.toMatchObject({
-      code: 'SESSION_CHANGED',
-    });
+    const pending = a.mixedNotifications.page().catch((error: unknown) => error);
     a.dispose();
     expect(fetchMock.mock.calls[1][1]?.signal?.aborted).toBe(true);
     await b.login('b@example.test', 'password-b');
     await expect(b.mixedNotifications.page()).resolves.toMatchObject({ unreadCount: 0, items: [] });
     completeA(respond(result));
-    await pending;
+    expect(await pending).toMatchObject({ code: 'SESSION_CHANGED' });
     expect(b.userId).toBe(ticketId);
   } finally {
     b.dispose();
@@ -83,16 +81,17 @@ it('discards a former account response even when the transport ignores cancellat
 });
 
 it('does not contact the isolated transport outside development', async () => {
-  const previous = global.__DEV__;
+  const previous = Object.getOwnPropertyDescriptor(global, '__DEV__');
   const fetchMock = jest.spyOn(global, 'fetch');
-  global.__DEV__ = false;
+  Object.defineProperty(global, '__DEV__', { configurable: true, value: false });
   try {
     await expect(new IsolatedNoticeClient().mixedNotifications.page()).rejects.toMatchObject({
       code: 'DISABLED',
     });
     expect(fetchMock).not.toHaveBeenCalled();
   } finally {
-    global.__DEV__ = previous;
+    if (previous) Object.defineProperty(global, '__DEV__', previous);
+    else Reflect.deleteProperty(global, '__DEV__');
     fetchMock.mockRestore();
   }
 });
