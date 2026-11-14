@@ -72,6 +72,7 @@ import type { InboxKey } from '../services/notifications/mixedNotifications';
 import HomeQuickNotificationsScreen from '../screens/Notifications/HomeQuickNotificationsScreen';
 import NuriRankingScreen from '../screens/Ranking/NuriRankingScreen';
 import PolicyCenterScreen from '../screens/Policy/PolicyCenterScreen';
+import TutorialLibrary from '../screens/Tutorial/TutorialLibrary';
 import PolicyDetailScreen from '../screens/Policy/PolicyDetailScreen';
 import CommunityStackHeader from './CommunityStackHeader';
 import type { DeviceCoordinates } from '../services/location/currentPosition';
@@ -271,6 +272,7 @@ export type RootStackParamList = {
   HomeQuickNotifications: undefined;
   NuriRanking: { entrySource?: ScreenEntrySource } | undefined;
   PolicyCenter: { entrySource?: ScreenEntrySource } | undefined;
+  TutorialLibrary: undefined;
   PolicyDetail: {
     documentId: PolicyDocumentId;
     entrySource?: ScreenEntrySource;
@@ -617,6 +619,7 @@ export default function RootNavigator({ notificationStartup }: { notificationSta
         component={PolicyCenterScreen}
         options={{ headerShown: false }}
       />
+      <Stack.Screen name="TutorialLibrary" component={TutorialLibrary} options={{ headerShown: false }} />
       <Stack.Screen
         name="PolicyDetail"
         component={PolicyDetailScreen}

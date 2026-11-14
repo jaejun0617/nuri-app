@@ -1,4 +1,5 @@
 import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { useAutomaticTutorial } from '../../app/providers/TutorialProvider';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // 파일: src/screens/Schedules/ScheduleListScreen.tsx
@@ -185,8 +186,9 @@ export default function ScheduleListScreen() {
   }, []);
   const headerTopInset = Math.max(insets.top, 12);
 
+  const onTutorialTouch = useAutomaticTutorial('schedule-list', Boolean(petId && petState?.status === 'ready'));
   return (
-    <SafeAreaView style={styles.screen} edges={['left', 'right', 'bottom']}>
+    <SafeAreaView style={styles.screen} onTouchStart={onTutorialTouch} edges={['left', 'right', 'bottom']}>
       <SeasonalAmbientBackground season={season} />
       <AppHeaderLayout subtitle="아이와 함께할 일정을 모아봐요" style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <TouchableOpacity

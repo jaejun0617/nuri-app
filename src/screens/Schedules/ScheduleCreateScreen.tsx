@@ -1,4 +1,5 @@
 import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { useAutomaticTutorial } from '../../app/providers/TutorialProvider';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 // 파일: src/screens/Schedules/ScheduleCreateScreen.tsx
@@ -194,9 +195,12 @@ export default function ScheduleCreateScreen() {
     });
   }, []);
 
+  const onTutorialTouch = useAutomaticTutorial('schedule-create',
+    Boolean(petId && !hasUnsavedChanges && !saving && !persisted && !exitConfirmVisible && !keyboardVisible));
   return (
     <SafeAreaView
       style={styles.screen}
+      onTouchStart={onTutorialTouch}
       edges={keyboardVisible ? ['left', 'right'] : ['left', 'right', 'bottom']}
     >
       <SeasonalFormBackground uniform />

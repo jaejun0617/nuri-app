@@ -2,6 +2,7 @@ import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import { useNotificationDestinationRead } from '../../hooks/useNotificationDestinationRead';
+import { useAutomaticTutorial } from '../../app/providers/TutorialProvider';
 import { useNotificationTimeline } from '../../hooks/useNotificationTimeline';
 import { MenuGlassSurface } from '../../components/common/MenuGlassSurface';
 // 파일: src/screens/Records/TimelineScreen.tsx
@@ -1394,6 +1395,10 @@ export default function TimelineScreen({ isolated }: { isolated?: ScopedTimeline
     navigation.navigate('SignIn');
   }, [navigation]);
 
+  const onTutorialTouch = useAutomaticTutorial('timeline', Boolean(
+    !isolated && !notificationScoped && !route.params?.notificationOpen && !isHomeTotalSummaryEntry &&
+    !otherModalOpen && petId && status === 'ready',
+  ));
   if (!isLoggedIn) {
     return (
       <View style={[styles.screen, { paddingTop: insets.top }]}>
@@ -1467,6 +1472,7 @@ export default function TimelineScreen({ isolated }: { isolated?: ScopedTimeline
   return (
     <View
       onLayout={onListLayout}
+      onTouchStart={onTutorialTouch}
       style={[styles.screen, { paddingTop: insets.top }]}
     >
       <LavenderScreenBackground testID="timeline-background-gradient" />

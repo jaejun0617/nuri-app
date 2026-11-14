@@ -1514,6 +1514,8 @@ export default function MoreDrawerContent({
         key: 'security-validation', label: 'Security validation', icon: 'shield',
         onPress: () => closeAndNavigate(() => navigation.navigate('SecurityValidation')),
       }] : []),
+      { key: 'tutorial-library', label: '누리 사용법', icon: 'book-open',
+        onPress: () => closeAndNavigate(() => navigation.navigate('TutorialLibrary')) },
       {
         key: 'policy-center',
         label: '약관 및 정책',

@@ -18,6 +18,7 @@ jest.mock('@react-navigation/native', () => {
   const runtime: typeof React = jest.requireActual('react');
   return {
     useNavigation: () => ({ getParent: () => undefined, reset: jest.fn(), navigate: jest.fn() }),
+    useIsFocused: () => mockFocused,
     useFocusEffect: (callback: () => void | (() => void)) => runtime.useEffect(
       () => mockFocused ? callback() : undefined, [callback, mockFocused],
     ),

@@ -5,6 +5,7 @@ import {
 import { createMixedNotificationApi } from '../../services/notifications/mixedNotifications';
 import type { InboxKey } from '../../services/notifications/mixedNotifications';
 import { parseScopedDestinationDomain } from '../../services/notifications/scopedDestinationDomain';
+import { parseTutorialProgress, type TutorialId, type TutorialState } from '../../services/tutorial/catalog';
 
 export type Notice = {
   id: string;
@@ -250,6 +251,11 @@ const origin = 'http://127.0.0.1:56323';
 
 /** DEV transport only. No production client, persisted session, role fixture or token injection. */
 export class IsolatedNoticeClient {
+  async tutorialProgress(id?: TutorialId, state?: TutorialState) {
+    return parseTutorialProgress(await this.request('/rest/v1/rpc/tutorial_progress_v1', {
+      p_topic: id ?? null, p_state: state ?? null,
+    }));
+  }
   readonly mixedNotifications = createMixedNotificationApi((name, args) =>
     this.request('/rest/v1/rpc/' + name, args),
   );

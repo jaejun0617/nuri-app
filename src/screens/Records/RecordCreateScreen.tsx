@@ -1,4 +1,5 @@
 import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
+import { useAutomaticTutorial } from '../../app/providers/TutorialProvider';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../components/records/TimelineButton';
 import { RecordFieldGlass, SeasonalFormBackground, SeasonalFormPanel } from '../../components/records/TimelineFormSurface';
@@ -1354,8 +1355,12 @@ function RecordCreateContent() {
     navigation,
   ]);
 
+  const onTutorialTouch = useAutomaticTutorial('record', Boolean(
+    userId && petId && draftHydrated && !hasDraftContent && !scheduleContext && !isGps &&
+    !saving && !keyboardVisible && !tagModalVisible && !dateModalVisible && !exitConfirmVisible,
+  ));
   return (
-    <View style={styles.screen}>
+    <View style={styles.screen} onTouchStart={onTutorialTouch}>
       <SeasonalFormBackground uniform />
       <AppHeaderLayout subtitle="오늘의 순간을 아이의 기록으로 남겨요" style={[styles.header, { paddingTop: headerTopInset + 4 }]}>
         <View style={styles.headerSideSlot}>
