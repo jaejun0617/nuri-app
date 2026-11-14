@@ -1,7 +1,8 @@
+import { ResponsiveNativeTextInput as TextInput } from '../../../app/ui/ResponsiveNativeText';
 import { usePetDisplayName } from '../../../hooks/usePetDisplayName';
 import { formatPetCopy } from '../../../utils/petDisplayName';
 import React, { memo, useRef, useState } from 'react';
-import { TextInput, TouchableOpacity, View } from 'react-native';
+import { TouchableOpacity, View } from 'react-native';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../app/ui/AppText';

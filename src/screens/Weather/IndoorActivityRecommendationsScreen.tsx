@@ -1,3 +1,4 @@
+import { ResponsiveNativeText as Text } from '../../app/ui/ResponsiveNativeText';
 import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
 import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
@@ -11,7 +12,6 @@ import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import {
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';

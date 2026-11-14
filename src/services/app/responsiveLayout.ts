@@ -23,6 +23,10 @@ function toNonNegativeFinite(value: number | undefined): number {
     : 0;
 }
 
+export function getResponsiveContentWidth(windowWidth: number, leftInset: number, rightInset: number) {
+  return Math.max(0, toNonNegativeFinite(windowWidth) - toNonNegativeFinite(leftInset) - toNonNegativeFinite(rightInset));
+}
+
 /**
  * Keeps a centered overlay inside the current window and safe areas. The
  * calculation is intentionally based on the live window, not device constants,

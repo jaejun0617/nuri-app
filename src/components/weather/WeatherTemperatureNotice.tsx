@@ -3,8 +3,9 @@
 // - 기온과 강수 상태가 산책에 영향을 줄 때 짧은 행동 안내를 보여준다.
 // - 홈 카드와 날씨 상세가 같은 안전 문구와 상태 색상 계약을 사용하도록 공통화한다.
 
+import { ResponsiveNativeText as Text } from '../../app/ui/ResponsiveNativeText';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import type {
   WeatherPrecipitationSafety,

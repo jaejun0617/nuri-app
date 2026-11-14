@@ -1,3 +1,4 @@
+import { ResponsiveNativeTextInput as TextInput } from '../../app/ui/ResponsiveNativeText';
 import React, { memo, useEffect, useRef, useState } from 'react';
 import {
   Image,
@@ -7,7 +8,6 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   useWindowDimensions,
   View,

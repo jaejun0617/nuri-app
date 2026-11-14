@@ -1,3 +1,4 @@
+import { ResponsiveNativeTextInput as TextInput } from '../../app/ui/ResponsiveNativeText';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import { useNotificationDestinationRead } from '../../hooks/useNotificationDestinationRead';
@@ -17,7 +18,6 @@ import {
   Modal,
   Platform,
   Pressable,
-  TextInput,
   TouchableOpacity,
   View,
   useWindowDimensions,

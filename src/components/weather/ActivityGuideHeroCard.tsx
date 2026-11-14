@@ -2,8 +2,9 @@
 // 역할:
 // - 활동 가이드 상단 히어로 영역을 공통 레이아웃으로 제공
 
+import { ResponsiveNativeText as Text } from '../../app/ui/ResponsiveNativeText';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import LinearGradient from 'react-native-linear-gradient';
 
 import type { IndoorActivityGuide } from '../../services/weather/guide';

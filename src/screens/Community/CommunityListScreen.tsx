@@ -1,3 +1,4 @@
+import { ResponsiveNativeTextInput as TextInput } from '../../app/ui/ResponsiveNativeText';
 import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
 import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
@@ -25,7 +26,6 @@ import {
   RefreshControl,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   View,
   type ListRenderItem,
 } from 'react-native';

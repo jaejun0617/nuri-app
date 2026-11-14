@@ -2,6 +2,8 @@ import React, { forwardRef, memo, useMemo } from 'react';
 import type { TextInputProps, TextStyle } from 'react-native';
 import { StyleSheet, TextInput } from 'react-native';
 import { useTheme } from 'styled-components/native';
+import { useResponsiveTypographyBand } from '../providers/ResponsiveTypographyProvider';
+import { resolveResponsiveTextStyle } from '../typography/responsiveTypography';
 
 import {
   useAppFontPreference,
@@ -22,28 +24,29 @@ type Props = TextInputProps & {
  */
 const AppTextInput = memo(
   forwardRef<React.ComponentRef<typeof TextInput>, Props>(
-    function AppTextInputComponent({ fontModeOverride, style, ...rest }, ref) {
+    function AppTextInputComponent({ fontModeOverride, style, allowFontScaling, ...rest }, ref) {
       const theme = useTheme();
       const { mode } = useAppFontPreference();
       const typographyScope = useTypographyScope();
+      const band = useResponsiveTypographyBand();
       const effectiveMode = resolveAppFontMode({
         mode,
         scope: typographyScope,
         override: fontModeOverride,
       });
       const composedStyle = useMemo(
-        () =>
+        () => resolveResponsiveTextStyle(
           StyleSheet.flatten([
             style,
             theme.typography.preset.unifiedLabel as TextStyle,
             effectiveMode
               ? (theme.typography.appFontMode[effectiveMode] as TextStyle)
               : null,
-          ]),
-        [effectiveMode, style, theme.typography],
+          ]), band, typographyScope === 'fixed' || allowFontScaling === false),
+        [allowFontScaling, band, effectiveMode, style, theme.typography, typographyScope],
       );
 
-      return <TextInput ref={ref} {...rest} style={composedStyle} />;
+      return <TextInput ref={ref} {...rest} allowFontScaling={allowFontScaling} style={composedStyle} />;
     },
   ),
 );

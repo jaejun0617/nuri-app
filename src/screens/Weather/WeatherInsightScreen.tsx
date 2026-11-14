@@ -1,3 +1,4 @@
+import { ResponsiveNativeText as Text } from '../../app/ui/ResponsiveNativeText';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
 // 파일: src/screens/Weather/WeatherInsightScreen.tsx
 // 파일 목적:
@@ -20,7 +21,6 @@ import {
   ScrollView,
   StatusBar,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
   useWindowDimensions,

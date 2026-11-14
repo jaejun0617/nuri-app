@@ -1,3 +1,4 @@
+import { ResponsiveNativeText as Text, ResponsiveNativeTextInput as TextInput } from '../../app/ui/ResponsiveNativeText';
 import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import LavenderCtaFill from '../../app/ui/LavenderCtaFill';
@@ -11,8 +12,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { PRODUCT_CANVAS_COLOR } from '../../app/theme/tokens/colors';
 import {
   StyleSheet,
-  Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';

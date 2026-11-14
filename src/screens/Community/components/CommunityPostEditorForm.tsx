@@ -1,8 +1,9 @@
+import { ResponsiveNativeTextInput as TextInput } from '../../../app/ui/ResponsiveNativeText';
 import { usePetDisplayName } from '../../../hooks/usePetDisplayName';
 import { formatPetCopy } from '../../../utils/petDisplayName';
 import CtaButton, { CtaText } from '../../../app/ui/CtaButton';
 import React, { memo } from 'react';
-import { Image, TextInput, TouchableOpacity, View } from 'react-native';
+import { Image, TouchableOpacity, View } from 'react-native';
 import Feather from '../../../components/icons/NuriFeatherIcon';
 import { useTheme } from 'styled-components/native';
 

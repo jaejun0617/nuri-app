@@ -2,8 +2,9 @@
 // 역할:
 // - 실내 놀이 추천 목록에서 활동 카드를 공통 형태로 렌더링
 
+import { ResponsiveNativeText as Text } from '../../app/ui/ResponsiveNativeText';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import Feather from '../icons/NuriFeatherIcon';
 import MaterialCommunityIcons from '../icons/NuriMaterialIcon';
 

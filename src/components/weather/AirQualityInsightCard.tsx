@@ -2,8 +2,9 @@
 // 역할:
 // - 미세먼지/초미세먼지/오존 상태를 공통 카드 규칙으로 렌더링
 
+import { ResponsiveNativeText as Text } from '../../app/ui/ResponsiveNativeText';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 
 import type { AirQualityMetric } from '../../services/weather/guide';
 import WeatherGlassCard from './WeatherGlassCard';

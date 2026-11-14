@@ -33,6 +33,7 @@ import type { RootStackParamList } from './src/navigation/RootNavigator';
 import { appLinking } from './src/navigation/linking';
 import { interruptTutorial } from './src/services/tutorial/runtime';
 import { TutorialProvider } from './src/app/providers/TutorialProvider';
+import { ResponsiveTypographyProvider } from './src/app/providers/ResponsiveTypographyProvider';
 import {
   getInitialScheduleNotificationTap,
   markScheduleNotificationTapConsumerNotReady,
@@ -357,6 +358,7 @@ function App() {
       <KeyboardProvider>
         <SafeAreaProvider>
           <AppProviders>
+            <ResponsiveTypographyProvider>
             <NavigationContainer
               linking={appLinking}
               ref={navigationRef}
@@ -371,6 +373,7 @@ function App() {
             </NavigationContainer>
             <GlobalToast />
             <NuriAlertHost />
+            </ResponsiveTypographyProvider>
           </AppProviders>
         </SafeAreaProvider>
       </KeyboardProvider>

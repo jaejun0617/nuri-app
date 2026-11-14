@@ -1,8 +1,8 @@
+import { ResponsiveNativeText as Text } from '../../app/ui/ResponsiveNativeText';
 import React, { useState } from 'react';
 import {
   ScrollView,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
 } from 'react-native';

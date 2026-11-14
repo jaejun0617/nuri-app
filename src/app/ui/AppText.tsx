@@ -26,6 +26,8 @@ import type {
   TypographyPresetName,
 } from '../theme/tokens/typography';
 import { StyledText } from './AppText.styles';
+import { useResponsiveTypographyBand } from '../providers/ResponsiveTypographyProvider';
+import { resolveResponsiveTextStyle } from '../typography/responsiveTypography';
 
 type Props = TextProps & {
   preset?: TypographyPresetName;
@@ -54,6 +56,7 @@ function AppTextBase({
   const theme = useTheme();
   const { mode } = useAppFontPreference();
   const typographyScope = useTypographyScope();
+  const responsiveBand = useResponsiveTypographyBand();
   // theme.typography.preset[preset]은 디자인 토큰에 따라 일관된 텍스트 스타일 제공
   const presetStyle = theme.typography.preset[preset];
   const effectiveMode = resolveAppFontMode({
@@ -68,7 +71,7 @@ function AppTextBase({
 
   // 스타일 합성은 매 렌더마다 비용이 발생할 수 있어 useMemo로 캐싱
   const composedStyle = useMemo(
-    () =>
+    () => resolveResponsiveTextStyle(
       StyleSheet.flatten([
         // 비제외 전역 기준은 화면별 기존 fontSize override보다 우선한다.
         // 기존 preset은 공유 화면의 회귀 방지를 위해 기존 순서를 유지한다.
@@ -92,7 +95,7 @@ function AppTextBase({
         // Semantic roles remain classification metadata. The user's app mode
         // owns the family globally, except inside an explicit fixed boundary.
         appFontStyle,
-      ]),
+      ]), responsiveBand, typographyScope === 'fixed' || !allowFontScaling),
     [
       isUnifiedPreset,
       presetStyle,
@@ -100,6 +103,9 @@ function AppTextBase({
       styleOverridesPreset,
       weight,
       style,
+      responsiveBand,
+      typographyScope,
+      allowFontScaling,
     ],
   );
 

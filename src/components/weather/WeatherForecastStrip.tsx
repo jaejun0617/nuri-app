@@ -1,5 +1,6 @@
+import { ResponsiveNativeText as Text } from '../../app/ui/ResponsiveNativeText';
 import React from 'react';
-import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 
 import {
   getWeatherEmoji,
