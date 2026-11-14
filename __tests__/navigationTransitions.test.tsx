@@ -9,15 +9,31 @@ import { TAB_FADE_TIMING, tabTransitionOptions } from '../src/navigation/navigat
 
 jest.mock('@react-navigation/native-stack', () => {
   const runtime: typeof React = jest.requireActual('react');
+  const paramsByRoute: Partial<import('../src/navigation/RootNavigator').RootStackParamList> = {
+    ScopedNotificationDestination: {
+      identity: { id: '41141a56-c735-4174-88e7-0507b5609da4', source: 'support_reply' },
+      scopeKey: 'isolated-test-session',
+    },
+  };
   return {
     createNativeStackNavigator: () => ({
       Navigator: 'NativeNavigator',
       Screen: (props: {
         name: string;
-        children?: React.ReactNode | ((input: { route: { name: string; key: string } }) => React.ReactNode);
+        children?: React.ReactNode | ((input: {
+          route: { name: string; key: string; params?: object };
+          navigation: { goBack: () => void };
+        }) => React.ReactNode);
       }) => runtime.createElement('NativeScreen', { ...props, children: undefined },
         typeof props.children === 'function'
-          ? props.children({ route: { name: props.name, key: `test-${props.name}` } })
+          ? props.children({
+              route: {
+                name: props.name,
+                key: `test-${props.name}`,
+                params: paramsByRoute[props.name as keyof typeof paramsByRoute],
+              },
+              navigation: { goBack: jest.fn() },
+            })
           : props.children),
       Group: 'NativeGroup',
     }),
@@ -105,6 +121,27 @@ describe('actual native navigator transition configuration', () => {
     expect(options('CommunityDetail').animation).toBe('slide_from_right');
     expect(tabTransitionOptions(false).transitionSpec?.config).toEqual(TAB_FADE_TIMING);
     expect(TAB_FADE_TIMING.duration).toBe(400);
+  });
+  test('development registers the scoped notification route with existing detail transitions', async () => {
+    await mount(<RootNavigator />);
+    expect(options('ScopedNotificationDestination')).toMatchObject({
+      animation: 'slide_from_right',
+      headerShown: false,
+    });
+  });
+  test('non-development never registers the scoped notification route', async () => {
+    const previous = Object.getOwnPropertyDescriptor(global, '__DEV__');
+    Object.defineProperty(global, '__DEV__', { configurable: true, value: false });
+    try {
+      await mount(<RootNavigator />);
+      expect(options('UserNotifications').headerShown).toBe(false);
+      expect(tree.root.findAll(n =>
+        (n.type as unknown) === 'NativeScreen' && n.props.name === 'ScopedNotificationDestination',
+      )).toHaveLength(0);
+    } finally {
+      if (previous) Object.defineProperty(global, '__DEV__', previous);
+      else Reflect.deleteProperty(global, '__DEV__');
+    }
   });
   test('root toolbar tabs share the 400ms fade configuration with More', () => {
     const result = tabTransitionOptions(false);
