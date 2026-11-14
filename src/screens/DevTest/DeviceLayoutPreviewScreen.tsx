@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Image, Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from 'styled-components/native';
@@ -16,7 +16,9 @@ import TimelineMonthPicker from '../Records/TimelineMonthPicker';
 import { RecordGalleryThumbnail } from '../Records/RecordGalleryThumbnail';
 import { NotificationGroup } from '../Notifications/NotificationDesign';
 import { InquiryMessage } from '../Support/InquiryPresentation';
-import { getTutorialArtwork } from '../../services/tutorial/artwork';
+import { tutorialCatalog } from '../../services/tutorial/catalog';
+import { getTutorialCapture } from '../../services/tutorial/captures';
+import { TutorialScreenExample } from '../Tutorial/TutorialReader';
 import type { MemoryRecord } from '../../services/supabase/memories';
 
 const profiles = [
@@ -32,6 +34,16 @@ const records: MemoryRecord[] = ['산책', '식사', '일기장', '생활'].map(
   tags: [], imagePaths: [], createdAt: iso, occurredAt: '2026-11-14',
 }));
 const noAction = () => {};
+
+function TutorialLayoutSample() {
+  const step = tutorialCatalog.timeline.steps[0];
+  const capture = getTutorialCapture('timeline', 0);
+  return <>
+    <AppText preset="unifiedTitle">{step.title}</AppText>
+    <AppText preset="body">{step.body}</AppText>
+    {capture ? <TutorialScreenExample capture={capture} /> : null}
+  </>;
+}
 
 export default function DeviceLayoutPreviewScreen() {
   const navigation = useNavigation();
@@ -89,11 +101,7 @@ export default function DeviceLayoutPreviewScreen() {
                 <InquiryMessage outgoing name="내 문의"><AppText preset="body">저장한 사진은 어디에서 수정할 수 있나요?</AppText></InquiryMessage>
                 <InquiryMessage outgoing={false} name="누리팀 답변" showAvatar><AppText preset="body">타임라인의 기록 상세 화면에서 수정할 수 있어요.</AppText></InquiryMessage>
               </> : null}
-              {screen === '누리 사용법' ? <>
-                <AppText preset="unifiedTitle">아이를 선택해요</AppText>
-                <AppText preset="body">홈 상단에서 아이 이름을 누르면 등록한 아이를 바꿀 수 있어요.</AppText>
-                <Image accessible={false} source={getTutorialArtwork('home', 0)} resizeMode="contain" style={styles.art} />
-              </> : null}
+              {screen === '누리 사용법' ? <TutorialLayoutSample /> : null}
             </SeasonalFormPanel>
           </View>
         </ResponsiveTypographyPreview>
@@ -107,5 +115,5 @@ const styles = StyleSheet.create({
   content: { gap: 12, paddingBottom: 24 }, options: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingHorizontal: 12 },
   button: { borderWidth: 1, borderRadius: 8, minHeight: 44, justifyContent: 'center', paddingHorizontal: 10 },
   frame: { padding: 6 }, panel: { padding: 8, gap: 10 }, grid: { flexDirection: 'row', gap: 4 },
-  tile: { flex: 1, aspectRatio: 1 }, art: { height: 110, width: '100%' },
+  tile: { flex: 1, aspectRatio: 1 },
 });

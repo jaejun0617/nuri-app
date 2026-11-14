@@ -8,16 +8,47 @@ import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import Feather from '../../components/icons/NuriFeatherIcon';
 import { SeasonalFormBackground, SeasonalFormPanel } from '../../components/common/SeasonalFormSurface';
 import { tutorialCatalog, type GuideStep, type TutorialId } from '../../services/tutorial/catalog';
+import { getTutorialCapture, recordDateCapture, type TutorialCapture } from '../../services/tutorial/captures';
 import { tutorialBlockVisible, tutorialMotion, type BlockBounds } from '../../services/tutorial/motion';
-import { getTutorialArtwork } from '../../services/tutorial/artwork';
+import { tutorialIntroArtwork } from '../../services/tutorial/artwork';
 import { getAppFontModeLabel } from '../../app/typography/appFontMode';
 
-function ExampleArtwork({ source }: { source: ImageSourcePropType | undefined }) {
+function ExampleArtwork({ source }: { source: ImageSourcePropType }) {
   const [failed, setFailed] = useState(false);
-  return <View style={styles.artwork} accessible={false} importantForAccessibility="no-hide-descendants">
-    {source && !failed ? <Image source={source} resizeMode="contain" style={styles.artImage}
-      onError={() => setFailed(true)} testID="tutorial-example-artwork" /> : null}
+  return <View pointerEvents="none" style={styles.artwork} accessible={false} importantForAccessibility="no-hide-descendants">
+    {!failed ? <Image source={source} resizeMode="contain" style={styles.artImage}
+      fadeDuration={0} onError={() => setFailed(true)} /> : null}
   </View>;
+}
+
+function CaptureFrame({ capture }: { capture: TutorialCapture }) {
+  const theme = useTheme();
+  const [failed, setFailed] = useState(false);
+  const { target } = capture;
+  return <>
+    <View pointerEvents="none" style={[styles.capture, { aspectRatio: capture.width / capture.height }]}>
+      {!failed ? <>
+        <Image source={capture.source} style={styles.captureImage} resizeMode="contain" fadeDuration={0}
+          accessible={false} importantForAccessibility="no" testID="tutorial-screen-capture" onError={() => setFailed(true)} />
+        {target ? <View importantForAccessibility="no" style={[styles.captureTarget, {
+          left: target.left, top: target.top, width: target.width, height: target.height,
+          borderColor: theme.colors.brand,
+        }]} /> : null}
+      </> : null}
+    </View>
+    {failed ? <AppText preset="body" color={theme.colors.textSecondary}>
+      화면 예시를 불러오지 못했어요. 설명은 계속 확인할 수 있어요.
+    </AppText> : null}
+  </>;
+}
+
+export function TutorialScreenExample({ capture, context }: { capture: TutorialCapture; context?: TutorialCapture }) {
+  const theme = useTheme();
+  return <SeasonalFormPanel style={styles.example}>
+    <AppText preset="unifiedLabel" color={theme.colors.textSecondary}>화면 예시</AppText>
+    {context ? <CaptureFrame capture={context} /> : null}
+    <CaptureFrame capture={capture} />
+  </SeasonalFormPanel>;
 }
 
 type Signal = { start(slide: boolean): void; reveal(): void };
@@ -45,28 +76,35 @@ function FadeBlock({ index, animated, register, layout, children }: React.PropsW
   return <Animated.View onLayout={event => layout(index, event)} style={style}>{children}</Animated.View>;
 }
 
-function StepBody({ step, topic, index, shown, animate, active, suspended, top, storeScroll }: {
+function StepBody({ step, topic, index, shown, animate, active, suspended, top, replayNote, storeScroll }: {
   step: GuideStep; topic: TutorialId; index: number; shown: boolean;
-  animate: boolean; active: boolean; suspended: boolean; top: number; storeScroll(y: number): void;
+  animate: boolean; active: boolean; suspended: boolean; top: number; replayNote: boolean; storeScroll(y: number): void;
 }) {
   const theme = useTheme();
-  const elements = useMemo(() => [
-    <AppText accessibilityRole="header" preset="unifiedTitle" style={styles.title}>{step.title}</AppText>,
-    <AppText preset="body" style={styles.copy}>{step.body}</AppText>,
-    ...(step.hint ? [<AppText preset="body" color={theme.colors.textSecondary} style={styles.hint}>{step.hint}</AppText>] : []),
-    <SeasonalFormPanel style={styles.example}>
-      <AppText preset="unifiedLabel" color={theme.colors.textSecondary}>화면 예시</AppText>
-      <ExampleArtwork source={getTutorialArtwork(topic, index)} />
-      {topic === 'font' && index === 1 ? <View style={styles.fontExamples}>
-        <AppText preset="unifiedLabel" fontModeOverride="jisu">{getAppFontModeLabel('jisu')} · 아이와 보낸 하루</AppText>
-        <AppText preset="unifiedLabel" fontModeOverride="pretendard">{getAppFontModeLabel('pretendard')} · 아이와 보낸 하루</AppText>
-      </View> : <View style={[styles.sampleRow, topic === 'timeline' && index === 2 ? styles.grid : null]}>
-        {step.example.map(label => <View key={label} style={[styles.sample, { borderColor: theme.colors.border }]}>
-          <AppText preset="unifiedLabel" style={styles.sampleLabel}>{label}</AppText>
-        </View>)}
-      </View>}
-    </SeasonalFormPanel>,
-  ], [index, step, theme.colors.border, theme.colors.textSecondary, topic]);
+  const elements = useMemo(() => {
+    const capture = getTutorialCapture(topic, index);
+    const fontSpecimens = topic === 'font' && index === 0;
+    const artwork = topic === 'home' && index === 0 ? tutorialIntroArtwork : undefined;
+    return [
+      <AppText accessibilityRole="header" preset="unifiedTitle" style={styles.title}>{step.title}</AppText>,
+      <AppText preset="body" style={styles.copy}>{step.body}</AppText>,
+      ...(capture || fontSpecimens || artwork ? [<View style={styles.visuals}>
+        {capture ? <TutorialScreenExample capture={capture}
+          context={topic === 'record' && index === 0 ? recordDateCapture : undefined} /> : null}
+        {artwork ? <ExampleArtwork source={artwork} /> : null}
+        {fontSpecimens ? <View style={styles.fontExamples}>
+          <AppText preset="unifiedLabel" fontModeOverride="jisu">{getAppFontModeLabel('jisu')} · 누리와 함께한 오늘을 기록해요</AppText>
+          <AppText preset="unifiedLabel" fontModeOverride="pretendard">{getAppFontModeLabel('pretendard')} · 누리와 함께한 오늘을 기록해요</AppText>
+        </View> : null}
+      </View>] : []),
+      ...(step.hint || replayNote ? [<View style={styles.notes}>
+        {step.hint ? <AppText preset="body" color={theme.colors.textSecondary} style={styles.hint}>{step.hint}</AppText> : null}
+        {replayNote ? <AppText preset="body" color={theme.colors.textSecondary} style={styles.hint}>
+          이 안내는 전체메뉴의 ‘누리 사용법’에서 다시 볼 수 있어요.
+        </AppText> : null}
+      </View>] : []),
+    ];
+  }, [index, replayNote, step, theme.colors.textSecondary, topic]);
   const [animationEnabled] = useState(animate && !shown);
   const geometry = useRef(new Map<number, BlockBounds>());
   const signals = useRef(new Map<number, Signal>());
@@ -176,8 +214,8 @@ export default function TutorialReader({ topic, replay, motion, onClose, onCompl
   const finished = useRef(false);
   const last = index === guide.steps.length - 1;
   useEffect(() => {
-    const next = getTutorialArtwork(topic, index + 1);
-    if (typeof next !== 'number' || next === getTutorialArtwork(topic, index)) return;
+    const next = getTutorialCapture(topic, index + 1)?.source;
+    if (typeof next !== 'number' || next === getTutorialCapture(topic, index)?.source) return;
     const asset = Image.resolveAssetSource(next);
     if (asset?.uri.startsWith('http')) Image.prefetch(asset.uri).catch(() => {});
   }, [index, topic]);
@@ -210,7 +248,7 @@ export default function TutorialReader({ topic, replay, motion, onClose, onCompl
         </Pressable>
       </View>
       <StepBody key={index} step={guide.steps[index]} topic={topic} index={index} shown={seen.current.has(index)}
-        active={visible} animate={motion} suspended={suspended} top={scroll.current.get(index) ?? 0}
+        active={visible} animate={motion} suspended={suspended} top={scroll.current.get(index) ?? 0} replayNote={!replay && last}
         storeScroll={value => { scroll.current.set(index, value); }} />
       <View style={styles.footer}>
         {index > 0 ? <CtaButton role="neutral" onPress={back}><CtaText>이전</CtaText></CtaButton> : null}
@@ -232,9 +270,10 @@ const styles = StyleSheet.create({
   title: { lineHeight: 38, fontSize: 29 }, copy: { fontSize: 17, lineHeight: 26 }, hint: { lineHeight: 24 },
   footer: { paddingHorizontal: 20, paddingVertical: 12, gap: 8 },
   later: { minHeight: 44, justifyContent: 'center', alignItems: 'center' },
-  example: { padding: 16, minHeight: 118, gap: 14 }, sampleRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
-  artwork: { alignSelf: 'center', width: '70%', maxWidth: 144, height: 124 },
-  artImage: { width: '100%', height: '100%' }, fontExamples: { gap: 8 },
-  grid: { flexWrap: 'nowrap' }, sample: { flexGrow: 1, flexBasis: '19%', minHeight: 42, padding: 5, borderWidth: 1, borderRadius: 6, justifyContent: 'center' },
-  sampleLabel: { textAlign: 'center' },
+  example: { padding: 12, gap: 10 },
+  capture: { width: '100%', alignSelf: 'center', maxWidth: 520, borderRadius: 8, overflow: 'hidden' },
+  captureImage: { width: '100%', height: '100%' },
+  captureTarget: { position: 'absolute', borderWidth: 2, borderRadius: 8 },
+  artwork: { alignSelf: 'center', width: '70%', maxWidth: 124, height: 104 },
+  artImage: { width: '100%', height: '100%' }, fontExamples: { gap: 8 }, notes: { gap: 8 }, visuals: { gap: 12 },
 });

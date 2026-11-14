@@ -3,7 +3,7 @@ import { tutorialMotion, tutorialBlockVisible } from '../src/services/tutorial/m
 import { observeTutorialInterrupt, interruptTutorial, tutorialInterruptRevision } from '../src/services/tutorial/runtime';
 import { responsiveTypographyBand, resolveResponsiveTextStyle } from '../src/app/typography/responsiveTypography';
 import { getResponsiveContentWidth } from '../src/services/app/responsiveLayout';
-import { getTutorialArtwork, tutorialArtworkByStep } from '../src/services/tutorial/artwork';
+import { getTutorialCapture } from '../src/services/tutorial/captures';
 
 test('the nine stable topics include five automatic guides and no legacy accent setting', () => {
   expect(tutorialIds).toHaveLength(9);
@@ -12,11 +12,31 @@ test('the nine stable topics include five automatic guides and no legacy accent 
   expect(tutorialCatalog.font.title).toBe('앱 글꼴 바꾸기');
 });
 
-test('each existing step resolves one bundled example without extending the sequence', () => {
+test('actual crops stay within their image bounds and missing examples stay absent', () => {
+  let connected = 0;
   for (const id of tutorialIds) {
-    expect(tutorialArtworkByStep[id]).toHaveLength(tutorialCatalog[id].steps.length);
-    tutorialArtworkByStep[id].forEach((_, index) => expect(getTutorialArtwork(id, index)).toBeDefined());
+    tutorialCatalog[id].steps.forEach((_, index) => {
+      const capture = getTutorialCapture(id, index);
+      if (!capture) return;
+      connected++;
+      expect(capture.source).toBeDefined();
+      expect(capture.width).toBeGreaterThan(0);
+      expect(capture.height).toBeGreaterThan(0);
+      if (capture.target) {
+        const { left, top, width, height } = capture.target;
+        expect(parseFloat(left)).toBeGreaterThanOrEqual(0);
+        expect(parseFloat(top)).toBeGreaterThanOrEqual(0);
+        expect(parseFloat(width)).toBeGreaterThan(0);
+        expect(parseFloat(height)).toBeGreaterThan(0);
+        expect(parseFloat(left) + parseFloat(width)).toBeLessThanOrEqual(100);
+        expect(parseFloat(top) + parseFloat(height)).toBeLessThanOrEqual(100);
+      }
+    });
+    expect(getTutorialCapture(id, tutorialCatalog[id].steps.length)).toBeUndefined();
   }
+  expect(connected).toBeGreaterThan(0);
+  expect(getTutorialCapture('record', 2)).toBeUndefined();
+  expect(getTutorialCapture('timeline', 2)).toBeDefined();
 });
 
 test('an older skip or empty response never demotes completion', () => {
