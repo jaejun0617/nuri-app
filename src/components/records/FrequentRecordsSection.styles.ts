@@ -66,6 +66,15 @@ export const styles = StyleSheet.create({
     opacity: 0.93,
     transform: [{ scale: 0.985 }],
   },
+  recordOpenIndicator: {
+    position: 'absolute',
+    top: 9,
+    right: 9,
+    width: 20,
+    height: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   recordContentStack: {
     width: '100%',
     flex: 1,

@@ -72,6 +72,7 @@ function RecordSummaryCard({
 }) {
   const { fontScale } = useWindowDimensions();
   const contentTextStyle = useHomeContentTextStyle();
+  const titleColor = contentTextStyle?.color ?? styles.recordLabel.color;
   const enlarged = fontScale > 1;
   const meta = CATEGORY_META[item.category];
   const accessibilityLabel = item.hasRecentRecord
@@ -96,6 +97,16 @@ function RecordSummaryCard({
         radius={12}
         testIDPrefix="frequent-record-glass"
       />
+      <View
+        testID="frequent-record-open-indicator"
+        pointerEvents="none"
+        accessible={false}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+        style={styles.recordOpenIndicator}
+      >
+        <NuriSemanticIcon family="feather" name="arrow-up-right" size={15} color={titleColor} preserveOriginal />
+      </View>
       <View style={[styles.recordContentStack, enlarged ? { flex: 0 } : null]}>
         <View style={styles.recordIconSlot}>
           <View style={styles.recordIconWrap}>
