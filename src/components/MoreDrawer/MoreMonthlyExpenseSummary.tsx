@@ -40,12 +40,12 @@ export default function MoreMonthlyExpenseSummary({
           <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">
             <NuriIcon name="shopping" size={24} />
           </View>
-          <AppText preset="unifiedBody" styleOverridesPreset style={[styles.title, { color: theme.colors.textPrimary }]}>
+          <AppText preset="unifiedBody" styleOverridesPreset fitCompactReadingLine style={[styles.title, { color: theme.colors.textPrimary }]}>
             이번 달 기록한 지출
           </AppText>
         </View>
         <View style={styles.value}>
-          <AppText preset="unifiedTitle" styleOverridesPreset style={[styles.amount, { color: theme.colors.textPrimary }]}>
+          <AppText preset="unifiedTitle" styleOverridesPreset fitCompactReadingLine style={[styles.amount, { color: theme.colors.textPrimary }]}>
             {amount}
           </AppText>
           <View accessible={false} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">

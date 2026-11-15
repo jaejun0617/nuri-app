@@ -102,7 +102,6 @@ import { HomeHealthActivityList } from './HomePopulatedLists';
 import { TotalSummarySection } from './TotalSummarySection';
 import {
   RecentRecordsEmptyState,
-  TodayHomeTipSection,
   getRecentEmptyDataState,
 } from './HomeEditorialStates';
 import { HomeAmbientBubbleCanvas } from './HomeAmbientBubbleCanvas';
@@ -169,7 +168,6 @@ import {
   type HealthActivityItem,
 } from '../../../../services/health-report/viewModel';
 import { buildPetThemePalette, NEUTRAL_UI_PALETTE } from '../../../../services/pets/themePalette';
-import MarkerText from '../../../../app/ui/MarkerText';
 import {
   buildFrequentRecordSummary,
   type FrequentRecordCategory,
@@ -650,7 +648,6 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
   seasonalOrnamentSheet: ImageSourcePropType | null;
   presentation?: 'accordion' | 'sheet';
 }) {
-  const petName = usePetDisplayName();
   const isAutumn = season === 'autumn';
   const isWinter = season === 'winter';
   const isSpring = season === 'spring';
@@ -677,7 +674,6 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         natureOrnamentVariant: 'sparkle',
         natureOrnamentSize: 25,
         ornamentStyle: styles.profileSheetRowOrnamentHobby,
-        description: '즐거워하는 활동이에요',
         values: hobbies,
         empty: '등록된 취미가 없어요',
       },
@@ -695,7 +691,6 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         natureOrnamentVariant: 'primary',
         natureOrnamentSize: 36,
         ornamentStyle: styles.profileSheetRowOrnamentLike,
-        description: '마음을 편하게 해주는 것들이에요',
         values: likes,
         empty: '등록된 좋아하는 것이 없어요',
       },
@@ -713,7 +708,6 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         natureOrnamentVariant: 'secondary',
         natureOrnamentSize: 35,
         ornamentStyle: styles.profileSheetRowOrnamentDislike,
-        description: '조금 불편해하는 것들이에요',
         values: dislikes,
         empty: '등록된 싫어하는 것이 없어요',
       },
@@ -731,7 +725,6 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
         natureOrnamentVariant: 'branch',
         natureOrnamentSize: 34,
         ornamentStyle: styles.profileSheetRowOrnamentTag,
-        description: formatPetCopy('우리 아이를 표현하는 특별한 키워드예요', petName),
         values: tags,
         empty: '등록된 태그가 없어요',
       },
@@ -754,24 +747,7 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
                 <NuriIcon name={row.iconName} size={16} />
               </View>
               <View style={styles.profileSheetRowContent}>
-                <View style={styles.profileSheetCategoryLine}>
-                  <AppText
-                    style={[styles.profileSheetRowLabel, row.titleStyle]}
-                  >
-                    {row.label}
-                  </AppText>
-                  <AppText
-                    style={[
-                      styles.profileSheetRowDescription,
-                      isWinter ? styles.winterProfileSheetRowDescription : null,
-                      isSpring ? styles.springProfileSheetRowDescription : null,
-                      isSummer ? styles.summerProfileSheetRowDescription : null,
-                    ]}
-                  >
-                    {' · '}
-                    {row.description}
-                  </AppText>
-                </View>
+                <AppText style={[styles.profileSheetRowLabel, row.titleStyle]}>{row.label}</AppText>
                 {row.values.length > 0 ? (
                   <View style={styles.profileSheetValueWrap}>
                     {row.values.map((value, index) => (
@@ -1083,7 +1059,7 @@ const HeroProfileAccordion = React.memo(function HeroProfileAccordion({
 
 const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
   petId,
-  petColor,
+  avatarUri,
   visible,
   profilePetName,
   basicInfo,
@@ -1097,7 +1073,7 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
   onCloseComplete,
 }: {
   petId: string | null;
-  petColor: string | null;
+  avatarUri: string | null;
   visible: boolean;
   profilePetName: string;
   basicInfo: HomePetBasicInfoValues;
@@ -1366,7 +1342,7 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
             ]}
             showsVerticalScrollIndicator={false}
           >
-            <HomePetBasicInfoSection info={basicInfo} season={season} />
+            <HomePetBasicInfoSection info={basicInfo} season={season} petName={profilePetName} avatarUri={avatarUri} />
             {visible && <WalkProgressionRow petId={petId} enabled={visible} expanded />}
             <HeroProfileAccordion
               petTheme={NEUTRAL_UI_PALETTE}
@@ -1388,7 +1364,7 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
                 { paddingBottom: Math.max(24, insets.bottom + 16) },
               ]}
             >
-              <MarkerText variant="wash" petColor={petColor}
+              <AppText
                 style={[
                   styles.profileSheetFooterCopy,
                   isWinter ? styles.winterProfileSheetFooterCopy : null,
@@ -1397,7 +1373,7 @@ const ProfileInfoBottomSheet = React.memo(function ProfileInfoBottomSheet({
                 ]}
               >
                 {formatPetCopy('언제나 우리 아이와 함께 ♡', profilePetName)}
-              </MarkerText>
+              </AppText>
             </View>
           </ScrollView>
         </RNAnimated.View>
@@ -1438,24 +1414,19 @@ const RecommendationTipsSection = React.memo(
         style={styles.section}
       >
         <HomeSectionHeader
-          title={isMemorial ? '함께한 시간을 돌아보는 홈' : formatPetCopy('우리 아이를 위한', petName)}
+          title={isMemorial ? '함께한 시간을 돌아보는 홈' : `${petName}의 돌봄 팁`}
           color={petTheme.deep}
-          emphasis={
-            isMemorial
-              ? undefined
-              : { title: '추천 팁', color: petTheme.primary }
-          }
           description={
             isMemorial
               ? undefined
-              : '아이의 건강한 하루를 위한\n맞춤형 팁을 확인해보세요.'
+              : '일상에서 바로 써볼 수 있는 방법을 모았어요.'
           }
           action={
             isMemorial
               ? undefined
               : {
                   onPress: onPressMore,
-                  accessibilityLabel: '추천 팁 전체 보기',
+                  accessibilityLabel: '돌봄 팁 전체 보기',
                 }
           }
         />
@@ -1806,7 +1777,7 @@ export default function LoggedInHome() {
   const insets = useSafeAreaInsets();
   const fallbackTabBarHeight = useBottomTabBarHeight();
   const bottomTabBarHeight = useContext(ToolbarHeightContext) ?? fallbackTabBarHeight;
-  const { height: windowHeight, width: windowWidth, fontScale } = useWindowDimensions();
+  const { height: windowHeight, width: windowWidth } = useWindowDimensions();
   const [heroFrameWidth, setHeroFrameWidth] = useState(windowWidth);
   const { season: ambientSeason } =
     useSeasonPreference();
@@ -2832,12 +2803,6 @@ export default function LoggedInHome() {
             accentDeepColor={NEUTRAL_UI_PALETTE.deep}
           />
         </View>
-        <View onLayout={ambientSectionLayoutHandlers['today-tip']}>
-          <TodayHomeTipSection
-            season={ambientSeason}
-            accentColor={NEUTRAL_UI_PALETTE.primary}
-          />
-        </View>
         <View onLayout={ambientSectionLayoutHandlers.diary}>
           <MonthlyDiarySection
             petName={plainPetName}
@@ -2923,7 +2888,6 @@ export default function LoggedInHome() {
               <HomeHeroInfoPanel
                 colors={heroColors}
                 containerWidth={heroFrameWidth}
-                fontScale={fontScale}
                 petTheme={petTheme}
                 profilePetName={profilePetName}
                 titleBadge={activeHomeTitleBadge?.titleName ?? null}
@@ -2974,7 +2938,7 @@ export default function LoggedInHome() {
 
         <ProfileInfoBottomSheet
           petId={activePetId}
-          petColor={selectedPet?.themeColor ?? null}
+          avatarUri={selectedAvatarUri}
           visible={profileSheetVisible}
           profilePetName={profilePetName}
           basicInfo={profileBasicInfo}

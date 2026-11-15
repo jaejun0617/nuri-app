@@ -17,7 +17,7 @@ import { APP_HEADER } from '../../components/navigation/headerAppearance';
 import React, { useCallback, useMemo } from 'react';
 import { PRODUCT_CANVAS_COLOR, lightColors } from '../../app/theme/tokens/colors';
 import {
-  ImageBackground,
+  Image,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -374,48 +374,6 @@ export default function WeatherInsightScreen() {
       getScenePalette(displayScenario, sceneIsDaytime).textPrimary
     : palette.textPrimary;
 
-  const forecastTextPalette = useMemo(() => {
-    if (!hasRenderableWeather) {
-      return {
-        label: '#223042',
-        precipitation: 'rgba(34,48,66,0.54)',
-        temperature: '#223042',
-        lowTemperature: 'rgba(34,48,66,0.52)',
-      };
-    }
-
-    if (seasonalHero && sceneIsDaytime) {
-      return {
-        label: palette.textPrimary,
-        precipitation: palette.textSecondary,
-        temperature: palette.textPrimary,
-        lowTemperature: palette.textSecondary,
-      };
-    }
-
-    if (displayScenario === 'fresh' && sceneIsDaytime) {
-      return {
-        label: '#18345F',
-        precipitation: 'rgba(24,52,95,0.64)',
-        temperature: '#102240',
-        lowTemperature: 'rgba(16,34,64,0.54)',
-      };
-    }
-
-    return {
-      label: '#F8FBFF',
-      precipitation: 'rgba(234,242,255,0.76)',
-      temperature: '#FFFFFF',
-      lowTemperature: 'rgba(226,236,248,0.74)',
-    };
-  }, [
-    seasonalHero,
-    displayScenario,
-    hasRenderableWeather,
-    palette,
-    sceneIsDaytime,
-  ]);
-
   const heroBlendColors = useMemo(() => {
     if (seasonalHero) return seasonalHero.blendColors;
     if (displayScenario === 'fresh' && sceneIsDaytime) {
@@ -534,17 +492,24 @@ export default function WeatherInsightScreen() {
           <View style={styles.hero}>
             {heroImageSource ? (
               <View style={styles.heroImageWrap}>
-                <ImageBackground
-                  resizeMode="cover"
-                  source={heroImageSource}
+                <View
+                  testID="weather-hero-artwork"
+                  accessibilityIgnoresInvertColors
                   style={[
                     styles.heroImageCard,
                     seasonalHero && {
                       minHeight: width - insets.left - insets.right,
                     },
                   ]}
-                  imageStyle={styles.heroImage}
                 >
+                  <Image
+                    testID="weather-hero-image"
+                    accessible={false}
+                    pointerEvents="none"
+                    resizeMode="cover"
+                    source={heroImageSource}
+                    style={styles.heroImage}
+                  />
                   {weatherHeader}
                   <LinearGradient
                     testID="weather-hero-bottom-blend"
@@ -558,7 +523,7 @@ export default function WeatherInsightScreen() {
                       },
                     ]}
                   />
-                </ImageBackground>
+                </View>
               </View>
             ) : (
               <>
@@ -658,11 +623,10 @@ export default function WeatherInsightScreen() {
               </View>
               <WeatherForecastStrip
                 items={weather.weekly}
-                accentColor={palette.accent}
-                labelColor={forecastTextPalette.label}
-                precipitationColor={forecastTextPalette.precipitation}
-                temperatureColor={forecastTextPalette.temperature}
-                lowTemperatureColor={forecastTextPalette.lowTemperature}
+                labelColor={palette.textPrimary}
+                precipitationColor={palette.textSecondary}
+                temperatureColor={palette.textPrimary}
+                lowTemperatureColor={palette.textSecondary}
               />
             </WeatherGlassCard>
 
@@ -924,7 +888,15 @@ const styles = StyleSheet.create({
     minHeight: 372,
     overflow: 'hidden',
   },
-  heroImage: {},
+  heroImage: {
+    position: 'absolute',
+    top: 0,
+    right: 0,
+    bottom: 0,
+    left: 0,
+    width: undefined,
+    height: undefined,
+  },
   heroImageBottomBlend: {
     position: 'absolute',
     left: 0,

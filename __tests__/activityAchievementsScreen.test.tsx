@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactNative from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
+import type { RootStackParamList } from '../src/navigation/RootNavigator';
 import Screen from '../src/screens/Pets/PetActivityAchievementsScreen';
 import {
   buildActivityDashboard,
@@ -28,6 +29,7 @@ import {
 
 const mockNavigation = { goBack: jest.fn(), reset: jest.fn() };
 let mockOwner = 'owner';
+let mockRouteParams: RootStackParamList['PetActivityAchievements'];
 const mockPets = [
   { id: 'a', name: '첫째', avatarUrl: 'test://a' },
   { id: 'b', name: '이름이아주긴둘째반려동물', avatarUrl: null },
@@ -62,7 +64,7 @@ jest.mock('../src/services/query/appQueryClient', () => ({
 jest.mock('@tanstack/react-query', () => ({ useQuery: () => ({ data: 0 }) }));
 jest.mock('@react-navigation/native', () => ({
   useNavigation: () => mockNavigation,
-  useRoute: () => ({ params: { entrySource: 'more' } }),
+  useRoute: () => ({ params: mockRouteParams }),
 }));
 jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 24, bottom: 24, left: 0, right: 0 }),
@@ -222,11 +224,28 @@ describe('activity and title presentation', () => {
     expect(text(tree)).toContain('GPS 평생 거리');
     expect(text(tree)).not.toContain('activity-earned-WK01');
     expect(text(tree)).toContain('작은 길의 시작');
+    await press(tree, 'activity-title-category-picker');
+    await press(tree, 'activity-title-category-ALL');
+    expect(host(tree, 'activity-earned-WK01')).toBeDefined();
+    expect(host(tree, 'activity-challenge-GD01')).toBeDefined();
+    const list = tree.root.findByType(ReactNative.FlatList);
+    const challenges = getActivityVault(data, data.petSummaries[0]).challenges;
+    expect(list.props.data).toHaveLength(2 + Math.ceil(challenges.length / 3));
+    expect(challenges.length).toBeGreaterThan(250);
+    expect(text(tree)).not.toContain(`activity-challenge-${challenges[challenges.length - 1].key}`);
+    expect(tree.root.findAll(node =>
+      typeof node.type === 'string' && node.props.testID?.startsWith('activity-challenge-'),
+    ).length).toBeLessThan(40);
+    await press(tree, 'activity-tab-summary');
+    expect(tree.root.findByType(ReactNative.FlatList)).toBe(list);
+    await press(tree, 'activity-tab-vault');
+    expect(tree.root.findByType(ReactNative.FlatList)).toBe(list);
     await act(async () => tree.unmount());
   });
   beforeEach(() => {
     jest.clearAllMocks();
     mockOwner = 'owner';
+    mockRouteParams = { entrySource: 'more' };
     jest.mocked(loadHomeTitleSelection).mockResolvedValue(null);
     jest.mocked(saveHomeTitleSelection).mockResolvedValue({
       titleKey: 'pet_first_health_record',
@@ -244,6 +263,24 @@ describe('activity and title presentation', () => {
     jest.mocked(loadActivityDashboard).mockResolvedValue(fixture());
   });
   afterEach(() => jest.restoreAllMocks());
+  it('targets a notification title beyond the first virtual window by row index', async () => {
+    const data = fixture();
+    const titles = Array.from({ length: 48 }, (_, index) => ({
+      ...achievement(`pet_test_award_${index + 1}`, index + 1, index + 1),
+      achieved: true,
+    }));
+    data.petSummaries[0].achievements = titles;
+    data.commonSummary.achievements = [];
+    data.allAchievements = titles;
+    mockRouteParams = { focusTitleId: titles[47].key, focusPetId: 'a' };
+    jest.mocked(loadActivityDashboard).mockResolvedValue(data);
+    const tree = await render();
+    expect(host(tree, 'activity-tab-vault').props.accessibilityState.selected).toBe(true);
+    const list = tree.root.findByType(ReactNative.FlatList);
+    expect(list.props.initialScrollIndex).toBe(11);
+    expect(list.props.data[11].items[3].key).toBe(titles[47].key);
+    await act(async () => tree.unmount());
+  });
   it('uses account XP independently of selected pet and does not fetch on tab or pet changes', async () => {
     const tree = await render();
     expect(text(tree)).toContain('누적 ');
@@ -313,7 +350,13 @@ describe('activity and title presentation', () => {
       require('../src/assets/activity/growth-companion.png'),
     );
     await press(tree, 'activity-tab-vault');
-    expect(fills()).toHaveLength(3);
+    const vaultFills = host(tree, 'activity-vault-scroll').findAll(
+      n => typeof n.type === 'string' && n.props.testID === 'home-reflective-fill',
+    );
+    expect(vaultFills.length).toBeGreaterThanOrEqual(3);
+    expect(vaultFills.every(n =>
+      ReactNative.StyleSheet.flatten(n.props.style).backgroundColor === 'rgba(255, 255, 255, 0.26)',
+    )).toBe(true);
     await act(async () => tree.unmount());
   });
   it('keeps the subtle page gradient behind both tabs without intercepting gestures', async () => {

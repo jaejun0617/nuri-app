@@ -24,6 +24,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import Feather from '../../components/icons/NuriFeatherIcon';
 
 import IndoorActivityCard from '../../components/weather/IndoorActivityCard';
+import { MenuGlassSurface, MENU_GLASS_FRAME } from '../../components/common/MenuGlassSurface';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import { useWeatherGuide } from '../../hooks/useWeatherGuide';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -153,6 +154,7 @@ export default function IndoorActivityRecommendationsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.heroCard}>
+          <MenuGlassSurface radius={28} testID="indoor-summary-glass" />
           <Text
             style={[
               styles.heroBadge,
@@ -237,12 +239,11 @@ const styles = StyleSheet.create({
   },
   heroCard: {
     borderRadius: 28,
-    backgroundColor: '#EFE8FA',
+    ...MENU_GLASS_FRAME,
     paddingHorizontal: 20,
     paddingVertical: 22,
     gap: 10,
     borderWidth: 1,
-    borderColor: 'rgba(122,69,244,0.12)',
   },
   heroBadge: {
     alignSelf: 'flex-start',

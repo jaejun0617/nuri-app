@@ -92,6 +92,11 @@ export const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
   },
+  largeTextPickerField: {
+    height: undefined,
+    minHeight: 48,
+    paddingVertical: 8,
+  },
   pickerFieldDisabled: {
     opacity: 0.55,
   },
@@ -145,9 +150,12 @@ export const styles = StyleSheet.create({
   optionRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 8,
+    rowGap: 8,
+    marginHorizontal: -4,
   },
+  optionSlot: { width: '50%', paddingHorizontal: 4 },
   optionChip: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
@@ -167,6 +175,8 @@ export const styles = StyleSheet.create({
   optionChipText: {
     color: MUTED,
     fontWeight: '800',
+    minWidth: 0,
+    flexShrink: 1,
   },
   optionChipTextActive: {
     color: BRAND,

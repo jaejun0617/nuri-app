@@ -25,5 +25,5 @@ export function useKeyboardBottomPadding(
         progress.value,
       ),
     };
-  }, [closedPadding, openPadding]);
+  });
 }

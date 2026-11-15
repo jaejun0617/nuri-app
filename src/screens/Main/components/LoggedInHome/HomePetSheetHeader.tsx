@@ -24,6 +24,7 @@ export function HomePetSheetHeader({
       <AppText
         preset="unifiedTitle"
         styleOverridesPreset
+        fitCompactReadingLine
         accessibilityRole="header"
         style={[styles.title, { color: titleColor }]}
       >

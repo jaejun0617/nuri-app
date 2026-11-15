@@ -8,10 +8,6 @@ import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
 import { HomeSeasonProvider } from '../src/components/home/HomeSeasonContext';
 import { HomeHeroInfoPanel } from '../src/screens/Main/components/LoggedInHome/HomeHeroInfoPanel';
-import {
-  TodayHomeTipSection,
-  TODAY_HOME_TIP,
-} from '../src/screens/Main/components/LoggedInHome/HomeEditorialStates';
 import { HomeEmptySectionState } from '../src/screens/Main/components/LoggedInHome/HomeEmptySectionState';
 import { MonthlyDiaryEmptyState } from '../src/screens/Main/components/LoggedInHome/MonthlyDiaryEmptyState';
 import { HomeHealthActivityList } from '../src/screens/Main/components/LoggedInHome/HomePopulatedLists';
@@ -87,10 +83,6 @@ function content(season?: SeasonKey, petTheme = NEUTRAL_UI_PALETTE) {
           recordStatus="ready"
           onPressCategory={noop}
           onPressAll={noop}
-        />
-        <TodayHomeTipSection
-          season="autumn"
-          accentColor={NEUTRAL_UI_PALETTE.primary}
         />
         <HomeHealthActivityList
           items={[
@@ -181,7 +173,6 @@ describe('Home muted seasonal content, not a global body or CTA tint', () => {
       });
       const primary = [
         '산책',
-        TODAY_HOME_TIP.title,
         '저장한 건강 기록',
         '검진',
         '“생활 환경을 점검해요”',
@@ -242,7 +233,6 @@ describe('Home muted seasonal content, not a global body or CTA tint', () => {
         expect(texts).toHaveLength(2);
         expect(StyleSheet.flatten(texts[0].props.style).color).toBe(HOME_HERO_COLORS.muted);
         expect(StyleSheet.flatten(texts[1].props.style).color).toBe(HOME_HERO_COLORS.ink);
-        expect(color(renderer, TODAY_HOME_TIP.title)).toBe(COLORS[season]);
         expect(color(renderer, '누리 더 알아보기')).toBe(HOME_HERO_COLORS.ink);
       }
       const nextTheme = buildPetThemePalette('#EC4899');

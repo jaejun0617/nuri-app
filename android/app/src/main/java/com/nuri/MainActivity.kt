@@ -13,6 +13,7 @@ import com.facebook.react.defaults.DefaultReactActivityDelegate
 import androidx.core.view.WindowCompat
 import androidx.browser.auth.AuthTabIntent
 import androidx.browser.customtabs.CustomTabsClient
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.core.view.WindowInsetsControllerCompat
 import com.swmansion.rnscreens.fragment.restoration.RNScreensFragmentFactory
 import com.nuri.notifications.ScheduleNotificationTapStore
@@ -53,8 +54,27 @@ class MainActivity : ReactActivity() {
       return
     }
     val browser = CustomTabsClient.getPackageName(this, null)
-    if (browser == null || !CustomTabsClient.isAuthTabSupported(this, browser)) {
+    if (browser == null) {
       promise.resolve("unsupported")
+      return
+    }
+    if (!CustomTabsClient.isAuthTabSupported(this, browser)) {
+      if (redirect.scheme != "https") {
+        promise.resolve("unsupported")
+        return
+      }
+      try {
+        // A regular Custom Tab can hand the verified HTTPS redirect back to
+        // NURI even when the browser does not implement Auth Tab.
+        val tab = CustomTabsIntent.Builder()
+          .setSendToExternalDefaultHandlerEnabled(true)
+          .build()
+        tab.intent.setPackage(browser)
+        tab.launchUrl(this, url)
+        promise.resolve("launched")
+      } catch (_: RuntimeException) {
+        promise.reject("OAUTH_BROWSER_OPEN_FAILED", "Authentication browser could not be opened.")
+      }
       return
     }
     authTabRequest = Pair(redirect, promise)

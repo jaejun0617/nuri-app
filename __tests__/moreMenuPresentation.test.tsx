@@ -69,7 +69,7 @@ describe('More presentation contracts (not native pixel QA)', () => {
     const onPress = jest.fn();
     const tree = await render(<MoreSubscriptionEntry subscribed onPress={onPress} />);
     const row = tree.root.findByProps({ testID: 'more-entry-subscription' });
-    expect(row.props.accessibilityLabel).toBe('구독 관리, 사진·기록 확장 · 추억 영상 · 고화질 보관');
+    expect(row.props.accessibilityLabel).toBe('구독 관리, 기록 확장 · 추억 영상 · 고화질');
     expect(row.findByProps({ testID: 'more-icon-subscription' })).toBeDefined();
     await TestRenderer.act(async () => row.props.onPress());
     expect(onPress).toHaveBeenCalledTimes(1);

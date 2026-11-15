@@ -1,0 +1,56 @@
+{
+  "generator": "built-in image_gen",
+  "style": "NURI soft 3D animation; single white Maltese character",
+  "reference": "nosework-v1.png",
+  "usage": "All eight existing guide heroes and indoor recommendation thumbnails. Not real user pet photography.",
+  "assets": [
+    {
+      "key": "nosework",
+      "file": "nosework-v1.png",
+      "generation": "exec-86626546-22dd-43de-b66f-b61a1c9dded4.png",
+      "prompt": "NURI pet app asset, a single landscape 3:2 beautifully rendered cute 3D animated scene, NOT a realistic photo. A single adorable white Maltese puppy character, round head, soft fluffy white fur rendered as smooth rounded tufts, floppy ears, short muzzle, glossy dark round eyes, small black nose, tiny pink tongue, short legs and curled fluffy tail. No clothes or accessories. Puppy sniffing loose folds of a lavender cotton towel with two tiny treats on a pale blue nonslip mat. Nosework activity clearly recognizable. NURI material: soft plush fur, milky satin rounded props, pearly white and powder blue with gentle lavender accents, warm gentle expression, soft diffuse daylight, delicate contact shadows, simple airy home floor background. Full puppy and activity centered in central 60% so both square thumbnail and wide hero crop work. No text, logos, watermark, collage, floating decor or additional animals. Cute high-quality animation still with clean readable silhouette."
+    },
+    {
+      "key": "tug",
+      "file": "tug-v1.png",
+      "generation": "exec-cdee33ea-dca5-4a6a-96ed-08cbcfb07a67.png",
+      "prompt": "Create a new NURI activity scene using the attached image only as character and material reference. Preserve the SAME adorable white Maltese puppy identity, round glossy dark eyes, floppy ears, black nose, short legs, curled fluffy tail, soft animated 3D plush fur, airy powder-blue/lavender/milky-white home palette. Landscape 3:2 single image. Activity: gentle tug play. Puppy has all four paws on a pale blue nonslip mat, softly holding one end of a lavender soft fabric tug toy; a small portion of a stylized adult hand holds the other end at puppy mouth height, no lifting or aggressive pulling. Show full puppy in central 60%, toy and mouth central, simple home background. No towel nosework, treats, extra animals, words, logos, watermark or collage. Cute animation still rather than documentary photo."
+    },
+    {
+      "key": "training",
+      "file": "training-v1.png",
+      "generation": "exec-902e8585-4494-4394-b3b7-791102f69da6.png",
+      "prompt": "Create new NURI activity scene, using attached image as SAME CHARACTER and material reference, not copying pose. Adorable white Maltese puppy with round dark eyes, floppy ears, small black nose, rounded head, fluffy white animated 3D fur, short legs, curled tail, no accessories. Activity: learning a simple sit trick. Puppy sits upright happily and offers one front paw to an open stylized adult hand, other front paw grounded; tiny treat in owner's other hand nearby, human only hands visible. Soft powder blue nonslip mat, minimal airy milky-white home, lavender cushion accent, diffuse daylight, soft plush/satin NURI animation look. Landscape 3:2, full dog centered with head and hands in central 60% for thumbnail. No text, watermark, collage, other dogs, towel or photoreal human."
+    },
+    {
+      "key": "massage",
+      "file": "massage-v1.png",
+      "generation": "exec-73afe5f2-430c-49f7-8906-b5214d8e0f7d.png",
+      "prompt": "New NURI activity scene, preserve exact white Maltese puppy character and cute soft 3D animation material of reference. Same round head, short muzzle, floppy ears, dark round eyes, tiny black nose, short legs, fluffy white fur, no clothes. Home relaxation/massage: puppy lying comfortably on its side on pale blue mat, eyes sleepily half closed, one stylized adult hand gently stroking shoulder/back, no pressing or joint manipulation. A folded lavender blanket nearby. Minimal bright home, diffuse soft daylight, milky satin props, plush fur, powder-blue white lavender palette, adorable animation still NOT realistic photo. Landscape 3:2, head and hand centered, entire body visible, crop-safe middle 60%. No text watermark collage, no additional animal."
+    },
+    {
+      "key": "sniff-mat",
+      "file": "sniff-mat-v1.png",
+      "generation": "exec-d2658bf6-62c6-41d0-b27f-f71cc3d6ee7e.png",
+      "prompt": "New NURI scene, exact same adorable white Maltese puppy and 3D animated soft plush material as reference. Same floppy ears, rounded head, large round dark eyes, tiny black nose, short legs and curled white tail, no accessories. Activity SNUFFLE MAT: puppy investigating a proper fleece snuffle mat made of upright soft fabric strips in powder blue and lavender, tiny dog treats between the strips. Distinct from towel nosework: no towel, use textured fabric flower/strip snuffle mat. Full puppy centered, nose and mat central for square crop. Landscape 3:2 airy milky-white home, soft diffuse daylight, satin soft props, cute rounded animation still, not realistic photography. No words logos watermark extra animals or collage."
+    },
+    {
+      "key": "hide-and-seek",
+      "file": "hide-and-seek-v1.png",
+      "generation": "exec-fa769fa1-c71f-4fed-97f0-de4a274fe257.png",
+      "prompt": "New NURI indoor hide-and-seek activity scene using reference for exactly same white Maltese puppy character and soft 3D animated plush style. Same floppy ears, round glossy dark eyes, small black nose, round fluffy head, short legs curled tail no clothes. Puppy happily discovers a crouching stylized adult owner peeking from behind a half-open lavender interior door, owner visible only one friendly partial face and hand, dog looking up joyfully, unobstructed floor. Full puppy and doorway close together centered for square thumbnail, landscape 3:2. Same airy milky-white home with powder blue floor mat, soft daylight, satin rounded surfaces and cute animation feel NOT photo. No text logos watermark collage or second dog. No hide inside cabinets or dangerous spaces."
+    },
+    {
+      "key": "stretching",
+      "file": "stretching-v1.png",
+      "generation": "exec-11e4d5c6-a1da-4edf-8c4e-c5679a2ef18e.png",
+      "prompt": "New NURI indoor gentle stretching scene, same adorable white Maltese puppy identity and plush cute 3D animation style from reference. Round dark eyes, floppy ears, tiny black nose, short legs, round white fluffy head, curled tail, no accessories. Puppy doing a natural relaxed play-bow stretch by itself: both front paws extending forward on powder blue nonslip mat, chest low, back legs upright, accurate four-legged anatomy, happy calm face. No person holding or manipulating joints. Full body visible centered, landscape 3:2 with action in central 60% for square thumbnail. Airy milky white home, soft daylight, small lavender cushion far behind, pastel satin props. Not documentary photo. No towels, words, watermark, collage or additional animals."
+    },
+    {
+      "key": "balance-walk",
+      "file": "balance-walk-v1.png",
+      "generation": "exec-a5764089-3279-41b6-96d6-96b6e29c3b91.png",
+      "prompt": "New NURI indoor balance walk activity, preserve exact cute white Maltese puppy identity from reference, fluffy rounded white fur, round head, floppy ears, glossy dark eyes, small black nose, curled fluffy tail, short legs, no clothes. Puppy slowly stepping along three thin flat firm folded mats, alternating powder blue and lavender, on a nonslip floor. One front paw moving to next mat, no jumps, only 2cm high safe stable path. A stylized owner's hand close ahead gently guiding, no leash or pressure. Full puppy and short path centered in middle 60% for square crop. Single landscape 3:2, airy milky-white home, soft diffuse daylight, plush 3D animation and satin rounded materials, not realistic photo. No tall cushions, obstacle towers, extra dogs, text, logo, watermark or collage."
+    }
+  ]
+}

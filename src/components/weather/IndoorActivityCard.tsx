@@ -4,9 +4,10 @@
 
 import { ResponsiveNativeText as Text } from '../../app/ui/ResponsiveNativeText';
 import React from 'react';
-import { StyleSheet, TouchableOpacity, View } from 'react-native';
+import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 import Feather from '../icons/NuriFeatherIcon';
-import MaterialCommunityIcons from '../icons/NuriMaterialIcon';
+import { MenuGlassSurface, MENU_GLASS_FRAME } from '../common/MenuGlassSurface';
+import { INDOOR_ACTIVITY_ARTWORK } from './indoorActivityArtwork';
 
 import type { IndoorActivityGuide } from '../../services/weather/guide';
 
@@ -21,17 +22,19 @@ type Props = {
 export default React.memo(function IndoorActivityCard({
   item,
   onPress,
-  accentColor = '#7A45F4',
   accentTint = '#F2EAFF',
   chevronColor = '#BDC6D5',
 }: Props) {
   return (
     <TouchableOpacity activeOpacity={0.92} style={styles.card} onPress={onPress}>
+      <MenuGlassSurface radius={24} testID="indoor-activity-glass" />
       <View style={[styles.iconWrap, { backgroundColor: accentTint }]}>
-        <MaterialCommunityIcons
-          name={item.heroIcon as never}
-          size={22}
-          color={accentColor}
+        <Image
+          testID={`indoor-thumbnail-${item.key}`}
+          source={INDOOR_ACTIVITY_ARTWORK[item.key]}
+          style={styles.image}
+          resizeMode="cover"
+          accessible={false}
         />
       </View>
       <View style={styles.content}>
@@ -46,11 +49,11 @@ export default React.memo(function IndoorActivityCard({
 });
 
 const styles = StyleSheet.create({
+  image: { width: '100%', height: '100%' },
   card: {
     borderRadius: 24,
-    backgroundColor: '#FFFFFF',
+    ...MENU_GLASS_FRAME,
     borderWidth: 1,
-    borderColor: '#ECEEF4',
     paddingHorizontal: 16,
     paddingVertical: 16,
     flexDirection: 'row',
@@ -61,6 +64,7 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 18,
+    overflow: 'hidden',
     backgroundColor: '#F2EAFF',
     alignItems: 'center',
     justifyContent: 'center',

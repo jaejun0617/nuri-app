@@ -25,14 +25,14 @@ export default React.memo(function WeatherHourlyPrecipitation({
   const { width, fontScale } = useWindowDimensions();
   const [measuredWidth, setMeasuredWidth] = useState<number | null>(null);
   const availableWidth = measuredWidth ?? Math.max(1, width - 72);
-  // Measure the inner panel; larger fonts get wider slots, never smaller text.
+  const compact = width <= 360;
   const minimumWidth = 88 * Math.max(1, fontScale);
-  const visibleSlots = Math.max(
+  const visibleSlots = compact ? 3 : Math.max(
     1,
     Math.min(4, Math.floor(availableWidth / minimumWidth)),
   );
   const scrolling = items.length > visibleSlots;
-  const slotWidth = scrolling
+  const slotWidth = compact ? availableWidth / 3 : scrolling
     ? Math.max(minimumWidth, availableWidth / visibleSlots)
     : availableWidth / Math.max(1, items.length);
 
@@ -51,8 +51,12 @@ export default React.memo(function WeatherHourlyPrecipitation({
             testID="weather-hourly-timeline"
             horizontal
             scrollEnabled={scrolling}
+            pagingEnabled={compact && scrolling}
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.timeline}
+            contentContainerStyle={[
+              styles.timeline,
+              compact && scrolling && { paddingRight: ((3 - items.length % 3) % 3) * slotWidth },
+            ]}
           >
             {items.map((item, index) => {
               const probability =

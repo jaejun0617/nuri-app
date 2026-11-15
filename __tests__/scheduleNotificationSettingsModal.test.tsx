@@ -55,14 +55,10 @@ describe('schedule notification settings modal', () => {
       });
 
       const scrollView = renderer.root.findByType(ScrollView);
-      const scrollStyle = scrollView.props.style as Array<
-        Record<string, unknown>
-      >;
-      const maxHeightStyle = scrollStyle.find(
-        style => typeof style?.maxHeight === 'number',
-      );
-
-      expect(maxHeightStyle?.maxHeight).toBeGreaterThan(0);
+      const sheet = renderer.root.findByProps({ testID: 'notification-settings-sheet' });
+      expect(StyleSheet.flatten(sheet.props.style).maxHeight).toBeGreaterThan(0);
+      expect(StyleSheet.flatten(scrollView.props.style).flexShrink).toBe(1);
+      expect(StyleSheet.flatten(scrollView.props.contentContainerStyle).paddingBottom).toBe(24);
       const textStyle = (label: string) => {
         const node = renderer.root.findAll(candidate => candidate.type === Text && candidate.props.children === label)[0];
         if (!node) throw new Error(`Missing settings label: ${label}`);
@@ -102,12 +98,16 @@ describe('schedule notification settings modal', () => {
     try {
       await TestRenderer.act(async () => {
         renderer = TestRenderer.create(<ThemeProvider theme={createTheme('light')}><NotificationSettingsModal
-          visible bottomInset={0} enabled permissionStatus="granted" loading={false}
+          visible bottomInset={48} enabled permissionStatus="granted" loading={false}
           settings={{ enabled: true, platform: 'android', nativeSupported: true, permission: 'granted', exactAlarm: 'granted', channel: 'ready', delivery: 'exact', canOpenExactAlarmSettings: true }}
           onClose={jest.fn()} onRefreshSettings={jest.fn().mockResolvedValue(undefined)} onOpenSystemSettings={jest.fn()} onOpenExactAlarmSettings={jest.fn()}
         /></ThemeProvider>);
       });
       const rows = renderer.root.findAll(node => typeof node.type === 'string' && node.props.testID === 'notification-settings-channels');
+      const sheet = renderer.root.findByProps({ testID: 'notification-settings-sheet' });
+      const scroll = renderer.root.findByType(ScrollView);
+      expect(StyleSheet.flatten(sheet.props.style).paddingBottom).toBe(48);
+      expect(StyleSheet.flatten(scroll.props.contentContainerStyle).paddingBottom).toBe(24);
       expect(rows).toHaveLength(1);
       expect(rows[0].props.accessibilityRole).toBe('text');
       expect(rows[0].props.onPress).toBeUndefined();

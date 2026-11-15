@@ -64,10 +64,10 @@ describe('opt-in action component', () => {
     expect(button().props.disabled).toBe(true);
   });
   it.each([
-    ['autumn', '#C4A9EF'],
-    ['winter', '#C4A9EF'],
-    ['spring', '#C4A9EF'],
-    ['summer', '#C4A9EF'],
+    ['autumn', '#6943B7'],
+    ['winter', '#6943B7'],
+    ['spring', '#6943B7'],
+    ['summer', '#6943B7'],
   ])(
     'uses global %s even when caller and pet palette disagree',
     (season, color) => {
@@ -92,8 +92,8 @@ describe('opt-in action component', () => {
       });
       expect(
         renderer.root.find(node => String(node.type) === 'AppText').props.color,
-      ).toBe('#251255');
-      expect(renderer.root.findByType(LinearGradient).props.colors).toEqual(['#E7DAFC', '#C4A9EF']);
+      ).toBe('#FFFFFF');
+      expect(renderer.root.findByType(LinearGradient).props.colors).toEqual(['#7C54CC', '#6943B7']);
     },
   );
   it('renders pressed and disabled states, blocks loading without dimming', () => {
@@ -107,7 +107,7 @@ describe('opt-in action component', () => {
         ),
       );
     });
-    expect(style(true).backgroundColor).toBe('#B696E7');
+    expect(style(true).backgroundColor).toBe('#5C38A6');
     act(() =>
       renderer.update(
         wrap(
@@ -129,7 +129,7 @@ describe('opt-in action component', () => {
         ),
       ),
     );
-    expect(style().backgroundColor).toBe('#C4A9EF');
+    expect(style().backgroundColor).toBe('#6943B7');
     expect(button().props.disabled).toBe(true);
     expect(button().props.accessibilityState).toMatchObject({
       busy: true,
@@ -173,15 +173,17 @@ describe('opt-in action component', () => {
       ).toBe(cancel);
     },
   );
-  it('keeps legacy excluded callers on their original button branch', () => {
+  it('keeps the profile registration exit on its legacy branch with a white label over lavender', () => {
     act(() => {
       renderer = TestRenderer.create(
         wrap(
           <ConfirmDialog
             visible
-            title="확인"
+            title="등록을 멈추고 나갈까요?"
             message="내용"
-            confirmLabel="확인"
+            confirmLabel="나가기"
+            cancelLabel="계속 작성하기"
+            tone="warning"
             onConfirm={jest.fn()}
             onCancel={jest.fn()}
           />,
@@ -189,7 +191,11 @@ describe('opt-in action component', () => {
       );
     });
     expect(renderer.root.findAllByType(CtaButton)).toHaveLength(0);
-    expect(renderer.root.findAllByType(TouchableOpacity)).toHaveLength(2);
+    const [cancel, confirm] = renderer.root.findAllByType(TouchableOpacity);
+    expect(cancel.findAllByType(LinearGradient)).toHaveLength(0);
+    expect(confirm.findByType(LinearGradient).props.colors).toEqual(['#7C54CC', '#6943B7']);
+    const label = confirm.find(node => String(node.type) === 'AppText');
+    expect(StyleSheet.flatten(label.props.style).color).toBe('#FFFFFF');
   });
   it('stacks dialog controls at 360dp / fontScale 1.5', () => {
     jest

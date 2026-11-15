@@ -24,6 +24,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useQuery } from '@tanstack/react-query';
+import { FlashList, type ListRenderItemInfo } from '@shopify/flash-list';
 import { useNotificationDestinationRead } from '../../hooks/useNotificationDestinationRead';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -73,6 +74,38 @@ type Nav = NativeStackNavigationProp<
 >;
 type Tab = 'summary' | 'vault';
 const fmt = (value: number) => value.toLocaleString('ko-KR');
+const CHALLENGES_PER_CELL = 3;
+const VAULT_DRAW_DISTANCE = 240;
+const achievementKey = (item: ActivityAchievement) =>
+  `${item.scope}:${item.ownerId}:${item.key}`;
+
+type VaultCell =
+  | { key: string; kind: 'earned' | 'challenge'; items: ActivityAchievement[]; first: boolean; last: boolean }
+  | { key: 'challenge-heading'; kind: 'challenge-heading'; count: number };
+
+function appendVaultCells(
+  result: VaultCell[],
+  kind: 'earned' | 'challenge',
+  items: ActivityAchievement[],
+  perCell: number,
+) {
+  if (!items.length) {
+    result.push({ key: `${kind}-empty`, kind, items: [], first: true, last: true });
+    return;
+  }
+  for (let start = 0; start < items.length; start += perCell) {
+    result.push({
+      key: `${kind}:${achievementKey(items[start])}`,
+      kind,
+      items: items.slice(start, start + perCell),
+      first: start === 0,
+      last: start + perCell >= items.length,
+    });
+  }
+}
+
+const vaultCellKey = (cell: VaultCell) => cell.key;
+const vaultCellType = (cell: VaultCell) => cell.kind;
 
 /** Home's AppText owns the real family and single-weight jisu mapping. */
 const Copy = memo(function ActivityCopy({
@@ -238,7 +271,7 @@ function GrowthCard({
     </Glass>
   );
 }
-function Challenge({
+const Challenge = memo(function VaultChallenge({
   item,
   stack,
 }: {
@@ -246,6 +279,7 @@ function Challenge({
   stack: boolean;
 }) {
   const progress = getChallengeProgress(item);
+  const artwork = getTitleArtwork(item.key);
   return (
     <View
       testID={`activity-challenge-${item.key}`}
@@ -254,9 +288,9 @@ function Challenge({
       accessibilityLabel={`${item.name}, ${item.conditionLabel}, ${item.progressLabel ?? `${progress.current}/${progress.target}${item.domain === 'streak' ? '일' : ''}`}, 도전 중`}
     >
       <View style={s.challengeArtwork}>
-        {getTitleArtwork(item.key) ? (
+        {artwork ? (
           <Image
-            source={getTitleArtwork(item.key)}
+            source={artwork}
             resizeMode="contain"
             style={s.challengeArt}
             accessible={false}
@@ -309,7 +343,43 @@ function Challenge({
       </View>
     </View>
   );
-}
+});
+
+const EarnedTitle = memo(function VaultEarnedTitle({
+  item,
+  columns,
+  selected,
+  saving,
+  onSelect,
+}: {
+  item: ActivityAchievement;
+  columns: number;
+  selected: boolean;
+  saving: boolean;
+  onSelect: (item: ActivityAchievement) => void;
+}) {
+  const artwork = getTitleArtwork(item.key);
+  return (
+    <Pressable
+      testID={`activity-earned-${item.key}`}
+      style={[s.earnedCell, { width: `${100 / columns}%` }]}
+      accessible
+      accessibilityRole="button"
+      accessibilityState={{ selected, disabled: saving, busy: saving }}
+      accessibilityLabel={`${item.name}, 획득 완료${selected ? ', 홈 대표 칭호' : ''}`}
+      disabled={saving}
+      onPress={() => onSelect(item)}
+    >
+      {artwork ? <Image source={artwork} resizeMode="contain" style={s.earnedArt} accessible={false} /> : null}
+      <Copy style={s.earnedName}>{item.name}</Copy>
+      <View style={s.selectionMark}>
+        <Image source={ACTIVITY_ART.check} style={s.check} resizeMode="contain" accessible={false} />
+        {selected ? <Copy kind="caption" style={s.activeText}>대표</Copy> : null}
+      </View>
+    </Pressable>
+  );
+});
+
 function Summary({
   dashboard,
   pet,
@@ -519,6 +589,7 @@ export default function PetActivityAchievementsScreen({ isolated }: {
       enabled: false,
     }).data ?? 0;
   const [tab, setTab] = useState<Tab>(route.params?.focusTitleId ? 'vault' : route.params?.initialTab ?? 'summary');
+  const [vaultVisited, setVaultVisited] = useState(tab === 'vault');
   const [vaultCategory, setVaultCategory] = useState(route.params?.focusTitleId?.replace(/\d+$/,'') ?? 'WK');
   const [viewPetId, setViewPetId] = useState<string | null>(route.params?.focusPetId ?? selectedPetId);
   const [result, setResult] = useState<{
@@ -551,14 +622,23 @@ export default function PetActivityAchievementsScreen({ isolated }: {
   const titleReads = useRef(0);
   const titleScope = useRef({ ownerId, petId: '' });
   const requests = useRef(0);
-  const scroll = useRef<React.ComponentRef<typeof ScrollView>>(null);
-  const focusedTitle = useRef<React.ComponentRef<typeof View>>(null);
-  const titleFocusConsumed=useRef<string|null>(null);
-  useEffect(()=>{
-    if(route.params?.focusTitleId){setTab('vault');setVaultCategory(route.params.focusTitleId.replace(/\d+$/,''));setViewPetId(route.params.focusPetId ?? selectedPetId);titleFocusConsumed.current=null;}
-    else if(route.params?.initialTab)setTab(route.params.initialTab);
-  },[route.params?.focusTitleId,route.params?.focusPetId,route.params?.initialTab,selectedPetId]);
-  const offsets = useRef<Record<Tab, number>>({ summary: 0, vault: 0 });
+  const titleFocusConsumed = useRef<string | null>(null);
+  const { focusTitleId, focusPetId, initialTab } = route.params ?? {};
+  const focusCategory = focusTitleId?.replace(/\d+$/, '');
+  const focusRequest = focusTitleId
+    ? JSON.stringify([focusTitleId, focusPetId, route.params?.notificationOpen?.requestId])
+    : null;
+  useEffect(() => {
+    if (focusCategory) {
+      setTab('vault');
+      setVaultVisited(true);
+      setVaultCategory(focusCategory);
+      setViewPetId(focusPetId ?? selectedPetId);
+    } else if (initialTab) {
+      setTab(initialTab);
+      if (initialTab === 'vault') setVaultVisited(true);
+    }
+  }, [focusCategory, focusPetId, focusRequest, initialTab, selectedPetId]);
   const dashboard = isolated?.domain.dashboard ?? (result?.owner === ownerId ? result.data : null);
   useNotificationDestinationRead(isolated ? undefined : route.params?.notificationOpen, Boolean(dashboard && !loading && !error));
   const inputs = useMemo(
@@ -584,16 +664,32 @@ export default function PetActivityAchievementsScreen({ isolated }: {
   );
   const hasCatalog = dashboard?.allAchievements.some(item => item.policyVersion === 2) ?? false;
   const vaultCategories = useMemo(() => [
+    { key: 'ALL', label: '전체 보기' },
     ...TITLE_VAULT_CATEGORIES.filter(category => dashboard?.allAchievements.some(item => item.categoryKey === category.key)),
     ...(completeVault?.acquired.some(item => item.hidden) ? [{ key: 'X', label: '뜻밖의 선물' }] : []),
     ...(completeVault?.acquired.some(item => item.categoryKey === 'LEGACY') ? [{ key: 'LEGACY', label: '기존 칭호' }] : []),
   ], [completeVault, dashboard]);
   const activeVaultCategory = vaultCategories.some(category => category.key === vaultCategory)
     ? vaultCategory : vaultCategories[0]?.key;
-  const vault = useMemo(() => completeVault && hasCatalog ? {
+  const vault = useMemo(() => completeVault && hasCatalog && activeVaultCategory !== 'ALL' ? {
     acquired: completeVault.acquired.filter(item => item.categoryKey === activeVaultCategory),
     challenges: completeVault.challenges.filter(item => item.categoryKey === activeVaultCategory),
   } : completeVault, [completeVault, hasCatalog, activeVaultCategory]);
+  const vaultCells = useMemo(() => {
+    if (!vaultVisited || !vault) return [];
+    const cells: VaultCell[] = [];
+    appendVaultCells(cells, 'earned', vault.acquired, layout.columns);
+    if (activeVaultCategory !== 'X' && activeVaultCategory !== 'LEGACY') {
+      cells.push({ key: 'challenge-heading', kind: 'challenge-heading', count: vault.challenges.length });
+      appendVaultCells(cells, 'challenge', vault.challenges, CHALLENGES_PER_CELL);
+    }
+    return cells;
+  }, [vault, vaultVisited, activeVaultCategory, layout.columns]);
+  const focusIndex = focusRequest && vaultCategory === focusCategory &&
+    titleFocusConsumed.current !== focusRequest &&
+    (focusPetId == null || focusPetId === pet?.petId)
+    ? vaultCells.findIndex(cell => cell.kind === 'earned' && cell.items.some(item => item.key === focusTitleId))
+    : -1;
   titleScope.current = { ownerId, petId: pet?.petId ?? '' };
   const selectedTitleKey =
     selection?.ownerId === ownerId && selection?.petId === pet?.petId
@@ -607,6 +703,47 @@ export default function PetActivityAchievementsScreen({ isolated }: {
     titlePrompt?.ownerId === ownerId && titlePrompt?.petId === pet?.petId
       ? titlePrompt
       : null;
+  const requestTitleChange = useCallback((item: ActivityAchievement) => {
+    if (!ownerId || !pet || item.key === selectedTitleKey || titleWrite.current) return;
+    setSelectionError(null);
+    setTitlePrompt({
+      ownerId,
+      petId: pet.petId,
+      petName: pet.petName,
+      key: item.key,
+      name: item.name,
+    });
+  }, [ownerId, pet, selectedTitleKey]);
+  const renderVaultCell = useCallback(({ item }: ListRenderItemInfo<VaultCell>) => {
+    if (item.kind === 'challenge-heading') {
+      return (
+        <View style={s.challengeHeading}>
+          <SectionHeading title="다음 칭호에 한 걸음" detail={`도전 중 ${item.count}개`} />
+        </View>
+      );
+    }
+    return (
+      <Glass style={[
+        item.kind === 'earned' ? s.vaultGrid : s.challengeList,
+        !item.first && s.joinedPanelTop,
+        !item.last && s.joinedPanelBottom,
+        item.kind === 'earned' && item.first && s.vaultGridStart,
+        item.kind === 'earned' && item.last && s.vaultGridEnd,
+      ]}>
+        {item.kind === 'earned' ? (
+          item.items.length ? item.items.map(title => (
+            <EarnedTitle key={achievementKey(title)} item={title}
+              columns={layout.columns} selected={title.key === selectedTitleKey}
+              saving={savingTitle} onSelect={requestTitleChange} />
+          )) : <Copy testID="activity-vault-empty" style={s.empty}>아직 모은 칭호가 없어요</Copy>
+        ) : (
+          item.items.length ? item.items.map(title => (
+            <Challenge key={achievementKey(title)} item={title} stack={layout.stack} />
+          )) : <Copy style={s.empty}>{hasCatalog && activeVaultCategory !== 'ALL' ? '이 분야의 칭호를 모두 모았어요' : '모든 칭호를 모았어요'}</Copy>
+        )}
+      </Glass>
+    );
+  }, [activeVaultCategory, hasCatalog, layout.columns, layout.stack, requestTitleChange, savingTitle, selectedTitleKey]);
   useEffect(() => {
     titleMounted.current = true;
     return () => {
@@ -740,19 +877,125 @@ export default function PetActivityAchievementsScreen({ isolated }: {
     setPicker(false);
   }, []);
   const selectTab = (next: Tab) => {
-    if (next === tab) return;
+    if (next === 'vault') setVaultVisited(true);
     setTab(next);
-    requestAnimationFrame(() =>
-      scroll.current?.scrollTo({ y: offsets.current[next], animated: false }),
-    );
   };
+  const viewportStyle = [s.flex, { marginBottom: insets.bottom }];
+  const contentStyle = [s.content, { paddingHorizontal: layout.inset, paddingBottom: 20 }];
+  const refreshControl = isolated ? undefined : (
+    <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={C.accent} />
+  );
+  const status = (
+    <>
+      {loading && !dashboard ? (
+        <View
+          testID="activity-loading"
+          style={s.loading}
+          accessibilityLabel="활동 기록 불러오는 중"
+        >
+          <ActivityIndicator color={C.accent} />
+          <View style={s.skeleton} />
+          <View style={s.skeleton} />
+        </View>
+      ) : null}
+      {error ? (
+        <Glass testID="activity-error" style={s.message}>
+          <Copy kind="label">활동 기록을 불러오지 못했어요</Copy>
+          <Copy style={s.muted}>
+            {dashboard
+              ? '마지막으로 확인한 기록이에요.'
+              : '연결 상태를 확인하고 다시 시도해 주세요.'}
+          </Copy>
+          <Pressable
+            accessibilityRole="button"
+            testID="activity-retry"
+            onPress={() => {
+              load(!!dashboard);
+            }}
+            style={s.retry}
+          >
+            <Copy kind="label" style={s.activeText}>
+              다시 시도
+            </Copy>
+          </Pressable>
+        </Glass>
+      ) : null}
+      {!loading && !dashboard && !error ? (
+        <Copy style={s.muted}>로그인 후 활동을 확인할 수 있어요</Copy>
+      ) : null}
+    </>
+  );
+  const ledgerFooter = dashboard?.ledgerLimitReached ? (
+    <Copy style={s.footer}>
+      최근 1,000개 XP 내역 기준의 활동 지표예요. 사용자 누적 XP는 전체
+      성장 기록을 사용해요.
+    </Copy>
+  ) : null;
+  const vaultHeader = dashboard && vault ? (
+    <>
+      {status}
+      <Glass style={[s.vaultPicker, layout.stack && s.wrap]}>
+        <Pressable
+          testID="activity-pet-picker"
+          accessibilityRole="button"
+          accessibilityLabel="조회할 아이 선택"
+          onPress={() => setPicker(true)}
+          disabled={!pets.length}
+          style={s.pickerButton}
+        >
+          <PetAvatar
+            key={photos.get(pet?.petId ?? '') ?? pet?.petId ?? 'empty'}
+            uri={photos.get(pet?.petId ?? '') ?? null}
+            fallbackLabel={pet?.petName}
+            accentColor={pet?.themeColor ?? null}
+            size={44}
+          />
+          <Copy kind="label" style={s.flex}>
+            {pet?.petName ?? '등록한 아이 없음'}
+          </Copy>
+          <Feather name="chevron-down" size={20} color={C.ink} />
+        </Pressable>
+        <View style={s.commonHint}>
+          <Copy style={s.muted}>공통 칭호 함께 표시</Copy>
+        </View>
+      </Glass>
+      {hasCatalog ? (
+        <Pressable testID="activity-title-category-picker" accessibilityRole="button"
+          accessibilityLabel={`칭호 분류 선택, ${vaultCategories.find(category => category.key === activeVaultCategory)?.label ?? ''}`}
+          accessibilityState={{ expanded: categoryPicker }}
+          onPress={() => setCategoryPicker(true)} style={s.categorySelector}>
+          <Copy kind="label" style={s.muted}>분류</Copy>
+          <Copy kind="label" style={[s.activeText, s.flex]}>{vaultCategories.find(category => category.key === activeVaultCategory)?.label}</Copy>
+          <Feather name="chevron-down" size={20} color={C.ink} />
+        </Pressable>
+      ) : null}
+      <View style={[s.section, s.vaultHeading]}>
+        <SectionHeading
+          title="함께 모은 칭호"
+          detail={`${vault.acquired.length}개`}
+        />
+        <Copy style={s.sectionDescription}>
+          작은 순간들이 특별한 기억이 되었어요
+        </Copy>
+        {selectionError ? (
+          <Copy
+            testID="activity-title-selection-error"
+            style={s.selectionError}
+            kind="label"
+          >
+            {selectionError}
+          </Copy>
+        ) : null}
+      </View>
+    </>
+  ) : status;
   return (
     <View testID="activity-screen" style={s.screen}>
       <LavenderScreenBackground testID="activity-background-gradient" />
       <View
         style={s.flex}
         importantForAccessibility={
-          picker || info || activeTitlePrompt ? 'no-hide-descendants' : 'auto'
+          picker || categoryPicker || info || activeTitlePrompt ? 'no-hide-descendants' : 'auto'
         }
       >
         <AppHeaderLayout subtitle="함께한 순간이 차곡차곡 쌓여요" topInset={insets.top} style={s.header}>
@@ -803,238 +1046,71 @@ export default function PetActivityAchievementsScreen({ isolated }: {
             </Pressable>
           ))}
         </View>
-        <ScrollView
-          ref={scroll}
-          testID="activity-scroll"
-          style={[s.flex, { marginBottom: insets.bottom }]}
-          contentContainerStyle={[
-            s.content,
-            {
-              paddingHorizontal: layout.inset,
-              paddingBottom: 20,
-            },
-          ]}
-          showsVerticalScrollIndicator={false}
-          scrollEventThrottle={80}
-          onScroll={event => {
-            offsets.current[tab] = event.nativeEvent.contentOffset.y;
-          }}
-          refreshControl={
-            isolated ? undefined : <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => {
-                load(true);
-              }}
-              tintColor={C.accent}
-            />
-          }
-        >
-          {loading && !dashboard ? (
-            <View
-              testID="activity-loading"
-              style={s.loading}
-              accessibilityLabel="활동 기록 불러오는 중"
+        <View style={s.flex}>
+          {/* Keep each scroll position without exposing the hidden pane to input or TalkBack. */}
+          <View
+            style={[s.flex, tab !== 'summary' && s.hiddenTab]}
+            pointerEvents={tab === 'summary' ? 'auto' : 'none'}
+            importantForAccessibility={tab === 'summary' ? 'auto' : 'no-hide-descendants'}
+            accessibilityElementsHidden={tab !== 'summary'}
+          >
+            <ScrollView testID="activity-scroll" style={viewportStyle}
+              contentContainerStyle={contentStyle} showsVerticalScrollIndicator={false}
+              refreshControl={refreshControl}
             >
-              <ActivityIndicator color={C.accent} />
-              <View style={s.skeleton} />
-              <View style={s.skeleton} />
+              {status}
+              {dashboard ? (
+                <Summary
+                  dashboard={dashboard}
+                  pet={pet}
+                  photos={photos}
+                  activeId={pet?.petId ?? null}
+                  onSelect={selectPet}
+                  stack={layout.stack}
+                  petCardWidth={(width - layout.inset * 2 - 10) / 2}
+                  selectedTitle={selectedTitleIdentity}
+                  onContentReady={isolated?.onContentReady}
+                />
+              ) : null}
+              {ledgerFooter}
+            </ScrollView>
+          </View>
+          {vaultVisited ? (
+            <View
+              style={[s.flex, tab !== 'vault' && s.hiddenTab]}
+              pointerEvents={tab === 'vault' ? 'auto' : 'none'}
+              importantForAccessibility={tab === 'vault' ? 'auto' : 'no-hide-descendants'}
+              accessibilityElementsHidden={tab !== 'vault'}
+            >
+              <FlashList
+                key={JSON.stringify([ownerId, pet?.petId, activeVaultCategory, layout.columns, focusRequest, Boolean(vault)])}
+                testID="activity-vault-scroll"
+                style={viewportStyle}
+                contentContainerStyle={contentStyle}
+                data={vaultCells}
+                keyExtractor={vaultCellKey}
+                getItemType={vaultCellType}
+                renderItem={renderVaultCell}
+                drawDistance={VAULT_DRAW_DISTANCE}
+                maintainVisibleContentPosition={{ disabled: true }}
+                initialScrollIndex={focusIndex < 0 ? undefined : focusIndex}
+                initialScrollIndexParams={focusIndex < 0 ? undefined : { viewOffset: -20 }}
+                onLoad={() => {
+                  if (focusIndex >= 0) titleFocusConsumed.current = focusRequest;
+                }}
+                ListHeaderComponent={vaultHeader}
+                ListFooterComponent={dashboard && vault ? (
+                  <>
+                    <Copy style={s.footer}>함께하는 하루가 새로운 칭호가 돼요</Copy>
+                    {ledgerFooter}
+                  </>
+                ) : null}
+                showsVerticalScrollIndicator={false}
+                refreshControl={refreshControl}
+              />
             </View>
           ) : null}
-          {error ? (
-            <Glass testID="activity-error" style={s.message}>
-              <Copy kind="label">활동 기록을 불러오지 못했어요</Copy>
-              <Copy style={s.muted}>
-                {dashboard
-                  ? '마지막으로 확인한 기록이에요.'
-                  : '연결 상태를 확인하고 다시 시도해 주세요.'}
-              </Copy>
-              <Pressable
-                accessibilityRole="button"
-                testID="activity-retry"
-                onPress={() => {
-                  load(!!dashboard);
-                }}
-                style={s.retry}
-              >
-                <Copy kind="label" style={s.activeText}>
-                  다시 시도
-                </Copy>
-              </Pressable>
-            </Glass>
-          ) : null}
-          {!loading && !dashboard && !error ? (
-            <Copy style={s.muted}>로그인 후 활동을 확인할 수 있어요</Copy>
-          ) : null}
-          {dashboard && tab === 'summary' ? (
-            <Summary
-              dashboard={dashboard}
-              pet={pet}
-              photos={photos}
-              activeId={pet?.petId ?? null}
-              onSelect={selectPet}
-              stack={layout.stack}
-              petCardWidth={(width - layout.inset * 2 - 10) / 2}
-              selectedTitle={selectedTitleIdentity}
-              onContentReady={isolated?.onContentReady}
-            />
-          ) : null}
-          {dashboard && vault && tab === 'vault' ? (
-            <>
-              <Glass style={[s.vaultPicker, layout.stack && s.wrap]}>
-                <Pressable
-                  testID="activity-pet-picker"
-                  accessibilityRole="button"
-                  accessibilityLabel="조회할 아이 선택"
-                  onPress={() => setPicker(true)}
-                  disabled={!pets.length}
-                  style={s.pickerButton}
-                >
-                  <PetAvatar
-                    key={photos.get(pet?.petId ?? '') ?? pet?.petId ?? 'empty'}
-                    uri={photos.get(pet?.petId ?? '') ?? null}
-                    fallbackLabel={pet?.petName}
-                    accentColor={pet?.themeColor ?? null}
-                    size={44}
-                  />
-                  <Copy kind="label" style={s.flex}>
-                    {pet?.petName ?? '등록한 아이 없음'}
-                  </Copy>
-                  <Feather name="chevron-down" size={20} color={C.ink} />
-                </Pressable>
-                <View style={s.commonHint}>
-                  <Copy style={s.muted}>공통 칭호 함께 표시</Copy>
-                </View>
-              </Glass>
-              {hasCatalog ? (
-                <Pressable testID="activity-title-category-picker" accessibilityRole="button"
-                  accessibilityLabel={`칭호 분류 선택, ${vaultCategories.find(category => category.key === activeVaultCategory)?.label ?? ''}`}
-                  accessibilityState={{ expanded: categoryPicker }}
-                  onPress={() => setCategoryPicker(true)} style={s.categorySelector}>
-                  <Copy kind="label" style={s.muted}>분류</Copy>
-                  <Copy kind="label" style={[s.activeText, s.flex]}>{vaultCategories.find(category => category.key === activeVaultCategory)?.label}</Copy>
-                  <Feather name="chevron-down" size={20} color={C.ink} />
-                </Pressable>
-              ) : null}
-              <View style={s.section}>
-                <SectionHeading
-                  title="함께 모은 칭호"
-                  detail={`${vault.acquired.length}개`}
-                />
-                <Copy style={s.sectionDescription}>
-                  작은 순간들이 특별한 기억이 되었어요
-                </Copy>
-                {selectionError ? (
-                  <Copy
-                    testID="activity-title-selection-error"
-                    style={s.selectionError}
-                    kind="label"
-                  >
-                    {selectionError}
-                  </Copy>
-                ) : null}
-                <Glass style={s.vaultGrid}>
-                  {vault.acquired.map(item => (
-                    <Pressable
-                      key={`${item.scope}:${item.ownerId}:${item.key}`}
-                      ref={item.key===route.params?.focusTitleId ? focusedTitle : undefined}
-                      onLayout={item.key===route.params?.focusTitleId ? ()=>{
-                        if(titleFocusConsumed.current===item.key)return;
-                        const container=scroll.current?.getInnerViewRef();
-                        if(container)focusedTitle.current?.measureLayout(container,(_x,y)=>{scroll.current?.scrollTo({y:Math.max(0,y-20),animated:false});titleFocusConsumed.current=item.key;},()=>{});
-                      }:undefined}
-                      testID={`activity-earned-${item.key}`}
-                      style={[
-                        s.earnedCell,
-                        { width: `${100 / layout.columns}%` },
-                      ]}
-                      accessible
-                      accessibilityRole="button"
-                      accessibilityState={{
-                        selected: item.key === selectedTitleKey,
-                        disabled: savingTitle,
-                        busy: savingTitle,
-                      }}
-                      accessibilityLabel={`${item.name}, 획득 완료${
-                        item.key === selectedTitleKey ? ', 홈 대표 칭호' : ''
-                      }`}
-                      disabled={savingTitle}
-                      onPress={() => {
-                        if (
-                          !ownerId ||
-                          !pet ||
-                          item.key === selectedTitleKey ||
-                          titleWrite.current
-                        )
-                          return;
-                        setSelectionError(null);
-                        setTitlePrompt({
-                          ownerId,
-                          petId: pet.petId,
-                          petName: pet.petName,
-                          key: item.key,
-                          name: item.name,
-                        });
-                      }}
-                    >
-                      {getTitleArtwork(item.key) ? (
-                        <Image
-                          source={getTitleArtwork(item.key)}
-                          resizeMode="contain"
-                          style={s.earnedArt}
-                          accessible={false}
-                        />
-                      ) : null}
-                      <Copy style={s.earnedName}>{item.name}</Copy>
-                      <View style={s.selectionMark}>
-                        <Image
-                          source={ACTIVITY_ART.check}
-                          style={s.check}
-                          resizeMode="contain"
-                          accessible={false}
-                        />
-                        {item.key === selectedTitleKey ? (
-                          <Copy kind="caption" style={s.activeText}>
-                            대표
-                          </Copy>
-                        ) : null}
-                      </View>
-                    </Pressable>
-                  ))}
-                  {!vault.acquired.length ? (
-                    <Copy testID="activity-vault-empty" style={s.empty}>
-                      아직 모은 칭호가 없어요
-                    </Copy>
-                  ) : null}
-                </Glass>
-              </View>
-              {activeVaultCategory === 'X' || activeVaultCategory === 'LEGACY' ? null : <View style={s.section}>
-                <SectionHeading
-                  title="다음 칭호에 한 걸음"
-                  detail={`도전 중 ${vault.challenges.length}개`}
-                />
-                <Glass style={s.challengeList}>
-                  {vault.challenges.map(item => (
-                    <Challenge
-                      key={`${item.scope}:${item.ownerId}:${item.key}`}
-                      item={item}
-                      stack={layout.stack}
-                    />
-                  ))}
-                  {!vault.challenges.length ? (
-                    <Copy style={s.empty}>{hasCatalog ? '이 분야의 칭호를 모두 모았어요' : '모든 칭호를 모았어요'}</Copy>
-                  ) : null}
-                </Glass>
-              </View>}
-              <Copy style={s.footer}>함께하는 하루가 새로운 칭호가 돼요</Copy>
-            </>
-          ) : null}
-          {dashboard?.ledgerLimitReached ? (
-            <Copy style={s.footer}>
-              최근 1,000개 XP 내역 기준의 활동 지표예요. 사용자 누적 XP는 전체
-              성장 기록을 사용해요.
-            </Copy>
-          ) : null}
-        </ScrollView>
+        </View>
       </View>
       {categoryPicker ? (
         <Modal transparent visible animationType="fade" onRequestClose={() => setCategoryPicker(false)}>
@@ -1200,6 +1276,7 @@ export default function PetActivityAchievementsScreen({ isolated }: {
 const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: C.canvas },
   flex: { flex: 1, minWidth: 0 },
+  hiddenTab: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0, opacity: 0 },
   copy: {
     color: C.ink,
     letterSpacing: 0,
@@ -1308,6 +1385,7 @@ const s = StyleSheet.create({
   },
   wrap: { flexWrap: 'wrap' },
   section: { marginTop: 22, gap: 10 },
+  vaultHeading: { marginBottom: 10 },
   sectionHeading: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1398,10 +1476,12 @@ const s = StyleSheet.create({
   commonHint: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   vaultGrid: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     paddingHorizontal: 5,
-    paddingVertical: 10,
   },
+  vaultGridStart: { paddingTop: 10 },
+  vaultGridEnd: { paddingBottom: 10 },
+  joinedPanelTop: { borderTopLeftRadius: 0, borderTopRightRadius: 0 },
+  joinedPanelBottom: { borderBottomLeftRadius: 0, borderBottomRightRadius: 0 },
   earnedCell: {
     alignItems: 'center',
     paddingHorizontal: 3,
@@ -1424,6 +1504,7 @@ const s = StyleSheet.create({
   selectionError: { color: '#9B4058', marginBottom: 10 },
   check: { width: 17, height: 17 },
   challengeList: { paddingHorizontal: 14 },
+  challengeHeading: { marginTop: 22, marginBottom: 10 },
   vaultCategories: { gap: 8, paddingVertical: 12 },
   vaultCategory: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 14, borderRadius: 8 },
   vaultCategorySelected: { backgroundColor: C.tint },

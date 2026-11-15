@@ -233,15 +233,6 @@ export const HOME_AMBIENT_SECTION_LIGHTS: readonly HomeAmbientSectionLight[] = [
     opacity: 0.82,
   },
   {
-    zone: 'today-tip',
-    topRatio: 0.32,
-    centerXRatio: 0.1,
-    size: 16,
-    opacity: 0.86,
-  },
-  { zone: 'today-tip', topRatio: 0.08, centerXRatio: 0.92, size: 13, opacity: 0.8 },
-  { zone: 'today-tip', topRatio: 0.88, centerXRatio: 0.06, size: 19, opacity: 0.84 },
-  {
     zone: 'diary',
     topRatio: 0.96,
     centerXRatio: 0.17,

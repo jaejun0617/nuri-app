@@ -4,8 +4,9 @@
 
 import { ResponsiveNativeText as Text } from '../../app/ui/ResponsiveNativeText';
 import React from 'react';
-import { StyleSheet, View } from 'react-native';
-import LinearGradient from 'react-native-linear-gradient';
+import { Image, StyleSheet, View } from 'react-native';
+import { MenuGlassSurface, MENU_GLASS_FRAME } from '../common/MenuGlassSurface';
+import { INDOOR_ACTIVITY_ARTWORK } from './indoorActivityArtwork';
 
 import type { IndoorActivityGuide } from '../../services/weather/guide';
 
@@ -20,9 +21,19 @@ export default React.memo(function ActivityGuideHeroCard({
 }: Props) {
   return (
     <View style={styles.wrap}>
-      <LinearGradient colors={guide.heroBackground} style={styles.heroPanel} />
+      <View style={styles.heroPanel}>
+        <MenuGlassSurface radius={34} testID="activity-guide-hero-glass" />
+        <Image
+          testID={`activity-guide-image-${guide.key}`}
+          source={INDOOR_ACTIVITY_ARTWORK[guide.key]}
+          style={styles.image}
+          resizeMode="contain"
+          accessibilityLabel={`${guide.title}을 하는 말티즈 일러스트`}
+        />
+      </View>
 
       <View style={styles.contentCard}>
+        <MenuGlassSurface radius={28} testID="activity-guide-content-glass" />
         <View style={styles.badgeRow}>
           <Text style={styles.badge}>{guide.badge}</Text>
           <Text style={[styles.accent, { color: accentColor }]}>
@@ -37,22 +48,23 @@ export default React.memo(function ActivityGuideHeroCard({
 });
 
 const styles = StyleSheet.create({
+  image: { width: '100%', height: '100%' },
   wrap: {
     gap: 14,
   },
   heroPanel: {
-    height: 172,
+    aspectRatio: 3 / 2,
+    width: '100%',
     borderRadius: 34,
     overflow: 'hidden',
   },
   contentCard: {
     marginHorizontal: 2,
     borderRadius: 28,
-    backgroundColor: '#FFFFFF',
+    ...MENU_GLASS_FRAME,
     paddingHorizontal: 20,
     paddingVertical: 18,
     borderWidth: 1,
-    borderColor: 'rgba(17,24,39,0.05)',
     gap: 7,
   },
   badgeRow: {

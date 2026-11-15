@@ -6,7 +6,8 @@ import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
 import AppText from '../src/app/ui/AppText';
 import AppNavigationToolbar from '../src/components/navigation/AppNavigationToolbar';
-import { HOME_HERO_COLORS, HOME_HERO_ACCENT, HOME_HERO_TOOLBAR_RADIUS } from '../src/theme/home/heroLayout';
+import ToolbarOutlineIcon from '../src/components/icons/ToolbarOutlineIcon';
+import { HOME_HERO_ACCENT, HOME_HERO_COLORS, HOME_HERO_TOOLBAR_RADIUS } from '../src/theme/home/heroLayout';
 
 const mockNavigate = jest.fn();
 const mockOpenMore = jest.fn();
@@ -106,7 +107,7 @@ it('bounds long tab labels to one fitted line without changing the routes', asyn
   for (const label of labels) {
     expect(label.props).toMatchObject({
       numberOfLines: 1, adjustsFontSizeToFit: true,
-      minimumFontScale: 0.75, maxFontSizeMultiplier: 1.6,
+      minimumFontScale: 0.75, maxFontSizeMultiplier: 1.6, keepBaseFontSize: true,
     });
   }
   const tabs = renderer.root.findAll(node =>
@@ -193,12 +194,17 @@ it('does not apply the signed-in Hero surface to guest Home', async () => {
   await act(async () => renderer.unmount());
 });
 
-it.each(['home', 'timeline', 'community', 'guestbook', 'more'] as const)('uses the same purple navigation hierarchy on %s', async activeKey => {
+it.each(['home', 'timeline', 'community', 'guestbook', 'more'] as const)('uses the purple foreground only for the selected tab on %s', async activeKey => {
   let renderer!: TestRenderer.ReactTestRenderer;
   await act(async () => { renderer = TestRenderer.create(<ThemeProvider theme={createTheme('light')}><AppNavigationToolbar activeKey={activeKey} homeHero={activeKey === 'home'} /></ThemeProvider>); });
-  const icons = renderer.root.findAll(node => node.props.size === 18 && node.props.colorMode === 'theme');
+  const icons = renderer.root.findAllByType(ToolbarOutlineIcon);
   const activeIndex = ['home', 'timeline', 'community', 'guestbook', 'more'].indexOf(activeKey);
   expect(icons).toHaveLength(5);
-  expect(icons.map(icon => icon.props.color)).toEqual([0,1,2,3,4].map(index => index === activeIndex ? HOME_HERO_ACCENT.primary : HOME_HERO_COLORS.muted));
+  const colors = [0, 1, 2, 3, 4].map(index => index === activeIndex ? HOME_HERO_ACCENT.primary : HOME_HERO_COLORS.muted);
+  expect(icons.map(icon => icon.props.color)).toEqual(colors);
+  const labels = renderer.root.findAllByType(AppText);
+  expect(labels.map(label => StyleSheet.flatten(label.props.style).color)).toEqual(colors);
+  const tabs = renderer.root.findAll(node => typeof node.type === 'string' && node.props.accessibilityRole === 'tab');
+  expect(tabs.map(tab => tab.props.accessibilityState.selected)).toEqual([0, 1, 2, 3, 4].map(index => index === activeIndex));
   await act(async () => renderer.unmount());
 });

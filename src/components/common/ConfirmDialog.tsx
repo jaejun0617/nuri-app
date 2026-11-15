@@ -281,7 +281,6 @@ function ConfirmDialogBase({
                 ]}
                 onPress={onConfirm}
               >
-                {lavenderConfirm ? <LavenderCtaFill radius={styles.button.borderRadius} /> : null}
                 <CtaText
                   preset={textPresets.button}
                   style={styles.confirmButtonText}
@@ -300,12 +299,13 @@ function ConfirmDialogBase({
                   styles.button,
                   styles.confirmButton,
                   {
-                    backgroundColor: toneMeta.confirmBackground,
+                    backgroundColor: lavenderConfirm ? LAVENDER_CTA.background : toneMeta.confirmBackground,
                     opacity: confirmDisabled ? 0.45 : 1,
                   },
                 ]}
                 onPress={onConfirm}
               >
+                {lavenderConfirm ? <LavenderCtaFill radius={styles.button.borderRadius} /> : null}
                 <AppText
                   preset={textPresets.button}
                   style={[

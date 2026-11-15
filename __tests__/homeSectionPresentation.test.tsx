@@ -61,8 +61,9 @@ describe('Home section rhythm and material', () => {
     expect(section).not.toContain('emphasisArtwork');
     expect(section).not.toContain('HomeRecommendationTipArtwork');
     expect(homeStyles.section.gap).toBe(20);
-    expect(section).toContain("'아이의 건강한 하루를 위한\\n맞춤형 팁을 확인해보세요.'");
-    expect(section).toContain("accessibilityLabel: '추천 팁 전체 보기'");
+    expect(section).toContain('`${petName}의 돌봄 팁`');
+    expect(section).toContain("'일상에서 바로 써볼 수 있는 방법을 모았어요.'");
+    expect(section).toContain("accessibilityLabel: '돌봄 팁 전체 보기'");
     expect(section).not.toContain('guideDebugBadge');
   });
 
@@ -98,17 +99,15 @@ describe('Home section rhythm and material', () => {
     await act(async () => renderer.unmount());
   });
 
-  it.each(['frequent', 'summary', 'recent', 'community', 'recommendation', 'schedule', 'health', 'today-tip', 'diary'])(
+  it.each(['frequent', 'summary', 'recent', 'community', 'recommendation', 'schedule', 'health', 'diary'])(
     'removes the previous ornament backdrop from the %s card',
     zone => {
-      const boundary = zone === 'today-tip'
-        ? "<View onLayout={ambientSectionLayoutHandlers['today-tip']}>"
-        : `<View onLayout={ambientSectionLayoutHandlers.${zone}}>`;
+      const boundary = `<View onLayout={ambientSectionLayoutHandlers.${zone}}>`;
       const body = source.slice(source.indexOf(boundary), source.indexOf('</View>', source.indexOf(boundary)));
       expect(body.includes('<HomeSectionBackdrop')).toBe(false);
     },
   );
-  it.each(['frequent', 'summary', 'recent', 'community', 'recommendation', 'schedule', 'health', 'today-tip', 'diary'])(
+  it.each(['frequent', 'summary', 'recent', 'community', 'recommendation', 'schedule', 'health', 'diary'])(
     'keeps the existing %s section free of repeated background ornaments',
     zone => {
       expect(source.includes(`<HomeSectionDecorations season={ambientSeason} zone="${zone}" />`)).toBe(false);
@@ -261,23 +260,47 @@ describe('Home section rhythm and material', () => {
     expect(source).toContain('onPressCategory={onPressFrequentRecord}');
   });
 
-  it('routes the existing first Walk widget to GPS while keeping the other manual categories', async () => {
+  it('reserves the measured toolbar outside the Home scroll viewport without resizing the photo', () => {
+    const screen = source.slice(source.indexOf('export default function LoggedInHome'));
+    const scroll = screen.slice(screen.indexOf('testID="logged-in-home-scroll"'), screen.indexOf('testID="home-hero-fold"'));
+    expect(screen).toMatch(/onLayout=\{handleHomeViewportLayout\}[\s\S]*?<ScrollView[\s\S]*?testID="logged-in-home-scroll"/);
+    expect(scroll).toContain('marginBottom: bottomTabBarHeight');
+    expect(scroll).not.toContain('onLayout={handleHomeViewportLayout}');
+    expect(screen).toContain('<HomeHeroPhotoBackground uri={selectedAvatarUri} frameWidth={heroFrameWidth}');
+    expect(screen).toContain('<HomeHeroInfoPanel');
+    expect(screen).toContain('containerWidth={heroFrameWidth}');
+  });
+
+  it('shows an open affordance only on the four existing record actions', async () => {
     const onCategory = jest.fn();
     let renderer!: TestRenderer.ReactTestRenderer;
     await act(async () => {
       renderer = TestRenderer.create(
         <ThemeProvider theme={createTheme('light')}>
           <FrequentRecordsSection walkStartsGps petTheme={buildPetThemePalette('#2563EB')}
-            records={[]} recordStatus="ready" onPressCategory={onCategory} onPressAll={jest.fn()} />
+            records={[]} recordStatus="ready" onPressCategory={onCategory} onPressAll={jest.fn()}
+            footer={<View testID="walk-metrics-footer" />} />
         </ThemeProvider>,
       );
     });
     const walk = renderer.root.findAll(node => node.props.testID === 'home-first-walk' && typeof node.props.onPress === 'function')[0];
     expect(walk.props.accessibilityLabel).toBe('산책 시작 화면 열기');
-    act(() => walk.props.onPress());
-    const meal = renderer.root.findAll(node => String(node.props.accessibilityLabel).startsWith('식사 기록하기') && typeof node.props.onPress === 'function')[0];
-    act(() => meal.props.onPress());
-    expect(onCategory.mock.calls).toEqual([['walk'], ['meal']]);
+    const cards = [walk, ...['식사', '건강', '미용'].map(label =>
+      renderer.root.findAll(node => String(node.props.accessibilityLabel).startsWith(`${label} 기록하기`) && typeof node.props.onPress === 'function')[0],
+    )];
+    for (const [index, card] of cards.entries()) {
+      expect(card.props.accessibilityRole).toBe('button');
+      const indicator = card.findAll(node => node.type === View && node.props.testID === 'frequent-record-open-indicator')[0];
+      expect(indicator.props).toMatchObject({ pointerEvents: 'none', importantForAccessibility: 'no-hide-descendants' });
+      expect(StyleSheet.flatten(indicator.props.style)).toMatchObject({ position: 'absolute' });
+      const arrow = indicator.findAll(node => node.props.name === 'arrow-up-right')[0];
+      const title = card.findAll(node => node.props.children === ['산책', '식사', '건강', '미용'][index] && node.props.preset === 'unifiedLabel')[0];
+      expect(arrow.props.color).toBe(StyleSheet.flatten(title.props.style).color);
+      act(() => card.props.onPress());
+    }
+    const footer = renderer.root.findAll(node => node.type === View && node.props.testID === 'walk-metrics-footer')[0];
+    expect(footer.findAllByProps({ testID: 'frequent-record-open-indicator' })).toHaveLength(0);
+    expect(onCategory.mock.calls).toEqual([['walk'], ['meal'], ['health'], ['grooming']]);
     expect(source).toContain("if (category === 'walk')");
     expect(source).toContain("navigation.navigate('WalkProduct', { petId: activePetId })");
     expect(source).toContain("navigation.navigate('RecordCreate', {");
@@ -573,7 +596,7 @@ describe('Home section rhythm and material', () => {
       ),
     ).not.toHaveLength(0);
     expect(source).toContain(
-      "'아이의 건강한 하루를 위한\\n맞춤형 팁을 확인해보세요.'",
+      "'일상에서 바로 써볼 수 있는 방법을 모았어요.'",
     );
     await act(async () => renderer?.unmount());
   });

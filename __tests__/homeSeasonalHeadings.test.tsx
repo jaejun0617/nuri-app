@@ -177,7 +177,7 @@ describe('Home-only seasonal headline tint', () => {
   });
 
   it.each(SEASONS)(
-    'matches both header-action labels and arrows to the %s title without changing their targets or text sizing',
+    'keeps the compact header-action labels, arrows and full touch targets for %s',
     async season => {
       let renderer!: TestRenderer.ReactTestRenderer;
       await act(async () => {
@@ -203,8 +203,8 @@ describe('Home-only seasonal headline tint', () => {
         )[0];
         expect(StyleSheet.flatten(label.props.style)).toMatchObject({
           color: '#7D5CE4',
-          fontSize: 14,
-          lineHeight: 20,
+          fontSize: 12,
+          lineHeight: 17,
           fontWeight: '500',
         });
         const arrows = action.findAll(

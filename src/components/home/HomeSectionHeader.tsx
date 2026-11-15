@@ -2,6 +2,7 @@ import React, { memo } from 'react';
 import { StyleSheet, useWindowDimensions, View } from 'react-native';
 
 import AppText from '../../app/ui/AppText';
+import { useResponsiveTypography } from '../../app/providers/ResponsiveTypographyProvider';
 import { SectionHeaderAction } from '../../app/ui/SectionHeaderAction';
 import { useHomeHeadingColor } from './HomeSeasonContext';
 import { PRODUCT_ACCENT } from '../../app/theme/tokens/productAccent';
@@ -13,7 +14,7 @@ type Props = {
   emphasis?: { title: string; color: string };
   emphasisArtwork?: React.ReactNode;
   hideAction?: boolean;
-  action?: { onPress: () => void; accessibilityLabel: string };
+  action?: { onPress: () => void; accessibilityLabel: string; label?: string };
 };
 
 /** Loading and unavailable data must not be mistaken for a confirmed empty list. */
@@ -35,8 +36,11 @@ export const HomeSectionHeader = memo(function HomeSectionHeaderView({
   action,
 }: Props) {
   const { fontScale } = useWindowDimensions();
+  const { readingScale } = useResponsiveTypography();
   const headingColor = useHomeHeadingColor();
-  const stackAction = !!action && !hideAction && fontScale >= 1.3;
+  const inlineAction = !!action && !hideAction && readingScale > 1;
+  const stackAction = !!action && !hideAction && !inlineAction && fontScale >= 1.3;
+  const separateDescription = inlineAction && !emphasis;
   const emphasisCopy = emphasis ? (
     <View
       testID={emphasisArtwork ? 'home-section-emphasis-copy' : undefined}
@@ -80,6 +84,7 @@ export const HomeSectionHeader = memo(function HomeSectionHeaderView({
             typographyRole="sectionTitle"
             preset="unifiedTitle"
             styleOverridesPreset
+            fitCompactReadingLine
             style={[
               styles.title,
               emphasis ? styles.leadTitle : null,
@@ -88,7 +93,7 @@ export const HomeSectionHeader = memo(function HomeSectionHeaderView({
           >
             {title}
           </AppText>
-          {description && !emphasis ? (
+          {description && !emphasis && !separateDescription ? (
             <AppText preset="unifiedBody" style={styles.description}>
               {description}
             </AppText>
@@ -99,11 +104,16 @@ export const HomeSectionHeader = memo(function HomeSectionHeaderView({
             color={PRODUCT_ACCENT.primary}
             onPress={action.onPress}
             accessibilityLabel={action.accessibilityLabel}
+            label={action.label}
             textPreset="unifiedMicro"
             size="compact"
+            labelStyle={styles.actionLabel}
           />
         ) : null}
       </View>
+      {description && separateDescription ? (
+        <AppText preset="unifiedBody" style={styles.description}>{description}</AppText>
+      ) : null}
       {emphasis && emphasisArtwork ? (
         <View
           testID="home-section-emphasis-with-artwork"
@@ -150,4 +160,5 @@ const styles = StyleSheet.create({
     letterSpacing: 0,
   },
   description: { color: '#697386', flexShrink: 1 },
+  actionLabel: { fontSize: 12, lineHeight: 17 },
 });

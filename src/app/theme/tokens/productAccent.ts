@@ -16,13 +16,13 @@ export const PRODUCT_CTA = {
   border: PRODUCT_ACCENT.border,
 } as const;
 
-/** Profile completion's approved Home action; unrelated product accents stay fixed. */
+/** Filled lavender actions use white content; glass and other accents are separate. */
 export const LAVENDER_CTA = {
-  gradient: ['#E7DAFC', '#C4A9EF'],
-  pressedGradient: ['#DCC9F7', '#B696E7'],
-  background: '#C4A9EF',
-  pressed: '#B696E7',
-  text: '#251255',
-  border: '#E4D7FF',
-  arrow: '#6032C0',
+  gradient: ['#7C54CC', '#6943B7'],
+  pressedGradient: ['#7047BD', '#5C38A6'],
+  background: '#6943B7',
+  pressed: '#5C38A6',
+  text: '#FFFFFF',
+  border: '#7C54CC',
+  arrow: '#FFFFFF',
 } as const;

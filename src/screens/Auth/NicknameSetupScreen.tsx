@@ -365,7 +365,6 @@ export default function NicknameSetupScreen() {
         [actionLayout.closedBottom, actionLayout.openBottom],
       ),
     }),
-    [actionLayout.closedBottom, actionLayout.openBottom],
   );
   const focusedInputBottomOffset =
     actionLayout.focusedInputBottomOffset + feedbackHeight + spacing.sm;

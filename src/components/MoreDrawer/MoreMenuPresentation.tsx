@@ -154,6 +154,7 @@ export const MoreIdentityBand = memo(function MoreIdentityBandContent({
           <AppText
             preset="unifiedTitle"
             styleOverridesPreset
+            fitCompactReadingLine
             style={[styles.identityTitle, { color: theme.colors.textPrimary }, subscriberPreview && styles.subscriberName]}
           >
             {userLabel}
@@ -217,6 +218,7 @@ export const MoreIdentityBand = memo(function MoreIdentityBandContent({
           <AppText
             preset="unifiedLabel"
             styleOverridesPreset
+            fitCompactReadingLine
             style={[styles.label, { color: theme.colors.textPrimary }]}
           >
             {petLabel}
@@ -224,6 +226,7 @@ export const MoreIdentityBand = memo(function MoreIdentityBandContent({
           <AppText
             preset="unifiedBody"
             styleOverridesPreset
+            fitCompactReadingLine
             style={[styles.secondary, { color: theme.colors.textSecondary }]}
           >
             {petStatus}
@@ -314,6 +317,7 @@ const MoreMenuRow = memo(function MoreMenuRowContent({
         <AppText
           preset="unifiedLabel"
           styleOverridesPreset
+          fitCompactReadingLine
           style={[
             styles.label,
             {
@@ -325,7 +329,7 @@ const MoreMenuRow = memo(function MoreMenuRowContent({
         </AppText>
         {stacked ? value : null}
         {item.description ? (
-          <AppText preset="caption" styleOverridesPreset
+          <AppText preset="caption" styleOverridesPreset fitCompactReadingLine
             style={[styles.secondary, { color: colors.textSecondary }]}>
             {item.description}
           </AppText>
@@ -365,7 +369,7 @@ export const MoreSubscriptionEntry = memo(function MoreSubscriptionEntryContent(
       <MoreMenuRow stacked item={{
         key: 'subscription',
         label: subscribed ? '구독 관리' : '구독하기',
-        description: '사진·기록 확장 · 추억 영상 · 고화질 보관',
+        description: '기록 확장 · 추억 영상 · 고화질',
         imageIcon: require('../../assets/support/subscriber-crown-v1.png'),
         onPress,
       }} />

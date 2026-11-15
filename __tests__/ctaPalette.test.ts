@@ -28,18 +28,18 @@ function luminance(hex: string) {
 const whiteContrast = (hex: string) => 1.05 / (luminance(hex) + 0.05);
 describe('approved CTA role palette', () => {
   it('uses fixed product lavender independently of legacy seasonal tokens', () => {
-    expect(palette('primary').background).toBe('#C4A9EF');
-    expect(palette('primary', 'autumn', 'pressed').background).toBe('#B696E7');
-    expect(LAVENDER_CTA.gradient).toEqual(['#E7DAFC', '#C4A9EF']);
+    expect(palette('primary').background).toBe('#6943B7');
+    expect(palette('primary', 'autumn', 'pressed').background).toBe('#5C38A6');
+    expect(LAVENDER_CTA.gradient).toEqual(['#7C54CC', '#6943B7']);
     expect(PRODUCT_ACCENT.primary).toBe('#7D5CE4');
     expect(JSON.stringify(SEASON_CTA)).not.toContain('#A84B2F');
   });
-  it.each(seasons)('%s dark label against both gradient ends meets 4.5:1', season => {
+  it.each(seasons)('%s white label against both gradient ends meets 4.5:1', season => {
     for (const state of ['default', 'pressed'] as const) {
       const actual = palette('primary', season, state);
-      expect(actual.text).toBe('#251255');
+      expect(actual.text).toBe('#FFFFFF');
       const gradient = state === 'pressed' ? LAVENDER_CTA.pressedGradient : LAVENDER_CTA.gradient;
-      for (const background of gradient) expect((luminance(background) + .05) / (luminance(actual.text) + .05)).toBeGreaterThanOrEqual(4.5);
+      for (const background of gradient) expect(whiteContrast(background)).toBeGreaterThanOrEqual(4.5);
     }
   });
   it.each(seasons)(

@@ -27,6 +27,7 @@ import Feather from '../../components/icons/NuriFeatherIcon';
 import MaterialCommunityIcons from '../../components/icons/NuriMaterialIcon';
 
 import ActivityGuideHeroCard from '../../components/weather/ActivityGuideHeroCard';
+import { MenuGlassSurface } from '../../components/common/MenuGlassSurface';
 import { useEntryAwareBackAction } from '../../hooks/useEntryAwareBackAction';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { NEUTRAL_UI_PALETTE } from '../../services/pets/themePalette';
@@ -108,6 +109,7 @@ export default function ActivityGuideScreen() {
               <View key={step.key} style={styles.stepRow}>
                 <View style={styles.stepIconColumn}>
                   <View style={styles.stepIconCircle}>
+                    <MenuGlassSurface radius={22} testID={`activity-step-glass-${step.key}`} />
                     <MaterialCommunityIcons
                       name={step.icon as never}
                       size={20}
@@ -140,6 +142,7 @@ export default function ActivityGuideScreen() {
       <View
         style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 18) }]}
       >
+        <MenuGlassSurface radius={0} backed testID="activity-guide-footer-glass" />
         <TouchableOpacity
           activeOpacity={0.92}
           style={[styles.primaryButton, { backgroundColor: petTheme.primary }]}
@@ -229,7 +232,7 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F0E8FF',
+    backgroundColor: 'transparent',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -269,7 +272,7 @@ const styles = StyleSheet.create({
     bottom: 0,
     paddingHorizontal: 14,
     paddingTop: 6,
-    backgroundColor: 'rgba(255,255,255,0.96)',
+    backgroundColor: 'transparent',
   },
   primaryButton: {
     height: 56,

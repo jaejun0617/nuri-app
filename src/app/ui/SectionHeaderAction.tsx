@@ -1,6 +1,6 @@
 import AppText from './AppText';
 import React, { memo } from 'react';
-import { Pressable, View } from 'react-native';
+import { Pressable, View, type StyleProp, type TextStyle } from 'react-native';
 import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 
 import type { TypographyPresetName } from '../theme/tokens/typography';
@@ -13,6 +13,7 @@ type Props = {
   accessibilityLabel: string;
   textPreset?: TypographyPresetName;
   size?: 'default' | 'compact';
+  labelStyle?: StyleProp<TextStyle>;
 };
 
 function SectionHeaderActionBase({
@@ -22,6 +23,7 @@ function SectionHeaderActionBase({
   accessibilityLabel,
   textPreset = 'unifiedLabel',
   size = 'default',
+  labelStyle,
 }: Props) {
   return (
     <Pressable
@@ -36,7 +38,8 @@ function SectionHeaderActionBase({
       <AppText
         preset={textPreset}
         styleOverridesPreset
-        style={[styles.text, { color }]}
+        fitCompactReadingLine
+        style={[styles.text, labelStyle, { color }]}
       >
         {label}
       </AppText>

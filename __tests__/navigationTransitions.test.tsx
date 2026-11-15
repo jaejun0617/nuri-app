@@ -128,23 +128,27 @@ describe('actual native navigator transition configuration', () => {
       animation: 'slide_from_right',
       headerShown: false,
     });
-    expect(options('DeviceLayoutPreview').headerShown).toBe(false);
   });
-  test('non-development never registers the scoped notification route', async () => {
-    const previous = Object.getOwnPropertyDescriptor(global, '__DEV__');
-    Object.defineProperty(global, '__DEV__', { configurable: true, value: false });
-    try {
-      await mount(<RootNavigator />);
-      expect(options('UserNotifications').headerShown).toBe(false);
-      expect(tree.root.findAll(n =>
-        (n.type as unknown) === 'NativeScreen' &&
-        ['ScopedNotificationDestination', 'DeviceLayoutPreview'].includes(n.props.name),
-      )).toHaveLength(0);
-    } finally {
-      if (previous) Object.defineProperty(global, '__DEV__', previous);
-      else Reflect.deleteProperty(global, '__DEV__');
-    }
-  });
+  test.each([true, false])(
+    'does not register retired routes and keeps the notification gate (__DEV__ = %s)',
+    async isDev => {
+      const previous = Object.getOwnPropertyDescriptor(global, '__DEV__');
+      Object.defineProperty(global, '__DEV__', { configurable: true, value: isDev });
+      try {
+        await mount(<RootNavigator />);
+        expect(options('UserNotifications').headerShown).toBe(false);
+        const screenNames = tree.root
+          .findAll(node => (node.type as unknown) === 'NativeScreen')
+          .map(node => node.props.name);
+        expect(screenNames).not.toContain('DeviceLayoutPreview');
+        expect(screenNames).not.toContain('TutorialLibrary');
+        expect(screenNames.includes('ScopedNotificationDestination')).toBe(isDev);
+      } finally {
+        if (previous) Object.defineProperty(global, '__DEV__', previous);
+        else Reflect.deleteProperty(global, '__DEV__');
+      }
+    },
+  );
   test('root toolbar tabs share the 400ms fade configuration with More', () => {
     const result = tabTransitionOptions(false);
     expect(result.animation).toBe('fade');

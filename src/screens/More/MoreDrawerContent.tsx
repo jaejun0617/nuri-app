@@ -1515,10 +1515,6 @@ export default function MoreDrawerContent({
         key: 'security-validation', label: 'Security validation', icon: 'shield',
         onPress: () => closeAndNavigate(() => navigation.navigate('SecurityValidation')),
       }] : []),
-      ...(__DEV__ ? [{
-        key: 'device-layout-preview', label: '기기별 화면 미리보기', icon: 'smartphone',
-        onPress: () => closeAndNavigate(() => navigation.navigate('DeviceLayoutPreview')),
-      }] : []),
       {
         key: 'policy-center',
         label: '약관 및 정책',

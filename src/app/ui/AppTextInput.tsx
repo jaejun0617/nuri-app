@@ -2,7 +2,7 @@ import React, { forwardRef, memo, useMemo } from 'react';
 import type { TextInputProps, TextStyle } from 'react-native';
 import { StyleSheet, TextInput } from 'react-native';
 import { useTheme } from 'styled-components/native';
-import { useResponsiveTypographyBand } from '../providers/ResponsiveTypographyProvider';
+import { useResponsiveTypography } from '../providers/ResponsiveTypographyProvider';
 import { resolveResponsiveTextStyle } from '../typography/responsiveTypography';
 
 import {
@@ -28,7 +28,7 @@ const AppTextInput = memo(
       const theme = useTheme();
       const { mode } = useAppFontPreference();
       const typographyScope = useTypographyScope();
-      const widthBand = useResponsiveTypographyBand();
+      const { widthBand, readingScale } = useResponsiveTypography();
       const effectiveMode = resolveAppFontMode({
         mode,
         scope: typographyScope,
@@ -42,8 +42,8 @@ const AppTextInput = memo(
             effectiveMode
               ? (theme.typography.appFontMode[effectiveMode] as TextStyle)
               : null,
-          ]), widthBand, { fixedWidth: typographyScope === 'fixed', allowFontScaling }),
-        [allowFontScaling, widthBand, effectiveMode, style, theme.typography, typographyScope],
+          ]), widthBand, { fixedWidth: typographyScope === 'fixed', allowFontScaling, readingScale }),
+        [allowFontScaling, widthBand, readingScale, effectiveMode, style, theme.typography, typographyScope],
       );
 
       return <TextInput ref={ref} {...rest} allowFontScaling={false} style={composedStyle} />;

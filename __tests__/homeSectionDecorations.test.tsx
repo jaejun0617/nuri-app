@@ -12,7 +12,6 @@ const ZONES = [
   'recommendation',
   'schedule',
   'health',
-  'today-tip',
   'diary',
 ] as const;
 const STARLIGHT = require('../src/assets/seasonal/home/autumn/glass/autumn-starlight-four-point-v1.png');
@@ -214,7 +213,7 @@ describe('lower Home stars with sparse tiny pearls', () => {
         ),
       );
     }
-    expect(placements.size).toBe(9);
+    expect(placements.size).toBe(ZONES.length);
   });
 
   it.each<SeasonKey>(['spring', 'summer', 'winter'])(

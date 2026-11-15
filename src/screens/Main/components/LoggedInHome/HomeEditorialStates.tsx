@@ -8,25 +8,12 @@ import {
 } from 'react-native';
 
 import AppText from '../../../../app/ui/AppText';
-import { HomeSectionGlass } from '../../../../components/home/HomeSectionGlass';
-import { HomeSectionHeader } from '../../../../components/home/HomeSectionHeader';
 import { useHomeContentTextStyle } from '../../../../components/home/HomeSeasonContext';
 import type { HomeCommunityTab } from '../../../../services/home/communityHighlights';
 import type { SeasonKey } from '../../../../theme/seasonal/season';
 import { HomeEditorialArtwork } from './HomeEditorialArtwork';
 import type { HomeEmptyDataState } from './HomeEmptySectionState';
-import { HomeTipSeasonalArtwork } from './HomeTipSeasonalArtwork';
 import { styles as homeStyles } from './LoggedInHome.styles';
-
-const TODAY_HOME_TIP_ARTWORK_MAX_HIDDEN_WIDTH = 320;
-
-export const TODAY_HOME_TIP = {
-  badge: '오늘의 팁',
-  title:
-    '반려동물의 평소 소리를 기억해두면 작은 변화도 더 빨리 알아챌 수 있어요.',
-  description:
-    '산책 후 숨소리, 잠든 뒤 호흡, 식사 직후의 반응처럼 평소의 기준을 남겨두면 컨디션 변화를 더 빨리 알아차릴 수 있어요.',
-} as const;
 
 export const HOME_COMMUNITY_EMPTY_COPY: Readonly<
   Record<HomeCommunityTab, string>
@@ -48,46 +35,6 @@ export function getRecentEmptyDataState(
   if (status === 'ready') return 'ready';
   return status === 'error' ? 'error' : 'loading';
 }
-
-export const TodayHomeTipSection = memo(function TodayHomeTipSectionView({
-  season,
-  accentColor,
-}: {
-  season: SeasonKey;
-  accentColor: string;
-}) {
-  const contentTextStyle = useHomeContentTextStyle();
-  const { width, fontScale } = useWindowDimensions();
-  const showArtwork = width > TODAY_HOME_TIP_ARTWORK_MAX_HIDDEN_WIDTH;
-  const stack = shouldStackEditorialCopy(width, fontScale);
-  return (
-    <HomeSectionGlass testID="home-glass-today-tip" style={homeStyles.section}>
-      <HomeSectionHeader title={TODAY_HOME_TIP.badge} color={accentColor} />
-      <View style={styles.content}>
-        <View style={[styles.row, stack ? styles.stacked : null]}>
-          <View style={[styles.copy, stack ? styles.stackedCopy : null]}>
-            <AppText
-              preset="unifiedTitle"
-              styleOverridesPreset
-              style={[styles.tipTitle, contentTextStyle]}
-            >
-              {TODAY_HOME_TIP.title}
-            </AppText>
-          </View>
-          {showArtwork ? <HomeTipSeasonalArtwork season={season} /> : null}
-        </View>
-        <View style={styles.divider} pointerEvents="none" />
-        <AppText
-          preset="unifiedBody"
-          styleOverridesPreset
-          style={styles.description}
-        >
-          {TODAY_HOME_TIP.description}
-        </AppText>
-      </View>
-    </HomeSectionGlass>
-  );
-});
 
 export const RecentRecordsEmptyState = memo(
   function RecentRecordsEmptyStateView({
@@ -217,13 +164,6 @@ export const styles = StyleSheet.create({
   stacked: { flexDirection: 'column', alignItems: 'stretch' },
   copy: { flex: 1, minWidth: 0, gap: 8 },
   stackedCopy: { flex: 0, width: '100%' },
-  tipTitle: {
-    fontSize: 16,
-    lineHeight: 24,
-    fontWeight: '600',
-    color: '#243044',
-    letterSpacing: 0,
-  },
   emptyTitle: {
     fontSize: 18,
     lineHeight: 26,
@@ -238,7 +178,6 @@ export const styles = StyleSheet.create({
     color: '#586575',
     letterSpacing: 0,
   },
-  divider: { height: 1, backgroundColor: 'rgba(134,145,174,0.14)' },
   action: {
     height: undefined,
     minHeight: 46,

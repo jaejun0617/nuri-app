@@ -91,7 +91,7 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
   const stack = shouldStackSummary(width, fontScale);
   const isSmallWidth = width <= 320;
   const totalDigits = String(summary?.totalRecords ?? '').length;
-  const compactOverview = isSmallWidth && fontScale < 1.3 && totalDigits <= 4;
+  const compactOverview = isSmallWidth && totalDigits <= 6;
   const stackOverview = !compactOverview && (stack || totalDigits > 6);
   const countFontSize = resolveSummaryCountFontSize(
     summary?.totalRecords ?? null,
@@ -123,6 +123,101 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
       onPress: onPressLife,
     },
   ] as const;
+  const renderMetric = (metric: (typeof metrics)[number]) => (
+    <TouchableOpacity
+      key={metric.key}
+      testID={`home-summary-${metric.key}`}
+      style={[styles.metric, !isSmallWidth && stack ? styles.metricStacked : null]}
+      onPress={metric.onPress}
+      activeOpacity={0.9}
+      accessibilityRole="button"
+      accessibilityLabel={`${metric.label} 기록 ${
+        metric.value === null
+          ? isLoading
+            ? '확인 중'
+            : '확인 필요'
+          : `${metric.value}개`
+      }, 기록 보기`}
+    >
+      <HomeFloatingWidgetSurface
+        radius={18}
+        testIDPrefix="home-summary-glass"
+      />
+      <NuriSemanticIcon
+        family="material"
+        name={metric.icon}
+        size={30}
+        color={metric.color}
+      />
+      <AppText
+        preset="unifiedLabel"
+        styleOverridesPreset
+        style={[styles.metricLabel, contentTextStyle]}
+      >
+        {metric.label}
+      </AppText>
+      <AppText
+        testID={`home-summary-${metric.key}-value`}
+        preset="unifiedTitle"
+        typographyRole="celebration"
+        styleOverridesPreset
+        style={[
+          styles.metricValue,
+          { color: contentTextStyle?.color ?? accentDeepColor },
+          metric.value !== null && String(metric.value).length > 3
+            ? styles.longMetricValue
+            : null,
+        ]}
+      >
+        {metric.value ?? '-'}
+        <AppText
+          preset="unifiedBody"
+          styleOverridesPreset
+          style={[styles.metricUnit, contentTextStyle]}
+        >
+          {' '}
+          기록
+        </AppText>
+      </AppText>
+    </TouchableOpacity>
+  );
+  const summaryCopy = (
+    <AppText testID="home-summary-line" preset="unifiedBody" styleOverridesPreset style={styles.insightBody}>
+      {summaryLine}
+    </AppText>
+  );
+  const insightTile = (
+    <TouchableOpacity
+      testID="home-summary-insight"
+      style={isSmallWidth ? styles.metric : styles.insight}
+      onPress={onPressAllRecords}
+      activeOpacity={0.9}
+      accessibilityRole="button"
+      accessibilityLabel={`전체 기록 한 줄 요약, ${summaryLine}`}
+    >
+      <HomeFloatingWidgetSurface
+        radius={18}
+        testIDPrefix="home-summary-glass"
+      />
+      <MaterialCommunityIcons
+        name="star-four-points"
+        size={30}
+        color="#A57AF4"
+      />
+      <View style={isSmallWidth ? undefined : styles.insightCopy}>
+        <AppText
+          preset="unifiedLabel"
+          styleOverridesPreset
+          fitCompactReadingLine
+          style={[styles.insightTitle, contentTextStyle]}
+        >
+          {isSmallWidth ? '한 줄 요약' : '전체 기록 한 줄 요약'}
+        </AppText>
+        {!isSmallWidth && summaryCopy}
+      </View>
+      {!isSmallWidth && <MaterialCommunityIcons name="chevron-right" size={22} color={accentDeepColor} />}
+    </TouchableOpacity>
+  );
 
   return (
     <HomeSectionGlass testID="home-glass-total-summary" style={styles.section}>
@@ -271,108 +366,21 @@ export const TotalSummarySection = memo(function TotalSummarySectionView({
 
       <View
         testID="home-summary-metrics"
-        style={[styles.metrics, stack ? styles.metricsStacked : null]}
+        style={[styles.metrics, (isSmallWidth || stack) && styles.metricsStacked]}
       >
-        {metrics.map(metric => (
-          <TouchableOpacity
-            key={metric.key}
-            testID={`home-summary-${metric.key}`}
-            style={[styles.metric, stack ? styles.metricStacked : null]}
-            onPress={metric.onPress}
-            activeOpacity={0.9}
-            accessibilityRole="button"
-            accessibilityLabel={`${metric.label} 기록 ${
-              metric.value === null
-                ? isLoading
-                  ? '확인 중'
-                  : '확인 필요'
-                : `${metric.value}개`
-            }, 기록 보기`}
-          >
-            <HomeFloatingWidgetSurface
-              radius={18}
-              testIDPrefix="home-summary-glass"
-            />
-            <NuriSemanticIcon
-              family="material"
-              name={metric.icon}
-              size={30}
-              color={metric.color}
-            />
-            <AppText
-              preset="unifiedLabel"
-              styleOverridesPreset
-              style={[styles.metricLabel, contentTextStyle]}
-            >
-              {metric.label}
-            </AppText>
-            <AppText
-              testID={`home-summary-${metric.key}-value`}
-              preset="unifiedTitle"
-              typographyRole="celebration"
-              styleOverridesPreset
-              style={[
-                styles.metricValue,
-                { color: contentTextStyle?.color ?? accentDeepColor },
-                metric.value !== null && String(metric.value).length > 3
-                  ? styles.longMetricValue
-                  : null,
-              ]}
-            >
-              {metric.value ?? '-'}
-              <AppText
-                preset="unifiedBody"
-                styleOverridesPreset
-                style={[styles.metricUnit, contentTextStyle]}
-              >
-                {' '}
-                기록
-              </AppText>
-            </AppText>
-          </TouchableOpacity>
-        ))}
+        {isSmallWidth ? (
+          <>
+            <View testID="home-summary-metrics-first-row" style={styles.metrics}>
+              {metrics.slice(0, 2).map(renderMetric)}
+            </View>
+            <View testID="home-summary-metrics-second-row" style={styles.metrics}>
+              {metrics.slice(2).map(renderMetric)}
+              {insightTile}
+            </View>
+          </>
+        ) : metrics.map(renderMetric)}
       </View>
-
-      <TouchableOpacity
-        testID="home-summary-insight"
-        style={styles.insight}
-        onPress={onPressAllRecords}
-        activeOpacity={0.9}
-        accessibilityRole="button"
-        accessibilityLabel={`전체 기록 한 줄 요약, ${summaryLine}`}
-      >
-        <HomeFloatingWidgetSurface
-          radius={18}
-          testIDPrefix="home-summary-glass"
-        />
-        <MaterialCommunityIcons
-          name="star-four-points"
-          size={30}
-          color="#A57AF4"
-        />
-        <View style={styles.insightCopy}>
-          <AppText
-            preset="unifiedLabel"
-            styleOverridesPreset
-            style={[styles.insightTitle, contentTextStyle]}
-          >
-            전체 기록 한 줄 요약
-          </AppText>
-          <AppText
-            testID="home-summary-line"
-            preset="unifiedBody"
-            styleOverridesPreset
-            style={styles.insightBody}
-          >
-            {summaryLine}
-          </AppText>
-        </View>
-        <MaterialCommunityIcons
-          name="chevron-right"
-          size={22}
-          color={accentDeepColor}
-        />
-      </TouchableOpacity>
+      {isSmallWidth ? summaryCopy : insightTile}
     </HomeSectionGlass>
   );
 });
@@ -437,7 +445,7 @@ export const styles = StyleSheet.create({
     flexShrink: 0,
   },
   artStacked: { alignSelf: 'center', width: '62%' },
-  artCompact: { width: '44%', maxWidth: 128 },
+  artCompact: { width: '36%', maxWidth: 96, maxHeight: 96 },
   art: { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' },
   metrics: { flexDirection: 'row', gap: 8, alignItems: 'stretch' },
   metricsStacked: { flexDirection: 'column' },

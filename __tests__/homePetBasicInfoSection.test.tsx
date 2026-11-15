@@ -27,7 +27,7 @@ describe('Home profile sheet basic information', () => {
     let renderer!: TestRenderer.ReactTestRenderer;
     await act(async () => {
       renderer = TestRenderer.create(
-        <HomePetBasicInfoSection info={values} season={season} />,
+        <HomePetBasicInfoSection info={values} season={season} petName="누리" avatarUri="https://example.test/nuri.png" />,
       );
     });
     renderers.push(renderer);
@@ -40,18 +40,20 @@ describe('Home profile sheet basic information', () => {
     }
   });
 
-  it('shows a leading pet icon with the approved introduction above its compact summary', async () => {
+  it('shows the real pet name and round profile photo above its compact summary', async () => {
     const renderer = await renderInfo();
     const root = renderer.root.findAll(node => node.type === View && node.props.testID === 'home-profile-basic-info')[0];
-    expect(root.props.accessibilityLabel).toBe('이런 아이에요, 품종 말티즈, 나이 7살, 몸무게 6kg, 성별 남아');
-    expect(root.findAll(node => node.props.name === 'pet' && node.props.size === 16).length).toBeGreaterThan(0);
+    expect(root.props.accessibilityLabel).toBe('누리, 품종 말티즈, 나이 7살, 몸무게 6kg, 성별 남아');
+    const photo = root.findAll(node => node.props.source?.uri === 'https://example.test/nuri.png')[0];
+    expect(StyleSheet.flatten(photo.props.style)).toMatchObject({ width: 32, height: 32, borderRadius: 16 });
     const summary = root.findByProps({ testID: 'home-profile-basic-summary' });
     expect(summary.props.children).toBe('말티즈 · 7살 · 6kg · 남아');
     expect(summary.props.numberOfLines).toBeUndefined();
     expect(StyleSheet.flatten(summary.props.style)).toMatchObject({ fontSize: 12, lineHeight: 18 });
     expect(StyleSheet.flatten(summary.props.style).flex).toBeUndefined();
     const title = root.findByProps({ testID: 'home-profile-intro-title' });
-    expect(title.props.children).toBe('이런 아이에요');
+    expect(title.props.children).toBe('누리');
+    expect(StyleSheet.flatten(title.props.style).width).toBe('100%');
     expect(title.parent).toBe(summary.parent);
     expect(StyleSheet.flatten(summary.parent?.props.style)).toMatchObject({ flexDirection: 'column', alignItems: 'stretch', gap: 2 });
   });
@@ -70,7 +72,7 @@ describe('Home profile sheet basic information', () => {
     expect(value.props.numberOfLines).toBeUndefined();
     expect(value.props.allowFontScaling).not.toBe(false);
     await act(async () => renderer.update(
-      <HomePetBasicInfoSection info={{ breed: '푸들', age: '2살', weight: '4kg', gender: '여아' }} season="winter" />,
+      <HomePetBasicInfoSection info={{ breed: '푸들', age: '2살', weight: '4kg', gender: '여아' }} season="winter" petName="몽실" avatarUri={null} />,
     ));
     expect(renderer.root.findByProps({ testID: 'home-profile-basic-summary' }).props.children).toBe('푸들 · 2살 · 4kg · 여아');
   });

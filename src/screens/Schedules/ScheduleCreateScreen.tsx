@@ -30,6 +30,7 @@ import Feather from '../../components/icons/NuriFeatherIcon';
 import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 
 import AppText from '../../app/ui/AppText';
+import { useResponsiveTypography } from '../../app/providers/ResponsiveTypographyProvider';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import { SeasonalFormBackground, SeasonalFormPanel } from '../../components/common/SeasonalFormSurface';
 import ScheduleReminderNotice from '../../components/common/ScheduleReminderNotice';
@@ -53,10 +54,19 @@ import { styles } from './ScheduleCreateScreen.styles';
 type Nav = NativeStackNavigationProp<RootStackParamList, 'ScheduleCreate'>;
 type Route = RootScreenRoute<'ScheduleCreate'>;
 
+function ScheduleOptionGrid({ children }: React.PropsWithChildren) {
+  return (
+    <View style={styles.optionRow}>
+      {React.Children.map(children, child => <View style={styles.optionSlot}>{child}</View>)}
+    </View>
+  );
+}
+
 export default function ScheduleCreateScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const insets = useSafeAreaInsets();
+  const { readingScale } = useResponsiveTypography();
   const keyboardVisible = useKeyboardState(state => state.isVisible);
   const queryClient = useQueryClient();
   const routePetId = route.params?.petId ?? null;
@@ -267,8 +277,10 @@ export default function ScheduleCreateScreen() {
                 일시
               </AppText>
               <TouchableOpacity
+                testID="schedule-create-date-field"
                 activeOpacity={0.9}
-                style={styles.pickerField}
+                accessibilityRole="button"
+                style={[styles.pickerField, readingScale > 1 && styles.largeTextPickerField]}
                 onPress={onOpenDateModal}
               >
                 <View style={styles.pickerTextStack}>
@@ -285,7 +297,6 @@ export default function ScheduleCreateScreen() {
                     {allDay ? '하루 종일' : timeText}
                   </AppText>
                 </View>
-                <Feather name="calendar" size={16} color="#8A94A6" />
               </TouchableOpacity>
             </View>
             <TouchableOpacity
@@ -318,7 +329,7 @@ export default function ScheduleCreateScreen() {
           <AppText preset="unifiedMeta" style={styles.label}>
             카테고리
           </AppText>
-          <View style={styles.optionRow}>
+          <ScheduleOptionGrid>
             {categoryOptions.map(option => {
               const active = category === option.key;
               return (
@@ -337,33 +348,36 @@ export default function ScheduleCreateScreen() {
                   ]}
                   onPress={() => onSelectCategory(option.key)}
                 >
-                  <NuriSemanticIcon
-                    family="material"
-                    name={option.icon}
-                    size={16}
-                    color={active ? petTheme.primary : '#556070'}
-                  />
+                  {option.key !== 'other' ? (
+                    <NuriSemanticIcon
+                      family="material"
+                      name={option.icon}
+                      size={16}
+                      color={active ? petTheme.primary : '#556070'}
+                    />
+                  ) : null}
                   <AppText
                     preset="unifiedMeta"
+                    fitCompactReadingLine
                     style={[
                       styles.optionChipText,
                       active ? styles.optionChipTextActive : null,
                       active ? { color: petTheme.primary } : null,
                     ]}
                   >
-                    {option.label}
+                    {option.key === 'other' ? '기타 항목' : option.label}
                   </AppText>
                 </TouchableOpacity>
               );
             })}
-          </View>
+          </ScheduleOptionGrid>
 
           {category === 'other' ? (
             <>
               <AppText preset="unifiedMeta" style={styles.label}>
                 기타 분류
               </AppText>
-              <View style={styles.optionRow}>
+              <ScheduleOptionGrid>
                 {otherSubCategoryOptions.map(option => {
                   const active = otherUiSubCategoryKey === option.key;
                   return (
@@ -384,6 +398,7 @@ export default function ScheduleCreateScreen() {
                     >
                       <AppText
                         preset="unifiedMeta"
+                        fitCompactReadingLine
                         style={[
                           styles.optionChipText,
                           active ? styles.optionChipTextActive : null,
@@ -395,7 +410,7 @@ export default function ScheduleCreateScreen() {
                     </TouchableOpacity>
                   );
                 })}
-              </View>
+              </ScheduleOptionGrid>
             </>
           ) : null}
 
@@ -472,7 +487,7 @@ export default function ScheduleCreateScreen() {
           <AppText preset="unifiedMeta" style={styles.label}>
             반복
           </AppText>
-          <View style={styles.optionRow}>
+          <ScheduleOptionGrid>
             {SCHEDULE_REPEAT_OPTIONS.map(option => {
               const active = repeatRule === option.key;
               return (
@@ -493,6 +508,7 @@ export default function ScheduleCreateScreen() {
                 >
                   <AppText
                     preset="unifiedMeta"
+                    fitCompactReadingLine
                     style={[
                       styles.optionChipText,
                       active ? styles.optionChipTextActive : null,
@@ -504,12 +520,12 @@ export default function ScheduleCreateScreen() {
                 </TouchableOpacity>
               );
             })}
-          </View>
+          </ScheduleOptionGrid>
 
           <AppText preset="unifiedMeta" style={styles.label}>
             알림
           </AppText>
-          <View style={styles.optionRow}>
+          <ScheduleOptionGrid>
             {SCHEDULE_REMINDER_OPTIONS.map(option => {
               const active = reminderKey === option.key;
               return (
@@ -534,6 +550,7 @@ export default function ScheduleCreateScreen() {
                 >
                   <AppText
                     preset="unifiedMeta"
+                    fitCompactReadingLine
                     style={[
                       styles.optionChipText,
                       active ? styles.optionChipTextActive : null,
@@ -545,7 +562,7 @@ export default function ScheduleCreateScreen() {
                 </TouchableOpacity>
               );
             })}
-          </View>
+          </ScheduleOptionGrid>
           {reminderKey !== 'none' ? (
             <AppText preset="unifiedMeta" style={styles.helperText}>
               예약 예정: {reminderSummaryText}

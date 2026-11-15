@@ -9416,7 +9416,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-gesture-handler@npm:^3.2.1":
+"react-native-gesture-handler@npm:3.2.1":
   version: 3.2.1
   resolution: "react-native-gesture-handler@npm:3.2.1"
   dependencies:
@@ -9426,6 +9426,19 @@ __metadata:
     react: "*"
     react-native: "*"
   checksum: dfe544738471ca11322ac44815252d57ea5d71eabd4cc53dccadddc4d4ad5c017919363a3edcd965a8df8d6a20cf6490965be6881a85e328a4525ee6a7c46c04
+  languageName: node
+  linkType: hard
+
+"react-native-gesture-handler@patch:react-native-gesture-handler@npm%3A3.2.1#./.yarn/patches/react-native-gesture-handler-npm-3.2.1-73a74f5c79.patch::locator=nuri%40workspace%3A.":
+  version: 3.2.1
+  resolution: "react-native-gesture-handler@patch:react-native-gesture-handler@npm%3A3.2.1#./.yarn/patches/react-native-gesture-handler-npm-3.2.1-73a74f5c79.patch::version=3.2.1&hash=750e28&locator=nuri%40workspace%3A."
+  dependencies:
+    "@types/react-test-renderer": ^19.1.0
+    invariant: ^2.2.4
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+  checksum: db47d6f3a10ea631ace56b69ce33edc765523af11fc6b6ac43e77873a194d5d9469d91eba88f685e11053754c0e0737df5422d37902acc18a7161b8506686945
   languageName: node
   linkType: hard
 
@@ -9481,7 +9494,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-keyboard-controller@npm:^1.22.4":
+"react-native-keyboard-controller@npm:1.22.4":
   version: 1.22.4
   resolution: "react-native-keyboard-controller@npm:1.22.4"
   dependencies:
@@ -9491,6 +9504,19 @@ __metadata:
     react-native: "*"
     react-native-reanimated: ">=3.0.0"
   checksum: 7a1faa7849b7154bd7cd831fd735eb1b40a24eaf4efc62c8d28b7ef2b9319ba208e2092036eee196d2e8f8746cc7c24dfe79de0ccb311c7ccf3668d27394b410
+  languageName: node
+  linkType: hard
+
+"react-native-keyboard-controller@patch:react-native-keyboard-controller@npm%3A1.22.4#./.yarn/patches/react-native-keyboard-controller-npm-1.22.4-40b2246df0.patch::locator=nuri%40workspace%3A.":
+  version: 1.22.4
+  resolution: "react-native-keyboard-controller@patch:react-native-keyboard-controller@npm%3A1.22.4#./.yarn/patches/react-native-keyboard-controller-npm-1.22.4-40b2246df0.patch::version=1.22.4&hash=0a324d&locator=nuri%40workspace%3A."
+  dependencies:
+    react-native-is-edge-to-edge: ^1.2.1
+  peerDependencies:
+    react: "*"
+    react-native: "*"
+    react-native-reanimated: ">=3.0.0"
+  checksum: 5db042ff343cbf911b8127f7b582d899166aba526cbbbedc654fc6b1ef5ee37dbc701158a59f919b89f4fbbfe1d8b5bd61c7f6de57af8633d487a8aafb3c814e
   languageName: node
   linkType: hard
 
@@ -9601,7 +9627,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-native-vector-icons@npm:^10.3.0":
+"react-native-vector-icons@npm:10.3.0":
   version: 10.3.0
   resolution: "react-native-vector-icons@npm:10.3.0"
   dependencies:
@@ -9613,6 +9639,21 @@ __metadata:
     fa6-upgrade: bin/fa6-upgrade.sh
     generate-icon: bin/generate-icon.js
   checksum: 5c431fd9a8e6efd355e34ed28ca7fa7eed30e89362280cbd1e474e6d16148c6c37f5c950a525ec0b428c79dc74b9fb7a61171fc509b6ab253e111456f3e49b71
+  languageName: node
+  linkType: hard
+
+"react-native-vector-icons@patch:react-native-vector-icons@npm%3A10.3.0#./.yarn/patches/react-native-vector-icons-npm-10.3.0-6735da0f12.patch::locator=nuri%40workspace%3A.":
+  version: 10.3.0
+  resolution: "react-native-vector-icons@patch:react-native-vector-icons@npm%3A10.3.0#./.yarn/patches/react-native-vector-icons-npm-10.3.0-6735da0f12.patch::version=10.3.0&hash=7a698c&locator=nuri%40workspace%3A."
+  dependencies:
+    prop-types: ^15.7.2
+    yargs: ^16.1.1
+  bin:
+    fa-upgrade.sh: bin/fa-upgrade.sh
+    fa5-upgrade: bin/fa5-upgrade.sh
+    fa6-upgrade: bin/fa6-upgrade.sh
+    generate-icon: bin/generate-icon.js
+  checksum: c16f7df57c2f06ebfb94ff27f00fa6eb4361c323fcf31919509e4b94460e4ff46377059025e7c084482689881b131b64b73f7f89ba0853b29934912cd6cd2403
   languageName: node
   linkType: hard
 

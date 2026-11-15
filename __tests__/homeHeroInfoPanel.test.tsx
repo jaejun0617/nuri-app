@@ -3,6 +3,8 @@ import path from 'node:path';
 import React from 'react';
 import { StyleSheet } from 'react-native';
 import Renderer, { act } from 'react-test-renderer';
+import { ThemeProvider } from 'styled-components/native';
+import { createTheme } from '../src/app/theme/theme';
 import { HomeHeroInfoPanel, HomeHeroContentSheet } from '../src/screens/Main/components/LoggedInHome/HomeHeroInfoPanel';
 import { buildPetThemePalette } from '../src/services/pets/themePalette';
 import { getHomeHeroColors, getHomeHeroSeasonCopy, getHomeHeroTypography, HOME_HERO_COLORS } from '../src/theme/home/heroLayout';
@@ -13,13 +15,14 @@ jest.mock('../src/app/ui/AppText', () => 'AppText');
 describe('approved open Home Hero information', () => {
   let renderer: Renderer.ReactTestRenderer;
   const select = jest.fn(), info = jest.fn(), edit = jest.fn();
-  const render = async (width = 426, name = '누리', badge: string | null = '산책 새싹', days: number | null = 8, fontScale = 1) => {
+  const withTheme = (children: React.ReactNode) => <ThemeProvider theme={createTheme('light')}>{children}</ThemeProvider>;
+  const render = async (width = 426, name = '누리', badge: string | null = '산책 새싹', days: number | null = 8) => {
     await act(async () => {
-      renderer = Renderer.create(
-        <HomeHeroInfoPanel containerWidth={width} fontScale={fontScale} petTheme={buildPetThemePalette('#7D5CE4')}
+      renderer = Renderer.create(withTheme(
+        <HomeHeroInfoPanel containerWidth={width} petTheme={buildPetThemePalette('#7D5CE4')}
           profilePetName={name} titleBadge={badge} titleBadgeKey={badge === '산책 새싹' ? 'walk_sprout' : null} togetherDays={days} hasMultiplePets
           onPressPetSelect={select} onPressProfileInfo={info} onPressPetProfileEdit={edit} />,
-      );
+      ));
     });
   };
   const node = (id: string) => renderer.root.findByProps({ testID: id });
@@ -32,14 +35,14 @@ describe('approved open Home Hero information', () => {
       'home-hero-title-slot', 'home-hero-pet-selector', 'home-hero-together', 'home-hero-profile-actions',
     ]);
     expect(StyleSheet.flatten(root.props.style)).toMatchObject({ width: '100%', paddingTop: 29, backgroundColor: 'transparent' });
-    expect(StyleSheet.flatten(node('home-hero-profile-actions').props.style)).toMatchObject({ flexDirection: 'row', marginHorizontal: 16, gap: 7 });
+    expect(StyleSheet.flatten(node('home-hero-profile-actions').props.style)).toMatchObject({ flexDirection: 'column', marginHorizontal: 16, gap: 7 });
     expect(StyleSheet.flatten(node('home-hero-pet-name').props.style)).toMatchObject({ fontSize: 33, lineHeight: 44, includeFontPadding: false });
     expect(StyleSheet.flatten(node('home-hero-together-label').props.style)).toMatchObject({ fontSize: 14, lineHeight: 20 });
     expect(StyleSheet.flatten(node('home-hero-profile-info-label').props.style)).toMatchObject({ fontSize: 14, lineHeight: 20, textAlign: 'center' });
     expect(StyleSheet.flatten(node('home-hero-day-value').props.style)).toMatchObject({ fontSize: 25, lineHeight: 32, color: HOME_HERO_COLORS.ink });
     expect(StyleSheet.flatten(node('home-hero-name-balance').props.style)).toMatchObject({ width: 36, flexShrink: 0 });
     expect(StyleSheet.flatten(node('home-hero-pet-selector').props.style)).toMatchObject({ alignSelf: 'stretch', justifyContent: 'center' });
-    expect(StyleSheet.flatten(node('home-hero-profile-edit').props.style)).toMatchObject({ borderWidth: 0, width: 54, minHeight: 51 });
+    expect(StyleSheet.flatten(node('home-hero-profile-edit').props.style)).toMatchObject({ minHeight: 51 });
     expect(JSON.stringify(renderer.toJSON())).not.toContain('medal-outline');
     expect(node('home-hero-title-art').props.source).toBe(require('../src/assets/activity/titles-v2/wk02.png'));
     expect(JSON.stringify(renderer.toJSON())).not.toContain('HomeFloatingWidgetSurface');
@@ -54,7 +57,7 @@ describe('approved open Home Hero information', () => {
   it('uses the exact vault artwork by stable ID and never gives an unknown title a fake sprout', async () => {
     await render();
     expect(node('home-hero-title-art').props.source).toBe(require('../src/assets/activity/titles-v2/wk02.png'));
-    await act(async () => renderer.update(<HomeHeroInfoPanel containerWidth={426} petTheme={buildPetThemePalette('#7D5CE4')} profilePetName="누리" titleBadge="서버의 새 칭호" titleBadgeKey="unknown_future" togetherDays={8} hasMultiplePets={false} onPressPetSelect={select} onPressProfileInfo={info} onPressPetProfileEdit={edit} />));
+    await act(async () => renderer.update(withTheme(<HomeHeroInfoPanel containerWidth={426} petTheme={buildPetThemePalette('#7D5CE4')} profilePetName="누리" titleBadge="서버의 새 칭호" titleBadgeKey="unknown_future" togetherDays={8} hasMultiplePets={false} onPressPetSelect={select} onPressProfileInfo={info} onPressPetProfileEdit={edit} />)));
     expect(renderer.root.findAllByProps({testID:'home-hero-title-art'})).toHaveLength(0);
     expect(JSON.stringify(renderer.toJSON())).toContain('서버의 새 칭호');
   });
@@ -66,8 +69,7 @@ describe('approved open Home Hero information', () => {
     expect(node('home-hero-pet-name').props.ellipsizeMode).toBe('tail');
     expect(node('home-hero-pet-name').props.allowFontScaling).not.toBe(false);
     const row = StyleSheet.flatten(node('home-hero-profile-actions').props.style);
-    const available = width - row.marginHorizontal * 2 - row.gap - 54;
-    expect(available).toBeGreaterThan(140);
+    expect(row.flexDirection).toBe('column');
     for (const id of ['home-hero-profile-info','home-hero-profile-edit']) {
       const style = StyleSheet.flatten(node(id).props.style);
       expect(style.minHeight).toBeGreaterThanOrEqual(48);
@@ -94,17 +96,15 @@ describe('approved open Home Hero information', () => {
     expect(StyleSheet.flatten(node('home-hero-title-slot').props.style).minHeight).toBe(28);
   });
 
-  it.each([
-    [320, 1, false], [320, 1.08, true], [360, 1.15, true],
-    [384, 1.15, false], [412, 1.15, false], [412, 2, true],
-  ] as const)('reserves legible profile actions at %s dp and %s system scale', async (width, scale, expanded) => {
+  it.each([320, 360, 384, 412])('reserves two separate profile actions at %s dp', async width => {
     const name = '오래함께한반려동물';
-    await render(width, name, '산책 새싹', 1234, scale);
-    expect(renderer.root.findAllByProps({ testID: 'home-hero-action-balance' }).length > 0).toBe(!expanded);
+    await render(width, name, '산책 새싹', 1234);
+    expect(StyleSheet.flatten(node('home-hero-profile-actions').props.style).flexDirection).toBe('column');
     expect(node('home-hero-profile-info-label').props.allowFontScaling).not.toBe(false);
     expect(node('home-hero-profile-info-label').props.numberOfLines).toBe(2);
     expect(StyleSheet.flatten(node('home-hero-profile-info-label').props.style).fontSize).toBe(width <= 360 ? 12 : 14);
     expect(node('home-hero-profile-info').props.accessibilityLabel).toBe(`${name} 더 알아보기`);
+    expect(node('home-hero-profile-edit').props.accessibilityLabel).toBe(`${name} 프로필 편집하기`);
     expect(StyleSheet.flatten(node('home-hero-profile-edit').props.style).minHeight).toBe(51);
   });
 
@@ -125,19 +125,15 @@ describe('approved open Home Hero information', () => {
     expect(StyleSheet.flatten(node('home-hero-name-trailing').props.style).width).toBe(28);
   });
 
-  it('keeps the existing Home actions and touch geometry with reflective glass and a borderless editor', async () => {
+  it('retains the glass information action and renders a dedicated edit CTA', async () => {
     await render();
     const infoGlass = node('home-hero-profile-info-glass');
-    const editGlass = node('home-hero-profile-edit-glass');
     expect(StyleSheet.flatten(infoGlass.props.style)).toMatchObject({ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, marginTop: 0 });
     expect(StyleSheet.flatten(infoGlass.props.style).width).toBe('auto');
-    expect(StyleSheet.flatten(node('home-hero-action-balance').props.style)).toMatchObject({ width: 54, flexShrink: 0 });
-    expect(node('home-hero-action-balance').props.pointerEvents).toBe('none');
     expect(StyleSheet.flatten(node('home-hero-profile-actions').props.style).marginHorizontal).toBe(16);
-    expect(StyleSheet.flatten(node('home-hero-profile-edit').props.style)).toMatchObject({ width: 54, minHeight: 51, borderWidth: 0 });
-    const fill = editGlass.findAll(n => typeof n.type === 'string' && n.props.testID === 'home-reflective-fill')[0];
-    expect(StyleSheet.flatten(fill.props.style).borderWidth).toBe(0);
-    expect(editGlass.findAll(n => typeof n.type === 'string' && n.props.testID === 'home-reflective-glass-reflection')).toHaveLength(1);
+    expect(node('home-hero-profile-edit').props.role).toBe('primary');
+    expect(node('home-hero-profile-edit-label').props.children).toBe('프로필 편집하기');
+    expect(renderer.root.findAllByProps({ name: 'edit-2' })).toHaveLength(0);
     await act(async () => node('home-hero-profile-info').props.onPress());
     await act(async () => node('home-hero-profile-edit').props.onPress());
     expect(info).toHaveBeenCalledTimes(1);
@@ -159,7 +155,7 @@ describe('approved open Home Hero information', () => {
     expect(getHomeHeroSeasonCopy('누리', season)).toBe(`누리와 함께하는 ${{spring:'봄',summer:'여름',autumn:'가을',winter:'겨울'}[season]}`);
     expect(getHomeHeroSeasonCopy('몽실', season)).toContain('몽실과');
     expect(getHomeHeroTypography(426, '누리')).toEqual(getHomeHeroTypography(426, '누리'));
-    await act(async () => renderer.update(<HomeHeroContentSheet season={season}><HomeHeroInfoPanel containerWidth={426} petTheme={buildPetThemePalette('#22C55E')} profilePetName="누리" titleBadge="실제 칭호" togetherDays={8} hasMultiplePets={false} onPressPetSelect={select} onPressProfileInfo={info} onPressPetProfileEdit={edit} /></HomeHeroContentSheet>));
+    await act(async () => renderer.update(withTheme(<HomeHeroContentSheet season={season}><HomeHeroInfoPanel containerWidth={426} petTheme={buildPetThemePalette('#22C55E')} profilePetName="누리" titleBadge="실제 칭호" togetherDays={8} hasMultiplePets={false} onPressPetSelect={select} onPressProfileInfo={info} onPressPetProfileEdit={edit} /></HomeHeroContentSheet>)));
     expect(StyleSheet.flatten(node('home-hero-day-value').props.style).color).toBe(HOME_HERO_COLORS.ink);
     expect(StyleSheet.flatten(node('home-hero-content-sheet').props.style).backgroundColor).toBe('transparent');
     expect(StyleSheet.flatten(node('home-hero-info').props.style).backgroundColor).toBe('transparent');

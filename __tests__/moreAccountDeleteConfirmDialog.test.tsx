@@ -367,7 +367,6 @@ describe('More account deletion confirmation', () => {
       'ad-removal',
       'community-blocked-users',
       'policy-center',
-      ...(__DEV__ ? ['device-layout-preview'] : []),
       'logout',
     ];
 
@@ -383,6 +382,8 @@ describe('More account deletion confirmation', () => {
     expect([...renderedEntryIds].sort()).toEqual(
       expectedEntryIds.map(entryId => `more-entry-${entryId}`).sort(),
     );
+    expect(renderer.root.findAllByProps({ children: '누리 사용법' })).toHaveLength(0);
+    expect(renderer.root.findAllByProps({ children: '기기별 화면 미리보기' })).toHaveLength(0);
     for (const entryId of expectedEntryIds) {
       expect(
         renderer.root.findByProps({ testID: `more-entry-${entryId}` }),

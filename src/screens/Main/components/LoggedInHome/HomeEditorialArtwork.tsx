@@ -10,19 +10,12 @@ import type { HomeCommunityTab } from '../../../../services/home/communityHighli
 import type { SeasonKey } from '../../../../theme/seasonal/season';
 
 export type HomeEditorialArtKind =
-  | 'today-tip'
   | 'recent'
   | `community-${HomeCommunityTab}`;
 
 export const HOME_EDITORIAL_ART: Readonly<
   Record<HomeEditorialArtKind, Readonly<Record<SeasonKey, ImageSourcePropType>>>
 > = {
-  'today-tip': {
-    autumn: require('../../../../assets/seasonal/home/editorial/today-tip-autumn-v1.png'),
-    winter: require('../../../../assets/seasonal/home/editorial/today-tip-winter-v1.png'),
-    spring: require('../../../../assets/seasonal/home/editorial/today-tip-spring-v1.png'),
-    summer: require('../../../../assets/seasonal/home/editorial/today-tip-summer-v1.png'),
-  },
   recent: {
     autumn: require('../../../../assets/seasonal/home/editorial/recent-autumn-v1.png'),
     winter: require('../../../../assets/seasonal/home/editorial/recent-winter-v1.png'),

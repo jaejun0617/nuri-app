@@ -48,7 +48,7 @@ describe('provider-specific redirect contract', () => {
       },
     });
   });
-  it.each(['returned', 'cancelled', 'unsupported'])(
+  it.each(['returned', 'launched', 'cancelled', 'unsupported'])(
     'uses the Android browser result without double opening: %s',
     async outcome => {
       jest.replaceProperty(Platform, 'OS', 'android');
@@ -62,6 +62,23 @@ describe('provider-specific redirect contract', () => {
       }
     },
   );
+  it('leaves the Kakao attempt pending for the verified link after a Custom Tab launch', async () => {
+    jest.useFakeTimers();
+    jest.replaceProperty(Platform, 'OS', 'android');
+    jest.mocked(AsyncStorage.getItem).mockResolvedValueOnce(
+      JSON.stringify({ version: 1, provider: 'kakao', startedAt: Date.now() }),
+    );
+    jest.mocked(supabase.auth.exchangeCodeForSession).mockRejectedValueOnce(new Error('exchange transport'));
+    NativeModules.NuriOAuthBrowser = { open: async () => 'launched' };
+
+    await signInWithKakao();
+    expect(AsyncStorage.removeItem).not.toHaveBeenCalledWith(PENDING_OAUTH_KEY);
+    expect(supabase.auth.exchangeCodeForSession).not.toHaveBeenCalled();
+    await expect(completeOAuthCallbackSession({ code: 'qa-custom-tab-link' })).rejects.toThrow('exchange transport');
+    expect(supabase.auth.exchangeCodeForSession).toHaveBeenCalledTimes(1);
+    expect(Linking.openURL).not.toHaveBeenCalled();
+    jest.runOnlyPendingTimers();
+  });
   it('accepts the callback while the native result is still pending, but blocks a second login', async () => {
     jest.useFakeTimers();
     jest.replaceProperty(Platform, 'OS', 'android');

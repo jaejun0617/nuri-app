@@ -263,7 +263,6 @@ export default function PetProfileEditScreen() {
         [stickyActionPadding.closedBottom, stickyActionPadding.openBottom],
       ),
     }),
-    [stickyActionPadding.closedBottom, stickyActionPadding.openBottom],
   );
 
   const pets = usePetStore(s => s.pets);

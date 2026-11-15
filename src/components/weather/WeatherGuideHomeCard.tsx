@@ -17,6 +17,7 @@ import Feather from 'react-native-vector-icons/Feather';
 import LinearGradient from 'react-native-linear-gradient';
 
 import { ResponsiveNativeText as Text } from '../../app/ui/ResponsiveNativeText';
+import { useResponsiveTypography } from '../../app/providers/ResponsiveTypographyProvider';
 import { PRODUCT_ACCENT } from '../../app/theme/tokens/productAccent';
 import { HomeReflectiveGlass } from '../home/HomeReflectiveGlass';
 import { resolveWeatherMetricLayout } from './weatherMetricLayout';
@@ -187,6 +188,8 @@ export default React.memo(function WeatherGuideHomeCard({
   onPress,
 }: Props) {
   const { width, fontScale } = useWindowDimensions();
+  const { readingScale } = useResponsiveTypography();
+  const reflowNotice = readingScale > 1;
   const ctaTextColor = PRODUCT_ACCENT.primary;
   const enlarged = fontScale > 1;
   const metricLayout = resolveWeatherMetricLayout({
@@ -356,6 +359,7 @@ export default React.memo(function WeatherGuideHomeCard({
           >
             <View style={styles.weatherArt}>
               <Text
+                allowFontScaling={false}
                 style={[
                   styles.weatherEmoji,
                   isCompact ? styles.weatherEmojiCompact : null,
@@ -445,39 +449,43 @@ export default React.memo(function WeatherGuideHomeCard({
                 isCompact ? styles.noticePanelCompact : null,
                 enlarged ? styles.enlargedNoticePanel : null,
                 !notice.caution ? styles.genericNoticePanel : null,
+                reflowNotice && styles.readingNoticePanel,
                 {
                   backgroundColor: 'transparent',
                   borderWidth: 0,
                 },
               ]}
             >
-              <Text
-                style={[
-                  styles.noticeLabel,
-                  isCompact ? styles.noticeLabelCompact : null,
-                  { color: noticeLabelColor },
-                ]}
-                numberOfLines={enlarged ? undefined : 2}
-              >
-                {notice.label}
-              </Text>
-              <Text
-                style={[
-                  styles.noticeMessage,
-                  isCompact ? styles.noticeMessageCompact : null,
-                  { color: textPrimary },
-                ]}
-                numberOfLines={notice.caution && !enlarged ? 3 : undefined}
-              >
-                {notice.caution
-                  ? formatWeatherPetText(notice.message, petName)
-                  : notice.message}
-              </Text>
+              <View style={reflowNotice ? styles.readingNoticeCopy : undefined}>
+                <Text
+                  style={[
+                    styles.noticeLabel,
+                    isCompact ? styles.noticeLabelCompact : null,
+                    { color: noticeLabelColor },
+                  ]}
+                  numberOfLines={enlarged ? undefined : 2}
+                >
+                  {notice.label}
+                </Text>
+                <Text
+                  style={[
+                    styles.noticeMessage,
+                    isCompact ? styles.noticeMessageCompact : null,
+                    { color: textPrimary },
+                  ]}
+                  numberOfLines={notice.caution && !enlarged ? 3 : undefined}
+                >
+                  {notice.caution
+                    ? formatWeatherPetText(notice.message, petName)
+                    : notice.message}
+                </Text>
+              </View>
               <Feather
+                testID="weather-notice-arrow"
                 name="chevron-right"
                 size={17}
                 color={noticeArrowColor}
-                style={styles.noticeArrow}
+                style={reflowNotice ? undefined : styles.noticeArrow}
               />
             </View>
           </View>
@@ -772,6 +780,13 @@ const styles = StyleSheet.create({
     paddingBottom: 22,
   },
   genericNoticePanel: { paddingHorizontal: 8, paddingBottom: 25 },
+  readingNoticePanel: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingBottom: 9,
+  },
+  readingNoticeCopy: { flex: 1, minWidth: 0 },
   noticeLabel: {
     fontSize: 11,
     lineHeight: 15,

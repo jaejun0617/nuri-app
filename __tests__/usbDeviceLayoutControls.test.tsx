@@ -64,6 +64,20 @@ test('does not check for USB enrollment outside Android', async () => {
   expect(exists).not.toHaveBeenCalled();
 });
 
+test('keeps USB controls and enrollment checks out of non-development Android', async () => {
+  const previous = Object.getOwnPropertyDescriptor(global, '__DEV__');
+  Object.defineProperty(global, '__DEV__', { configurable: true, value: false });
+  try {
+    await render();
+    expect(tree.toJSON()).toBeNull();
+    expect(exists).not.toHaveBeenCalled();
+    expect(config).not.toHaveBeenCalled();
+  } finally {
+    if (previous) Object.defineProperty(global, '__DEV__', previous);
+    else Reflect.deleteProperty(global, '__DEV__');
+  }
+});
+
 test('shows a retryable message without connecting if the enrollment became invalid', async () => {
   readFile.mockResolvedValue('invalid');
   await render();

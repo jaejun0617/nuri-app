@@ -26,7 +26,7 @@ import type {
   TypographyPresetName,
 } from '../theme/tokens/typography';
 import { StyledText } from './AppText.styles';
-import { useResponsiveTypographyBand } from '../providers/ResponsiveTypographyProvider';
+import { useResponsiveTypography } from '../providers/ResponsiveTypographyProvider';
 import { resolveResponsiveTextStyle } from '../typography/responsiveTypography';
 
 type Props = TextProps & {
@@ -37,6 +37,8 @@ type Props = TextProps & {
   align?: 'auto' | 'left' | 'right' | 'center' | 'justify';
   weight?: TextStyle['fontWeight']; // preset fontWeight를 덮어쓰기 할 때
   styleOverridesPreset?: boolean;
+  keepBaseFontSize?: boolean;
+  fitCompactReadingLine?: boolean;
 };
 
 function AppTextBase({
@@ -48,6 +50,8 @@ function AppTextBase({
   weight,
   allowFontScaling = true,
   styleOverridesPreset = false,
+  keepBaseFontSize = false,
+  fitCompactReadingLine = false,
   style,
   children,
   ...rest
@@ -55,7 +59,9 @@ function AppTextBase({
   const theme = useTheme();
   const { mode } = useAppFontPreference();
   const typographyScope = useTypographyScope();
-  const widthBand = useResponsiveTypographyBand();
+  const typography = useResponsiveTypography();
+  const { widthBand } = typography;
+  const readingScale = keepBaseFontSize ? 1 : typography.readingScale;
   // theme.typography.preset[preset]은 디자인 토큰에 따라 일관된 텍스트 스타일 제공
   const presetStyle = theme.typography.preset[preset];
   const effectiveMode = resolveAppFontMode({
@@ -94,7 +100,7 @@ function AppTextBase({
         // Semantic roles remain classification metadata. The user's app mode
         // owns the family globally, except inside an explicit fixed boundary.
         appFontStyle,
-      ]), widthBand, { fixedWidth: typographyScope === 'fixed', allowFontScaling }),
+      ]), widthBand, { fixedWidth: typographyScope === 'fixed', allowFontScaling, readingScale }),
     [
       isUnifiedPreset,
       presetStyle,
@@ -103,6 +109,7 @@ function AppTextBase({
       weight,
       style,
       widthBand,
+      readingScale,
       typographyScope,
       allowFontScaling,
     ],
@@ -114,6 +121,9 @@ function AppTextBase({
       $align={align}
       style={composedStyle}
       {...rest}
+      {...(fitCompactReadingLine && readingScale > 1
+        ? { numberOfLines: 1, adjustsFontSizeToFit: true, minimumFontScale: 0.75 }
+        : null)}
       allowFontScaling={false}
     >
       {children}

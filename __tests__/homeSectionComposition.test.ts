@@ -109,7 +109,6 @@ describe('Home section composition after Today Photo retirement', () => {
       'recommendation',
       'schedule',
       'health',
-      'today-tip',
       'diary',
     ]);
   });

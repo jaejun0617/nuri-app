@@ -1452,7 +1452,6 @@ export default function PetCreateScreen() {
         [actionLayout.closedBottom, actionLayout.openBottom],
       ),
     }),
-    [actionLayout.closedBottom, actionLayout.openBottom],
   );
 
   const clampScrollToContentBounds = useCallback(() => {

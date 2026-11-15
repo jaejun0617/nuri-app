@@ -2,7 +2,7 @@ import React from 'react';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
 import ReactNative, {
-  ImageBackground,
+  Image,
   ScrollView,
   StatusBar,
   StyleSheet,
@@ -20,6 +20,7 @@ import {
   buildWeatherGuideBundleForScenario,
   createPreviewWeatherGuideBundle,
   createUnavailableWeatherGuideBundle,
+  getWeatherEmoji,
   type WeatherGuideBundle,
   type HourlyWeatherItem,
 } from '../src/services/weather/guide';
@@ -29,6 +30,7 @@ import { getSeasonalWeatherVisualTheme } from '../src/theme/seasonal/weather';
 import { PRODUCT_CTA } from '../src/app/theme/tokens/productAccent';
 import { HOME_FLOATING_WIDGET_MATERIAL } from '../src/components/home/HomeWidgetMaterial';
 import { getSeasonalWeatherHeroVisual } from '../src/theme/seasonal/weatherHero';
+import { lightColors } from '../src/app/theme/tokens/colors';
 
 const mockGoBack = jest.fn();
 
@@ -108,7 +110,7 @@ function expectImageHeader(
   renderer: TestRenderer.ReactTestRenderer,
   color: string,
 ) {
-  const hero = renderer.root.findByType(ImageBackground);
+  const hero = renderer.root.findByProps({ testID: 'weather-hero-artwork' });
   const header = hero.findByProps({ testID: 'weather-header-surface' });
   expect(StyleSheet.flatten(header.props.style)).toMatchObject({
     position: 'absolute',
@@ -255,7 +257,7 @@ describe('weather service presentation UI', () => {
       expect(StyleSheet.flatten(header.props.style).position).toBeUndefined();
       expectGlassBackButton(header, createTheme('light').colors.textPrimary);
       expect(texts(renderer)).not.toContain('오늘의 날씨');
-      expect(renderer.root.findAllByType(ImageBackground)).toHaveLength(0);
+      expect(renderer.root.findAllByProps({ testID: 'weather-hero-artwork' })).toHaveLength(0);
       expect(texts(renderer)).toContain('날씨를 불러오지 못했어요');
       await act(async () => renderer.unmount());
     },
@@ -290,10 +292,27 @@ describe('weather service presentation UI', () => {
       expect(
         sheet.findAll(node => node.type === View && node.props.testID === 'weather-hourly-viewport'),
       ).toHaveLength(1);
-      expect(sheet.findAllByType(ImageBackground)).toHaveLength(0);
+      expect(sheet.findAllByProps({ testID: 'weather-hero-artwork' })).toHaveLength(0);
       await act(async () => renderer.unmount());
     },
   );
+
+  it('keeps the original color glyph and one-line day labels readable on nighttime detail glass', async () => {
+    const bundle = buildWeatherGuideBundleForScenario('rain', '일산3동', { isDaytime: false });
+    state(bundle);
+    const renderer = await render(<WeatherInsightScreen />);
+    const glyphs = renderer.root.findAllByType(Text).filter(node => node.props.testID === 'weather-forecast-condition');
+    expect(glyphs.map(node => node.props.children)).toEqual(bundle.weekly.map(item => getWeatherEmoji(item.icon)));
+    expect(glyphs.every(node => node.props.allowFontScaling === false)).toBe(true);
+    const days = renderer.root.findAllByType(Text).filter(node => ['오늘', '내일'].includes(node.props.children));
+    expect(days.length).toBe(2);
+    for (const day of days) {
+      expect(day.props.numberOfLines).toBe(1);
+      expect(day.props.adjustsFontSizeToFit).toBe(true);
+      expect(StyleSheet.flatten(day.props.style).color).toBe(lightColors.textPrimary);
+    }
+    await act(async () => renderer.unmount());
+  });
 
   it.each(
     (['fresh', 'rain', 'snow', 'dusty'] as const).flatMap(scenario =>
@@ -308,7 +327,7 @@ describe('weather service presentation UI', () => {
       const renderer = await render(<WeatherInsightScreen />);
       expect(renderer.root.findAllByType(BlurView)).toHaveLength(0);
       expect(renderer.root.findAll(node => node.type === View && node.props.testID === 'home-reflective-fill')).toHaveLength(11);
-      expect(renderer.root.findAllByType(ImageBackground)).toHaveLength(1);
+      expect(renderer.root.findAll(node => node.type === View && node.props.testID === 'weather-hero-artwork')).toHaveLength(1);
       expect(renderer.root.findByType(SafeAreaView).props.edges).toEqual([
         'top',
         'left',
@@ -372,8 +391,10 @@ describe('weather service presentation UI', () => {
         scenario,
         isDaytime,
       );
-      const hero = renderer.root.findByType(ImageBackground);
-      expect(hero.props.source).toEqual(visual?.image);
+      const hero = renderer.root.findByProps({ testID: 'weather-hero-artwork' });
+      const art = hero.findByType(Image);
+      expect(art.props).toMatchObject({ source: visual?.image, resizeMode: 'cover', accessible: false });
+      expect(StyleSheet.flatten(art.props.style)).toMatchObject({ position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 });
       expect(StyleSheet.flatten(hero.props.style).minHeight).toBe(width);
       expect(StyleSheet.flatten(hero.props.style).height).toBeUndefined();
       expectImageHeader(renderer, isDaytime ? '#162C46' : '#FFFFFF');
@@ -420,8 +441,8 @@ describe('weather service presentation UI', () => {
       );
       const renderer = await render(<WeatherInsightScreen />);
       const visual = getSeasonalWeatherHeroVisual(season, scenario, isDaytime);
-      const hero = renderer.root.findByType(ImageBackground);
-      expect(hero.props.source).toEqual(visual?.image);
+      const hero = renderer.root.findByProps({ testID: 'weather-hero-artwork' });
+      expect(hero.findByType(Image).props.source).toEqual(visual?.image);
       expect(
         hero.findAllByProps({ testID: 'weather-hero-top-blend' }),
       ).toHaveLength(0);
@@ -472,7 +493,7 @@ describe('weather service presentation UI', () => {
   it('keeps real snow data on the common snow path without autumn snow assets', async () => {
     state(buildWeatherGuideBundleForScenario('snow'));
     const renderer = await render(<WeatherInsightScreen />);
-    expect(renderer.root.findByType(ImageBackground).props.source).toEqual(
+    expect(renderer.root.findByProps({ testID: 'weather-hero-artwork' }).findByType(Image).props.source).toEqual(
       require('../src/assets/weather/snow.png'),
     );
     await act(async () => renderer.unmount());
@@ -494,7 +515,7 @@ describe('weather service presentation UI', () => {
         </ThemeProvider>,
       ),
     );
-    expect(renderer.root.findAllByType(ImageBackground)).toHaveLength(0);
+    expect(renderer.root.findAllByProps({ testID: 'weather-hero-artwork' })).toHaveLength(0);
     expect(texts(renderer)).toContain('날씨를 불러오지 못했어요');
     await act(async () => renderer.unmount());
   });
@@ -624,7 +645,8 @@ describe('weather service presentation UI', () => {
       expect(slots).toHaveLength(8);
       const slotWidth = StyleSheet.flatten(slots[0].props.style)
         .width as number;
-      expect(slotWidth).toBeGreaterThanOrEqual(88);
+      if (width <= 360) expect(slotWidth * 3).toBeCloseTo(width - 72);
+      else expect(slotWidth).toBeGreaterThanOrEqual(88);
       expect(slotWidth).toBeLessThanOrEqual(width - 72);
       expect(texts(renderer)).toContain('0%');
       expect(texts(renderer)).toContain('0mm');
@@ -634,10 +656,10 @@ describe('weather service presentation UI', () => {
     },
   );
 
-  it('uses the measured panel width and expands slots for larger fonts', async () => {
+  it.each([1.08, 1.5])('keeps three measured slots at 320dp and font scale %s', async fontScale => {
     jest
       .spyOn(ReactNative, 'useWindowDimensions')
-      .mockReturnValue({ width: 360, height: 800, fontScale: 1.5, scale: 3 });
+      .mockReturnValue({ width: 320, height: 800, fontScale, scale: 3 });
     const renderer = await render(
       <WeatherHourlyPrecipitation
         items={hours(8)}
@@ -653,11 +675,12 @@ describe('weather service presentation UI', () => {
     const slot = renderer.root
       .findAllByType(View)
       .find(node => node.props.testID === 'weather-hourly-slot');
-    expect(StyleSheet.flatten(slot?.props.style).width).toBe(140);
+    expect(StyleSheet.flatten(slot?.props.style).width * 3).toBeCloseTo(280);
     expect(
       renderer.root.findByProps({ testID: 'weather-hourly-timeline' }).props
         .scrollEnabled,
     ).toBe(true);
+    expect(renderer.root.findByProps({ testID: 'weather-hourly-timeline' }).props.pagingEnabled).toBe(true);
     await act(async () => renderer.unmount());
   });
 

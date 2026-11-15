@@ -209,7 +209,7 @@ describe('Total Summary seasonal concept', () => {
         expect(panelStyle).toMatchObject({
           ...HOME_FLOATING_WIDGET_MATERIAL,
           borderRadius: 18,
-          minHeight: key === 'insight' ? 70 : stacked ? 76 : 108,
+          minHeight: width === 320 ? 108 : key === 'insight' ? 70 : stacked ? 76 : 108,
         });
         expect(panelStyle.height).toBeUndefined();
         expect(panel.props.activeOpacity).toBe(0.9);
@@ -265,6 +265,18 @@ describe('Total Summary seasonal concept', () => {
       expect(handlers.onPressMeal).toHaveBeenCalledTimes(1);
       expect(handlers.onPressLife).toHaveBeenCalledTimes(1);
       expect(handlers.onPressAllRecords).toHaveBeenCalledTimes(1);
+      if (width === 320) {
+        for (const [row, keys] of [
+          ['first', ['walk', 'meal']],
+          ['second', ['life', 'insight']],
+        ] as const) {
+          const gridRow = renderer.root.findByProps({ testID: `home-summary-metrics-${row}-row` });
+          expect(RN.StyleSheet.flatten(gridRow.props.style).flexDirection).toBe('row');
+          for (const key of keys) {
+            expect(RN.StyleSheet.flatten(gridRow.findByProps({ testID: `home-summary-${key}` }).props.style).flex).toBe(1);
+          }
+        }
+      }
       expect(renderer.root.findByProps({ testID: 'home-summary-total-value' }).props.children[0]).toBe(5);
       await act(async () => renderer.unmount());
     },
@@ -378,8 +390,8 @@ describe('Total Summary seasonal concept', () => {
   });
 
   it.each([
-    { width: 320, fontScale: 1, direction: 'row', artWidth: '44%' },
-    { width: 320, fontScale: 1.3, direction: 'column', artWidth: '62%' },
+    { width: 320, fontScale: 1.08, direction: 'row', artWidth: '36%' },
+    { width: 320, fontScale: 1.5, direction: 'row', artWidth: '36%' },
     { width: 321, fontScale: 1, direction: 'column', artWidth: '62%' },
     { width: 360, fontScale: 1, direction: 'row', artWidth: '49%' },
   ])(
@@ -421,7 +433,7 @@ describe('Total Summary seasonal concept', () => {
           RN.StyleSheet.flatten(
             renderer.root.findByProps({ testID: id }).props.style,
           ).flexDirection,
-        ).toBe('column');
+        ).toBe(width === 320 && id === 'home-summary-overview' ? 'row' : 'column');
       }
       for (const text of renderer.root.findAll(
         node =>

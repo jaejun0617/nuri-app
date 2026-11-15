@@ -11,7 +11,7 @@ import {
 import { useTheme } from 'styled-components/native';
 import Feather from '../icons/NuriFeatherIcon';
 import AppText from '../../app/ui/AppText';
-import { SectionHeaderAction } from '../../app/ui/SectionHeaderAction';
+import { HomeSectionHeader } from './HomeSectionHeader';
 import NuriSemanticIcon from '../icons/NuriSemanticIcon';
 import type { PetSchedule } from '../../services/supabase/schedules';
 import {
@@ -22,8 +22,7 @@ import { getKstYmd } from '../../utils/date';
 import type { SeasonKey } from '../../theme/seasonal/season';
 import { ScheduleCalendarSheet } from './ScheduleCalendarSheet';
 import { HomeReflectiveGlass } from './HomeReflectiveGlass';
-import { useHomeHeadingColor, useHomeContentTextStyle } from './HomeSeasonContext';
-import { PRODUCT_ACCENT } from '../../app/theme/tokens/productAccent';
+import { useHomeContentTextStyle } from './HomeSeasonContext';
 import {
   buildHomeScheduleCalendar,
   homeCalendarDayLabel,
@@ -61,7 +60,6 @@ export const HomeScheduleCalendar = memo(function HomeScheduleCalendarView({
 }: Props) {
   const petName = usePetDisplayName(petId);
   const theme = useTheme();
-  const headingColor = useHomeHeadingColor();
   const contentTextStyle = useHomeContentTextStyle();
   const { fontScale } = useWindowDimensions();
   const [today, setToday] = useState(() => getKstYmd());
@@ -188,30 +186,12 @@ export const HomeScheduleCalendar = memo(function HomeScheduleCalendarView({
       : '';
   return (
     <HomeReflectiveGlass testID="home-glass-schedule" style={styles.section}>
-      <View style={[styles.header, fontScale >= 1.3 && styles.stackedHeader]}>
-        <AppText
-          accessibilityRole="header"
-          preset="unifiedTitle"
-          styleOverridesPreset
-          color={headingColor ?? accentDeepColor}
-          style={[
-            styles.headerTitle,
-            fontScale >= 1.3 && styles.stackedHeaderTitle,
-          ]}
-        >
-          {`${petName} 일정`}
-        </AppText>
-        {!(canConfirmEmpty && items.length === 0) ? (
-          <SectionHeaderAction
-            label="전체 일정"
-            color={PRODUCT_ACCENT.primary}
-            onPress={onPressAll}
-            accessibilityLabel="전체 일정 목록 보기"
-            size="compact"
-            textPreset="unifiedMicro"
-          />
-        ) : null}
-      </View>
+      <HomeSectionHeader
+        title={`${petName} 일정`}
+        color={accentDeepColor}
+        hideAction={canConfirmEmpty && items.length === 0}
+        action={{ label: '전체 일정', accessibilityLabel: '전체 일정 목록 보기', onPress: onPressAll }}
+      />
       <View style={styles.monthBar}>
         <Pressable
           testID="home-calendar-previous"
@@ -419,22 +399,6 @@ export const HomeScheduleCalendar = memo(function HomeScheduleCalendarView({
 
 const styles = StyleSheet.create({
   section: { padding: 14 },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 8,
-  },
-  headerTitle: {
-    flex: 1,
-    minWidth: 0,
-    fontSize: 20,
-    lineHeight: 28,
-    fontWeight: '700',
-    letterSpacing: 0,
-  },
-  stackedHeader: { flexDirection: 'column', alignItems: 'flex-end' },
-  stackedHeaderTitle: { width: '100%', flex: 0 },
   monthBar: {
     flexDirection: 'row',
     alignItems: 'center',

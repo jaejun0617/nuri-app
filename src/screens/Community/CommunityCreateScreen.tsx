@@ -151,7 +151,6 @@ export default function CommunityCreateScreen() {
     () => ({
       paddingBottom: insets.bottom * (1 - keyboardProgress.value),
     }),
-    [insets.bottom],
   );
   const [toolbarHeight, setToolbarHeight] = useState(68);
   const submittingRef = useRef(false);

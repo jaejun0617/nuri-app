@@ -5,6 +5,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import TestRenderer, { act } from 'react-test-renderer';
 import LinearGradient from 'react-native-linear-gradient';
 import NativeFeather from 'react-native-vector-icons/Feather';
+import ToolbarOutlineIcon from '../src/components/icons/ToolbarOutlineIcon';
 import { ThemeProvider } from 'styled-components/native';
 
 import NuriIcon, { type NuriIconName } from '../src/components/icons/NuriIcon';
@@ -66,12 +67,7 @@ async function render(element: React.ReactElement) {
 }
 
 const navigationIcons = (renderer: TestRenderer.ReactTestRenderer) =>
-  renderer.root.findAll(
-    item =>
-      item.props.variant &&
-      Object.prototype.hasOwnProperty.call(glyphs, item.props.name) &&
-      item.props.size === 18,
-  );
+  renderer.root.findAllByType(ToolbarOutlineIcon);
 
 describe('NURI custom icon candidate', () => {
   afterEach(() => {
@@ -369,6 +365,7 @@ describe('NURI custom icon candidate', () => {
     const root = path.join(__dirname, '..');
     const allowed = new Set([
       'src/components/icons/NuriSemanticIcon.tsx',
+      'src/components/icons/ToolbarOutlineIcon.tsx',
       'src/components/weather/WeatherGuideHomeCard.tsx',
       'src/services/guides/presentation.ts',
       'src/app/ui/SectionHeaderAction.tsx',
@@ -388,7 +385,7 @@ describe('NURI custom icon candidate', () => {
         );
     for (const file of walk(path.join(root, 'src'))) {
       if (
-        /from 'react-native-vector-icons\/(Feather|MaterialCommunityIcons)'/.test(
+        /from 'react-native-vector-icons\/(Feather|Ionicons|MaterialCommunityIcons)'/.test(
           fs.readFileSync(file, 'utf8'),
         )
       )
@@ -409,7 +406,7 @@ describe('NURI custom icon candidate', () => {
   });
 
   it.each(PET_THEME_OPTIONS)(
-    'keeps the fixed lavender navigation palette independent of pet theme %s',
+    'keeps the navigation palette independent of pet theme %s',
     async color => {
       mockColor = color;
       mockCloseMore.mockClear();
@@ -423,27 +420,13 @@ describe('NURI custom icon candidate', () => {
         'home',
         'timeline',
         'community',
-        'letter',
-        'menu',
+        'guestbook',
+        'more',
       ]);
-      expect(icons[0].props).toMatchObject({
-        color: '#7D5CE4',
-        colorMode: 'theme',
-        variant: 'glass',
-        size: 18,
-      });
-      expect(
-        renderer.root.findAllByType(LinearGradient)[0].props.colors,
-      ).toEqual([
-        '#FFFFFF',
-        '#7D5CE4',
-        '#7D5CE4',
-      ]);
+      expect(icons[0].props.color).toBe('#7D5CE4');
       for (const icon of icons.slice(1))
         expect(icon.props).toMatchObject({
           color: '#8D88AA',
-          variant: 'outline',
-          size: 18,
         });
       const tabs = renderer.root.findAllByType(TouchableOpacity);
       tabs.forEach(tab => tab.props.onPress());
@@ -469,7 +452,7 @@ describe('NURI custom icon candidate', () => {
     },
   );
 
-  it('uses the same lavender for guests and preserves selected-tab accessibility', async () => {
+  it('uses the same selected foreground for guests and preserves selected-tab accessibility', async () => {
     mockLoggedIn = false;
     const theme = createTheme('light');
     const renderer = await render(

@@ -19,7 +19,6 @@ export type HomeAmbientBubbleZone =
   | 'recommendation'
   | 'schedule'
   | 'health'
-  | 'today-tip'
   | 'diary';
 
 export type HomeAmbientBubble = {
@@ -59,7 +58,6 @@ export const HOME_AMBIENT_SECTION_ZONES: readonly HomeAmbientBubbleZone[] = [
   'recommendation',
   'schedule',
   'health',
-  'today-tip',
   'diary',
 ];
 
@@ -290,15 +288,6 @@ export const HOME_AMBIENT_SCROLL_BUBBLES: readonly HomeAmbientScrollBubble[] = [
   scrollBubble('schedule', '48%', 1.015, 0.26, 0.78, '26deg', 'large'),
   gapBubble('health', 0.16, 0.125, 0.88, '19deg'),
   scrollBubble('health', '80%', -0.012, 0.27, 0.78, '-18deg', 'large'),
-  {
-    ...scrollBubble('today-tip', '0%', 0.84, 0.13, 0.9, '23deg', 'medium'),
-    maximumSize: 56,
-    offsetY: 50,
-  },
-  scrollBubble('today-tip', '98%', 1.01, 0.28, 0.8, '-17deg', 'large'),
-  scrollBubble('today-tip', '38%', -0.012, 0.27, 0.78, '16deg', 'large'),
-  scrollBubble('today-tip', '8%', 0.14, 0.052, 0.8, '-11deg'),
-  scrollBubble('today-tip', '84%', 0.89, 0.064, 0.82, '18deg'),
   gapBubble('diary', 0.22, 0.12, 0.9, '-13deg'),
   scrollBubble('diary', '99%', 1.01, 0.34, 0.82, '-9deg', 'large'),
   // Small diary details stay in the illustration's side whitespace.

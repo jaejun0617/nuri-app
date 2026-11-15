@@ -1,0 +1,278 @@
+diff --git a/src/components/KeyboardAvoidingView/index.tsx b/src/components/KeyboardAvoidingView/index.tsx
+index ec2ee2961c89f815bcd2a2b710df52ef898c8fe9..85420e4ba4a22cd4445c70889c7ed5b9dc45e571 100644
+--- a/src/components/KeyboardAvoidingView/index.tsx
++++ b/src/components/KeyboardAvoidingView/index.tsx
+@@ -3,13 +3,12 @@ import { View } from "react-native";
+ import Reanimated, {
+   interpolate,
+   runOnUI,
+-  useAnimatedStyle,
+-  useDerivedValue,
+   useSharedValue,
+ } from "react-native-reanimated";
+ 
+ import { KeyboardControllerNative } from "../../bindings";
+ import { useWindowDimensions } from "../../hooks";
++import { useAnimatedStyle, useDerivedValue } from "../../reanimated";
+ import { findNodeHandle } from "../../utils/findNodeHandle";
+ import useCombinedRef from "../hooks/useCombinedRef";
+ 
+diff --git a/src/components/KeyboardAwareScrollView/index.tsx b/src/components/KeyboardAwareScrollView/index.tsx
+index 3cf2e7e052f7bee7e5219575a70b747c362161f8..509a68b39f24890848d806ce775d9e8b968df8c8 100644
+--- a/src/components/KeyboardAwareScrollView/index.tsx
++++ b/src/components/KeyboardAwareScrollView/index.tsx
+@@ -10,10 +10,7 @@ import Reanimated, {
+   interpolate,
+   runOnUI,
+   scrollTo,
+-  useAnimatedReaction,
+   useAnimatedRef,
+-  useAnimatedStyle,
+-  useDerivedValue,
+   useSharedValue,
+ } from "react-native-reanimated";
+ 
+@@ -23,6 +20,11 @@ import {
+   useReanimatedFocusedInput,
+   useWindowDimensions,
+ } from "../../hooks";
++import {
++  useAnimatedReaction,
++  useAnimatedStyle,
++  useDerivedValue,
++} from "../../reanimated";
+ import { findNodeHandle } from "../../utils/findNodeHandle";
+ import useCombinedRef from "../hooks/useCombinedRef";
+ import useScrollState from "../hooks/useScrollState";
+diff --git a/src/components/KeyboardAwareScrollView/useSmoothKeyboardHandler.ts b/src/components/KeyboardAwareScrollView/useSmoothKeyboardHandler.ts
+index 24fbf9ea7f3883326699e7a927037cf6c8b29842..1ac82e764a9231355f50ebd5574ece049d2ef62b 100644
+--- a/src/components/KeyboardAwareScrollView/useSmoothKeyboardHandler.ts
++++ b/src/components/KeyboardAwareScrollView/useSmoothKeyboardHandler.ts
+@@ -1,12 +1,9 @@
++import { useMemo } from "react";
+ import { Platform } from "react-native";
+-import {
+-  Easing,
+-  useAnimatedReaction,
+-  useSharedValue,
+-  withTiming,
+-} from "react-native-reanimated";
++import { Easing, useSharedValue, withTiming } from "react-native-reanimated";
+ 
+ import { useKeyboardHandler } from "../../hooks";
++import { useAnimatedReaction } from "../../reanimated";
+ 
+ const IS_ANDROID_ELEVEN_OR_HIGHER =
+   Platform.OS === "android" && Platform.Version >= 30;
+@@ -30,7 +27,7 @@ const TELEGRAM_ANDROID_TIMING_CONFIG = {
+  * Hook that uses default transitions for iOS and Android > 11, and uses
+  * custom interpolation on Android < 11 to achieve more smooth animation.
+  *
+- * @param handler - Object containing keyboard event handlers.
++ * @param unstableHandler - Object containing keyboard event handlers.
+  * @param [deps] - Dependencies array for the effect.
+  * @example
+  * ```ts
+@@ -47,9 +44,11 @@ const TELEGRAM_ANDROID_TIMING_CONFIG = {
+  * ```
+  */
+ export const useSmoothKeyboardHandler: typeof useKeyboardHandler = (
+-  handler,
++  unstableHandler,
+   deps,
+ ) => {
++  // eslint-disable-next-line react-compiler/react-compiler, react-hooks/exhaustive-deps
++  const handler = useMemo(() => unstableHandler, deps ?? []);
+   const target = useSharedValue(-1);
+   const height = useSharedValue(0);
+   const persistedHeight = useSharedValue(0);
+@@ -82,7 +81,6 @@ export const useSmoothKeyboardHandler: typeof useKeyboardHandler = (
+       // dispatch `onEnd`
+       if (evt.height === height.value) {
+         handler.onEnd?.(evt);
+-        // eslint-disable-next-line react-compiler/react-compiler
+         persistedHeight.value = height.value;
+       }
+     },
+diff --git a/src/components/KeyboardChatScrollView/index.tsx b/src/components/KeyboardChatScrollView/index.tsx
+index 554b38c07a8eb534a35edcced685d97d8e5c8a40..2b08331b209d3e4e968be34028fddd007f89484a 100644
+--- a/src/components/KeyboardChatScrollView/index.tsx
++++ b/src/components/KeyboardChatScrollView/index.tsx
+@@ -1,13 +1,9 @@
+ import React, { forwardRef, useCallback, useMemo } from "react";
+ import { StyleSheet } from "react-native";
+-import {
+-  makeMutable,
+-  useAnimatedRef,
+-  useAnimatedStyle,
+-  useDerivedValue,
+-} from "react-native-reanimated";
++import { makeMutable, useAnimatedRef } from "react-native-reanimated";
+ import Reanimated from "react-native-reanimated";
+ 
++import { useAnimatedStyle, useDerivedValue } from "../../reanimated";
+ import useCombinedRef from "../hooks/useCombinedRef";
+ import ScrollViewWithBottomPadding from "../ScrollViewWithBottomPadding";
+ 
+diff --git a/src/components/KeyboardChatScrollView/useEndVisible.ts b/src/components/KeyboardChatScrollView/useEndVisible.ts
+index e961117c4257b8054abb3e8f7b60f08734865d08..01fbe0843aaac23f6bb5c7ae962603bdfa081d06 100644
+--- a/src/components/KeyboardChatScrollView/useEndVisible.ts
++++ b/src/components/KeyboardChatScrollView/useEndVisible.ts
+@@ -1,9 +1,7 @@
+ import { useMemo } from "react";
+-import {
+-  runOnJS,
+-  useAnimatedReaction,
+-  useDerivedValue,
+-} from "react-native-reanimated";
++import { runOnJS } from "react-native-reanimated";
++
++import { useAnimatedReaction, useDerivedValue } from "../../reanimated";
+ 
+ import { isScrollAtEnd } from "./useChatKeyboard/helpers";
+ 
+diff --git a/src/components/KeyboardChatScrollView/useExtraContentPadding/index.ts b/src/components/KeyboardChatScrollView/useExtraContentPadding/index.ts
+index c9c93f330db9ad02d09fd59c217550db45da3b3d..6b0aafc3e2b8288cb3e9f628549c15d75cc04949 100644
+--- a/src/components/KeyboardChatScrollView/useExtraContentPadding/index.ts
++++ b/src/components/KeyboardChatScrollView/useExtraContentPadding/index.ts
+@@ -1,8 +1,9 @@
+ import { useCallback } from "react";
+ import { Platform } from "react-native";
+-import { scrollTo, useAnimatedReaction } from "react-native-reanimated";
++import { scrollTo } from "react-native-reanimated";
+ 
+ import { IS_FABRIC } from "../../../architecture";
++import { useAnimatedReaction } from "../../../reanimated";
+ import { isScrollAtEnd, shouldShiftContent } from "../useChatKeyboard/helpers";
+ 
+ import type { KeyboardLiftBehavior } from "../useChatKeyboard/types";
+diff --git a/src/components/KeyboardChatScrollView/useFrozenPadding/index.ts b/src/components/KeyboardChatScrollView/useFrozenPadding/index.ts
+index f8e718133e6dd14f986b8b60b144a7a4c8032d82..00b01bf2e8c8e948c15e1b89318bb82fef2c5f3f 100644
+--- a/src/components/KeyboardChatScrollView/useFrozenPadding/index.ts
++++ b/src/components/KeyboardChatScrollView/useFrozenPadding/index.ts
+@@ -1,6 +1,7 @@
+-import { useAnimatedReaction, useSharedValue } from "react-native-reanimated";
++import { useSharedValue } from "react-native-reanimated";
+ 
+ import { useKeyboardHandler } from "../../../hooks";
++import { useAnimatedReaction } from "../../../reanimated";
+ import { getEffectiveHeight } from "../useChatKeyboard/helpers";
+ 
+ import type { SharedValue } from "react-native-reanimated";
+diff --git a/src/components/KeyboardStickyView/index.tsx b/src/components/KeyboardStickyView/index.tsx
+index 798981ba3cae93f66743f8996de7b7bbf1d76b7d..46b36f2bedbd97c62c3f4e872760bdcc8dcc4628 100644
+--- a/src/components/KeyboardStickyView/index.tsx
++++ b/src/components/KeyboardStickyView/index.tsx
+@@ -1,10 +1,8 @@
+ import React, { forwardRef, useMemo } from "react";
+-import Reanimated, {
+-  interpolate,
+-  useAnimatedStyle,
+-} from "react-native-reanimated";
++import Reanimated, { interpolate } from "react-native-reanimated";
+ 
+ import { useReanimatedKeyboardAnimation } from "../../hooks";
++import { useAnimatedStyle } from "../../reanimated";
+ 
+ import type { View, ViewProps } from "react-native";
+ 
+diff --git a/src/components/ScrollViewWithBottomPadding/index.tsx b/src/components/ScrollViewWithBottomPadding/index.tsx
+index 637f79a3d5f845614486ae3f6be6762c7371556d..299210d27984df85f6420ee4582128c528fb0d59 100644
+--- a/src/components/ScrollViewWithBottomPadding/index.tsx
++++ b/src/components/ScrollViewWithBottomPadding/index.tsx
+@@ -2,13 +2,15 @@ import React, { forwardRef } from "react";
+ import { Platform } from "react-native";
+ import Reanimated, {
+   runOnJS,
+-  useAnimatedProps,
+-  useAnimatedReaction,
+-  useDerivedValue,
+   useSharedValue,
+ } from "react-native-reanimated";
+ 
+ import { ClippingScrollView } from "../../bindings";
++import {
++  useAnimatedProps,
++  useAnimatedReaction,
++  useDerivedValue,
++} from "../../reanimated";
+ 
+ import styles from "./styles";
+ 
+diff --git a/src/hooks/index.ts b/src/hooks/index.ts
+index 5e458ea5251fcc9ba72ca270d987e55272ac4f5a..70141ae5f7ad8f8113559fedee63b21e2ca11944 100644
+--- a/src/hooks/index.ts
++++ b/src/hooks/index.ts
+@@ -1,9 +1,10 @@
+ import { useEffect, useLayoutEffect } from "react";
+-import { useEvent, useHandler } from "react-native-reanimated";
++import { useEvent } from "react-native-reanimated";
+ 
+ import { AndroidSoftInputModes } from "../constants";
+ import { useKeyboardContext } from "../context";
+ import { KeyboardController } from "../module";
++import { useHandler } from "../reanimated";
+ 
+ import type { AnimatedContext, ReanimatedContext } from "../context";
+ import type {
+diff --git a/src/reanimated.native.ts b/src/reanimated.native.ts
+index b5600e3d41b1e0553d32add3182254182f832bdf..8ee892243d9d55c4d92a09e6b4e6f58270523d84 100644
+--- a/src/reanimated.native.ts
++++ b/src/reanimated.native.ts
+@@ -1,4 +1,11 @@
+-import { useEvent, useHandler } from "react-native-reanimated";
++import {
++  useEvent,
++  useAnimatedProps as useReanimatedAnimatedProps,
++  useAnimatedReaction as useReanimatedAnimatedReaction,
++  useAnimatedStyle as useReanimatedAnimatedStyle,
++  useDerivedValue as useReanimatedDerivedValue,
++  useHandler as useReanimatedHandler,
++} from "react-native-reanimated";
+ 
+ import type {
+   EventWithName,
+@@ -10,6 +17,24 @@ import type {
+ 
+ type EventContext = Record<string, unknown>;
+ 
++// Dependencies are only needed on Web when the Babel plugin is unavailable.
++export const useAnimatedProps: typeof useReanimatedAnimatedProps = (
++  updater,
++  _dependencies,
++  adapters,
++  isAnimatedProps,
++) => useReanimatedAnimatedProps(updater, undefined, adapters, isAnimatedProps);
++export const useAnimatedReaction: typeof useReanimatedAnimatedReaction = (
++  prepare,
++  react,
++) => useReanimatedAnimatedReaction(prepare, react);
++export const useAnimatedStyle: typeof useReanimatedAnimatedStyle = (updater) =>
++  useReanimatedAnimatedStyle(updater);
++export const useDerivedValue: typeof useReanimatedDerivedValue = (updater) =>
++  useReanimatedDerivedValue(updater);
++export const useHandler: typeof useReanimatedHandler = (handlers) =>
++  useReanimatedHandler(handlers);
++
+ export const useAnimatedKeyboardHandler: KeyboardHandlerHook<
+   EventContext,
+   EventWithName<NativeEvent>
+diff --git a/src/reanimated.ts b/src/reanimated.ts
+index ab0868c610da40bb94cdb4d8b311e2e9d8e9f54d..6bf21bb4cc09b0459eaa1d07f682d37a4922f69b 100644
+--- a/src/reanimated.ts
++++ b/src/reanimated.ts
+@@ -6,6 +6,14 @@ import type {
+   NativeEvent,
+ } from "./types";
+ 
++export {
++  useAnimatedProps,
++  useAnimatedReaction,
++  useAnimatedStyle,
++  useDerivedValue,
++  useHandler,
++} from "react-native-reanimated";
++
+ const NOOP = () => () => {};
+ 
+ export const useAnimatedKeyboardHandler: KeyboardHandlerHook<

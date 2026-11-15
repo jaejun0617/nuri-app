@@ -40,7 +40,7 @@ describe('seasonal Home ambient material', () => {
     expect(autumn.fields).toBe(HOME_AMBIENT_MESH_FIELDS);
     expect(autumn.baseColor).toBe('#FFF3DE');
     expect(autumn.heroFields).toEqual([]);
-    expect(autumn.sectionFields).toHaveLength(20);
+    expect(autumn.sectionFields).toHaveLength(18);
     expect(autumn.centerWashOpacity).toBe(0.20);
     expect(autumn.glassSurface).toBe('rgba(255, 252, 246, 0.50)');
     expect(autumn.lightHalo).toBe('#FFFDEB');
@@ -52,12 +52,12 @@ describe('seasonal Home ambient material', () => {
       const visual = getHomeAmbientVisual(season);
       expect(getHomeAmbientVisual(season)).toBe(visual);
       expect(visual.baseGradient).toHaveLength(5);
-      expect(visual.sectionFields).toHaveLength(20);
+      expect(visual.sectionFields).toHaveLength(18);
       expect(visual.glassSurface).toContain('0.50');
       if (season !== 'autumn') {
         expect(visual.fields).toEqual([]);
         expect(visual.heroFields.length).toBeGreaterThanOrEqual(6);
-        expect(visual.sectionFields).toHaveLength(20);
+        expect(visual.sectionFields).toHaveLength(18);
         for (const field of [...visual.heroFields, ...visual.sectionFields]) {
           expect(field.widthRatio).toBeGreaterThan(1);
           expect(field.heightRatio).toBeGreaterThan(0.5);
@@ -325,7 +325,7 @@ describe('seasonal Home ambient material', () => {
         light => light.zone === zone,
       );
       expect(lights).toHaveLength(
-        zone === 'weather' ? 2 : ['diary', 'summary', 'recent', 'community', 'today-tip'].includes(zone) ? 3 : 1,
+        zone === 'weather' ? 2 : ['diary', 'summary', 'recent', 'community'].includes(zone) ? 3 : 1,
       );
     }
     expect(
@@ -334,7 +334,7 @@ describe('seasonal Home ambient material', () => {
     expect(HOME_AMBIENT_SECTION_LIGHTS.some(light => light.topRatio < 0)).toBe(
       true,
     );
-    expect(HOME_AMBIENT_SECTION_LIGHTS).toHaveLength(22);
+    expect(HOME_AMBIENT_SECTION_LIGHTS).toHaveLength(19);
     for (const light of HOME_AMBIENT_SECTION_LIGHTS) {
       if (
         light.zone !== 'weather' &&

@@ -243,7 +243,7 @@ async function startOAuthProvider(
     } | undefined;
     if (Platform.OS === 'android' && browser?.open) {
       const outcome = await browser.open(url, getOAuthRedirectTo(provider));
-      if (outcome === 'returned') return;
+      if (outcome === 'returned' || outcome === 'launched') return;
       if (outcome === 'cancelled') {
         await clearPendingOAuth();
         return;

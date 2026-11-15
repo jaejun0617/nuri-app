@@ -2,6 +2,7 @@ import React, { memo, type PropsWithChildren } from 'react';
 import { Image, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import AppText from '../../../../app/ui/AppText';
+import CtaButton, { CtaIcon, CtaText } from '../../../../app/ui/CtaButton';
 import Feather from '../../../../components/icons/NuriFeatherIcon';
 import NuriSemanticIcon from '../../../../components/icons/NuriSemanticIcon';
 import { HomeReflectiveGlass } from '../../../../components/home/HomeReflectiveGlass';
@@ -27,7 +28,6 @@ type Props = {
   colors?: HomeHeroColors;
   petTheme: ReturnType<typeof buildPetThemePalette>;
   containerWidth: number;
-  fontScale?: number;
   profilePetName: string;
   titleBadge: string | null;
   titleBadgeKey?: string | null;
@@ -39,11 +39,10 @@ type Props = {
 };
 
 export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
-  containerWidth, fontScale = 1, profilePetName, titleBadge, titleBadgeKey, togetherDays, colors = HOME_HERO_COLORS,
+  containerWidth, profilePetName, titleBadge, titleBadgeKey, togetherDays, colors = HOME_HERO_COLORS,
   hasMultiplePets, onPressPetSelect, onPressProfileInfo, onPressPetProfileEdit,
 }: Props) {
   const type = getHomeHeroTypography(containerWidth, profilePetName);
-  const expandActions = (type.compact && fontScale > 1) || fontScale >= 1.5;
   const titleArt = getTitleArtwork(titleBadgeKey);
   const titleArtSize = type.nameSize + 3;
   const nameIconSlot = [styles.selectorIconSlot, { width: titleArtSize }];
@@ -90,29 +89,25 @@ export const HomeHeroInfoPanel = memo(function HomeHeroInfoPanelView({
         </View>
       ) : null}
       <View testID="home-hero-profile-actions" style={[styles.profileActions, { marginHorizontal: type.actionInset }]}>
-        {!expandActions ? (
-          <View testID="home-hero-action-balance" accessible={false} importantForAccessibility="no-hide-descendants" pointerEvents="none" style={styles.actionBalance} />
-        ) : null}
         <TouchableOpacity
           testID="home-hero-profile-info" activeOpacity={0.86} accessibilityRole="button"
           accessibilityLabel={`${profilePetName} 더 알아보기`} onPress={onPressProfileInfo}
           style={styles.actionButton}
         >
           <HomeReflectiveGlass testID="home-hero-profile-info-glass" borderRadius={999} style={styles.actionGlass} />
-          {!expandActions ? (
-            <View accessible={false} importantForAccessibility="no-hide-descendants" style={styles.actionIconSlot} />
-          ) : null}
+          <View accessible={false} importantForAccessibility="no-hide-descendants" style={styles.actionIconSlot} />
           <AppText testID="home-hero-profile-info-label" preset="unifiedLabel" styleOverridesPreset numberOfLines={2} ellipsizeMode="tail" style={[styles.actionText, { color: colors.ink, fontSize: type.buttonSize }]}>{profilePetName} 더 알아보기</AppText>
           <View accessible={false} style={styles.actionIconSlot}><Feather name="chevron-right" size={22} color={colors.ink} accessible={false} /></View>
         </TouchableOpacity>
-        <TouchableOpacity
-          testID="home-hero-profile-edit" activeOpacity={0.86} accessibilityRole="button"
-          accessibilityLabel={`${profilePetName} 프로필 수정하기`} onPress={onPressPetProfileEdit}
-          style={styles.editButton}
+        <CtaButton
+          testID="home-hero-profile-edit" role="primary"
+          accessibilityLabel={`${profilePetName} 프로필 편집하기`} onPress={onPressPetProfileEdit}
+          style={styles.actionButton}
         >
-          <HomeReflectiveGlass testID="home-hero-profile-edit-glass" borderRadius={15} borderless style={styles.actionGlass} />
-          <Feather name="edit-2" size={24} color={HOME_HERO_ACCENT.primary} accessible={false} />
-        </TouchableOpacity>
+          <View accessible={false} importantForAccessibility="no-hide-descendants" style={styles.actionIconSlot} />
+          <CtaText testID="home-hero-profile-edit-label" preset="unifiedLabel" styleOverridesPreset style={[styles.actionText, { fontSize: type.buttonSize }]}>프로필 편집하기</CtaText>
+          <View accessible={false} style={styles.actionIconSlot}><CtaIcon name="chevron-right" size={22} accessible={false} /></View>
+        </CtaButton>
       </View>
     </View>
   );
@@ -148,12 +143,10 @@ const styles = StyleSheet.create({
   togetherHeart: { width: 13, height: 16, flexShrink: 0, alignItems: 'center', justifyContent: 'center', opacity: 0.65 },
   togetherText: { lineHeight: 20, color: HOME_HERO_COLORS.muted, fontWeight: '500', includeFontPadding: false },
   days: { lineHeight: 32, fontWeight: '500', includeFontPadding: false },
-  profileActions: { marginTop: 6, flexDirection: 'row', alignItems: 'stretch', gap: 7 },
-  actionBalance: { width: 54, flexShrink: 0 },
-  actionButton: { flex: 1, minWidth: 0, minHeight: 51, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 999, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
+  profileActions: { marginTop: 6, flexDirection: 'column', alignItems: 'stretch', gap: 7 },
+  actionButton: { minWidth: 0, minHeight: 51, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 999, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5 },
   actionText: { color: HOME_HERO_COLORS.ink, lineHeight: 20, fontWeight: '500', textAlign: 'center', flexShrink: 1, minWidth: 0, includeFontPadding: false },
   actionIconSlot: { width: 22, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
-  editButton: { width: 54, minHeight: 51, borderRadius: 15, borderWidth: 0, alignItems: 'center', justifyContent: 'center' },
   // Absolute edges own the width; 100% would use the padded content width.
   actionGlass: { position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, width: 'auto', marginTop: 0 },
 });

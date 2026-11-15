@@ -1856,41 +1856,6 @@ export const styles = StyleSheet.create({
   },
 
   // ---------------------------------------------------------
-  // Home Tip
-  // ---------------------------------------------------------
-  todayTipCard: {
-    borderRadius: 0,
-    paddingHorizontal: 0,
-    paddingVertical: 0,
-    backgroundColor: 'transparent',
-    gap: 10,
-  },
-  todayTipBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  todayTipBadgeText: {
-    fontSize: 12,
-    lineHeight: 18,
-    fontWeight: '500',
-    color: BRAND,
-  },
-  todayTipTitle: {
-    fontSize: 16,
-    lineHeight: 22,
-    fontWeight: '600',
-    color: TEXT,
-    letterSpacing: 0,
-  },
-  todayTipDesc: {
-    fontSize: 14,
-    fontWeight: '400',
-    color: MUTED,
-    lineHeight: 20,
-  },
-
-  // ---------------------------------------------------------
   // Monthly Diary
   // ---------------------------------------------------------
   monthDiaryList: {

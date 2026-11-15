@@ -200,7 +200,6 @@ describe('Home glossy bubble atmosphere', () => {
     'recommendation',
     'schedule',
     'health',
-    'today-tip',
     'diary',
   ])('balances cropped and complete spheres through %s', zone => {
     const bubbles = HOME_AMBIENT_SCROLL_BUBBLES.filter(
@@ -209,7 +208,7 @@ describe('Home glossy bubble atmosphere', () => {
     expect(bubbles.filter(bubble => bubble.kind === 'large')).toHaveLength(
       zone === 'summary'
         ? 3
-        : ['weather', 'recent', 'community', 'today-tip'].includes(zone)
+        : ['weather', 'recent', 'community'].includes(zone)
         ? 2
         : 1,
     );
@@ -237,7 +236,7 @@ describe('Home glossy bubble atmosphere', () => {
       const large = HOME_AMBIENT_SCROLL_BUBBLES.filter(
         bubble => bubble.kind === 'large',
       );
-      expect(large).toHaveLength(17);
+      expect(large).toHaveLength(15);
       for (const bubble of large) {
         const size = getHomeAmbientBubbleSize(bubble, width);
         const left = width * bubble.centerXRatio - size / 2;
@@ -249,7 +248,7 @@ describe('Home glossy bubble atmosphere', () => {
       const complete = HOME_AMBIENT_SCROLL_BUBBLES.filter(
         bubble => bubble.kind === 'medium',
       );
-      expect(complete).toHaveLength(12);
+      expect(complete).toHaveLength(11);
       for (const bubble of complete) {
         const size = getHomeAmbientBubbleSize(bubble, width);
         const left = Math.round(width * bubble.centerXRatio - size / 2);
@@ -271,7 +270,7 @@ describe('Home glossy bubble atmosphere', () => {
         ),
       ).toBe(true);
       expect(HOME_AMBIENT_HERO_LIGHTS).toHaveLength(9);
-      expect(HOME_AMBIENT_SECTION_LIGHTS).toHaveLength(22);
+      expect(HOME_AMBIENT_SECTION_LIGHTS).toHaveLength(19);
     },
   );
 

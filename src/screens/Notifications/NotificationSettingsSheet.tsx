@@ -57,14 +57,14 @@ export function NotificationSettingsSheet(props: NotificationSettingsSheetProps)
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose} statusBarTranslucent navigationBarTranslucent>
       <View style={styles.backdrop}>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessible={false} />
-        <View testID="notification-settings-sheet" accessibilityViewIsModal style={[styles.sheet, { maxHeight: height - 56, paddingBottom: Math.max(bottomInset, 12) }]}>
+        <View testID="notification-settings-sheet" accessibilityViewIsModal style={[styles.sheet, { maxHeight: height - 56, paddingBottom: bottomInset }]}>
           <MenuGlassSurface radius={0} backed />
           <View style={styles.handle} />
           <View style={styles.header}>
             <AppText preset="sectionTitle" style={styles.heading}>알림 설정</AppText>
             <Pressable accessibilityRole="button" accessibilityLabel="알림 설정 닫기" onPress={onClose} style={styles.close} hitSlop={6}><NuriSemanticIcon family="feather" preserveOriginal name="x" size={25} color="#8474A5" /></Pressable>
           </View>
-          <ScrollView style={[styles.scroll, { maxHeight: Math.max(160, height - bottomInset - 150) }]} contentContainerStyle={styles.content} showsVerticalScrollIndicator>
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator>
             <View style={styles.intro}>
               <View style={styles.introRow}>
                 <AppText preset="titleMd" style={styles.introTitle}>{'필요한 순간에,\n잊지 않도록'}</AppText>
@@ -116,7 +116,7 @@ export function NotificationSettingsSheet(props: NotificationSettingsSheetProps)
                   : <View key={row.key} testID={`notification-settings-${row.key}`} accessible accessibilityRole="text" accessibilityLabel={`${row.title}, ${row.status}`} style={style}>{content}</View>;
               })}
             </View>
-            <View style={styles.notice}><NuriSemanticIcon family="feather" preserveOriginal name="info" size={20} color={C.muted} /><AppText preset="bodySm" style={[styles.helper, styles.noticeText]}>{'기기 설정에 따라 알림이 오지 않을 수 있어요.\n알림이 오지 않으면 위 설정을 확인해주세요.'}</AppText></View>
+            <View testID="notification-settings-footer" style={styles.notice}><NuriSemanticIcon family="feather" preserveOriginal name="info" size={20} color={C.muted} /><AppText preset="bodySm" style={[styles.helper, styles.noticeText]}>{'기기 설정에 따라 알림이 오지 않을 수 있어요.\n알림이 오지 않으면 위 설정을 확인해주세요.'}</AppText></View>
           </ScrollView>
         </View>
       </View>
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
   heading: { color: C.ink, ...TYPE.title },
   close: { width: 36, height: 36, borderRadius: 18, backgroundColor: C.control, justifyContent: 'center', alignItems: 'center' },
   scroll: { flexShrink: 1 },
-  content: { paddingHorizontal: 18, paddingBottom: 16 },
+  content: { paddingHorizontal: 18, paddingBottom: 24 },
   intro: { paddingHorizontal: 4, marginTop: 10, marginBottom: 12 },
   introRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   introTitle: { flex: 1, minWidth: 0, color: C.ink, ...TYPE.title },

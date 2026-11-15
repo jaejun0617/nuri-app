@@ -178,6 +178,8 @@ describe('single schedule reminder form contract', () => {
 
   it('create retains offset and recurrence controls, without any repeat-count field', async () => {
     const root = await render(<ScheduleCreateScreen />);
+    expect(hasText(root, '기타 항목')).toBe(true);
+    expect(hasText(root, '···')).toBe(false);
     await press(root, '5분 전');
     await press(root, '매일');
     for (const removed of ['알림 반복', '1회', '3회', '5회', '계속 반복'])

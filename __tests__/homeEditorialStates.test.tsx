@@ -17,8 +17,6 @@ import {
   CommunityEmptyState,
   HOME_COMMUNITY_EMPTY_COPY,
   RecentRecordsEmptyState,
-  TodayHomeTipSection,
-  TODAY_HOME_TIP,
   getRecentEmptyDataState,
   shouldStackEditorialCopy,
   styles,
@@ -104,58 +102,6 @@ describe('seasonal editorial Home sections', () => {
     });
     expect(new Set(hashes).size).toBe(28);
   });
-
-  it.each(SEASONS)(
-    'keeps the actual Today Tip copy and no CTA in %s',
-    async season => {
-      jest.spyOn(RN, 'useWindowDimensions').mockReturnValue({
-        width: 321, height: 800, scale: 3, fontScale: 1,
-      });
-      let renderer!: TestRenderer.ReactTestRenderer;
-      await act(async () => {
-        renderer = TestRenderer.create(
-          <ThemeProvider theme={createTheme('light')}>
-            <TodayHomeTipSection season={season} accentColor="#0754DA" />
-          </ThemeProvider>,
-        );
-      });
-      const output = JSON.stringify(renderer.toJSON());
-      expect(output).toContain(TODAY_HOME_TIP.title);
-      expect(output).toContain(TODAY_HOME_TIP.description);
-      expect(renderer.root.findAllByType(RN.TouchableOpacity)).toHaveLength(0);
-      expect(
-        renderer.root.findAllByType(RN.Image).map(image => image.props.source),
-      ).not.toContain(HOME_EDITORIAL_ART['today-tip'][season]);
-      expect(
-        renderer.root.findAllByProps({ testID: 'home-today-tip-seasonal-art' }),
-      ).not.toHaveLength(0);
-      await act(async () => renderer.unmount());
-    },
-  );
-
-  it.each(SEASONS)(
-    'keeps the Today Tip copy without the ornament frame at 320dp in %s',
-    async season => {
-      jest.spyOn(RN, 'useWindowDimensions').mockReturnValue({
-        width: 320, height: 693, scale: 3, fontScale: 1,
-      });
-      let renderer!: TestRenderer.ReactTestRenderer;
-      await act(async () => {
-        renderer = TestRenderer.create(
-          <ThemeProvider theme={createTheme('light')}>
-            <TodayHomeTipSection season={season} accentColor="#0754DA" />
-          </ThemeProvider>,
-        );
-      });
-      const output = JSON.stringify(renderer.toJSON());
-      expect(output).toContain(TODAY_HOME_TIP.title);
-      expect(output).toContain(TODAY_HOME_TIP.description);
-      expect(
-        renderer.root.findAllByProps({ testID: 'home-today-tip-art-frame' }),
-      ).toHaveLength(0);
-      await act(async () => renderer.unmount());
-    },
-  );
 
   it.each(SEASONS)(
     'keeps recent-record creation and centered icon-free action in %s',
@@ -330,7 +276,7 @@ describe('seasonal editorial Home sections', () => {
     await act(async () => renderer.unmount());
   });
 
-  it.each(['recent', 'community', 'today-tip'] as const)(
+  it.each(['recent', 'community'] as const)(
     'adds concept spheres and glints only in the %s measured zone',
     zone => {
       const bubbles = HOME_AMBIENT_SCROLL_BUBBLES.filter(

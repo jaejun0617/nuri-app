@@ -22,16 +22,24 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import NuriIcon, { type NuriIconName } from '../icons/NuriIcon';
+import ToolbarOutlineIcon, { type ToolbarIconName } from '../icons/ToolbarOutlineIcon';
 
 import AppText from '../../app/ui/AppText';
-import { HOME_HERO_COLORS, HOME_HERO_ACCENT, HOME_HERO_TOOLBAR_RADIUS } from '../../theme/home/heroLayout';
+import { HOME_HERO_ACCENT, HOME_HERO_COLORS, HOME_HERO_TOOLBAR_RADIUS } from '../../theme/home/heroLayout';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { ScreenEntrySource } from '../../navigation/entry';
 
 import { closeMoreDrawer, openMoreDrawer } from '../../store/uiStore';
 
-export type ActiveTabKey = 'home' | 'timeline' | 'community' | 'guestbook' | 'more';
+export type ActiveTabKey = ToolbarIconName;
+
+const tabs = [
+  { key: 'home', label: '홈' },
+  { key: 'timeline', label: '타임라인' },
+  { key: 'community', label: '커뮤니티' },
+  { key: 'guestbook', label: '편지함' },
+  { key: 'more', label: '전체메뉴' },
+] as const;
 
 type Props = {
   activeKey: ActiveTabKey;
@@ -63,9 +71,6 @@ export default function AppNavigationToolbar({
         : Math.max(insets.bottom, 10),
     [insets.bottom],
   );
-  // PO: all instances share the same calm purple navigation color hierarchy.
-  const activeColor = HOME_HERO_ACCENT.primary;
-  const inactiveColor = HOME_HERO_COLORS.muted;
 
   const navigateTo = useCallback(
     (target: ActiveTabKey) => {
@@ -127,63 +132,41 @@ export default function AppNavigationToolbar({
     [activeKey, navigation, onBeforeNavigate, onPressMore, onPressActiveHome, onNavigateTab],
   );
 
-  const tabs = useMemo(
-    () => [
-      { key: 'home' as const, label: '홈', icon: 'home' },
-      { key: 'timeline' as const, label: '타임라인', icon: 'timeline' },
-      { key: 'community' as const, label: '커뮤니티', icon: 'community' },
-      { key: 'guestbook' as const, label: '편지함', icon: 'letter' },
-      { key: 'more' as const, label: '전체메뉴', icon: 'menu' },
-    ] satisfies Array<{ key: ActiveTabKey; label: string; icon: NuriIconName }>,
-    [],
-  );
-
   return (
     <View
       onLayout={onLayout}
       style={[
         styles.wrap,
-        { backgroundColor: '#FFFFFF' },
         { paddingBottom: bottomInset },
       ]}
     >
-      <View
-        style={[
-          styles.bar,
-          {
-            backgroundColor: '#FFFFFF',
-          },
-        ]}
-      >
+      <View style={styles.bar}>
         {tabs.map(tab => {
           const active = activeKey === tab.key;
+          const color = active ? HOME_HERO_ACCENT.primary : HOME_HERO_COLORS.muted;
           return (
             <TouchableOpacity
               key={tab.key}
               activeOpacity={0.9}
               accessibilityRole="tab"
+              accessibilityLabel={tab.label}
               accessibilityState={{ selected: active }}
               style={styles.item}
               onPress={() => navigateTo(tab.key)}
             >
-              <NuriIcon
-                name={tab.icon}
-                size={18}
-                color={active ? activeColor : inactiveColor}
-                colorMode="theme"
-                variant={active ? 'glass' : 'outline'}
+              <ToolbarOutlineIcon
+                name={tab.key}
+                color={color}
               />
               <AppText
                 typographyRole="navigation"
                 preset="tab"
+                keepBaseFontSize
                 maxFontSizeMultiplier={1.6}
                 numberOfLines={1}
                 adjustsFontSizeToFit
                 minimumFontScale={0.75}
-                style={[
-                  styles.label,
-                  { color: active ? activeColor : inactiveColor },
-                ]}
+                style={[styles.label, { color }]}
               >
                 {tab.label}
               </AppText>
@@ -202,6 +185,7 @@ const styles = StyleSheet.create({
     right: 0,
     bottom: 0,
     paddingTop: 0,
+    backgroundColor: '#FFFFFF',
     borderTopLeftRadius: HOME_HERO_TOOLBAR_RADIUS,
     borderTopRightRadius: HOME_HERO_TOOLBAR_RADIUS,
   },
@@ -211,6 +195,7 @@ const styles = StyleSheet.create({
     borderTopColor: '#ECEAF1',
     borderTopLeftRadius: HOME_HERO_TOOLBAR_RADIUS,
     borderTopRightRadius: HOME_HERO_TOOLBAR_RADIUS,
+    backgroundColor: '#FFFFFF',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

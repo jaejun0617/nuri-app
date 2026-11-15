@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 function readProjectFile(relativePath: string): string {
@@ -6,6 +6,36 @@ function readProjectFile(relativePath: string): string {
 }
 
 describe('responsive source guards', () => {
+  it('keeps retired tutorial and device preview code out of the app', () => {
+    for (const sourcePath of [
+      'src/screens/Tutorial',
+      'src/services/tutorial',
+      'src/assets/tutorial',
+      'src/app/providers/TutorialProvider.tsx',
+      'src/screens/DevTest/DeviceLayoutPreviewScreen.tsx',
+    ]) {
+      expect(existsSync(join(process.cwd(), sourcePath))).toBe(false);
+    }
+
+    for (const entryPath of [
+      'App.tsx',
+      'src/navigation/RootNavigator.tsx',
+      'src/navigation/navigationTransitionPolicy.ts',
+      'src/screens/More/MoreDrawerContent.tsx',
+      'src/app/providers/ResponsiveTypographyProvider.tsx',
+      'src/screens/Main/MainScreen.tsx',
+      'src/screens/Records/RecordCreateScreen.tsx',
+      'src/screens/Records/TimelineScreen.tsx',
+      'src/screens/Schedules/ScheduleListScreen.tsx',
+      'src/screens/Schedules/ScheduleCreateScreen.tsx',
+    ]) {
+      expect(readProjectFile(entryPath)).not.toMatch(
+        /TutorialLibrary|TutorialProvider|useAutoTutorial|tutorial_progress_v1|DeviceLayoutPreview|device-layout-preview|ResponsiveTypographyPreview/,
+      );
+    }
+    expect(readProjectFile('App.tsx')).toContain('<ResponsiveTypographyProvider>');
+  });
+
   it('tracks the live More drawer window instead of caching module dimensions', () => {
     const source = readProjectFile('src/components/MoreDrawer/MoreDrawer.tsx');
 
