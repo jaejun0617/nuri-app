@@ -1,5 +1,5 @@
 import React from 'react';
-import { FlatList, ScrollView, StyleSheet } from 'react-native';
+import { FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import TestRenderer from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 import { QueryClientProvider } from '@tanstack/react-query';
@@ -155,7 +155,7 @@ describe('pet stack content-end spacing', () => {
     ).not.toHaveLength(0);
   });
 
-  it('keeps every pet and the add action without reserving a future viewport', () => {
+  it('keeps every pet and places the add action after the scroll viewport', () => {
     TestRenderer.act(() => {
       renderer = TestRenderer.create(
         <ThemeProvider theme={createTheme('light')}>
@@ -166,9 +166,21 @@ describe('pet stack content-end spacing', () => {
     if (!renderer) throw new Error('PetManagementScreen did not mount');
 
     const list = renderer.root.findByType(FlatList);
-    expect(StyleSheet.flatten(list.props.contentContainerStyle)).toEqual(
-      expect.objectContaining({ paddingBottom: 24 }),
+    const actions = renderer.root.findAllByType(View).find(
+      node => node.props.testID === 'pet-management-actions',
     );
+    if (!actions) throw new Error('Pet management actions missing');
+    expect(actions.parent).toBe(list.parent);
+    expect(list.props.ListFooterComponent).toBeUndefined();
+    expect(StyleSheet.flatten(list.props.style)).toMatchObject({ flex: 1 });
+    expect(StyleSheet.flatten(list.props.contentContainerStyle)).toMatchObject({
+      paddingBottom: 12,
+    });
+    const actionStyle = StyleSheet.flatten(actions.props.style);
+    expect(actionStyle).toMatchObject({ flexShrink: 0, paddingBottom: 12 });
+    expect(actionStyle.position).not.toBe('absolute');
+    expect(actions.findAllByType(TouchableOpacity).map(node => node.props.testID))
+      .toEqual(['pet-management-add']);
     const safeRoot = renderer.root.findByProps({ testID: 'pet-management-screen' });
     expect(StyleSheet.flatten(safeRoot.props.style).paddingBottom).toBe(18);
     expect(renderer.root.findAll(node => node.props.children === '누리')).not.toHaveLength(0);
