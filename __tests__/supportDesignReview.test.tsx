@@ -440,6 +440,10 @@ describe('NURI-15 local design review (not server or device acceptance)', () => 
     await press(tree, 'preview-open-refund');
     const submit = () =>
       tree.root.findByProps({ testID: 'preview-refund-submit' });
+    expect(
+      tree.root.findByProps({ testID: 'preview-refund-reason' }).props
+        .placeholderTextColor,
+    ).toBe(createTheme('light').colors.textSecondary);
     expect(submit().props.disabled).toBe(true);
     await press(tree, 'choice-example');
     await TestRenderer.act(async () =>

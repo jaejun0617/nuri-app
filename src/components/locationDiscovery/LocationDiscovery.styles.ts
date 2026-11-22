@@ -109,16 +109,6 @@ export const styles = StyleSheet.create({
     color: '#6E788A',
     fontWeight: '700',
   },
-  locationRefreshButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: 'rgba(109,106,248,0.12)',
-  },
-  locationRefreshButtonText: {
-    color: '#5753E6',
-    fontWeight: '900',
-  },
   filterSection: {
     gap: 10,
     marginBottom: 12,

@@ -7,7 +7,6 @@ import React, {
   memo,
   useCallback,
   useEffect,
-  useMemo,
   useRef,
   useState,
 } from 'react';
@@ -244,24 +243,6 @@ export default function PetManagementScreen() {
     ),
     [containerWidth, handleDelete, handleEdit, handleSelect, selectedPetId],
   );
-  const addButton = useMemo(
-    () => (
-      <TouchableOpacity
-        testID="pet-management-add"
-        accessibilityRole="button"
-        style={styles.add}
-        activeOpacity={0.85}
-        onPress={handleAddPet}
-      >
-        <LavenderCtaFill radius={13} />
-        <AppText preset="button" style={styles.addText}>
-          새로운 아이 소개하기
-        </AppText>
-      </TouchableOpacity>
-    ),
-    [handleAddPet],
-  );
-
   return (
     <View
       testID="pet-management-screen"
@@ -306,12 +287,12 @@ export default function PetManagementScreen() {
           extraData={selectedPetId}
           keyExtractor={keyExtractor}
           renderItem={renderItem}
+          style={styles.listViewport}
           contentContainerStyle={[
             styles.list,
             { paddingHorizontal: layout.pageInset },
           ]}
           ItemSeparatorComponent={Separator}
-          ListFooterComponent={pets.length > 0 ? addButton : undefined}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <View style={styles.empty}>
@@ -328,10 +309,26 @@ export default function PetManagementScreen() {
               <AppText preset="bodySm" style={styles.emptyBody}>
                 아이를 등록하면 홈과 기록, 일정에서 함께 관리할 수 있어요.
               </AppText>
-              {addButton}
             </View>
           }
         />
+        <View
+          testID="pet-management-actions"
+          style={[styles.actions, { paddingHorizontal: layout.pageInset }]}
+        >
+          <TouchableOpacity
+            testID="pet-management-add"
+            accessibilityRole="button"
+            style={styles.add}
+            activeOpacity={0.85}
+            onPress={handleAddPet}
+          >
+            <LavenderCtaFill radius={13} />
+            <AppText preset="button" style={styles.addText}>
+              새로운 아이 소개하기
+            </AppText>
+          </TouchableOpacity>
+        </View>
       </View>
       {deleteTarget ? (
         <PetDeleteConfirmDialog
@@ -381,8 +378,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     includeFontPadding: false,
     textAlignVertical: 'center', ...APP_HEADER.title },
-  list: { flexGrow: 1, paddingTop: 0, paddingBottom: 24 },
+  listViewport: { flex: 1 },
+  list: { flexGrow: 1, paddingBottom: 12 },
   separator: { height: 14 },
+  actions: { flexShrink: 0, paddingTop: 8, paddingBottom: 12 },
   add: {
     minHeight: 56,
     borderRadius: 13,
@@ -390,7 +389,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 18,
     paddingVertical: 14,
-    marginTop: 16,
     backgroundColor: LAVENDER_CTA.background,
   },
   addText: {

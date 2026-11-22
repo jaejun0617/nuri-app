@@ -47,23 +47,18 @@ export function WalkProgressionRow({
         ? (BigInt(p.lifetimeActiveDurationMs) / 60_000n).toString()
         : null;
     return (
-      <HomeReflectiveGlass
-        testID="walk-home-progression"
-        borderRadius={18}
-        style={styles.homeProgression}
-      >
-        <View style={styles.progressionMetric}>
+      <View testID="walk-home-progression" style={styles.homeProgression}>
+        <HomeReflectiveGlass testID="home-walk-distance-widget" borderRadius={18} style={styles.progressionMetric}>
           <View style={styles.metricCopy}>
             <AppText preset="unifiedMeta" style={styles.metricLabel}>평생 함께 걸은 거리</AppText>
             <AppText preset="unifiedTitle" style={styles.progressionValue}>
               {walkDistance(p.lifetimeDistanceM)}
             </AppText>
           </View>
-        </View>
-        <View style={styles.progressionDivider} />
-        <View style={styles.progressionMetric}>
+        </HomeReflectiveGlass>
+        <HomeReflectiveGlass testID="home-walk-level-widget" borderRadius={18} style={styles.progressionMetric}>
           <View style={styles.metricCopy}>
-            <AppText preset="unifiedMeta" style={styles.metricLabel}>산책</AppText>
+            <AppText preset="unifiedMeta" style={styles.metricLabel}>산책 레벨</AppText>
             <AppText preset="unifiedTitle" style={styles.progressionValue}>
               Lv. {p.level}
             </AppText>
@@ -71,8 +66,8 @@ export function WalkProgressionRow({
               {minutes === null ? '산책 시간 확인 필요' : `산책 ${minutes}분`}
             </AppText>
           </View>
-        </View>
-      </HomeReflectiveGlass>
+        </HomeReflectiveGlass>
+      </View>
     );
   }
   return (
@@ -227,24 +222,23 @@ export function WalkHomeFooter({
 const styles = StyleSheet.create({
   homeProgression: {
     marginTop: 10,
-    padding: 14,
     flexDirection: 'row',
     alignItems: 'stretch',
-    gap: 14,
+    gap: 10,
   },
   progressionMetric: {
     flex: 1,
+    width: 'auto',
     minWidth: 0,
+    marginTop: 0,
+    paddingHorizontal: 10,
+    paddingVertical: 14,
     justifyContent: 'center',
     alignItems: 'center',
   },
   metricCopy: { width: '100%', minWidth: 0, alignItems: 'center', gap: 4 },
   metricLabel: { textAlign: 'center' },
   progressionValue: { fontSize: 24, lineHeight: 32, fontWeight: '700', textAlign: 'center' },
-  progressionDivider: {
-    width: StyleSheet.hairlineWidth,
-    backgroundColor: 'rgba(125,92,228,0.22)',
-  },
   section: { gap: 6, paddingTop: 10 },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 },
   historyAction: {

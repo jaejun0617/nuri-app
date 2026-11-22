@@ -2,7 +2,6 @@ import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
 import { HeaderHelpButton } from '../../components/navigation/HeaderHelpButton';
 import { MenuGlassSurface, MENU_GLASS_FRAME } from '../../components/common/MenuGlassSurface';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
-import CtaButton, { CtaText } from '../../app/ui/CtaButton';
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import {
   FlatList,
@@ -263,21 +262,6 @@ export default function LocationDiscoveryListScreen() {
             {locationTitle}
           </AppText>
         </View>
-        <CtaButton
-          role="secondary"
-          activeOpacity={0.9}
-          style={[styles.locationRefreshButton, {}]}
-          onPress={() => {
-            discoveryState.refresh().catch(() => {});
-          }}
-        >
-          <CtaText
-            preset="unifiedMeta"
-            style={[styles.locationRefreshButtonText, {}]}
-          >
-            새로고침
-          </CtaText>
-        </CtaButton>
       </View>
 
       <View style={styles.filterSection}>
@@ -429,7 +413,12 @@ export default function LocationDiscoveryListScreen() {
           <View style={styles.resultsPanel}>
             {discoveryState.loading && sortedItems.length === 0 ? (
               <WalkLoadingSkeleton />
-            ) : discoveryState.error && sortedItems.length === 0 ? (
+            ) : (
+              <FlatList
+                ref={listRef}
+                data={sortedItems}
+                ListHeaderComponent={listHeader}
+                ListEmptyComponent={discoveryState.error ? (
               <View style={styles.resultsEmptyWrap}>
                 <LocationDiscoveryStatusCard surfaceVariant="menuGlass"
                   icon="alert-circle"
@@ -437,7 +426,7 @@ export default function LocationDiscoveryListScreen() {
                   body={discoveryState.error}
                 />
               </View>
-            ) : sortedItems.length === 0 ? (
+            ) : (
               <View style={styles.resultsEmptyWrap}>
                 {submittedQuery.trim().length >= 2 ? (
                   <LocationDiscoveryStatusCard surfaceVariant="menuGlass"
@@ -458,11 +447,7 @@ export default function LocationDiscoveryListScreen() {
                   />
                 )}
               </View>
-            ) : (
-              <FlatList
-                ref={listRef}
-                data={sortedItems}
-                ListHeaderComponent={listHeader}
+            )}
                 keyExtractor={keyExtractor}
                 renderItem={renderItem}
                 style={styles.resultsList}
@@ -485,6 +470,8 @@ export default function LocationDiscoveryListScreen() {
                 }}
                 refreshControl={
                   <RefreshControl
+                    tintColor={petTheme.primary}
+                    colors={[petTheme.primary]}
                     refreshing={discoveryState.refreshing}
                     onRefresh={() => {
                       discoveryState.refresh().catch(() => {});

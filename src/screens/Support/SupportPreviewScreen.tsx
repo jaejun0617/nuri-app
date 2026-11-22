@@ -438,6 +438,7 @@ export default function SupportPreviewScreen({
               testID="preview-refund-reason"
               accessibilityLabel="환불 사유"
               placeholder="환불을 요청하는 이유를 남겨주세요"
+              placeholderTextColor={theme.colors.textSecondary}
               multiline
               maxLength={2000}
               value={reason}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AppState } from 'react-native';
+import { AppState, StyleSheet, View } from 'react-native';
 import Renderer, { act } from 'react-test-renderer';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'styled-components/native';
@@ -244,10 +244,23 @@ it('Home and lazy profile reuse a single progression query', async () => {
   expect(walkProgressionRepository.get).toHaveBeenCalledTimes(1);
   expect(texts()).toContain('다음 레벨까지');
 });
-it('shows cumulative active minutes below the Home level without the GPS prefix', async () => {
+it('separates Home distance and level into two equal widgets with one progression request', async () => {
   jest.mocked(walkProgressionRepository.get).mockResolvedValue({ ...progression('pet-a', 1000n), lifetimeActiveDurationMs: '1259999' });
   await mount(<WalkProgressionRow petId="pet-a" enabled />);
   await flush();
+  const row = tree!.root.findAllByType(View).find(node => node.props.testID === 'walk-home-progression');
+  const widgets = row?.findAllByType(View).filter(node =>
+    node.props.testID === 'home-walk-distance-widget' || node.props.testID === 'home-walk-level-widget',
+  ) ?? [];
+  expect(widgets.map(widget => widget.props.testID)).toEqual(['home-walk-distance-widget', 'home-walk-level-widget']);
+  expect(StyleSheet.flatten(row?.props.style)).toMatchObject({ flexDirection: 'row', alignItems: 'stretch' });
+  for (const widget of widgets) {
+    expect(StyleSheet.flatten(widget.props.style)).toMatchObject({ flex: 1, minWidth: 0 });
+  }
+  expect(widgets[0].findAllByProps({ children: '1 km' }).length).toBeGreaterThan(0);
+  expect(widgets[0].findAllByProps({ testID: 'home-walk-active-minutes' })).toHaveLength(0);
+  expect(widgets[1].findAllByProps({ testID: 'home-walk-active-minutes' })[0].props.children).toBe('산책 20분');
+  expect(walkProgressionRepository.get).toHaveBeenCalledTimes(1);
   expect(texts()).toContain('산책 20분');
   expect(texts()).toContain('Lv. 2');
   expect(texts()).not.toContain('GPS 산책');

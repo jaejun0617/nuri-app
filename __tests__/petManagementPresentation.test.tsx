@@ -403,6 +403,19 @@ describe('pet profile management reference and safety', () => {
     ).toBe(18);
     expect(renderer.root.findByType(FlatList).props.extraData).toBe(other.id);
   });
+  it.each([
+    { state: 'populated', pets: [pet, other] },
+    { state: 'empty', pets: [] },
+  ])('keeps one add CTA outside the $state scrolling list', ({ pets }) => {
+    screen(pets);
+    const list = renderer.root.findByType(FlatList);
+    const actions = view('pet-management-actions');
+    expect(actions.parent).toBe(list.parent);
+    expect(actions.findAllByType(TouchableOpacity)).toEqual([button('pet-management-add')]);
+    expect(list.findAllByType(TouchableOpacity).some(node => node.props.testID === 'pet-management-add')).toBe(false);
+    expect(StyleSheet.flatten(list.props.style).flex).toBe(1);
+    expect(StyleSheet.flatten(actions.props.style).flexShrink).toBe(0);
+  });
   it('opens the explicit unselected target without mutating count/order/selection', () => {
     screen();
     openDelete(other);
