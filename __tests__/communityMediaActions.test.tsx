@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Text,
-  TextInput,
   View,
 } from 'react-native';
 import FastImage from 'react-native-fast-image';
@@ -151,7 +150,7 @@ test.each([false, true])(
   },
 );
 test.each(['light', 'dark'] as const)(
-  'neutral %s preview keeps explicit replies, small reply avatar and inline composer',
+  'neutral %s preview keeps explicit replies, small reply avatar and full-width bubbles',
   async mode => {
     const root: CommunityComment = {
       id: 'root',
@@ -201,8 +200,6 @@ test.each(['light', 'dark'] as const)(
         previewReplyIds={['a']}
         commentId="root"
         repliesExpanded
-        activeReplyTargetId="a"
-        inlineComposer={<TextInput testID="inline-draft" value="유지할 답글" />}
         currentUserId="qa"
         postAuthorId="qa"
         authorAccentColor="#333333"
@@ -232,7 +229,7 @@ test.each(['light', 'dark'] as const)(
     expect(bubbles).toHaveLength(2);
     for (const bubble of bubbles)
       expect(StyleSheet.flatten(bubble.props.style)).toMatchObject({
-        maxWidth: '100%',
+        alignSelf: 'stretch',
         paddingHorizontal: 10,
         paddingVertical: 6,
       });
@@ -242,7 +239,6 @@ test.each(['light', 'dark'] as const)(
       width: 20,
       height: 20,
     });
-    expect(tree.root.findByType(TextInput).props.value).toBe('유지할 답글');
     const replyActions = tree.root
       .findAllByType(TouchableOpacity)
       .filter(node => node.props.accessibilityLabel === '답글쓰기');

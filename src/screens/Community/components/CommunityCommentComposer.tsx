@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { TextInput, TouchableOpacity, View } from 'react-native';
 import { useTheme } from 'styled-components/native';
 
@@ -8,12 +8,10 @@ import AppTextInput from '../../../app/ui/AppTextInput';
 import type { CommunityComment } from '../../../types/community';
 import { styles } from '../CommunityDetailScreen.styles';
 import {
-  getCommunityReplyMode,
   getCommunityReplyTargetMention,
 } from '../utils/commentHelpers';
 
 type Props = {
-  placement: 'inline' | 'bottom';
   replyTargetId: string | null;
   replyTarget: CommunityComment | null;
   currentUserId: string | null;
@@ -22,24 +20,15 @@ type Props = {
   initialSelection?: { start: number; end: number };
   onSelectionChange?: (selection: { start: number; end: number }) => void;
   resetKey: number;
-  paddingBottom: number;
   accentColor: string;
   inputRef: React.RefObject<React.ComponentRef<typeof TextInput> | null>;
-  inlineComposerRef: React.RefObject<React.ComponentRef<typeof View> | null>;
   onDraftChange: (draft: string) => void;
   onSubmit: (draft: string) => void;
   onCancelReply: () => void;
-  onInlinePressIn: (targetId: string, instanceId: number) => void;
-  onInlineFocus: (targetId: string, instanceId: number) => void;
-  onInlineComposerMounted: (targetId: string, instanceId: number) => void;
-  onInlineLayoutReady: (targetId: string, instanceId: number) => void;
   onNavigateToSignIn: () => void;
 };
 
-let nextInlineComposerInstanceId = 0;
-
 export default function CommunityCommentComposer({
-  placement,
   replyTargetId,
   replyTarget,
   currentUserId,
@@ -48,36 +37,22 @@ export default function CommunityCommentComposer({
   initialSelection,
   onSelectionChange,
   resetKey,
-  paddingBottom,
   accentColor,
   inputRef,
-  inlineComposerRef,
   onDraftChange,
   onSubmit,
   onCancelReply,
-  onInlinePressIn,
-  onInlineFocus,
-  onInlineComposerMounted,
-  onInlineLayoutReady,
   onNavigateToSignIn,
 }: Props) {
   const theme = useTheme();
-  const instanceIdRef = useRef<number | null>(null);
-  if (instanceIdRef.current === null) {
-    nextInlineComposerInstanceId += 1;
-    instanceIdRef.current = nextInlineComposerInstanceId;
-  }
   const [draft, setDraft] = useState(initialDraft);
   const [restoredSelection, setRestoredSelection] = useState(initialSelection);
   const firstResetKeyRef = useRef(resetKey);
-  const isInline = placement === 'inline';
-  const isDirectReply =
-    replyTarget !== null && getCommunityReplyMode(replyTarget) === 'direct';
-  const inlineBackground = replyTarget?.parentCommentId
-    ? theme.colors.surface
-    : theme.colors.background;
+  const isReply = replyTargetId !== null;
   const canSubmit =
-    !!currentUserId && !commentSubmitting && draft.trim().length > 0;
+    !!currentUserId &&
+    !commentSubmitting &&
+    (!isReply || replyTarget?.status === 'active');
 
   useEffect(() => {
     if (firstResetKeyRef.current === resetKey) return;
@@ -85,39 +60,14 @@ export default function CommunityCommentComposer({
     setDraft('');
   }, [resetKey]);
 
-  useLayoutEffect(() => {
-    if (!isInline || replyTargetId === null || instanceIdRef.current === null) {
-      return;
-    }
-    onInlineComposerMounted(replyTargetId, instanceIdRef.current);
-  }, [isInline, onInlineComposerMounted, replyTargetId]);
-
   return (
     <View
-      ref={isInline ? inlineComposerRef : undefined}
-      testID={
-        isInline ? 'community-inline-composer' : 'community-root-composer'
-      }
-      onLayout={
-        isInline && replyTargetId !== null
-          ? () => onInlineLayoutReady(replyTargetId, instanceIdRef.current ?? 0)
-          : undefined
-      }
+      testID="community-root-composer"
       style={[
-        isInline
-          ? styles.inlineCommentComposerWrap
-          : styles.commentComposerWrap,
+        styles.commentComposerWrap,
         {
-          backgroundColor: isInline
-            ? inlineBackground
-            : theme.colors.background,
+          backgroundColor: theme.colors.background,
           borderTopColor: theme.colors.border,
-          paddingHorizontal: isInline
-            ? replyTarget?.parentCommentId
-              ? 16
-              : 0
-            : 20,
-          paddingBottom,
         },
       ]}
     >
@@ -135,7 +85,7 @@ export default function CommunityCommentComposer({
               { color: theme.colors.textPrimary },
             ]}
           >
-            {isDirectReply && replyTarget ? (
+            {replyTarget?.status === 'active' ? (
               <>
                 <AppText
                   preset="caption"
@@ -143,10 +93,10 @@ export default function CommunityCommentComposer({
                 >
                   {getCommunityReplyTargetMention(replyTarget.authorNickname)}
                 </AppText>
-                {'님에게 답글 남기는 중'}
+                {replyTarget.parentCommentId ? '님에게 답글' : '님 댓글에 답글'}
               </>
             ) : (
-              '답글 남기는 중'
+              '답글 대상을 확인할 수 없어요'
             )}
           </AppText>
           <TouchableOpacity
@@ -179,7 +129,7 @@ export default function CommunityCommentComposer({
       >
         <AppTextInput
           testID="community-comment-input"
-          accessibilityLabel={isInline ? '답글 입력' : '댓글 입력'}
+          accessibilityLabel={isReply ? '답글 입력' : '댓글 입력'}
           ref={inputRef}
           value={draft}
           selection={restoredSelection}
@@ -203,39 +153,37 @@ export default function CommunityCommentComposer({
           style={[styles.commentInput, { color: theme.colors.textPrimary }]}
           multiline
           maxLength={500}
-          onPressIn={() => {
-            if (isInline && replyTargetId !== null) {
-              onInlinePressIn(replyTargetId, instanceIdRef.current ?? 0);
-            }
-          }}
           onFocus={() => {
-            if (!currentUserId) {
-              onNavigateToSignIn();
-              return;
-            }
-            if (isInline && replyTargetId !== null) {
-              onInlineFocus(replyTargetId, instanceIdRef.current ?? 0);
-            }
+            if (!currentUserId) onNavigateToSignIn();
           }}
         />
-        <CtaButton
-          role="neutral"
-          loading={commentSubmitting}
-          accessibilityLabel={commentSubmitting ? '댓글 전송 중' : '댓글 전송'}
-          compact
-          activeOpacity={0.88}
-          hitSlop={4}
-          style={[styles.commentSubmitButton, { paddingHorizontal: 4 }]}
-          disabled={!canSubmit}
-          onPress={() => onSubmit(draft)}
-        >
-          <CtaIcon
-            name="arrow-up"
-            size={22}
-            accessible={false}
-            accessibilityElementsHidden
-          />
-        </CtaButton>
+        <View style={styles.commentSubmitSlot}>
+          {draft.trim().length > 0 && currentUserId ? (
+            <CtaButton
+              testID="community-comment-send"
+              role="primary"
+              variant="solidLavender"
+              solidFaceInset={4}
+              loading={commentSubmitting}
+              accessibilityLabel={
+                commentSubmitting
+                  ? isReply ? '답글 전송 중' : '댓글 전송 중'
+                  : isReply ? '답글 전송' : '댓글 전송'
+              }
+              compact
+              style={styles.commentSubmitButton}
+              disabled={!canSubmit}
+              onPress={() => onSubmit(draft)}
+            >
+              <CtaIcon
+                name="arrow-up"
+                size={20}
+                accessible={false}
+                accessibilityElementsHidden
+              />
+            </CtaButton>
+          ) : null}
+        </View>
       </View>
     </View>
   );

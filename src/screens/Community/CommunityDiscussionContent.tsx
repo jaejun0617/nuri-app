@@ -20,19 +20,23 @@ import {
   Pressable,
   TouchableOpacity,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import {
   StackActions,
   useIsFocused,
   useNavigation,
+  usePreventRemove,
+  type NavigationAction,
   useRoute,
 } from '@react-navigation/native';
 import { useStore } from 'zustand';
 import { useDiscussionField, useDiscussionSession } from './discussionSession';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { KeyboardAvoidingView as KeyboardControllerAvoidingView } from 'react-native-keyboard-controller';
-import Animated from 'react-native-reanimated';
+import {
+  KeyboardAvoidingView as KeyboardControllerAvoidingView,
+  useReanimatedKeyboardAnimation,
+} from 'react-native-keyboard-controller';
+import Animated, { useAnimatedStyle } from 'react-native-reanimated';
 import { useKeyboardBottomPadding } from '../../hooks/useKeyboardBottomPadding';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '../../components/icons/NuriFeatherIcon';
@@ -46,7 +50,6 @@ import PostImageGallery from '../../components/community/PostImageGallery';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
 import PremiumNoticeModal from '../../components/common/PremiumNoticeModal';
 import { useCommunityAuth } from '../../hooks/useCommunityAuth';
-import { useKeyboardInset } from '../../hooks/useKeyboardInset';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 import { getErrorMessage } from '../../services/app/errors';
@@ -78,8 +81,12 @@ import {
   canShowCommunityBlockAction,
   COMMUNITY_BLOCK_CONFIRMATION_MESSAGE,
 } from './communityBlockPresentation';
+import {
+  resolveCommunityDiscussionBottomInset,
+  resolveCommunityReplyRevealOffset,
+} from './utils/commentViewport';
 import { DETAIL_DIVIDER_COLOR, styles } from './CommunityDetailScreen.styles';
-const INLINE_REVEAL_BOTTOM_MARGIN = 24;
+type DraftAction = { type: 'reply'; id: string | null } | { type: 'leave'; action: NavigationAction };
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'CommunityDetail'>;
 type Route =
@@ -115,13 +122,10 @@ export default function CommunityDiscussionContent({
   const route = useRoute<Route>();
   const isFocused = useIsFocused();
   const insets = useSafeAreaInsets();
-  const safeContentRef = useRef<React.ComponentRef<typeof View> | null>(null);
-  const [contentWindowY, setContentWindowY] = useState(0);
-  const measureContentWindow = useCallback(() => {
-    safeContentRef.current?.measureInWindow((_x, y) => {
-      if (Number.isFinite(y) && y >= 0) setContentWindowY(y);
-    });
-  }, []);
+  const { height: keyboardHeight } = useReanimatedKeyboardAnimation();
+  const discussionInsets = useAnimatedStyle(() => ({
+    paddingBottom: resolveCommunityDiscussionBottomInset(insets.bottom, keyboardHeight.value, isFocused),
+  }));
   const reportBottomPaddingStyle = useKeyboardBottomPadding(
     Math.max(insets.bottom, 16) + 8,
   );
@@ -132,9 +136,6 @@ export default function CommunityDiscussionContent({
   const commentInputRef = useRef<React.ComponentRef<typeof TextInput> | null>(
     null,
   );
-  const inlineComposerRef = useRef<React.ComponentRef<typeof View> | null>(
-    null,
-  );
   const currentScrollOffsetRef = useRef(0);
   const preparedNavigationTargetKeyRef = useRef<string | null>(null);
   const measuredNavigationTargetKeyRef = useRef<string | null>(null);
@@ -142,34 +143,11 @@ export default function CommunityDiscussionContent({
   const targetScrollTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
-  const inlineKeyboardShowSubscriptionRef = useRef<{
-    remove: () => void;
-  } | null>(null);
-  const inlineRevealTargetRef = useRef<string | null>(null);
-  const inlineInteractionGenerationRef = useRef(0);
-  const inlineFocusRequestRef = useRef<{
-    targetId: string;
-    generation: number;
-    forceRefocus: boolean;
-  } | null>(null);
-  const inlineFocusIntentRef = useRef<{
-    targetId: string;
-    instanceId: number;
-    generation: number;
-  } | null>(null);
-  const inlineMountedComposerRef = useRef<{
-    targetId: string;
-    instanceId: number;
-  } | null>(null);
-  const focusedInlineInteractionGenerationRef = useRef<number | null>(null);
-  const inlineLayoutReadyTargetRef = useRef<string | null>(null);
-  const isCommentListDraggingRef = useRef(false);
-  const keyboardVisibleRef = useRef(false);
-  const keyboardInsetRef = useRef(0);
-  const { height: windowHeight } = useWindowDimensions();
-  const keyboardInset = useKeyboardInset();
-  const closedBottomInset = insets.bottom;
-  keyboardInsetRef.current = keyboardInset;
+  const focusFrameRef = useRef<number | null>(null);
+  const consumedRouteFocusRef = useRef<string | null>(null);
+  const highlightedRowRef = useRef<React.ComponentRef<typeof View> | null>(null);
+  const pendingReplyRevealRef = useRef<string | null>(null);
+  const listHeightRef = useRef(0);
   const commentLikeDebounceTimersRef = useRef<
     Record<string, ReturnType<typeof setTimeout>>
   >({});
@@ -181,23 +159,11 @@ export default function CommunityDiscussionContent({
     }
   }, []);
 
-  const cancelPendingInlineReveal = useCallback(
-    (preserveMountedLayout = false) => {
-      inlineInteractionGenerationRef.current += 1;
-      inlineFocusRequestRef.current = null;
-      inlineFocusIntentRef.current = null;
-      focusedInlineInteractionGenerationRef.current = null;
-      if (!preserveMountedLayout) {
-        inlineMountedComposerRef.current = null;
-        inlineLayoutReadyTargetRef.current = null;
-      }
-      inlineKeyboardShowSubscriptionRef.current?.remove();
-      inlineKeyboardShowSubscriptionRef.current = null;
-      inlineRevealTargetRef.current = null;
-      return inlineInteractionGenerationRef.current;
-    },
-    [],
-  );
+  const cancelComposerFocus = useCallback(() => {
+    if (focusFrameRef.current === null) return;
+    cancelAnimationFrame(focusFrameRef.current);
+    focusFrameRef.current = null;
+  }, []);
 
   const { currentUserId, requireLogin } = useCommunityAuth();
 
@@ -207,6 +173,10 @@ export default function CommunityDiscussionContent({
   const discussion = useStore(session.store);
   const commentSubmitInFlightRef = session.submitLock;
   const commentDraftRef = session.draft;
+  const [hasDraft, setHasDraft] = useDiscussionField(session, 'hasDraft');
+  const [draftAction, setDraftAction] = useState<DraftAction | null>(null);
+  const [focusRequest, requestFocus] = useState(0);
+  const [openedReplyRouteKey, setOpenedReplyRouteKey] = useState<string | null>(null);
   const initialContentOffset = useRef({ x: 0, y: session.offsets[mode] });
   const notificationCommentId = route.params.commentId ?? null;
   const restoredFromRouteSnapshot =
@@ -290,26 +260,18 @@ export default function CommunityDiscussionContent({
   const replyTarget = useCommunityStore(
     useCallback(
       s =>
-        replyTargetId !== null
+        replyTargetId !== null && replyTargetId !== discussion.unavailableReplyId
           ? s.commentEntitiesById[replyTargetId] ?? null
           : null,
-      [replyTargetId],
+      [discussion.unavailableReplyId, replyTargetId],
     ),
   );
 
-  useEffect(() => {
-    const showSubscription = Keyboard.addListener('keyboardDidShow', () => {
-      keyboardVisibleRef.current = true;
-    });
-    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
-      keyboardVisibleRef.current = false;
-    });
-
-    return () => {
-      showSubscription.remove();
-      hideSubscription.remove();
-    };
-  }, []);
+  useLayoutEffect(() => {
+    setDraftAction(null);
+    requestFocus(0);
+    return cancelComposerFocus;
+  }, [cancelComposerFocus, session]);
 
   useEffect(() => {
     let cancelled = false;
@@ -387,13 +349,13 @@ export default function CommunityDiscussionContent({
 
   useEffect(() => {
     setCommentSortModalVisible(false);
-    cancelPendingInlineReveal();
+    cancelComposerFocus();
     cancelPendingNavigationScroll();
     preparedNavigationTargetKeyRef.current = null;
     measuredNavigationTargetKeyRef.current = null;
     missingNavigationTargetKeyRef.current = null;
   }, [
-    cancelPendingInlineReveal,
+    cancelComposerFocus,
     cancelPendingNavigationScroll,
     notificationCommentId,
     postId,
@@ -464,6 +426,7 @@ export default function CommunityDiscussionContent({
 
   const handleTargetCommentReady = useCallback(
     (target: React.ComponentRef<typeof View> | null) => {
+      highlightedRowRef.current = target;
       if (!target || !notificationCommentId || !commentNavigationTarget) return;
 
       const targetKey = `${postId}:${notificationCommentId}:${commentSort}`;
@@ -501,15 +464,6 @@ export default function CommunityDiscussionContent({
         clearTimeout(targetScrollTimerRef.current);
         targetScrollTimerRef.current = null;
       }
-      inlineInteractionGenerationRef.current += 1;
-      inlineFocusRequestRef.current = null;
-      inlineFocusIntentRef.current = null;
-      focusedInlineInteractionGenerationRef.current = null;
-      inlineMountedComposerRef.current = null;
-      inlineLayoutReadyTargetRef.current = null;
-      inlineKeyboardShowSubscriptionRef.current?.remove();
-      inlineKeyboardShowSubscriptionRef.current = null;
-      inlineRevealTargetRef.current = null;
       commentLikeDebounceTimersRef.current = {};
     },
     [],
@@ -518,24 +472,22 @@ export default function CommunityDiscussionContent({
   useEffect(() => {
     if (typeof navigation.addListener !== 'function') return undefined;
     const unsubscribe = navigation.addListener('blur', () => {
-      // A navigation blur can leave the screen mounted. Keep the selected
-      // inline composer mounted/layout-ready so returning to the same target
-      // can refocus it without rebuilding the interaction state.
-      cancelPendingInlineReveal(true);
+      cancelComposerFocus();
+      requestFocus(0);
       cancelPendingNavigationScroll();
     });
     return unsubscribe;
-  }, [cancelPendingInlineReveal, cancelPendingNavigationScroll, navigation]);
+  }, [cancelComposerFocus, cancelPendingNavigationScroll, navigation]);
 
   const handleBack = useCallback(() => {
-    cancelPendingInlineReveal();
+    cancelComposerFocus();
     cancelPendingNavigationScroll();
     navigation.goBack();
-  }, [cancelPendingInlineReveal, cancelPendingNavigationScroll, navigation]);
+  }, [cancelComposerFocus, cancelPendingNavigationScroll, navigation]);
 
   const openComments = useCallback(
-    (commentId?: string) => {
-      cancelPendingInlineReveal(true);
+    (commentId?: string, focusReply = false) => {
+      cancelComposerFocus();
       cancelPendingNavigationScroll();
       Keyboard.dismiss();
       if (commentId) {
@@ -550,12 +502,13 @@ export default function CommunityDiscussionContent({
       navigation.navigate('CommunityComments', {
         postId,
         commentId,
+        focusReply: focusReply || undefined,
         discussionSessionId: sessionId,
         postRouteKey: route.key,
       });
     },
     [
-      cancelPendingInlineReveal,
+      cancelComposerFocus,
       cancelPendingNavigationScroll,
       navigation,
       postId,
@@ -568,7 +521,7 @@ export default function CommunityDiscussionContent({
   );
 
   const goToPost = useCallback(() => {
-    cancelPendingInlineReveal(true);
+    cancelComposerFocus();
     cancelPendingNavigationScroll();
     Keyboard.dismiss();
     session.offsets.post = 0;
@@ -589,7 +542,7 @@ export default function CommunityDiscussionContent({
         discussionSessionId: sessionId,
       });
   }, [
-    cancelPendingInlineReveal,
+    cancelComposerFocus,
     cancelPendingNavigationScroll,
     navigation,
     postId,
@@ -618,6 +571,8 @@ export default function CommunityDiscussionContent({
   const renderHeaderLeft = useCallback(
     () => (
       <TouchableOpacity
+        accessibilityRole="button"
+        accessibilityLabel="뒤로가기"
         activeOpacity={0.88}
         style={styles.backButton}
         onPress={handleBack}
@@ -638,13 +593,14 @@ export default function CommunityDiscussionContent({
           style={styles.bodyButton}
         >
           <AppText
+            numberOfLines={1}
             style={{
               color: theme.colors.textSecondary,
               fontSize: 13,
               fontWeight: '600',
             }}
           >
-            본문 가기
+            본문
           </AppText>
         </TouchableOpacity>
       ) : post ? (
@@ -655,7 +611,7 @@ export default function CommunityDiscussionContent({
           activeOpacity={0.88}
           style={styles.moreButton}
           onPress={() => {
-            cancelPendingInlineReveal(true);
+            cancelComposerFocus();
             cancelPendingNavigationScroll();
             Keyboard.dismiss();
             setMenuVisible(true);
@@ -671,7 +627,7 @@ export default function CommunityDiscussionContent({
         </TouchableOpacity>
       ) : null,
     [
-      cancelPendingInlineReveal,
+      cancelComposerFocus,
       cancelPendingNavigationScroll,
       moreAccent,
       mode,
@@ -746,7 +702,8 @@ export default function CommunityDiscussionContent({
   const handleSubmitComment = useCallback(
     (draft: string) => {
       requireLogin(() => {
-        if (!currentUserId || commentSubmitInFlightRef.current) return;
+        if (!currentUserId || detailStatus !== 'ready' || commentSubmitInFlightRef.current) return;
+        if (replyTargetId !== null && replyTarget?.status !== 'active') return;
         const trimmed = draft.trim();
         if (!trimmed) {
           showToast({ tone: 'warning', message: '댓글 내용을 입력해 주세요.' });
@@ -764,9 +721,10 @@ export default function CommunityDiscussionContent({
           replyCreateTarget.replyToCommentId,
         )
           .then(() => {
-            cancelPendingInlineReveal();
+            cancelComposerFocus();
             Keyboard.dismiss();
             commentDraftRef.current = '';
+            setHasDraft(false);
             session.selection.current = undefined;
             setCommentDraftResetKey(previous => previous + 1);
             const parentCommentId = replyCreateTarget.parentCommentId;
@@ -795,323 +753,183 @@ export default function CommunityDiscussionContent({
     },
     [
       currentUserId,
-      cancelPendingInlineReveal,
+      cancelComposerFocus,
       postId,
       replyTarget,
+      replyTargetId,
       requireLogin,
       submitComment,
       commentDraftRef,
       commentSubmitInFlightRef,
+      detailStatus,
       mode,
       session,
       setExpandedRepliesByCommentId,
+      setHasDraft,
       setReplyTargetId,
       setCommentSubmitting,
       setCommentDraftResetKey,
     ],
   );
 
-  const revealInlineComposer = useCallback(
-    (targetId: string | null, interactionGeneration: number) => {
-      if (
-        targetId === null ||
-        isCommentListDraggingRef.current ||
-        inlineRevealTargetRef.current === targetId ||
-        inlineInteractionGenerationRef.current !== interactionGeneration ||
-        inlineLayoutReadyTargetRef.current !== targetId
-      ) {
-        return;
-      }
-
-      inlineRevealTargetRef.current = targetId;
-      let hasMeasuredForInteraction = false;
-
-      // Reveal only the obscured delta for the selected row. There is no
-      // delayed retry loop: a drag cancels this pending reveal, and a target
-      // receives at most one keyboard-driven adjustment.
-      const measureAndReveal = (
-        reportedKeyboardHeight = 0,
-        reportedKeyboardTop = 0,
-      ) => {
-        if (
-          isCommentListDraggingRef.current ||
-          inlineRevealTargetRef.current !== targetId ||
-          inlineInteractionGenerationRef.current !== interactionGeneration ||
-          inlineLayoutReadyTargetRef.current !== targetId
-        ) {
-          return;
-        }
-        if (hasMeasuredForInteraction) return;
-
-        const keyboardHeight = Math.max(
-          reportedKeyboardHeight,
-          Keyboard.metrics()?.height ?? 0,
-          keyboardInsetRef.current,
+  const activateReply = useCallback(
+    (commentId: string) => {
+      const target = useCommunityStore.getState().commentEntitiesById[commentId];
+      if (target?.postId !== postId || target.status !== 'active') return;
+      const threadRootId = getCommunityReplyThreadRootId(target);
+      if (threadRootId !== null) {
+        setExpandedRepliesByCommentId(previous =>
+          previous[threadRootId] ? previous : { ...previous, [threadRootId]: true },
         );
-        if (keyboardHeight <= 0) return;
-        hasMeasuredForInteraction = true;
-
-        inlineKeyboardShowSubscriptionRef.current?.remove();
-        inlineKeyboardShowSubscriptionRef.current = null;
-
-        const keyboardMetrics = Keyboard.metrics();
-        const keyboardTop =
-          reportedKeyboardTop > 0
-            ? reportedKeyboardTop
-            : keyboardMetrics?.screenY ?? 0;
-        const visibleBottom =
-          keyboardTop > 0
-            ? keyboardTop - INLINE_REVEAL_BOTTOM_MARGIN
-            : windowHeight - keyboardHeight - INLINE_REVEAL_BOTTOM_MARGIN;
-        inlineComposerRef.current?.measureInWindow((_x, y, _width, height) => {
-          if (
-            isCommentListDraggingRef.current ||
-            inlineRevealTargetRef.current !== targetId ||
-            inlineInteractionGenerationRef.current !== interactionGeneration ||
-            inlineLayoutReadyTargetRef.current !== targetId
-          ) {
-            return;
-          }
-          const obscuredDelta = y + height - visibleBottom;
-          if (Number.isFinite(obscuredDelta) && obscuredDelta > 0) {
-            const nextOffset = Math.max(
-              currentScrollOffsetRef.current + obscuredDelta,
-              0,
-            );
-            flatListRef.current?.scrollToOffset({
-              offset: nextOffset,
-              animated: false,
-            });
-          }
-        });
-      };
-
-      inlineKeyboardShowSubscriptionRef.current = Keyboard.addListener(
-        'keyboardDidShow',
-        event => {
-          measureAndReveal(
-            event.endCoordinates.height,
-            event.endCoordinates.screenY,
-          );
-        },
-      );
-      measureAndReveal();
+      }
+      setHighlightedCommentId(commentId);
+      setReplyTargetId(commentId);
+      if (mode === 'post') openComments(commentId, true);
+      else requestFocus(previous => previous + 1);
     },
-    [windowHeight],
+    [mode, openComments, postId, setExpandedRepliesByCommentId, setHighlightedCommentId, setReplyTargetId],
   );
 
-  const focusMountedComposer = useCallback(
-    (targetId: string, interactionGeneration: number, forceRefocus = false) => {
-      if (
-        isCommentListDraggingRef.current ||
-        inlineInteractionGenerationRef.current !== interactionGeneration ||
-        inlineLayoutReadyTargetRef.current !== targetId ||
-        focusedInlineInteractionGenerationRef.current === interactionGeneration
-      ) {
-        return;
-      }
+  const revealReplyInViewport = useCallback(() => {
+    const id = pendingReplyRevealRef.current;
+    const row = highlightedRowRef.current;
+    const list = flatListRef.current;
+    const content = list?.getNativeScrollRef()?.getInnerViewRef();
+    if (id === null || !row || !list || !content) return;
 
-      inlineFocusRequestRef.current = null;
-      focusedInlineInteractionGenerationRef.current = interactionGeneration;
-      const mountedComposer = inlineMountedComposerRef.current;
+    // Measure against scroll content: Android window measurements can lose an
+    // offscreen row while opening the keyboard.
+    row.measureLayout(content, (_x, top, _width, height) => {
+      const { selectedId, replyTargetId: activeReplyId } = session.store.getState();
       if (
-        mountedComposer?.targetId !== targetId ||
-        inlineLayoutReadyTargetRef.current !== targetId
-      ) {
-        return;
-      }
-      inlineFocusIntentRef.current = {
-        targetId,
-        instanceId: mountedComposer.instanceId,
-        generation: interactionGeneration,
-      };
+        pendingReplyRevealRef.current !== id ||
+        selectedId !== id ||
+        activeReplyId !== id ||
+        highlightedRowRef.current !== row ||
+        flatListRef.current !== list
+      ) return;
+      const offset = resolveCommunityReplyRevealOffset(
+        top,
+        height,
+        listHeightRef.current,
+        currentScrollOffsetRef.current,
+      );
+      if (offset !== null) list.scrollToOffset({ offset, animated: false });
+    }, () => {});
+  }, [session]);
 
-      // Android can keep the TextInput marked as focused after Back hides the
-      // IME. React Native intentionally no-ops focus() for that same native
-      // field, so explicitly blur once before the single refocus attempt.
-      if (forceRefocus) {
-        commentInputRef.current?.blur();
-        requestAnimationFrame(() => {
-          if (
-            isCommentListDraggingRef.current ||
-            inlineInteractionGenerationRef.current !== interactionGeneration ||
-            inlineLayoutReadyTargetRef.current !== targetId
-          ) {
-            return;
-          }
+  useEffect(() => {
+    if (!isFocused || mode !== 'comments') return undefined;
+    const onShow = Keyboard.addListener('keyboardDidShow', revealReplyInViewport);
+    const onHide = Keyboard.addListener('keyboardDidHide', () => {
+      pendingReplyRevealRef.current = null;
+    });
+    return () => {
+      pendingReplyRevealRef.current = null;
+      onShow.remove();
+      onHide.remove();
+    };
+  }, [isFocused, mode, revealReplyInViewport]);
+
+  useLayoutEffect(() => {
+    if (route.name !== 'CommunityComments' || !route.params.focusReply) return undefined;
+    return navigation.addListener('transitionEnd', event => {
+      if (!event.data.closing) setOpenedReplyRouteKey(route.key);
+    });
+  }, [navigation, route]);
+
+  useLayoutEffect(() => {
+    const focusFromPost =
+      route.name === 'CommunityComments' &&
+      route.params.focusReply === true &&
+      openedReplyRouteKey === route.key &&
+      commentsStatus === 'ready' &&
+      route.params.commentId === replyTargetId &&
+      consumedRouteFocusRef.current !== route.key;
+    if (
+      !isFocused ||
+      mode !== 'comments' ||
+      detailStatus !== 'ready' ||
+      !currentUserId ||
+      replyTarget?.status !== 'active' ||
+      (!focusFromPost && focusRequest === 0)
+    ) return undefined;
+
+    focusFrameRef.current = requestAnimationFrame(() => {
+      focusFrameRef.current = null;
+      const input = commentInputRef.current;
+      if (!input) return;
+      consumedRouteFocusRef.current = route.key;
+      pendingReplyRevealRef.current = replyTargetId;
+      // Android Back can dismiss the IME without blurring the native input.
+      if (input.isFocused() && !Keyboard.isVisible()) {
+        input.blur();
+        focusFrameRef.current = requestAnimationFrame(() => {
+          focusFrameRef.current = null;
           commentInputRef.current?.focus();
-          revealInlineComposer(targetId, interactionGeneration);
+          requestFocus(0);
         });
-        return;
+      } else {
+        input.focus();
+        requestFocus(0);
+        if (Keyboard.isVisible()) revealReplyInViewport();
       }
-
-      commentInputRef.current?.focus();
-      revealInlineComposer(targetId, interactionGeneration);
-    },
-    [revealInlineComposer],
-  );
-
-  const handleInlineComposerMounted = useCallback(
-    (targetId: string, instanceId: number) => {
-      const previous = inlineMountedComposerRef.current;
-      if (previous?.instanceId === instanceId) return;
-
-      inlineMountedComposerRef.current = { targetId, instanceId };
-      inlineLayoutReadyTargetRef.current = null;
-    },
-    [],
-  );
-
-  const handleInlineInputFocus = useCallback(
-    (targetId: string, instanceId: number) => {
-      const focusIntent = inlineFocusIntentRef.current;
-      if (
-        isCommentListDraggingRef.current ||
-        inlineLayoutReadyTargetRef.current !== targetId ||
-        inlineMountedComposerRef.current?.targetId !== targetId ||
-        inlineMountedComposerRef.current.instanceId !== instanceId ||
-        focusIntent?.targetId !== targetId ||
-        focusIntent.instanceId !== instanceId ||
-        focusIntent.generation !== inlineInteractionGenerationRef.current
-      ) {
-        return;
-      }
-      inlineFocusIntentRef.current = null;
-      revealInlineComposer(targetId, inlineInteractionGenerationRef.current);
-    },
-    [revealInlineComposer],
-  );
-
-  const focusCommentComposer = useCallback(
-    (targetId: string, forceRefocus = false) => {
-      if (isCommentListDraggingRef.current) return;
-      const preserveMountedLayout =
-        inlineMountedComposerRef.current?.targetId === targetId;
-      const interactionGeneration = cancelPendingInlineReveal(
-        preserveMountedLayout,
-      );
-      inlineFocusRequestRef.current = {
-        targetId,
-        generation: interactionGeneration,
-        forceRefocus,
-      };
-      requestAnimationFrame(() => {
-        if (
-          isCommentListDraggingRef.current ||
-          inlineInteractionGenerationRef.current !== interactionGeneration ||
-          inlineLayoutReadyTargetRef.current !== targetId
-        ) {
-          return;
-        }
-        focusMountedComposer(targetId, interactionGeneration, forceRefocus);
-      });
-    },
-    [cancelPendingInlineReveal, focusMountedComposer],
-  );
-
-  const handleInlineInputPressIn = useCallback(
-    (targetId: string, instanceId: number) => {
-      if (
-        isCommentListDraggingRef.current ||
-        inlineMountedComposerRef.current?.targetId !== targetId ||
-        inlineMountedComposerRef.current.instanceId !== instanceId ||
-        inlineLayoutReadyTargetRef.current !== targetId
-      ) {
-        return;
-      }
-
-      const keyboardIsVisible =
-        keyboardVisibleRef.current ||
-        keyboardInsetRef.current > 0 ||
-        (Keyboard.metrics()?.height ?? 0) > 0;
-      if (keyboardIsVisible) return;
-
-      const inputIsFocused = commentInputRef.current?.isFocused?.() ?? false;
-      if (inputIsFocused) {
-        focusCommentComposer(targetId, true);
-        return;
-      }
-
-      inlineFocusIntentRef.current = {
-        targetId,
-        instanceId,
-        generation: inlineInteractionGenerationRef.current,
-      };
-    },
-    [focusCommentComposer],
-  );
-
-  const handleInlineLayoutReady = useCallback(
-    (targetId: string, instanceId: number) => {
-      if (
-        inlineMountedComposerRef.current?.targetId !== targetId ||
-        inlineMountedComposerRef.current.instanceId !== instanceId
-      ) {
-        return;
-      }
-      inlineLayoutReadyTargetRef.current = targetId;
-      const request = inlineFocusRequestRef.current;
-      if (
-        request?.targetId === targetId &&
-        request.generation === inlineInteractionGenerationRef.current
-      ) {
-        focusMountedComposer(
-          targetId,
-          request.generation,
-          request.forceRefocus,
-        );
-      }
-    },
-    [focusMountedComposer],
-  );
+    });
+    return cancelComposerFocus;
+  }, [cancelComposerFocus, commentsStatus, currentUserId, detailStatus, focusRequest, isFocused, mode, openedReplyRouteKey, replyTarget, replyTargetId, revealReplyInViewport, route]);
 
   const handlePressComment = useCallback(
     (commentId: string) => {
-      setHighlightedCommentId(commentId);
-      const keyboardIsVisible =
-        keyboardVisibleRef.current ||
-        keyboardInsetRef.current > 0 ||
-        (Keyboard.metrics()?.height ?? 0) > 0;
-      const inputIsFocused = commentInputRef.current?.isFocused?.() ?? false;
-      if (replyTargetId === commentId && inputIsFocused && keyboardIsVisible) {
-        return;
-      }
-      const forceRefocus =
-        replyTargetId === commentId && inputIsFocused && !keyboardIsVisible;
-      cancelPendingNavigationScroll();
-      isCommentListDraggingRef.current = false;
-      const selectedComment = commentEntitiesById[commentId] ?? null;
-      const threadRootId = getCommunityReplyThreadRootId(selectedComment);
-      if (
-        threadRootId !== null &&
-        !areCommunityRepliesExpanded(expandedRepliesByCommentId, threadRootId)
-      ) {
-        setExpandedRepliesByCommentId(previous => ({
-          ...previous,
-          [threadRootId]: true,
-        }));
-      }
-      setReplyTargetId(commentId);
-      focusCommentComposer(commentId, forceRefocus);
+      requireLogin(() => {
+        if (commentSubmitInFlightRef.current) return;
+        if (replyTargetId !== commentId && commentDraftRef.current.length > 0) {
+          cancelComposerFocus();
+          Keyboard.dismiss();
+          setDraftAction({ type: 'reply', id: commentId });
+        } else {
+          activateReply(commentId);
+        }
+      });
     },
-    [
-      cancelPendingNavigationScroll,
-      commentEntitiesById,
-      expandedRepliesByCommentId,
-      focusCommentComposer,
-      keyboardInsetRef,
-      replyTargetId,
-      setExpandedRepliesByCommentId,
-      setHighlightedCommentId,
-      setReplyTargetId,
-    ],
+    [activateReply, cancelComposerFocus, commentDraftRef, commentSubmitInFlightRef, replyTargetId, requireLogin],
   );
 
   const handleCancelReply = useCallback(() => {
-    cancelPendingInlineReveal();
+    if (commentSubmitInFlightRef.current) return;
+    pendingReplyRevealRef.current = null;
+    cancelComposerFocus();
+    requestFocus(0);
     Keyboard.dismiss();
-    setReplyTargetId(null);
-  }, [cancelPendingInlineReveal, setReplyTargetId]);
+    if (commentDraftRef.current.length > 0) setDraftAction({ type: 'reply', id: null });
+    else setReplyTargetId(null);
+  }, [cancelComposerFocus, commentDraftRef, commentSubmitInFlightRef, setReplyTargetId]);
+
+  const parentPostRouteKey =
+    route.name === 'CommunityComments' ? route.params.postRouteKey : undefined;
+  const canReturnToPost = !!parentPostRouteKey && navigation.getState().routes.some(
+    entry => entry.key === parentPostRouteKey && entry.name === 'CommunityDetail',
+  );
+  usePreventRemove(
+    isFocused && detailStatus === 'ready' && !canReturnToPost && (hasDraft || commentSubmitting),
+    ({ data }) => {
+      if (commentSubmitInFlightRef.current) return;
+      cancelComposerFocus();
+      Keyboard.dismiss();
+      setDraftAction({ type: 'leave', action: data.action });
+    },
+  );
+
+  const discardDraft = useCallback(() => {
+    if (!draftAction || commentSubmitInFlightRef.current) return;
+    commentDraftRef.current = '';
+    session.selection.current = undefined;
+    setHasDraft(false);
+    setCommentDraftResetKey(previous => previous + 1);
+    setDraftAction(null);
+    if (draftAction.type === 'leave') navigation.dispatch(draftAction.action);
+    else if (draftAction.id !== null) activateReply(draftAction.id);
+    else setReplyTargetId(null);
+  }, [activateReply, commentDraftRef, commentSubmitInFlightRef, draftAction, navigation, session.selection, setCommentDraftResetKey, setHasDraft, setReplyTargetId]);
 
   const handleToggleCommentLike = useCallback(
     (commentId: string) => {
@@ -1137,19 +955,17 @@ export default function CommunityDiscussionContent({
       // The delete confirmation overlays the active composer. Keep the
       // mounted target/layout registration so cancelling the modal can
       // refocus the same row without requiring a remount.
-      cancelPendingInlineReveal(true);
+      cancelComposerFocus();
       cancelPendingNavigationScroll();
       Keyboard.dismiss();
       setCommentDeleteTargetId(commentId);
     },
-    [cancelPendingInlineReveal, cancelPendingNavigationScroll],
+    [cancelComposerFocus, cancelPendingNavigationScroll],
   );
 
   const handleRequestReportComment = useCallback(
     (commentId: string) => {
-      // Reporting is also an overlay-only transition. Preserve the active
-      // inline composer readiness until the report sheet is cancelled.
-      cancelPendingInlineReveal(true);
+      cancelComposerFocus();
       cancelPendingNavigationScroll();
       Keyboard.dismiss();
       setReportTarget({
@@ -1159,7 +975,7 @@ export default function CommunityDiscussionContent({
       setReportReason('');
       setReportReasonCategory('spam');
     },
-    [cancelPendingInlineReveal, cancelPendingNavigationScroll],
+    [cancelComposerFocus, cancelPendingNavigationScroll],
   );
 
   const closeReportModal = useCallback(() => {
@@ -1170,56 +986,39 @@ export default function CommunityDiscussionContent({
 
   const handleToggleReplies = useCallback(
     (commentId: string) => {
-      const willCollapse = areCommunityRepliesExpanded(
-        expandedRepliesByCommentId,
-        commentId,
-      );
-      const activeTargetBelongsToThread =
-        replyTargetId === commentId ||
-        replyTarget?.parentCommentId === commentId;
-
-      if (willCollapse && activeTargetBelongsToThread) {
-        handleCancelReply();
-      }
-
       setExpandedRepliesByCommentId(prev =>
         toggleCommunityReplyExpansion(prev, commentId),
       );
     },
-    [
-      expandedRepliesByCommentId,
-      handleCancelReply,
-      replyTarget,
-      replyTargetId,
-      setExpandedRepliesByCommentId,
-    ],
+    [setExpandedRepliesByCommentId],
   );
 
   const handlePressCommentSort = useCallback(() => {
-    cancelPendingInlineReveal(true);
+    cancelComposerFocus();
     cancelPendingNavigationScroll();
     Keyboard.dismiss();
     setCommentSortModalVisible(true);
-  }, [cancelPendingInlineReveal, cancelPendingNavigationScroll]);
+  }, [cancelComposerFocus, cancelPendingNavigationScroll]);
 
   const handleSelectCommentSort = useCallback(
     (nextSort: CommunityCommentSort) => {
-      cancelPendingInlineReveal();
+      cancelComposerFocus();
       cancelPendingNavigationScroll();
       session.changeSort(nextSort);
       setCommentSortModalVisible(false);
-      setExpandedRepliesByCommentId({});
-      setReplyTargetId(null);
+      setExpandedRepliesByCommentId(replyTarget
+        ? { [replyTarget.parentCommentId ?? replyTarget.id]: true }
+        : {});
       preparedNavigationTargetKeyRef.current = null;
       measuredNavigationTargetKeyRef.current = null;
       flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
     },
     [
-      cancelPendingInlineReveal,
+      cancelComposerFocus,
       cancelPendingNavigationScroll,
+      replyTarget,
       session,
       setExpandedRepliesByCommentId,
-      setReplyTargetId,
     ],
   );
 
@@ -1386,6 +1185,7 @@ export default function CommunityDiscussionContent({
               <Pressable
                 style={[
                   styles.actionPill,
+                  styles.postLikePill,
                   {
                     backgroundColor: theme.colors.surfaceElevated,
                     borderColor: theme.colors.border,
@@ -1673,88 +1473,13 @@ export default function CommunityDiscussionContent({
   const handleCommentDraftChange = useCallback(
     (draft: string) => {
       commentDraftRef.current = draft;
+      setHasDraft(draft.length > 0);
     },
-    [commentDraftRef],
+    [commentDraftRef, setHasDraft],
   );
   const handleNavigateToSignIn = useCallback(() => {
     navigation.navigate('SignIn');
   }, [navigation]);
-  const renderCommentComposer = useCallback(
-    (placement: 'inline' | 'bottom') => {
-      const isInline = placement === 'inline';
-      const composerPaddingStyle = {
-        paddingBottom: isInline ? 8 : 6,
-      };
-
-      return (
-        <CommunityCommentComposer
-          key={
-            placement === 'inline'
-              ? `community-inline-composer-${replyTargetId ?? 'none'}`
-              : 'community-root-composer'
-          }
-          placement={placement}
-          replyTargetId={replyTargetId}
-          replyTarget={replyTarget}
-          currentUserId={currentUserId}
-          commentSubmitting={commentSubmitting}
-          initialDraft={commentDraftRef.current}
-          initialSelection={session.selection.current}
-          onSelectionChange={selection => {
-            session.selection.current = selection;
-          }}
-          resetKey={commentDraftResetKey}
-          paddingBottom={composerPaddingStyle.paddingBottom}
-          accentColor={theme.colors.textSecondary}
-          inputRef={commentInputRef}
-          inlineComposerRef={inlineComposerRef}
-          onDraftChange={handleCommentDraftChange}
-          onSubmit={handleSubmitComment}
-          onCancelReply={handleCancelReply}
-          onInlinePressIn={handleInlineInputPressIn}
-          onInlineFocus={handleInlineInputFocus}
-          onInlineComposerMounted={handleInlineComposerMounted}
-          onInlineLayoutReady={handleInlineLayoutReady}
-          onNavigateToSignIn={handleNavigateToSignIn}
-        />
-      );
-    },
-    [
-      commentDraftResetKey,
-      commentDraftRef,
-      session.selection,
-      commentSubmitting,
-      currentUserId,
-      handleCancelReply,
-      handleCommentDraftChange,
-      handleInlineInputFocus,
-      handleInlineInputPressIn,
-      handleInlineComposerMounted,
-      handleInlineLayoutReady,
-      handleNavigateToSignIn,
-      handleSubmitComment,
-      theme.colors.textSecondary,
-      replyTarget,
-      replyTargetId,
-    ],
-  );
-
-  const inlineCommentComposer = useMemo(
-    () =>
-      isFocused && replyTargetId !== null
-        ? renderCommentComposer('inline')
-        : null,
-    [isFocused, renderCommentComposer, replyTargetId],
-  );
-  const bottomCommentComposer = useMemo(
-    () =>
-      isFocused && canShowCommentComposer && replyTargetId === null
-        ? renderCommentComposer('bottom')
-        : null,
-    [isFocused, canShowCommentComposer, renderCommentComposer, replyTargetId],
-  );
-  const activeReplyThreadRootId = getCommunityReplyThreadRootId(replyTarget);
-
   const renderCommentThread = useCallback(
     ({ item: commentId }: { item: string }) => (
       <CommentThreadItem
@@ -1762,10 +1487,6 @@ export default function CommunityDiscussionContent({
         preview={mode === 'post'}
         previewReplyIds={discussion.previewReplyIds[commentId]}
         commentId={commentId}
-        activeReplyTargetId={replyTargetId}
-        inlineComposer={
-          activeReplyThreadRootId === commentId ? inlineCommentComposer : null
-        }
         repliesExpanded={areCommunityRepliesExpanded(
           expandedRepliesByCommentId,
           commentId,
@@ -1793,11 +1514,8 @@ export default function CommunityDiscussionContent({
       handleToggleCommentLike,
       handleTargetCommentReady,
       highlightedCommentId,
-      inlineCommentComposer,
-      activeReplyThreadRootId,
       theme.colors.textSecondary,
       post?.authorId,
-      replyTargetId,
       mode,
       session,
       discussion.previewReplyIds,
@@ -1882,28 +1600,12 @@ export default function CommunityDiscussionContent({
   if (!post) return null;
 
   return (
-    <View
-      ref={safeContentRef}
-      collapsable={false}
-      onLayout={measureContentWindow}
+    <Animated.View
       testID="community-detail-safe-content"
-      style={[
-        styles.screen,
-        {
-          backgroundColor: '#FFFFFF',
-          paddingBottom: closedBottomInset,
-        },
-      ]}
+      style={[styles.screen, { backgroundColor: '#FFFFFF' }, discussionInsets]}
     >
-      {/* Stable safe-area frame; one measured controller owns the IME overlap. */}
-      {/* The local frame starts below the custom header; IME coordinates are window-relative. */}
-      <KeyboardControllerAvoidingView
-        testID="community-comment-keyboard-owner"
-        behavior="height"
-        enabled={isFocused}
-        keyboardVerticalOffset={contentWindowY}
-        style={styles.contentArea}
-      >
+      {/* The list and composer share one bottom inset for the system bar or IME. */}
+      <View testID="community-comment-keyboard-owner" style={styles.contentArea}>
         <FlatList
           ref={flatListRef}
           data={visibleTopLevelCommentIds}
@@ -1916,19 +1618,15 @@ export default function CommunityDiscussionContent({
           keyboardDismissMode="none"
           automaticallyAdjustKeyboardInsets={false}
           showsVerticalScrollIndicator={false}
+          onLayout={({ nativeEvent: { layout: { height } } }) => {
+            const shrank = height < listHeightRef.current;
+            listHeightRef.current = height;
+            if (isFocused && shrank) revealReplyInViewport();
+          }}
           onScrollBeginDrag={() => {
-            isCommentListDraggingRef.current = true;
             cancelPendingNavigationScroll();
-            cancelPendingInlineReveal(true);
-          }}
-          onScrollEndDrag={() => {
-            isCommentListDraggingRef.current = false;
-          }}
-          onMomentumScrollBegin={() => {
-            isCommentListDraggingRef.current = true;
-          }}
-          onMomentumScrollEnd={() => {
-            isCommentListDraggingRef.current = false;
+            cancelComposerFocus();
+            pendingReplyRevealRef.current = null;
           }}
           onScroll={event => {
             currentScrollOffsetRef.current = event.nativeEvent.contentOffset.y;
@@ -1955,29 +1653,34 @@ export default function CommunityDiscussionContent({
           maxToRenderPerBatch={8}
           windowSize={7}
           updateCellsBatchingPeriod={50}
-          // Keep inline inputs attached from the start, before a reply changes
-          // the cell height. Virtualized render-window limits still apply.
           removeClippedSubviews={false}
           ListHeaderComponent={listHeader ?? undefined}
           ListFooterComponent={listFooter ?? undefined}
           renderItem={renderCommentThread}
         />
 
-        {mode === 'post' &&
-        replyTargetId !== null &&
-        !topLevelCommentIds.includes(replyTargetId) ? (
-          <TouchableOpacity
-            accessibilityRole="button"
-            style={styles.readRetry}
-            onPress={() => openComments(replyTargetId)}
-          >
-            <AppText style={{ color: theme.colors.textSecondary }}>
-              작성 중인 답글 이어쓰기
-            </AppText>
-          </TouchableOpacity>
+        {isFocused && canShowCommentComposer ? (
+          <CommunityCommentComposer
+            key={`${currentUserId ?? 'guest'}:${postId}:${sessionId}`}
+            replyTargetId={replyTargetId}
+            replyTarget={replyTarget}
+            currentUserId={currentUserId}
+            commentSubmitting={commentSubmitting}
+            initialDraft={commentDraftRef.current}
+            initialSelection={session.selection.current}
+            onSelectionChange={selection => {
+              session.selection.current = selection;
+            }}
+            resetKey={commentDraftResetKey}
+            accentColor={theme.colors.textSecondary}
+            inputRef={commentInputRef}
+            onDraftChange={handleCommentDraftChange}
+            onSubmit={handleSubmitComment}
+            onCancelReply={handleCancelReply}
+            onNavigateToSignIn={handleNavigateToSignIn}
+          />
         ) : null}
-        {bottomCommentComposer}
-      </KeyboardControllerAvoidingView>
+      </View>
 
       <Modal
         visible={menuVisible}
@@ -2061,6 +1764,19 @@ export default function CommunityDiscussionContent({
           </View>
         </View>
       </Modal>
+
+      <ConfirmDialog
+        visible={draftAction !== null}
+        tone="warning"
+        confirmRole="destructiveConfirm"
+        cancelRole="neutral"
+        title="작성 중인 글을 버릴까요?"
+        message="버리면 작성 중인 글은 복구할 수 없어요."
+        confirmLabel="초안 버리기"
+        cancelLabel="계속 작성"
+        onCancel={() => setDraftAction(null)}
+        onConfirm={discardDraft}
+      />
 
       <ConfirmDialog
         confirmRole="secondary"
@@ -2200,12 +1916,6 @@ export default function CommunityDiscussionContent({
           const deletedCommentId = commentDeleteTargetId;
           removeComment(commentDeleteTargetId, postId)
             .then(() => {
-              const activeTargetWasDeleted =
-                replyTargetId === deletedCommentId ||
-                replyTarget?.parentCommentId === deletedCommentId;
-              if (activeTargetWasDeleted) {
-                handleCancelReply();
-              }
               setCommentDeleteTargetId(null);
               if (highlightedCommentId === deletedCommentId)
                 setHighlightedCommentId(null);
@@ -2391,7 +2101,7 @@ export default function CommunityDiscussionContent({
         confirmLabel="확인"
         onClose={() => setReportNotice(null)}
       />
-    </View>
+    </Animated.View>
   );
 }
 

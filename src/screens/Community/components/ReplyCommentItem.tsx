@@ -5,6 +5,7 @@ import FastImage from 'react-native-fast-image';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../app/ui/AppText';
+import { PRODUCT_CTA } from '../../../app/theme/tokens/productAccent';
 import { useCommunityStore } from '../../../store/communityStore';
 import { formatRelativeTimeFromNow } from '../../../utils/date';
 import {
@@ -21,8 +22,6 @@ const EMPTY_REPLY = null;
 
 type Props = {
   replyId: string;
-  activeReplyTargetId: string | null;
-  inlineComposer: React.ReactNode;
   currentUserId: string | null;
   postAuthorId: string;
   authorAccentColor: string;
@@ -36,8 +35,6 @@ type Props = {
 
 function ReplyCommentItemBase({
   replyId,
-  activeReplyTargetId,
-  inlineComposer,
   currentUserId,
   postAuthorId,
   authorAccentColor,
@@ -67,6 +64,7 @@ function ReplyCommentItemBase({
   return (
     <React.Fragment>
       <View
+        collapsable={!highlighted}
         ref={highlighted ? onTargetReady : undefined}
         style={[styles.replyRow, { backgroundColor: 'transparent' }]}
       >
@@ -160,7 +158,7 @@ function ReplyCommentItemBase({
                 styles.replyBubble,
                 {
                   backgroundColor: COMMENT_BUBBLE_SURFACES[theme.mode],
-                  borderColor: 'transparent',
+                  borderColor: highlighted ? PRODUCT_CTA.primary : 'transparent',
                 },
               ]}
             >
@@ -199,7 +197,6 @@ function ReplyCommentItemBase({
           />
         </View>
       </View>
-      {activeReplyTargetId === reply.id ? inlineComposer : null}
     </React.Fragment>
   );
 }

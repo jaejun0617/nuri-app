@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { styles as discussionStyles } from '../src/screens/Community/CommunityDetailScreen.styles';
 
 function readProjectFile(relativePath: string): string {
   return readFileSync(join(process.cwd(), relativePath), 'utf8');
@@ -70,27 +71,32 @@ describe('responsive source guards', () => {
     const screen = readProjectFile(
       'src/screens/Community/CommunityDiscussionContent.tsx',
     );
-    const styles = readProjectFile(
-      'src/screens/Community/CommunityDetailScreen.styles.ts',
-    );
     const composer = readProjectFile(
       'src/screens/Community/components/CommunityCommentComposer.tsx',
     );
 
-    expect(styles).toContain('paddingVertical: 6');
-    expect(styles).toContain('borderRadius: 20');
-    expect(styles).toContain('minHeight: 52');
-    expect(styles).toContain("textAlignVertical: 'center'");
-    expect(styles).toContain('width: 44');
-    expect(styles).toContain('height: 44');
-    expect(screen.replace(/\s+/g, ' ')).toContain(
-      'paddingBottom: isInline ? 8 : 6',
+    expect(discussionStyles.commentComposerWrap.paddingVertical).toBe(3);
+    expect(discussionStyles.commentComposer).toMatchObject({
+      borderRadius: 20,
+      minHeight: 48,
+    });
+    expect(discussionStyles.commentInput).toMatchObject({
+      minHeight: 44,
+      maxHeight: 96,
+      textAlignVertical: 'center',
+    });
+    expect(discussionStyles.commentSubmitButton).toMatchObject({
+      width: 48,
+      height: 48,
+    });
+    expect(discussionStyles.replyCancelTouchTarget).toMatchObject({
+      minWidth: 44,
+      minHeight: 44,
+    });
+    expect(screen).toContain(
+      'paddingBottom: resolveCommunityDiscussionBottomInset(insets.bottom, keyboardHeight.value, isFocused)',
     );
-    expect(screen).toContain('paddingBottom: closedBottomInset');
-    expect(screen).toContain('const closedBottomInset = insets.bottom');
-    expect(screen).toContain('behavior="height"');
-    expect(screen).toContain('keyboardVerticalOffset={contentWindowY}');
-    expect(screen).toContain('onLayout={measureContentWindow}');
-    expect(composer).toContain('hitSlop={4}');
+    expect(screen).toContain('automaticallyAdjustKeyboardInsets={false}');
+    expect(composer).toContain('solidFaceInset={4}');
   });
 });

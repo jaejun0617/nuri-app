@@ -259,6 +259,7 @@ export type RootStackParamList = {
     commentId?: string;
     discussionSessionId?: string;
     postRouteKey?: string;
+    focusReply?: true;
     restoredFromRouteSnapshot?: true;
   };
   CommunityCreate: undefined;

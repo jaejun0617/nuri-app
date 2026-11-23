@@ -21,9 +21,11 @@ type ThreadPage = {
 };
 type DiscussionState = {
   submitting: boolean;
+  hasDraft: boolean;
   draftResetKey: number;
   selectedId: string | null;
   replyTargetId: string | null;
+  unavailableReplyId: string | null;
   expanded: Record<string, boolean>;
   sort: CommunityCommentSort;
   previewIds: string[];
@@ -43,14 +45,15 @@ const emptyThreads = (): ThreadPage => ({
   next: null,
 });
 
-// Only the active composer owns keystrokes. Screens subscribe to navigation/read
-// state, never the draft, so typing does not fan out to unrelated comment rows.
+// Screens observe whether a draft exists, not its text or selection.
 export function createDiscussionSession(postId: string) {
   const store = createStore<DiscussionState>(() => ({
     submitting: false,
+    hasDraft: false,
     draftResetKey: 0,
     selectedId: null,
     replyTargetId: null,
+    unavailableReplyId: null,
     expanded: {},
     sort: 'registered',
     previewIds: [],
@@ -93,7 +96,7 @@ export function createDiscussionSession(postId: string) {
         total: null,
         replyPages: {},
         selectedId: null,
-        replyTargetId: null,
+        unavailableReplyId: store.getState().replyTargetId,
       });
     }
   }
@@ -261,6 +264,10 @@ export function createDiscussionSession(postId: string) {
         error: !data.anchorFound
           ? '선택한 댓글은 삭제되었거나 더 이상 볼 수 없어요.'
           : null,
+        unavailableReplyId:
+          anchorId && anchorId === previous.replyTargetId
+            ? data.anchorFound ? null : anchorId
+            : previous.unavailableReplyId,
         selectedId: data.anchorFound ? previous.selectedId : null,
       }));
       if (anchorId && data.anchorRootId && anchorId !== data.anchorRootId) {

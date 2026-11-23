@@ -1,43 +1,14 @@
-import fs from 'node:fs';
-import path from 'node:path';
 import React from 'react';
 import TestRenderer from 'react-test-renderer';
-import { FlatList, Keyboard, StyleSheet, TextInput } from 'react-native';
+import { FlatList, TextInput } from 'react-native';
 import { ThemeProvider } from 'styled-components/native';
 
 import { createTheme } from '../src/app/theme/theme';
-import CommunityDetailScreen from '../src/screens/Community/CommunityCommentsScreen';
+import CommunityCommentsScreen from '../src/screens/Community/CommunityCommentsScreen';
+import CommunityDetailScreen from '../src/screens/Community/CommunityDetailScreen';
+import CtaButton from '../src/app/ui/CtaButton';
 import { useCommunityStore } from '../src/store/communityStore';
 import type { CommunityComment, CommunityPost } from '../src/types/community';
-
-const detailScreenSource = fs.readFileSync(
-  path.resolve(
-    __dirname,
-    '../src/screens/Community/CommunityDiscussionContent.tsx',
-  ),
-  'utf8',
-);
-const commentThreadSource = fs.readFileSync(
-  path.resolve(
-    __dirname,
-    '../src/screens/Community/components/CommentThreadItem.tsx',
-  ),
-  'utf8',
-);
-const replyItemSource = fs.readFileSync(
-  path.resolve(
-    __dirname,
-    '../src/screens/Community/components/ReplyCommentItem.tsx',
-  ),
-  'utf8',
-);
-const composerSource = fs.readFileSync(
-  path.resolve(
-    __dirname,
-    '../src/screens/Community/components/CommunityCommentComposer.tsx',
-  ),
-  'utf8',
-);
 
 const mockNavigation = {
   setOptions: jest.fn(),
@@ -45,21 +16,24 @@ const mockNavigation = {
   goBack: jest.fn(),
   addListener: jest.fn(() => jest.fn()),
   canGoBack: () => true,
+  getState: () => ({ routes: [] }),
 };
+const commentsRoute = {
+  name: 'CommunityComments',
+  key: 'keyboard-session',
+  params: { postId: 'keyboard-post' },
+};
+let mockRoute = commentsRoute;
 const mockRequireLogin = (action: () => void) => action();
 const mockSubmit = jest.fn();
 const mockCurrentUser = { id: 'keyboard-user' };
-let mockKeyboardInset = 0;
 
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
   useNavigation: () => mockNavigation,
+  usePreventRemove: jest.fn(),
   useIsFocused: () => true,
-  useRoute: () => ({
-    name: 'CommunityComments',
-    key: 'keyboard-session',
-    params: { postId: 'keyboard-post' },
-  }),
+  useRoute: () => mockRoute,
 }));
 jest.mock('../src/services/community/discussionRead', () => ({
   ...jest.requireActual('../src/services/community/discussionRead'),
@@ -97,9 +71,6 @@ jest.mock('../src/hooks/useCommunityAuth', () => ({
 }));
 jest.mock('../src/hooks/useKeyboardBottomPadding', () => ({
   useKeyboardBottomPadding: () => ({}),
-}));
-jest.mock('../src/hooks/useKeyboardInset', () => ({
-  useKeyboardInset: () => mockKeyboardInset,
 }));
 jest.mock('../src/store/petStore', () => ({
   usePetStore: (selector: (state: unknown) => unknown) =>
@@ -209,12 +180,12 @@ function prepareStore() {
   });
 }
 
-async function renderScreen() {
+async function renderScreen(mode: 'comments' | 'post' = 'comments') {
   let tree!: TestRenderer.ReactTestRenderer;
   await TestRenderer.act(async () => {
     tree = TestRenderer.create(
       <ThemeProvider theme={createTheme('light')}>
-        <CommunityDetailScreen />
+        {mode === 'post' ? <CommunityDetailScreen /> : <CommunityCommentsScreen />}
       </ThemeProvider>,
     );
   });
@@ -238,623 +209,79 @@ function containsRenderedText(
   );
 }
 
-function flattenRenderedText(value: unknown): string {
-  if (typeof value === 'string') return value;
-  if (Array.isArray(value)) return value.map(flattenRenderedText).join('');
-  if (React.isValidElement<{ children?: unknown }>(value)) {
-    return flattenRenderedText(value.props.children);
-  }
-  return '';
-}
+const rootLabel = '댓글 root-author 내용에 답글 남기기';
+const replyLabel = '답글 reply-author 내용에 직접 답글 남기기';
+const tap = (tree: TestRenderer.ReactTestRenderer, label: string) =>
+  TestRenderer.act(async () => tree.root.findAllByProps({ accessibilityLabel: label })[0].props.onPress());
+const findInput = (tree: TestRenderer.ReactTestRenderer) =>
+  tree.root.findByType(TextInput);
+const send = (tree: TestRenderer.ReactTestRenderer) =>
+  tree.root.findAllByType(CtaButton).find(button => button.props.testID === 'community-comment-send');
 
-describe('Community K22/K23 keyboard interaction contract', () => {
-  it('keeps the focused draft while list gestures leave the keyboard alone', () => {
-    expect(detailScreenSource).toContain('keyboardShouldPersistTaps="always"');
-    expect(detailScreenSource).toContain('keyboardDismissMode="none"');
-    expect(detailScreenSource).not.toContain(
-      'onScrollBeginDrag={Keyboard.dismiss}',
-    );
-    expect(detailScreenSource).toContain('onScrollBeginDrag={() => {');
-    expect(detailScreenSource).toContain(
-      'isCommentListDraggingRef.current = true;',
-    );
-    expect(detailScreenSource).toContain('cancelPendingInlineReveal(true);');
-  });
-
-  it('uses one conditional inline composer and does not feed draft elements to inactive rows', () => {
-    expect(detailScreenSource).toContain(
-      'activeReplyThreadRootId === commentId ? inlineCommentComposer : null',
-    );
-    expect(commentThreadSource).toContain(
-      'activeReplyTargetId === replyId ? inlineComposer : null',
-    );
-    expect(detailScreenSource).not.toContain(
-      'inlineComposer={inlineCommentComposer}',
-    );
-    expect(commentThreadSource).not.toContain(
-      'inlineComposer={inlineComposer}\n',
-    );
-  });
-
-  it('removes delayed reveal retries and preserves the native input identity', () => {
-    expect(detailScreenSource).not.toContain('INLINE_REVEAL_INITIAL_DELAY_MS');
-    expect(detailScreenSource).not.toContain('INLINE_REVEAL_RETRY_DELAY_MS');
-    expect(detailScreenSource).not.toContain('INLINE_REVEAL_MAX_ATTEMPTS');
-    expect(detailScreenSource).not.toContain('inlineRevealTimerRef');
-    expect(detailScreenSource).not.toContain('autoFocus={isInline}');
-    expect(detailScreenSource).toContain('inlineInteractionGenerationRef');
-    expect(detailScreenSource).toContain('hasMeasuredForInteraction');
-    expect(composerSource).toContain('ref={inputRef}');
-    expect(composerSource).toContain('testID="community-comment-input"');
-    expect(composerSource).not.toContain('key={commentDraft}');
-    expect(replyItemSource).toContain(
-      'activeReplyTargetId === reply.id ? inlineComposer : null',
-    );
-    expect(replyItemSource).toContain('reply.authorAvatarUrl');
-    expect(replyItemSource).toContain('onPress={handlePressComment}');
-  });
-});
-
-describe('Community K22/K23 rendered interaction behavior', () => {
-  const originalRequestAnimationFrame = global.requestAnimationFrame;
-
-  beforeEach(async () => {
-    jest.clearAllMocks();
+describe('Community bottom composer', () => {
+  beforeEach(() => {
+    mockRoute = commentsRoute;
     mockSubmit.mockReset();
-    mockKeyboardInset = 0;
-    await TestRenderer.act(async () => {
-      prepareStore();
+    mockNavigation.navigate.mockClear();
+    prepareStore();
+  });
+
+  it('opens the existing comments route exactly once with the selected target and reply focus', async () => {
+    mockRoute = { ...commentsRoute, name: 'CommunityDetail' };
+    const tree = await renderScreen('post');
+    await tap(tree, rootLabel);
+    expect(mockNavigation.navigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigation.navigate).toHaveBeenCalledWith('CommunityComments', {
+      postId: post.id,
+      commentId: rootComment.id,
+      discussionSessionId: 'keyboard-session',
+      postRouteKey: 'keyboard-session',
+      focusReply: true,
     });
-    global.requestAnimationFrame = callback => {
-      callback(0);
-      return 1;
-    };
-  });
-
-  afterEach(() => {
-    global.requestAnimationFrame = originalRequestAnimationFrame;
-    jest.restoreAllMocks();
-  });
-
-  it('keeps the keyboard during a list drag and cancels a stale focus request', async () => {
-    mockSubmit.mockResolvedValue(undefined);
-    const pendingFrames: Array<(time: number) => void> = [];
-    global.requestAnimationFrame = callback => {
-      pendingFrames.push(callback);
-      return pendingFrames.length;
-    };
-    const addListenerSpy = jest.spyOn(Keyboard, 'addListener');
-    const dismissSpy = jest.spyOn(Keyboard, 'dismiss');
-    const tree = await renderScreen();
-    const rootBody = tree.root
-      .findAll(
-        node =>
-          node.props.accessibilityLabel ===
-          '댓글 root-author 내용에 답글 남기기',
-      )
-      .at(0);
-    if (!rootBody) throw new Error('root comment body was not rendered');
-    const list = tree.root.findByType(FlatList);
-    const initialKeyboardShowListenerCount = addListenerSpy.mock.calls.filter(
-      ([eventName]) => eventName === 'keyboardDidShow',
-    ).length;
-
-    await TestRenderer.act(async () => rootBody.props.onPress());
-    const input = tree.root
-      .findAllByType(TextInput)
-      .find(node => node.props.accessibilityLabel === '답글 입력')!;
-    await TestRenderer.act(async () => {
-      input.props.onChangeText('드래그 중 초안');
-      tree.root.findByType(FlatList).props.onScrollBeginDrag({});
-      tree.root.findByType(FlatList).props.onScrollEndDrag({});
-      pendingFrames.splice(0).forEach(frame => frame(0));
-    });
-
-    expect(dismissSpy).not.toHaveBeenCalled();
-    expect(
-      addListenerSpy.mock.calls.filter(
-        ([eventName]) => eventName === 'keyboardDidShow',
-      ),
-    ).toHaveLength(initialKeyboardShowListenerCount);
-    expect(list.props.keyboardDismissMode).toBe('none');
-    expect(
-      tree.root
-        .findAllByType(TextInput)
-        .find(node => node.props.accessibilityLabel === '답글 입력')!.props
-        .value,
-    ).toBe('드래그 중 초안');
-    expect(tree.root.findAllByType(TextInput)).toHaveLength(1);
-
-    await TestRenderer.act(async () =>
-      tree.root
-        .findByProps({ accessibilityLabel: '댓글 전송' })
-        .props.onPress(),
-    );
-    expect(mockSubmit).toHaveBeenCalledWith(
-      post.id,
-      '드래그 중 초안',
-      rootComment.id,
-      null,
-    );
-    await TestRenderer.act(async () => tree.unmount());
-    addListenerSpy.mockRestore();
-    dismissSpy.mockRestore();
-  });
-
-  it('opens one inline thread composer for a root tap without a mention', async () => {
-    const tree = await renderScreen();
-    const rootBody = tree.root
-      .findAll(
-        node =>
-          node.props.accessibilityLabel ===
-          '댓글 root-author 내용에 답글 남기기',
-      )
-      .at(0);
-    if (!rootBody) throw new Error('root comment body was not rendered');
-
-    await TestRenderer.act(async () => rootBody.props.onPress());
-
-    expect(tree.root.findAllByType(TextInput)).toHaveLength(1);
-    expect(containsRenderedText(tree, '답글 남기는 중')).toBe(true);
     await TestRenderer.act(async () => tree.unmount());
   });
 
-  it('keeps the system inset stable while one measured controller owns IME overlap', async () => {
+  it('keeps a single input outside the list and hides the send control until there is text', async () => {
     const tree = await renderScreen();
-    const contentPadding = () =>
-      StyleSheet.flatten(
-        tree.root.findByProps({ testID: 'community-detail-safe-content' }).props
-          .style,
-      ).paddingBottom;
-    expect(contentPadding()).toBe(24);
-    const rootComposer = tree.root.findByProps({ placement: 'bottom' });
-    expect(rootComposer.props.paddingBottom).toBe(6);
-    const rootBody = tree.root.findAll(
-      node =>
-        node.props.accessibilityLabel === '댓글 root-author 내용에 답글 남기기',
-    )[0];
-    await TestRenderer.act(async () => rootBody.props.onPress());
-    expect(contentPadding()).toBe(24);
-    expect(
-      tree.root.findByProps({ placement: 'inline' }).props.paddingBottom,
-    ).toBe(8);
-    mockKeyboardInset = 300;
-    await TestRenderer.act(async () =>
-      tree.update(
-        <ThemeProvider theme={createTheme('light')}>
-          <CommunityDetailScreen />
-        </ThemeProvider>,
-      ),
-    );
-    expect(contentPadding()).toBe(24);
-    expect(
-      tree.root.findByProps({ testID: 'community-comment-keyboard-owner' })
-        .props,
-    ).toMatchObject({ behavior: 'height', keyboardVerticalOffset: 0 });
-    expect(
-      tree.root.findByProps({ testID: 'community-comment-keyboard-owner' })
-        .props.automaticOffset,
-    ).toBeUndefined();
-    expect(tree.root.findByType(FlatList).props.keyboardDismissMode).toBe(
-      'none',
-    );
-    expect(tree.root.findByType(FlatList).props.keyboardShouldPersistTaps).toBe(
-      'always',
-    );
+    const original = findInput(tree);
+    expect(tree.root.findByType(FlatList).findAllByType(TextInput)).toHaveLength(0);
+    expect(send(tree)).toBeUndefined();
+    expect(tree.root.findByType(FlatList).props).toMatchObject({
+      keyboardDismissMode: 'none',
+      keyboardShouldPersistTaps: 'always',
+    });
+    await tap(tree, rootLabel);
+    expect(mockNavigation.navigate).not.toHaveBeenCalled();
+    expect(findInput(tree)).toBe(original);
+    expect(findInput(tree).props.accessibilityLabel).toBe('답글 입력');
+    await TestRenderer.act(async () => original.props.onChangeText(' \n '));
+    expect(send(tree)).toBeUndefined();
+    await TestRenderer.act(async () => original.props.onChangeText('한 줄\n두 줄'));
+    expect(send(tree)?.props).toMatchObject({
+      variant: 'solidLavender',
+      role: 'primary',
+      accessibilityLabel: '답글 전송',
+      disabled: false,
+    });
     await TestRenderer.act(async () => tree.unmount());
   });
 
-  it('uses the measured custom-header origin once without duplicating safe-area padding', async () => {
+  it('requires confirmation before reassigning a draft or cancelling a reply', async () => {
     const tree = await renderScreen();
-    const safeContent = tree.root.findByProps({
-      testID: 'community-detail-safe-content',
-    });
-    const instance = safeContent.instance as unknown as {
-      measureInWindow: (
-        callback: (x: number, y: number, width: number, height: number) => void,
-      ) => void;
-    };
-    const measureInWindow = jest
-      .spyOn(instance, 'measureInWindow')
-      .mockImplementation(callback => callback(0, 89, 384, 695));
-    await TestRenderer.act(async () => {
-      safeContent.props.onLayout();
-    });
-    expect(measureInWindow).toHaveBeenCalledTimes(1);
-    expect(
-      tree.root.findByProps({ testID: 'community-comment-keyboard-owner' })
-        .props.keyboardVerticalOffset,
-    ).toBe(89);
-    expect(
-      StyleSheet.flatten(
-        tree.root.findByProps({ testID: 'community-detail-safe-content' }).props
-          .style,
-      ).paddingBottom,
-    ).toBe(24);
-    await TestRenderer.act(async () => tree.unmount());
-    measureInWindow.mockRestore();
-  });
-
-  it('uses native mock refs for one reveal and refocuses after Android Back', async () => {
-    const metricsSpy = jest.spyOn(Keyboard, 'metrics').mockReturnValue({
-      height: 600,
-      screenY: 1740,
-      screenX: 0,
-      width: 1080,
-    });
-    const tree = await renderScreen();
-    const rootBody = tree.root
-      .findAll(
-        node =>
-          node.props.accessibilityLabel ===
-          '댓글 root-author 내용에 답글 남기기',
-      )
-      .at(0);
-    if (!rootBody) throw new Error('root comment body was not rendered');
-
-    await TestRenderer.act(async () => rootBody.props.onPress());
-    const inputNode = tree.root
-      .findAllByType(TextInput)
-      .find(node => node.props.accessibilityLabel === '답글 입력')!;
-    const inputInstance = inputNode.instance as unknown as {
-      blur: jest.Mock;
-      focus: jest.Mock;
-      isFocused: jest.Mock;
-    };
-    const focusSpy = jest.spyOn(inputInstance, 'focus');
-    const blurSpy = jest.spyOn(inputInstance, 'blur');
-    const listInstance = tree.root.findByType(FlatList).instance as unknown as {
-      scrollToOffset: jest.Mock;
-    };
-    const scrollSpy = jest.spyOn(listInstance, 'scrollToOffset');
-    const inlineComposer = tree.root.findByProps({
-      testID: 'community-inline-composer',
-    });
-    const measureTarget = inlineComposer.instance as unknown as {
-      measureInWindow: (
-        callback: (x: number, y: number, width: number, height: number) => void,
-      ) => void;
-    };
-    let queuedMeasureCallback:
-      | ((x: number, y: number, width: number, height: number) => void)
-      | null = null;
-    const measureSpy = jest
-      .spyOn(measureTarget, 'measureInWindow')
-      .mockImplementation(callback => {
-        queuedMeasureCallback = callback;
-      });
-    const runQueuedMeasure = () => {
-      if (queuedMeasureCallback === null) {
-        throw new Error('Expected a queued inline composer measurement');
-      }
-      queuedMeasureCallback(0, 2200, 320, 180);
-    };
-    await TestRenderer.act(async () =>
-      inlineComposer.props.onLayout({
-        nativeEvent: { layout: { height: 180 } },
-      }),
-    );
-
-    expect(focusSpy).toHaveBeenCalledTimes(1);
-    expect(measureSpy).toHaveBeenCalledTimes(1);
-    runQueuedMeasure();
-    expect(scrollSpy).toHaveBeenCalledTimes(1);
-
-    await TestRenderer.act(async () => {
-      inputNode.props.onFocus();
-      tree.root.findByType(FlatList).props.onScrollBeginDrag({});
-      tree.root.findByType(FlatList).props.onScrollEndDrag({});
-      inputNode.props.onFocus();
-      runQueuedMeasure();
-    });
-
-    expect(measureSpy).toHaveBeenCalledTimes(1);
-    expect(scrollSpy).toHaveBeenCalledTimes(1);
-
-    inputInstance.isFocused.mockReturnValue(true);
-    metricsSpy.mockReturnValue(undefined);
-    await TestRenderer.act(async () => inputNode.props.onPressIn());
-
-    expect(blurSpy).toHaveBeenCalledTimes(1);
-    expect(focusSpy).toHaveBeenCalledTimes(2);
-    await TestRenderer.act(async () => tree.unmount());
-    metricsSpy.mockRestore();
-  });
-
-  it('keeps mounted readiness through sort cancel and refocuses the same target', async () => {
-    const tree = await renderScreen();
-    const rootBody = tree.root
-      .findAll(
-        node =>
-          node.props.accessibilityLabel ===
-          '댓글 root-author 내용에 답글 남기기',
-      )
-      .at(0);
-    if (!rootBody) throw new Error('root comment body was not rendered');
-
-    await TestRenderer.act(async () => rootBody.props.onPress());
-    const inlineComposer = tree.root.findByProps({
-      testID: 'community-inline-composer',
-    });
-    await TestRenderer.act(async () =>
-      inlineComposer.props.onLayout({
-        nativeEvent: { layout: { height: 180 } },
-      }),
-    );
-    const inputInstance = tree.root
-      .findAllByType(TextInput)
-      .find(node => node.props.accessibilityLabel === '답글 입력')!
-      .instance as unknown as { focus: jest.Mock };
-    const focusSpy = jest.spyOn(inputInstance, 'focus');
-
-    const sortButton = tree.root
-      .findAll(
-        node =>
-          typeof node.props.accessibilityLabel === 'string' &&
-          node.props.accessibilityLabel.startsWith('댓글 정렬'),
-      )
-      .at(0);
-    if (!sortButton) throw new Error('comment sort button was not rendered');
-    await TestRenderer.act(async () => sortButton.props.onPress());
-
-    const sortDialog = tree.root
-      .findAll(
-        node => node.props.title === '댓글 정렬' && node.props.visible === true,
-      )
-      .at(0);
-    if (!sortDialog) throw new Error('comment sort dialog was not opened');
-    await TestRenderer.act(async () => sortDialog.props.onCancel());
-    await TestRenderer.act(async () => rootBody.props.onPress());
-
-    expect(focusSpy).toHaveBeenCalledTimes(2);
-    await TestRenderer.act(async () => tree.unmount());
-  });
-
-  it('keeps mounted readiness through report cancel and refocuses the same target', async () => {
-    const tree = await renderScreen();
-    const rootBody = tree.root
-      .findAll(
-        node =>
-          node.props.accessibilityLabel ===
-          '댓글 root-author 내용에 답글 남기기',
-      )
-      .at(0);
-    if (!rootBody) throw new Error('root comment body was not rendered');
-
-    await TestRenderer.act(async () => rootBody.props.onPress());
-    const inputInstance = tree.root
-      .findAllByType(TextInput)
-      .find(node => node.props.accessibilityLabel === '답글 입력')!
-      .instance as unknown as { focus: jest.Mock };
-    const focusSpy = jest.spyOn(inputInstance, 'focus');
-    const inlineComposer = tree.root.findByProps({
-      testID: 'community-inline-composer',
-    });
-    await TestRenderer.act(async () =>
-      inlineComposer.props.onLayout({
-        nativeEvent: { layout: { height: 180 } },
-      }),
-    );
-    focusSpy.mockClear();
-
-    const reportAction = tree.root.findAll(
-      node => node.props.accessibilityLabel === '댓글 신고',
-    )[0];
-    if (!reportAction) throw new Error('report action was not rendered');
-    await TestRenderer.act(async () => reportAction.props.onPress());
-
-    const reportSurface = tree.root.findByProps({
-      testID: 'community-report-surface',
-    });
-    const reportCancel = reportSurface.findAll(
-      node =>
-        typeof node.props.onPress === 'function' &&
-        flattenRenderedText(node.props.children) === '취소',
-    )[0];
-    if (!reportCancel) throw new Error('report cancel action was not rendered');
-    await TestRenderer.act(async () => reportCancel.props.onPress());
-    await TestRenderer.act(async () => rootBody.props.onPress());
-
-    expect(focusSpy).toHaveBeenCalledTimes(1);
-    await TestRenderer.act(async () => tree.unmount());
-  });
-
-  it('keeps mounted readiness through delete cancel and refocuses the same target', async () => {
-    mockCurrentUser.id = rootComment.authorId;
-    try {
-      const tree = await renderScreen();
-      const rootBody = tree.root
-        .findAll(
-          node =>
-            node.props.accessibilityLabel ===
-            '댓글 root-author 내용에 답글 남기기',
-        )
-        .at(0);
-      if (!rootBody) throw new Error('root comment body was not rendered');
-
-      await TestRenderer.act(async () => rootBody.props.onPress());
-      const inputInstance = tree.root
-        .findAllByType(TextInput)
-        .find(node => node.props.accessibilityLabel === '답글 입력')!
-        .instance as unknown as { focus: jest.Mock };
-      const focusSpy = jest.spyOn(inputInstance, 'focus');
-      const inlineComposer = tree.root.findByProps({
-        testID: 'community-inline-composer',
-      });
-      await TestRenderer.act(async () =>
-        inlineComposer.props.onLayout({
-          nativeEvent: { layout: { height: 180 } },
-        }),
-      );
-      focusSpy.mockClear();
-
-      const deleteAction = tree.root.findAll(
-        node => node.props.accessibilityLabel === '댓글 삭제',
-      )[0];
-      if (!deleteAction) throw new Error('delete action was not rendered');
-      await TestRenderer.act(async () => deleteAction.props.onPress());
-
-      const deleteDialog = tree.root.findAll(
-        node =>
-          node.props.title === '댓글을 삭제할까요?' &&
-          node.props.visible === true,
-      )[0];
-      if (!deleteDialog) throw new Error('delete dialog was not opened');
-      await TestRenderer.act(async () => deleteDialog.props.onCancel());
-      await TestRenderer.act(async () => rootBody.props.onPress());
-
-      expect(focusSpy).toHaveBeenCalledTimes(1);
-      await TestRenderer.act(async () => tree.unmount());
-    } finally {
-      mockCurrentUser.id = 'keyboard-user';
-    }
-  });
-
-  it('keeps mounted readiness through navigation blur and refocuses the same target', async () => {
-    const tree = await renderScreen();
-    const rootBody = tree.root
-      .findAll(
-        node =>
-          node.props.accessibilityLabel ===
-          '댓글 root-author 내용에 답글 남기기',
-      )
-      .at(0);
-    if (!rootBody) throw new Error('root comment body was not rendered');
-
-    await TestRenderer.act(async () => rootBody.props.onPress());
-    const inlineComposer = tree.root.findByProps({
-      testID: 'community-inline-composer',
-    });
-    await TestRenderer.act(async () =>
-      inlineComposer.props.onLayout({
-        nativeEvent: { layout: { height: 180 } },
-      }),
-    );
-    const inputInstance = tree.root
-      .findAllByType(TextInput)
-      .find(node => node.props.accessibilityLabel === '답글 입력')!
-      .instance as unknown as { focus: jest.Mock };
-    const focusSpy = jest.spyOn(inputInstance, 'focus');
-    focusSpy.mockClear();
-
-    const blurCalls = (mockNavigation.addListener as jest.Mock).mock
-      .calls as Array<[string, () => void]>;
-    const blurListener = blurCalls
-      .filter(([eventName]) => eventName === 'blur')
-      .at(-1)?.[1] as (() => void) | undefined;
-    if (!blurListener)
-      throw new Error('navigation blur listener was not registered');
-
-    await TestRenderer.act(async () => blurListener());
-    await TestRenderer.act(async () => rootBody.props.onPress());
-
-    expect(focusSpy).toHaveBeenCalledTimes(1);
-    await TestRenderer.act(async () => tree.unmount());
-  });
-
-  it('rejects stale layout and focus callbacks after an inline target swap', async () => {
-    const tree = await renderScreen();
-    const rootBody = tree.root
-      .findAll(
-        node =>
-          node.props.accessibilityLabel ===
-          '댓글 root-author 내용에 답글 남기기',
-      )
-      .at(0);
-    const replyBody = tree.root
-      .findAll(
-        node =>
-          node.props.accessibilityLabel ===
-          '답글 reply-author 내용에 직접 답글 남기기',
-      )
-      .at(0);
-    if (!rootBody || !replyBody) {
-      throw new Error('comment rows were not rendered');
-    }
-
-    await TestRenderer.act(async () => rootBody.props.onPress());
-    const staleComposer = tree.root.findByProps({
-      testID: 'community-inline-composer',
-    });
-    const staleLayout = staleComposer.props.onLayout;
-    const staleInput = tree.root
-      .findAllByType(TextInput)
-      .find(node => node.props.accessibilityLabel === '답글 입력')!;
-    const staleInputFocus = staleInput.props.onFocus as () => void;
-
-    await TestRenderer.act(async () => replyBody.props.onPress());
-    const replyComposer = tree.root.findByProps({
-      testID: 'community-inline-composer',
-    });
-    const replyLayout = replyComposer.props.onLayout;
-    const replyInput = tree.root
-      .findAllByType(TextInput)
-      .find(node => node.props.accessibilityLabel === '답글 입력')!;
-    const replyInputFocus = replyInput.props.onFocus as () => void;
-
-    await TestRenderer.act(async () => rootBody.props.onPress());
-    const activeComposer = tree.root.findByProps({
-      testID: 'community-inline-composer',
-    });
-    const activeInput = tree.root
-      .findAllByType(TextInput)
-      .find(node => node.props.accessibilityLabel === '답글 입력')!;
-    const activeInputFocusSpy = jest.spyOn(
-      activeInput.instance as unknown as { focus: () => void },
-      'focus',
-    );
-
-    await TestRenderer.act(async () => {
-      staleLayout({ nativeEvent: { layout: { height: 180 } } });
-      staleInputFocus();
-      replyLayout({ nativeEvent: { layout: { height: 180 } } });
-      replyInputFocus();
-    });
-    expect(activeInputFocusSpy).not.toHaveBeenCalled();
-
-    await TestRenderer.act(async () =>
-      activeComposer.props.onLayout({
-        nativeEvent: { layout: { height: 180 } },
-      }),
-    );
-    expect(activeInputFocusSpy).toHaveBeenCalledTimes(1);
-    expect(tree.root.findAllByType(TextInput)).toHaveLength(1);
-    await TestRenderer.act(async () => tree.unmount());
-  });
-
-  it('cancels inline reply mode back to the single root composer', async () => {
-    const tree = await renderScreen();
-    const rootBody = tree.root
-      .findAll(
-        node =>
-          node.props.accessibilityLabel ===
-          '댓글 root-author 내용에 답글 남기기',
-      )
-      .at(0);
-    if (!rootBody) throw new Error('root comment body was not rendered');
-
-    await TestRenderer.act(async () => rootBody.props.onPress());
-    const input = tree.root
-      .findAllByType(TextInput)
-      .find(node => node.props.accessibilityLabel === '답글 입력')!;
-    await TestRenderer.act(async () =>
-      input.props.onChangeText('작성 중인 초안'),
-    );
-    const cancel = tree.root.findByProps({
-      accessibilityLabel: '답글 작성 취소',
-    });
-    await TestRenderer.act(async () => cancel.props.onPress());
-
-    expect(
-      tree.root.findAllByProps({ testID: 'community-inline-composer' }),
-    ).toHaveLength(0);
-    expect(
-      tree.root
-        .findAllByType(TextInput)
-        .find(node => node.props.accessibilityLabel === '댓글 입력')!.props
-        .value,
-    ).toBe('작성 중인 초안');
-    expect(tree.root.findAllByType(TextInput)).toHaveLength(1);
+    await tap(tree, rootLabel);
+    await TestRenderer.act(async () => findInput(tree).props.onChangeText('원래 댓글에 쓸 내용'));
+    await tap(tree, replyLabel);
+    const confirmation = () => tree.root.findAll(node => node.props.title === '작성 중인 글을 버릴까요?' && typeof node.props.onConfirm === 'function')[0];
+    expect(confirmation()?.props.visible).toBe(true);
+    expect(containsRenderedText(tree, '@root-author')).toBe(true);
+    await TestRenderer.act(async () => confirmation()?.props.onCancel());
+    expect(findInput(tree).props.value).toBe('원래 댓글에 쓸 내용');
+    await tap(tree, '답글 작성 취소');
+    expect(confirmation()?.props.visible).toBe(true);
+    await TestRenderer.act(async () => confirmation()?.props.onConfirm());
+    expect(findInput(tree).props.value).toBe('');
+    expect(findInput(tree).props.accessibilityLabel).toBe('댓글 입력');
+    expect(send(tree)).toBeUndefined();
     await TestRenderer.act(async () => tree.unmount());
   });
 
@@ -876,8 +303,9 @@ describe('Community K22/K23 rendered interaction behavior', () => {
       .find(node => node.props.accessibilityLabel === '답글 입력')!;
     await TestRenderer.act(async () => input.props.onChangeText('직접 답글'));
     expect(containsRenderedText(tree, '@reply-author')).toBe(true);
-    const send = tree.root.findByProps({ accessibilityLabel: '댓글 전송' });
-    await TestRenderer.act(async () => send.props.onPress());
+    const submit = send(tree);
+    expect(submit).toBeDefined();
+    await TestRenderer.act(async () => submit?.props.onPress());
 
     expect(mockSubmit).toHaveBeenCalledWith(
       post.id,
@@ -962,7 +390,7 @@ describe('Community K22/K23 rendered interaction behavior', () => {
     );
     await TestRenderer.act(async () =>
       tree.root
-        .findByProps({ accessibilityLabel: '댓글 전송' })
+        .findByProps({ accessibilityLabel: '답글 전송' })
         .props.onPress(),
     );
 
@@ -1000,27 +428,5 @@ describe('Community K22/K23 rendered interaction behavior', () => {
         .value,
     ).toBe('제한 후에도 남아야 할 초안');
     await TestRenderer.act(async () => tree.unmount());
-  });
-});
-
-describe('Community K22/K23 focus-race guards', () => {
-  it('separates mounted readiness from focus cancellation and keyboard visibility', () => {
-    expect(detailScreenSource).toContain('preserveMountedLayout');
-    expect(detailScreenSource).toContain('keyboardIsVisible');
-    expect(detailScreenSource).toContain('inlineMountedComposerRef');
-    expect(detailScreenSource).toContain(
-      'inlineMountedComposerRef.current.instanceId',
-    );
-    expect(detailScreenSource).toContain('commentInputRef.current?.blur()');
-    expect(detailScreenSource).toContain('forceRefocus');
-    expect(composerSource).toContain('onInlineComposerMounted');
-    expect(composerSource).toContain('instanceIdRef.current');
-  });
-
-  it('invalidates late ABA layout callbacks with a remounted composer key', () => {
-    expect(detailScreenSource).toContain(
-      "community-inline-composer-${replyTargetId ?? 'none'}",
-    );
-    expect(composerSource).toContain('onInlineLayoutReady(');
   });
 });

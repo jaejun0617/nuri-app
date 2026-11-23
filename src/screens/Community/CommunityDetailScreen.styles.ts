@@ -92,8 +92,8 @@ export const styles = StyleSheet.create({
   },
   postSection: {
     paddingTop: 4,
-    paddingBottom: 18,
-    gap: 16,
+    paddingBottom: 8,
+    gap: 12,
   },
   postCard: {
     borderWidth: 1,
@@ -161,7 +161,6 @@ export const styles = StyleSheet.create({
   },
   mediaSection: {
     marginTop: 4,
-    marginBottom: 6,
   },
   postContent: {
     ...DISCUSSION_BODY_TYPOGRAPHY,
@@ -201,6 +200,10 @@ export const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
+  },
+  postLikePill: {
+    paddingHorizontal: 12,
+    gap: 6,
   },
   actionPillText: {
     ...typography.role.helper,
@@ -308,9 +311,7 @@ export const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   commentThreadWrap: {
-    // Root content and replies have different horizontal-boundary contracts:
-    // roots own their inner padding while the reply section can reach the
-    // comment viewport edge without a compensating margin patch.
+    alignSelf: 'stretch',
     paddingHorizontal: 0,
     paddingVertical: 0,
     marginBottom: 8,
@@ -319,7 +320,7 @@ export const styles = StyleSheet.create({
     borderRadius: 0,
   },
   commentRootContent: {
-    paddingHorizontal: 20,
+    paddingHorizontal: 12,
     paddingTop: 6,
     paddingBottom: 2,
   },
@@ -402,11 +403,10 @@ export const styles = StyleSheet.create({
   },
   commentBubble: {
     borderRadius: 8,
-    borderWidth: 0,
+    borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    alignSelf: 'flex-start',
-    maxWidth: '100%',
+    alignSelf: 'stretch',
   },
   commentActionRow: {
     flexDirection: 'row',
@@ -456,8 +456,8 @@ export const styles = StyleSheet.create({
   replySectionHeader: {
     backgroundColor: 'transparent',
     minHeight: 48,
-    paddingLeft: 56,
-    paddingRight: 20,
+    paddingLeft: 48,
+    paddingRight: 12,
     paddingVertical: 0,
     flexDirection: 'row',
     alignItems: 'center',
@@ -475,9 +475,9 @@ export const styles = StyleSheet.create({
     gap: 8,
     paddingTop: 4,
     paddingBottom: 0,
-    // Reply avatars align to the root body (20 inset + 28 avatar + 8 gap).
-    paddingLeft: 56,
-    paddingRight: 20,
+    // Keep one level of reply indentation, aligned to the root body.
+    paddingLeft: 48,
+    paddingRight: 12,
     backgroundColor: 'transparent',
   },
   replyMarkerTapTarget: {
@@ -528,11 +528,10 @@ export const styles = StyleSheet.create({
   },
   replyBubble: {
     borderRadius: 8,
-    borderWidth: 0,
+    borderWidth: 1,
     paddingHorizontal: 10,
     paddingVertical: 6,
-    alignSelf: 'flex-start',
-    maxWidth: '100%',
+    alignSelf: 'stretch',
   },
   replyContent: {
     ...DISCUSSION_BODY_TYPOGRAPHY,
@@ -573,23 +572,18 @@ export const styles = StyleSheet.create({
   },
   commentComposerWrap: {
     borderTopWidth: 1,
-    paddingHorizontal: 20,
-    paddingVertical: 6,
-  },
-  inlineCommentComposerWrap: {
-    alignSelf: 'stretch',
-    paddingTop: 4,
-    paddingBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 3,
   },
   replyComposerBanner: {
     minHeight: 34,
     borderRadius: 12,
     paddingHorizontal: 12,
-    marginBottom: 8,
+    marginBottom: 4,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 10,
+    gap: 8,
   },
   replyComposerText: {
     flex: 1,
@@ -613,10 +607,9 @@ export const styles = StyleSheet.create({
   commentComposer: {
     borderWidth: 1,
     borderRadius: 20,
-    minHeight: 52,
+    minHeight: 48,
     paddingLeft: 14,
-    paddingRight: 8,
-    paddingVertical: 4,
+    paddingRight: 2,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
@@ -631,10 +624,16 @@ export const styles = StyleSheet.create({
     textAlignVertical: 'center',
     includeFontPadding: false,
   },
+  commentSubmitSlot: {
+    width: 48,
+    minHeight: 48,
+    flexShrink: 0,
+  },
   commentSubmitButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    padding: 0,
     alignItems: 'center',
     justifyContent: 'center',
   },

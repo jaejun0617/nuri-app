@@ -23,7 +23,10 @@ import { useCommunityStore } from '../src/store/communityStore';
 import { useCommunityReadStore } from '../src/store/communityReadStore';
 import { showToast } from '../src/store/uiStore';
 import type { CommunityPost, CommunityComment } from '../src/types/community';
-import { resolveCommunityKeyboardOffset } from '../src/screens/Community/utils/commentViewport';
+import {
+  resolveCommunityDiscussionBottomInset,
+  resolveCommunityReplyRevealOffset,
+} from '../src/screens/Community/utils/commentViewport';
 
 const mockNavigation = {
   setOptions: jest.fn(),
@@ -49,6 +52,7 @@ const mockRequireLogin = (action: () => void) => action();
 jest.mock('@react-navigation/native', () => ({
   ...jest.requireActual('@react-navigation/native'),
   useNavigation: () => mockNavigation,
+  usePreventRemove: jest.fn(),
   useIsFocused: () => true,
   useRoute: () => mockRoute,
 }));
@@ -274,8 +278,6 @@ describe('community comment corrective rendered contract', () => {
             <CommentThreadItem
               commentId={root.id}
               repliesExpanded
-              activeReplyTargetId={null}
-              inlineComposer={null}
               currentUserId="qa-author"
               postAuthorId={post.authorId}
               authorAccentColor="#B95000"
@@ -354,9 +356,7 @@ describe('community comment corrective rendered contract', () => {
       expect(renderedRow.props.bestBadgeColor).toBe(
         createTheme('light').colors.textSecondary,
       );
-      expect(
-        tree.root.findByProps({ accessibilityLabel: '댓글 전송' }).props.role,
-      ).toBe('neutral');
+      expect(tree.root.findAllByProps({ accessibilityLabel: '댓글 전송' })).toHaveLength(0);
       expect(tree.root.findByType(FlatList).props.data).toEqual(
         comments.filter(c => !c.parentCommentId).map(c => c.id),
       );
@@ -402,20 +402,18 @@ describe('community comment corrective rendered contract', () => {
         await TestRenderer.act(async () =>
           renderedRow.props.onPressComment('1'),
         );
-        expect(mockNavigation.navigate).not.toHaveBeenCalled();
-        const input = tree.root
-          .findAllByType(TextInput)
-          .find(node => node.props.accessibilityLabel === '답글 입력')!;
-        await TestRenderer.act(async () =>
-          input.props.onChangeText('접어도 유지할 답글'),
+        expect(mockNavigation.navigate).toHaveBeenCalledWith(
+          'CommunityComments',
+          expect.objectContaining({ commentId: '1', focusReply: true }),
         );
+        expect(tree.root.findAllByProps({ accessibilityLabel: '답글 입력' }).length).toBeGreaterThan(0);
         const toggle = (action: '접기' | '펼치기') =>
           tree.root.findByProps({
             accessibilityLabel: `답글 ${total - 1}, ${action}`,
           });
         expect(toggle('접기').props.accessibilityState.expanded).toBe(true);
         await TestRenderer.act(async () => toggle('접기').props.onPress());
-        expect(mockNavigation.navigate).not.toHaveBeenCalled();
+        expect(mockNavigation.navigate).toHaveBeenCalledTimes(1);
         expect(
           tree.root
             .findAllByType(Text)
@@ -424,27 +422,12 @@ describe('community comment corrective rendered contract', () => {
         ).toBe(false);
         expect(toggle('펼치기').props.accessibilityState.expanded).toBe(false);
         await TestRenderer.act(async () => toggle('펼치기').props.onPress());
-        expect(mockNavigation.navigate).not.toHaveBeenCalled();
+        expect(mockNavigation.navigate).toHaveBeenCalledTimes(1);
         expect(
           tree.root
             .findAllByType(Text)
             .flatMap(node => node.props.children)
             .includes('preview-content-1'),
-        ).toBe(true);
-        const updatedRow = tree.root
-          .findByType(FlatList)
-          .props.renderItem({ item: '0', index: 0 });
-        await TestRenderer.act(async () =>
-          updatedRow.props.onPressComment('1'),
-        );
-        expect(
-          tree.root
-            .findAllByType(TextInput)
-            .some(
-              node =>
-                node.props.accessibilityLabel === '답글 입력' &&
-                node.props.value === '접어도 유지할 답글',
-            ),
         ).toBe(true);
         expect(fetchDiscussionThreads).not.toHaveBeenCalled();
       }
@@ -533,6 +516,12 @@ describe('community comment corrective rendered contract', () => {
         </ThemeProvider>,
       );
     });
+    expect(header.root.findByType(TouchableOpacity).props.accessibilityLabel).toBe(
+      '게시글 본문으로 가기',
+    );
+    expect(header.root.findAllByType(Text).some(node =>
+      node.props.children === '본문' && node.props.numberOfLines === 1,
+    )).toBe(true);
     await TestRenderer.act(async () =>
       header.root.findByType(TouchableOpacity).props.onPress(),
     );
@@ -562,8 +551,9 @@ describe('community comment corrective rendered contract', () => {
       .find(node => node.props.accessibilityLabel === '댓글 전송')!;
     expect(send.findByType(Feather).props).toMatchObject({
       name: 'arrow-up',
-      size: 22,
+      size: 20,
       accessible: false,
+      color: '#FFFFFF',
     });
     expect(
       send.findAllByType(Text).some(node => node.props.children === '전송'),
@@ -630,14 +620,9 @@ describe('community comment corrective rendered contract', () => {
   });
   it('uses one keyboard owner and the same plain seasonal more glyph as memory detail', async () => {
     const tree = await render();
-    expect(
-      tree.root.findByProps({ testID: 'community-comment-keyboard-owner' })
-        .props,
-    ).toMatchObject({ behavior: 'height', keyboardVerticalOffset: 0 });
-    expect(
-      tree.root.findByProps({ testID: 'community-comment-keyboard-owner' })
-        .props.automaticOffset,
-    ).toBeUndefined();
+    const owner = tree.root.findByProps({ testID: 'community-comment-keyboard-owner' });
+    expect(owner.findAllByProps({ accessibilityLabel: '댓글 입력' }).length).toBeGreaterThan(0);
+    expect(owner.findAllByType(FlatList)).toHaveLength(1);
     expect(tree.root.findByType(FlatList).props).toMatchObject({
       automaticallyAdjustKeyboardInsets: false,
       contentContainerStyle: { paddingBottom: 12 },
@@ -661,13 +646,23 @@ describe('community comment corrective rendered contract', () => {
       header.unmount();
     });
   });
-  it('derives the stack offset from the actual viewport without reserving IME height twice', () => {
-    expect(resolveCommunityKeyboardOffset(832, 743)).toBe(89);
-    expect(resolveCommunityKeyboardOffset(832, 695, 48)).toBe(89);
-    expect(resolveCommunityKeyboardOffset(832, 832)).toBe(0);
-    expect(resolveCommunityKeyboardOffset(496, 496)).toBe(0);
-    expect(resolveCommunityKeyboardOffset(832, null)).toBe(0);
-    expect(resolveCommunityKeyboardOffset(832, 0)).toBe(0);
-    expect(resolveCommunityKeyboardOffset(832, Number.NaN)).toBe(0);
+  it('reserves the navigation bar or the active keyboard, never both', () => {
+    expect(resolveCommunityDiscussionBottomInset(48, 0, true)).toBe(48);
+    expect(resolveCommunityDiscussionBottomInset(48, -310, true)).toBe(310);
+    expect(resolveCommunityDiscussionBottomInset(48, -23, true)).toBe(48);
+    expect(resolveCommunityDiscussionBottomInset(48, -310, false)).toBe(48);
+    expect(resolveCommunityDiscussionBottomInset(0, 0, true)).toBe(0);
+  });
+
+  it('reveals a selected root above the scrolled viewport after keyboard resize', () => {
+    expect(resolveCommunityReplyRevealOffset(800, 86, 108, 912)).toBe(800);
+    expect(resolveCommunityReplyRevealOffset(800, 86, 108, 800)).toBeNull();
+  });
+
+  it('moves only as far as needed, but shows the start of a tall selected root', () => {
+    expect(resolveCommunityReplyRevealOffset(230, 56, 120, 130)).toBe(166);
+    expect(resolveCommunityReplyRevealOffset(230, 150, 120, 130)).toBe(230);
+    expect(resolveCommunityReplyRevealOffset(230, 56, 0, 130)).toBeNull();
+    expect(resolveCommunityReplyRevealOffset(NaN, 56, 120, 130)).toBeNull();
   });
 });

@@ -70,12 +70,12 @@ describe('community detail title presentation', () => {
     expect(styles.commentSortText.lineHeight).toBe(26);
   });
 
-  it('keeps the inline composer compact and the post author metadata essential', () => {
-    expect(StyleSheet.flatten(styles.inlineCommentComposerWrap)).toMatchObject({
-      alignSelf: 'stretch',
-      paddingTop: 4,
-      paddingBottom: 8,
-    });
+  it('keeps the bottom composer compact and the post author metadata essential', () => {
+    expect(styles.commentComposerWrap.paddingVertical).toBe(3);
+    expect(styles.commentComposer.minHeight).toBe(48);
+    expect(styles.commentSubmitSlot).toMatchObject({ width: 48, minHeight: 48 });
+    expect(styles.commentBubble.alignSelf).toBe('stretch');
+    expect(styles.replyBubble.alignSelf).toBe('stretch');
     expect(StyleSheet.flatten(styles.postMetaRow)).toMatchObject({
       flexDirection: 'row',
       alignItems: 'center',

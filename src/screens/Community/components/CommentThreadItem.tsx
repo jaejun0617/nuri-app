@@ -5,6 +5,7 @@ import FastImage from 'react-native-fast-image';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../../app/ui/AppText';
+import { PRODUCT_CTA } from '../../../app/theme/tokens/productAccent';
 import { useCommunityStore } from '../../../store/communityStore';
 import { formatRelativeTimeFromNow } from '../../../utils/date';
 import {
@@ -32,8 +33,6 @@ type Props = {
   previewReplyIds?: ReadonlyArray<string>;
   commentId: string;
   repliesExpanded: boolean;
-  activeReplyTargetId: string | null;
-  inlineComposer: React.ReactNode;
   currentUserId: string | null;
   postAuthorId: string;
   authorAccentColor: string;
@@ -61,8 +60,6 @@ function CommentThreadItemBase({
   previewReplyIds = EMPTY_REPLY_IDS,
   commentId,
   repliesExpanded,
-  activeReplyTargetId,
-  inlineComposer,
   currentUserId,
   postAuthorId,
   authorAccentColor,
@@ -113,7 +110,6 @@ function CommentThreadItemBase({
 
   return (
     <View
-      ref={isHighlighted ? onTargetReady : undefined}
       style={[
         styles.commentThreadWrap,
         {
@@ -121,7 +117,11 @@ function CommentThreadItemBase({
         },
       ]}
     >
-      <View style={styles.commentRootContent}>
+      <View
+        collapsable={!isHighlighted}
+        ref={isHighlighted ? onTargetReady : undefined}
+        style={styles.commentRootContent}
+      >
         <View style={styles.commentRow}>
           <Pressable
             accessibilityRole="button"
@@ -239,7 +239,7 @@ function CommentThreadItemBase({
                   styles.commentBubble,
                   {
                     backgroundColor: COMMENT_BUBBLE_SURFACES[theme.mode],
-                    borderColor: 'transparent',
+                    borderColor: isHighlighted ? PRODUCT_CTA.primary : 'transparent',
                   },
                 ]}
               >
@@ -283,7 +283,6 @@ function CommentThreadItemBase({
             />
           </View>
         </View>
-        {activeReplyTargetId === comment.id ? inlineComposer : null}
       </View>
 
       {(
@@ -330,10 +329,6 @@ function CommentThreadItemBase({
                 <React.Fragment key={replyId}>
                   <ReplyCommentItem
                     replyId={replyId}
-                    activeReplyTargetId={activeReplyTargetId}
-                    inlineComposer={
-                      activeReplyTargetId === replyId ? inlineComposer : null
-                    }
                     currentUserId={currentUserId}
                     postAuthorId={postAuthorId}
                     authorAccentColor={authorAccentColor}
