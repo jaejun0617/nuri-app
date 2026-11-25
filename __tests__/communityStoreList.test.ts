@@ -164,6 +164,53 @@ describe('community list store pagination', () => {
     useCommunityStore.getState().clearAll();
   });
 
+  it('keeps the visible page and its next cursor when a same-list refresh fails', async () => {
+    const cursor = makeCursor('all', 30, 'page-1');
+    mockedFetchCommunityPosts
+      .mockResolvedValueOnce({ items: [makePost('page-1')], nextCursor: cursor, hasMore: true })
+      .mockRejectedValueOnce(new Error('fixture connection lost'))
+      .mockResolvedValueOnce({ items: [makePost('page-2')], nextCursor: null, hasMore: false });
+
+    await useCommunityStore.getState().fetchPosts('all');
+    await useCommunityStore.getState().refreshPosts();
+    expect(useCommunityStore.getState()).toMatchObject({
+      currentPage: 1,
+      listStatus: 'ready',
+      cursor,
+      hasNextPage: true,
+    });
+    await useCommunityStore.getState().loadMorePosts();
+    expect(mockedFetchCommunityPosts).toHaveBeenNthCalledWith(3, {
+      filter: 'all',
+      category: 'all',
+      limit: 30,
+      cursor,
+    });
+    expect(useCommunityStore.getState().currentPage).toBe(2);
+  });
+
+  it('does not leave the prior category or its pagination under a failed category change', async () => {
+    mockedFetchCommunityPosts
+      .mockResolvedValueOnce({
+        items: [makePost('page-1')],
+        nextCursor: makeCursor('all', 30, 'page-1'),
+        hasMore: true,
+      })
+      .mockRejectedValueOnce(new Error('fixture connection lost'));
+
+    await useCommunityStore.getState().fetchPosts('all');
+    await useCommunityStore.getState().setCategory('question');
+    expect(useCommunityStore.getState()).toMatchObject({
+      activeCategory: 'question',
+      posts: [],
+      listStatus: 'error',
+      cursor: null,
+      hasNextPage: false,
+    });
+    await useCommunityStore.getState().loadMorePosts();
+    expect(mockedFetchCommunityPosts).toHaveBeenCalledTimes(2);
+  });
+
   it('uses the default 30 page size and keeps next/previous cursor history', async () => {
     mockedFetchCommunityPosts
       .mockResolvedValueOnce({

@@ -23,11 +23,15 @@ describe('community detail title presentation', () => {
     expect(styles.moreButton).toMatchObject({ width: 44, height: 44 });
     expect(styles.moreButton).not.toHaveProperty('borderWidth');
   });
-  it('separates the compact category from a wrapping full-width title', () => {
+  it('puts the compact category beside the first line of a wrapping title', () => {
     expect(StyleSheet.flatten(styles.postTitleRow)).toMatchObject({
-      flexDirection: 'column',
+      flexDirection: 'row',
       alignItems: 'flex-start',
       gap: 8,
+    });
+    expect(styles.categoryColumn).toMatchObject({
+      justifyContent: 'center',
+      flexShrink: 0,
     });
     expect(StyleSheet.flatten(styles.categoryBadge)).toMatchObject({
       minHeight: 20,
@@ -35,8 +39,7 @@ describe('community detail title presentation', () => {
       flexShrink: 0,
     });
     expect(StyleSheet.flatten(styles.postTitle)).toMatchObject({
-      alignSelf: 'stretch',
-      flexShrink: 1,
+      flex: 1,
       minWidth: 0,
       fontSize: 20,
       lineHeight: 28,

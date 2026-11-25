@@ -5,7 +5,6 @@ import MaterialCommunityIcons from '../../../components/icons/NuriMaterialIcon';
 import AppText from '../../../app/ui/AppText';
 import type { CommunityPost } from '../../../types/community';
 import {
-  formatCommunityListTimestamp,
   getCommunityCategoryLabel,
   getCommunityPostAccessibilityLabel,
   getCommunityPostTitleLineCount,
@@ -21,6 +20,7 @@ import {
 
 type Props = {
   post: CommunityPost;
+  createdAtLabel: string;
   accentColor: string;
   onPressPost: (postId: string) => void;
 };
@@ -42,7 +42,7 @@ function resolvePostTitle(post: CommunityPost) {
   return firstContentLine || '내용이 없는 게시글';
 }
 
-function PostCardBase({ post, accentColor, onPressPost }: Props) {
+function PostCardBase({ post, createdAtLabel, accentColor, onPressPost }: Props) {
   const viewerId = useAuthStore(s => s.session?.user?.id ?? null);
   const readKey = communityPostReadKey(viewerId, post.id);
   const hasRead = useCommunityReadStore(s => s.readKeys[readKey] === true);
@@ -52,10 +52,6 @@ function PostCardBase({ post, accentColor, onPressPost }: Props) {
   const title = useMemo(() => resolvePostTitle(post), [post]);
   const categoryLabel = getCommunityCategoryLabel(post.category);
   const categoryPalette = getCommunityCategoryPalette(post.category);
-  const createdAtLabel = useMemo(
-    () => formatCommunityListTimestamp(post.createdAt),
-    [post.createdAt],
-  );
   const noticeColor = accentColor;
   const accessibilityLabel = getCommunityPostAccessibilityLabel(
     title,
@@ -165,10 +161,16 @@ function PostCardBase({ post, accentColor, onPressPost }: Props) {
         </View>
 
         <View style={styles.metaRow}>
-          <AppText preset="caption" numberOfLines={1} style={styles.metaText}>
-            {`${
-              post.authorNickname
-            }  |  ${createdAtLabel}  |  조회 ${post.viewCount.toLocaleString()}  |  추천 ${post.likeCount.toLocaleString()}`}
+          <View style={styles.metaByline}>
+            <AppText preset="caption" numberOfLines={1} style={[styles.metaText, styles.metaAuthor]}>
+              {post.authorNickname}
+            </AppText>
+            <AppText testID="community-post-created-at" preset="caption" style={styles.metaText}>
+              {createdAtLabel}
+            </AppText>
+          </View>
+          <AppText preset="caption" style={styles.metaText}>
+            {`조회 ${post.viewCount.toLocaleString()}  |  추천 ${post.likeCount.toLocaleString()}`}
           </AppText>
         </View>
       </View>
@@ -207,6 +209,7 @@ const areEqual = (prev: Props, next: Props) =>
   prev.post.likeCount === next.post.likeCount &&
   prev.post.commentCount === next.post.commentCount &&
   prev.post.createdAt === next.post.createdAt &&
+  prev.createdAtLabel === next.createdAtLabel &&
   prev.accentColor === next.accentColor &&
   prev.onPressPost === next.onPressPost;
 

@@ -57,7 +57,7 @@ export function getCommunityEditorExitDialogCopy(mode: 'create' | 'edit') {
   return {
     title: '작성 중인 글을 나갈까요?',
     message:
-      '입력 중인 내용은 임시저장으로 남겨둘게요.\n다음에 이어서 작성할 수 있어요.',
+      '나가기를 누르면 이 기기에 임시저장해요. 저장이 끝나면 화면을 닫아요.',
     confirmLabel: '나가기',
     cancelLabel: '계속 작성',
   };

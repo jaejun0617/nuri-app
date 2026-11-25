@@ -380,7 +380,7 @@ export default function IsolatedFaq({
               ),
             ]}
           />
-          {ready && !visible.length ? (
+          {ready && !busy && !error && !visible.length ? (
             <Copy muted>
               {query || filter !== 'all'
                 ? '검색 결과가 없어요.'

@@ -581,15 +581,21 @@ export default function GuideListScreen() {
             공개된 콘텐츠를 정리해서 보여드리고 있어요.
           </AppText>
         </HomeFrostedGlass>
-      ) : catalogState.error && rankedGuides.length === 0 ? (
+      ) : rankedGuides.length === 0 && (catalogState.error ||
+        (catalogState.source === 'remote-empty' && catalogState.sourceReason === 'remote-error')) ? (
         <HomeFrostedGlass season={season} borderRadius={24} style={styles.emptyCard}>
           <Feather name="alert-circle" size={28} color={petTheme.primary} />
           <AppText typographyRole="celebration" preset="unifiedTitle" style={styles.emptyTitle}>
             가이드를 불러오지 못했어요
           </AppText>
           <AppText preset="unifiedBody" style={styles.emptyDesc}>
-            {catalogState.error}
+            잠시 후 다시 불러와 주세요.
           </AppText>
+          <TouchableOpacity accessibilityRole="button" style={styles.resetSearchButton} onPress={catalogState.refresh}>
+            <AppText preset="unifiedMeta" style={[styles.resetSearchButtonText, { color: petTheme.primary }]}>
+              다시 불러오기
+            </AppText>
+          </TouchableOpacity>
         </HomeFrostedGlass>
       ) : visibleGuides.length === 0 ? (
         <HomeFrostedGlass season={season} borderRadius={24} style={styles.emptyCard}>

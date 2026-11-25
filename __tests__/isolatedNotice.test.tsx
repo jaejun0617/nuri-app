@@ -1,5 +1,6 @@
 import React from 'react';
-import { AppState } from 'react-native';
+import { AppState, RefreshControl } from 'react-native';
+import IsolatedFaq from '../src/screens/SupportIsolation/IsolatedFaq';
 import { NuriAlert as Alert } from '../src/app/ui/NuriAlert';
 import TestRenderer from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
@@ -35,13 +36,16 @@ function renderedText(
     ),
   ].join(' ');
 }
-async function setup(manager = true) {
+async function setup(manager = true, failFirst?: 'notice' | 'myTickets') {
   const client = new IsolatedNoticeClient();
   jest.spyOn(client, 'login').mockResolvedValue('synthetic-user');
   jest.spyOn(client, 'canManage').mockResolvedValue(manager);
   jest.spyOn(client, 'canViewTickets').mockResolvedValue(manager);
   jest.spyOn(client, 'canViewReports').mockResolvedValue(manager);
   jest.spyOn(client, 'staffTickets').mockResolvedValue([]);
+  if (failFirst === 'myTickets') {
+    jest.spyOn(client, 'myTickets').mockRejectedValueOnce(new NoticeError('NETWORK_UNCERTAIN')).mockResolvedValue([]);
+  }
   jest.spyOn(client, 'editor').mockResolvedValue({
     id: notice.id,
     revision: 3,
@@ -55,6 +59,7 @@ async function setup(manager = true) {
   jest
     .spyOn(client, 'list')
     .mockResolvedValue({ items: [notice], count: 1, nextCursor: null });
+  if (failFirst === 'notice') jest.mocked(client.list).mockRejectedValueOnce(new NoticeError('NETWORK_UNCERTAIN'));
   jest
     .spyOn(client, 'detail')
     .mockResolvedValue({ ...notice, body: 'Exact server body' });
@@ -70,6 +75,7 @@ async function setup(manager = true) {
       <ThemeProvider theme={createTheme('light')}>
         <IsolatedNoticeScreen
           ref={ref}
+          initialPanel={failFirst === 'myTickets' ? 'myTickets' : undefined}
           createClient={() => client}
           onExit={exit}
         />
@@ -92,6 +98,56 @@ async function setup(manager = true) {
   return { tree, client, ref, exit, press, change };
 }
 afterEach(() => jest.restoreAllMocks());
+it('does not report the previous empty FAQ result as current after a failed refresh', async () => {
+  const client = new IsolatedNoticeClient();
+  jest.spyOn(client, 'faqs').mockResolvedValueOnce([])
+    .mockRejectedValueOnce(new NoticeError('NETWORK_UNCERTAIN')).mockResolvedValue([]);
+  let tree!: TestRenderer.ReactTestRenderer;
+  await TestRenderer.act(async () => {
+    tree = TestRenderer.create(
+      <ThemeProvider theme={createTheme('light')}>
+        <IsolatedFaq client={client} management={false} status={null}
+          onBack={jest.fn()} onError={jest.fn()} />
+      </ThemeProvider>,
+    );
+  });
+  const refresh = async () => {
+    await TestRenderer.act(async () => tree.root.findByType(RefreshControl).props.onRefresh());
+  };
+  try {
+    expect(renderedText(tree.toJSON())).toContain('공개된 질문이 없어요.');
+    await refresh();
+    expect(renderedText(tree.toJSON())).toContain('연결을 확인해주세요.');
+    expect(renderedText(tree.toJSON())).not.toContain('공개된 질문이 없어요.');
+    await refresh();
+    expect(renderedText(tree.toJSON())).toContain('공개된 질문이 없어요.');
+    expect(renderedText(tree.toJSON())).not.toContain('연결을 확인해주세요.');
+  } finally {
+    await TestRenderer.act(async () => tree.unmount());
+  }
+});
+it('separates failed notice lookup from a confirmed zero count and retries the list', async () => {
+  const { tree, press } = await setup(false, 'notice');
+  try {
+    const failed = renderedText(tree.toJSON());
+    expect(failed).toContain('다시 불러오기');
+    expect(failed).not.toContain('등록된 공지가 없어요.');
+    await press('notice-list-retry');
+    expect(renderedText(tree.toJSON())).toContain(notice.title);
+    expect(renderedText(tree.toJSON())).not.toContain('다시 불러오기');
+  } finally { await TestRenderer.act(async () => tree.unmount()); }
+});
+it('shows an empty ticket list only after the retried query actually returns zero rows', async () => {
+  const { tree, client } = await setup(false, 'myTickets');
+  try {
+    expect(renderedText(tree.toJSON())).toContain('문의 내역을 불러오지 못했어요.');
+    expect(renderedText(tree.toJSON())).not.toContain('접수된 문의가 없어요.');
+    await TestRenderer.act(async () => tree.root.findByProps({testID:'ticket-pull-refresh'}).props.onRefresh());
+    expect(client.myTickets).toHaveBeenCalledTimes(2);
+    expect(renderedText(tree.toJSON())).toContain('접수된 문의가 없어요.');
+    expect(renderedText(tree.toJSON())).not.toContain('문의 내역을 불러오지 못했어요.');
+  } finally { await TestRenderer.act(async () => tree.unmount()); }
+});
 it('parses only the declared notice contract', () => {
   expect(() =>
     parseNotice({ id: 'x', title: 'a', category: 'fake', pinned: false }),

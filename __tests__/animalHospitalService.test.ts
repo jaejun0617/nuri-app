@@ -47,6 +47,17 @@ function createCanonicalHospital(input: {
 }
 
 describe('animalHospital runtime query service', () => {
+  it('distinguishes a failed empty read from a successful empty search', async () => {
+    const scope = { displayLabel: '시험', queryLabel: null, anchorCoordinates: null, distanceLabel: '' };
+    const provider = { searchAddress: async () => [], searchKeyword: async () => [] };
+    const input = { scope, provider, query: '시험' };
+    const empty = await searchAnimalHospitals({ ...input, repository: { search: async () => [] } });
+    expect(empty.items).toHaveLength(0);
+    expect(empty.readFailed).toBeUndefined();
+    const failed = await searchAnimalHospitals({ ...input, repository: { search: async () => { throw new Error('test'); } } });
+    expect(failed.items).toHaveLength(0);
+    expect(failed.readFailed).toBe(true);
+  });
   it('provider-only 후보 전화번호는 일반 목록과 검색에서 숨기고 내부 결과는 보존한다', async () => {
     const provider: LocationSearchProvider = {
       searchKeyword: async () => [

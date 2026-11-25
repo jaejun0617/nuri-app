@@ -1,6 +1,6 @@
 import React from 'react';
 import ReactTestRenderer from 'react-test-renderer';
-import { FlatList, StyleSheet, TouchableOpacity, View } from 'react-native';
+import { FlatList, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 import AnimalHospitalCard from '../src/components/animalHospital/AnimalHospitalCard';
 import AnimalHospitalDetailScreen from '../src/screens/AnimalHospital/AnimalHospitalDetailScreen';
@@ -13,6 +13,7 @@ import type { AnimalHospitalPublicHospital } from '../src/domains/animalHospital
 import type { LocationDiscoveryItem } from '../src/services/locationDiscovery/types';
 
 let mockRouteParams: { item?: AnimalHospitalPublicHospital } = {};
+let mockBottomInset = 24;
 let mockHospitalDiscoveryState: AnimalHospitalDiscoveryState;
 let mockRenderers: ReactTestRenderer.ReactTestRenderer[] = [];
 
@@ -26,7 +27,7 @@ jest.mock('@react-navigation/native', () => ({
   useFocusEffect: () => undefined,
 }));
 jest.mock('react-native-safe-area-context', () => ({
-  useSafeAreaInsets: () => ({ top: 24, bottom: 24, left: 0, right: 0 }),
+  useSafeAreaInsets: () => ({ top: 24, bottom: mockBottomInset, left: 0, right: 0 }),
 }));
 
 jest.mock('styled-components/native', () => ({
@@ -408,6 +409,21 @@ describe('NURI-08 place media and initial loading', () => {
     expect(countMediaImages(renderer)).toBe(0);
     expect(serialized(renderer)).toContain('도보 약 6분 · 250m');
   });
+
+  it.each([[0, 32], [54, 66]])(
+    'Hospital detail keeps location content clear of the %idp navigation inset',
+    async (inset, paddingBottom) => {
+      mockRouteParams = { item: hospital };
+      mockBottomInset = inset;
+      try {
+        const renderer = await renderElement(<AnimalHospitalDetailScreen />);
+        expect(renderer.root.findByType(ScrollView).props.contentContainerStyle)
+          .toMatchObject({ paddingBottom });
+      } finally {
+        mockBottomInset = 24;
+      }
+    },
+  );
 
   it('위치가 없으면 거리와 예상 시간을 0으로 만들지 않는다', () => {
     expect(

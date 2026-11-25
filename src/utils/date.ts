@@ -12,6 +12,7 @@ export type KstDateParts = {
   weekday: number;
   hour: number;
   minute: number;
+  second: number;
 };
 
 const WEEKDAY_KO = ['일', '월', '화', '수', '목', '금', '토'] as const;
@@ -89,6 +90,7 @@ export function getKstDateParts(
     weekday: shifted.getUTCDay(),
     hour: shifted.getUTCHours(),
     minute: shifted.getUTCMinutes(),
+    second: shifted.getUTCSeconds(),
   };
 }
 

@@ -371,6 +371,30 @@ describe('CommunityCreate keyboard visibility contract', () => {
     expect(form().props.imageUris).toHaveLength(1);
   });
 
+  it('keeps an existing draft until its async read and restore choice finish', async () => {
+    const key = 'nuri.community.draft.v1';
+    const draft = { title: '임시 제목', content: '임시 본문', category: 'daily', pickedImages: [] };
+    let resolveRead!: (value: string) => void;
+    jest.mocked(AsyncStorage.getItem).mockImplementationOnce(
+      () => new Promise(resolve => { resolveRead = resolve; }),
+    );
+    await mount();
+    expect(AsyncStorage.removeItem).not.toHaveBeenCalledWith(key);
+    expect(AsyncStorage.setItem).not.toHaveBeenCalledWith(key, expect.anything());
+
+    await TestRenderer.act(async () => { resolveRead(JSON.stringify(draft)); });
+    const restore = renderer!.root
+      .findAllByType(ConfirmDialog)
+      .find(node => node.props.title === '임시저장된 글이 있어요')!;
+    expect(restore.props.visible).toBe(true);
+    expect(AsyncStorage.removeItem).not.toHaveBeenCalledWith(key);
+    expect(AsyncStorage.setItem).not.toHaveBeenCalledWith(key, expect.anything());
+
+    await TestRenderer.act(async () => { restore.props.onConfirm(); });
+    expect(form().props.content).toBe(draft.content);
+    expect(AsyncStorage.setItem).toHaveBeenCalledWith(key, JSON.stringify(draft));
+  });
+
   it('restores and persists all five draft photos', async () => {
     const pickedImages = photos(5);
     jest.mocked(AsyncStorage.getItem).mockResolvedValue(
@@ -403,6 +427,174 @@ describe('CommunityCreate keyboard visibility contract', () => {
         pickedImages,
       }),
     );
+  });
+
+  describe('draft storage recovery', () => {
+    const key = 'nuri.community.draft.v1';
+    const previous = JSON.stringify({ title: '이전 글', content: '기존 본문', category: 'daily', pickedImages: [] });
+    let disk: Map<string, string>;
+    const read = jest.mocked(AsyncStorage.getItem);
+    const write = jest.mocked(AsyncStorage.setItem);
+    const remove = jest.mocked(AsyncStorage.removeItem);
+    const dialog = (title: string) => {
+      const node = renderer!.root.findAllByType(ConfirmDialog).find(item => item.props.title === title);
+      if (!node?.props.visible) throw new Error('Expected visible dialog: ' + title);
+      return node.props;
+    };
+    const pressBack = () => TestRenderer.act(async () => {
+      mockNavigation.setOptions.mock.calls.at(-1)![0].headerLeft().props.onPress();
+    });
+    const edit = () => TestRenderer.act(async () => {
+      form().props.onChangeTitle('새 제목');
+      form().props.onChangeContent('새 본문');
+    });
+    const reenter = async () => {
+      await TestRenderer.act(async () => renderer!.unmount());
+      await mount();
+      await TestRenderer.act(async () => dialog('임시저장된 글이 있어요').onConfirm());
+      expect(form().props.title).toBe('새 제목');
+      expect(form().props.content).toBe('새 본문');
+    };
+    beforeEach(() => {
+      disk = new Map();
+      read.mockImplementation(async k => disk.get(k) ?? null);
+      write.mockImplementation(async (k, v) => { disk.set(k, v); });
+      remove.mockImplementation(async k => { disk.delete(k); });
+    });
+    afterEach(() => {
+      read.mockReset().mockResolvedValue(null);
+      write.mockReset().mockResolvedValue(undefined);
+      remove.mockReset().mockResolvedValue(undefined);
+    });
+
+    it.each([false, true])('restores the last edit after leaving (first read fails: %s)', async failsOnce => {
+      if (failsOnce) read.mockRejectedValueOnce(new Error('read'));
+      await mount();
+      expect(read.mock.calls.filter(([k]) => k === key)).toHaveLength(failsOnce ? 2 : 1);
+      await edit();
+      await pressBack();
+      await TestRenderer.act(async () => dialog('작성 중인 글을 나갈까요?').onConfirm());
+      expect(mockNavigation.goBack).toHaveBeenCalledTimes(1);
+      await reenter();
+    });
+
+    it('keeps an unread draft untouched and allows a manual retry before accepting edits', async () => {
+      disk.set(key, previous);
+      read.mockRejectedValueOnce(new Error('read')).mockRejectedValueOnce(new Error('read'));
+      await mount();
+      expect(renderer!.root.findAllByType(TextInput).every(input => input.props.editable === false)).toBe(true);
+      expect(form().props.submitLoading).toBe(true);
+      expect(mockNavigation.setOptions.mock.calls.at(-1)![0].headerRight().props.disabled).toBe(true);
+      expect(dialog('임시저장한 글을 확인하지 못했어요').confirmLabel).toBe('다시 불러오기');
+      expect(read.mock.calls.filter(([k]) => k === key)).toHaveLength(2);
+      await TestRenderer.act(async () => dialog('임시저장한 글을 확인하지 못했어요').onConfirm());
+      expect(write).not.toHaveBeenCalledWith(key, expect.anything());
+      expect(remove).not.toHaveBeenCalledWith(key);
+      await TestRenderer.act(async () => dialog('임시저장된 글이 있어요').onCancel());
+      await TestRenderer.act(async () => dialog('이전 글을 버릴까요?').onCancel());
+      expect(disk.get(key)).toBe(previous);
+      await TestRenderer.act(async () => dialog('임시저장된 글이 있어요').onConfirm());
+      expect(form().props.title).toBe('이전 글');
+      expect(form().props.content).toBe('기존 본문');
+      await edit();
+      await pressBack();
+      await TestRenderer.act(async () => dialog('작성 중인 글을 나갈까요?').onConfirm());
+      await reenter();
+    });
+
+    it('can leave after repeated read failure without touching the unresolved draft', async () => {
+      disk.set(key, previous);
+      read.mockRejectedValue(new Error('read'));
+      await mount();
+      await TestRenderer.act(async () => dialog('임시저장한 글을 확인하지 못했어요').onCancel());
+      expect(mockNavigation.goBack).toHaveBeenCalledTimes(1);
+      expect(disk.get(key)).toBe(previous);
+      expect(remove).not.toHaveBeenCalledWith(key);
+      expect(write).not.toHaveBeenCalledWith(key, expect.anything());
+    });
+
+    it('does not unlock the empty editor until explicitly discarding an older draft succeeds', async () => {
+      disk.set(key, previous);
+      await mount();
+      await TestRenderer.act(async () => dialog('임시저장된 글이 있어요').onCancel());
+      remove.mockRejectedValueOnce(new Error('remove'));
+      await TestRenderer.act(async () => dialog('이전 글을 버릴까요?').onConfirm());
+      expect(disk.get(key)).toBe(previous);
+      expect(form().props.submitLoading).toBe(true);
+      await TestRenderer.act(async () => dialog('이전 글을 버릴까요?').onConfirm());
+      expect(disk.has(key)).toBe(false);
+      expect(form().props.submitLoading).toBe(false);
+      expect(form().props.title).toBe('');
+    });
+
+    it('restores a category-only edit after a successful exit save', async () => {
+      await mount();
+      await TestRenderer.act(async () => { form().props.onChangeCategory('daily'); });
+      await pressBack();
+      await TestRenderer.act(async () => dialog('작성 중인 글을 나갈까요?').onConfirm());
+      await TestRenderer.act(async () => renderer!.unmount());
+      await mount();
+      await TestRenderer.act(async () => dialog('임시저장된 글이 있어요').onConfirm());
+      expect(form().props.category).toBe('daily');
+      expect(form().props.title).toBe('');
+    });
+
+    it('keeps input after both autosave and exit save fail, and only leaves after a successful retry', async () => {
+      await mount();
+      write.mockRejectedValueOnce(new Error('autosave')).mockRejectedValueOnce(new Error('exit save'));
+      await edit();
+      await pressBack();
+      await TestRenderer.act(async () => dialog('작성 중인 글을 나갈까요?').onConfirm());
+      expect(mockNavigation.goBack).not.toHaveBeenCalled();
+      expect(dialog('작성 중인 글을 나갈까요?').confirmLabel).toBe('다시 저장');
+      expect(dialog('작성 중인 글을 나갈까요?').message).toContain('임시저장하지 못했어요');
+      expect(form().props.content).toBe('새 본문');
+      expect(disk.has(key)).toBe(false);
+      await TestRenderer.act(async () => dialog('작성 중인 글을 나갈까요?').onConfirm());
+      expect(mockNavigation.goBack).toHaveBeenCalledTimes(1);
+      await reenter();
+    });
+
+    it('waits for an older write before the final snapshot and ignores a duplicate exit', async () => {
+      await mount();
+      let finish!: () => void;
+      write.mockImplementationOnce((k, v) => new Promise<void>(resolve => {
+        finish = () => { disk.set(k, v); resolve(); };
+      }));
+      await TestRenderer.act(async () => { form().props.onChangeTitle('먼저 쓴 글'); });
+      await edit();
+      await pressBack();
+      await TestRenderer.act(async () => {
+        dialog('작성 중인 글을 나갈까요?').onConfirm();
+        dialog('작성 중인 글을 나갈까요?').onConfirm();
+      });
+      expect(mockNavigation.goBack).not.toHaveBeenCalled();
+      expect(dialog('작성 중인 글을 나갈까요?').confirmDisabled).toBe(true);
+      await TestRenderer.act(async () => finish());
+      expect(mockNavigation.goBack).toHaveBeenCalledTimes(1);
+      await reenter();
+    });
+
+    it('does not resurrect an erased draft when its first removal fails', async () => {
+      await mount();
+      await edit();
+      remove.mockRejectedValueOnce(new Error('remove')).mockRejectedValueOnce(new Error('exit remove'));
+      await TestRenderer.act(async () => {
+        form().props.onChangeTitle('');
+        form().props.onChangeContent('');
+      });
+      await pressBack();
+      await TestRenderer.act(async () => dialog('작성 중인 글을 나갈까요?').onConfirm());
+      expect(mockNavigation.goBack).not.toHaveBeenCalled();
+      expect(disk.has(key)).toBe(true);
+      await TestRenderer.act(async () => dialog('작성 중인 글을 나갈까요?').onConfirm());
+      expect(mockNavigation.goBack).toHaveBeenCalledTimes(1);
+      expect(disk.has(key)).toBe(false);
+      await TestRenderer.act(async () => renderer!.unmount());
+      await mount();
+      expect(form().props.title).toBe('');
+      expect(renderer!.root.findAllByType(ConfirmDialog).some(item => item.props.visible)).toBe(false);
+    });
   });
 
   it('keeps real submission progress visible, locks duplicate taps and retains draft on failure', async () => {

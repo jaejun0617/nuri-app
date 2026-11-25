@@ -102,9 +102,13 @@ export const styles = StyleSheet.create({
     gap: 16,
   },
   postTitleRow: {
-    flexDirection: 'column',
+    flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
+  },
+  categoryColumn: {
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   authorBlock: {
     flex: 1,
@@ -152,12 +156,12 @@ export const styles = StyleSheet.create({
   },
   postTitle: {
     ...typography.role.titleLg,
-    alignSelf: 'stretch',
-    flexShrink: 1,
+    flex: 1,
     minWidth: 0,
     fontSize: 20,
     lineHeight: 28,
     fontWeight: '700',
+    includeFontPadding: false,
   },
   mediaSection: {
     marginTop: 4,

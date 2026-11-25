@@ -259,6 +259,8 @@ export default function AnimalHospitalListScreen() {
                   icon="alert-circle"
                   title="병원 후보를 불러오지 못했어요"
                   body={discoveryState.error}
+                  actionLabel="다시 불러오기"
+                  onPressAction={discoveryState.refresh}
                 />
               </View>
             ) : discoveryState.items.length === 0 ? (

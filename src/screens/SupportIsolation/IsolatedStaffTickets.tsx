@@ -109,6 +109,7 @@ export default function IsolatedStaffTickets({
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [items, setItems] = useState<StaffTicket[]>([]);
+  const [listStatus, setListStatus] = useState<'pending' | 'ready' | 'failed'>('pending');
   const [alerts, setAlerts] = useState<SupportReplyNotification[]>([]);
   const [alertUnread, setAlertUnread] = useState(0);
   const [alertsLoaded, setAlertsLoaded] = useState(false);
@@ -192,10 +193,20 @@ export default function IsolatedStaffTickets({
       }
     } else {
       const before = append ? items.at(-1) : undefined;
-      const rows = staff
-        ? await client.staffTickets(before)
-        : await client.myTickets(before);
+      let rows: StaffTicket[];
+      try {
+        rows = staff ? await client.staffTickets(before) : await client.myTickets(before);
+      } catch (reason) {
+        if (!active.current) return;
+        if (reason instanceof NoticeError && reason.code === 'NETWORK_UNCERTAIN') {
+          setListStatus('failed');
+          return;
+        }
+        setListStatus('pending');
+        throw reason;
+      }
       if (!active.current) return;
+      setListStatus('ready');
       setItems(old =>
         append
           ? [
@@ -814,7 +825,15 @@ export default function IsolatedStaffTickets({
                 onPress={() => run(() => open(item.id))}
               />
             ))}
-            {!busy && mode !== 'alerts' && !items.length ? (
+            {listStatus === 'failed' && mode !== 'alerts' ? (
+              <View accessibilityLiveRegion="polite">
+                <Copy>문의 내역을 불러오지 못했어요.</Copy>
+                <CtaButton role="neutral" disabled={busy} onPress={() => run(() => list())}>
+                  <CtaText>다시 불러오기</CtaText>
+                </CtaButton>
+              </View>
+            ) : null}
+            {!busy && listStatus === 'ready' && mode !== 'alerts' && !items.length ? (
               <Copy>접수된 문의가 없어요.</Copy>
             ) : null}
             {more ? (

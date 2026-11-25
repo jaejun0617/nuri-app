@@ -109,6 +109,7 @@ export default function IsolatedNoticeScreen({
     [password, setPassword] = useState('');
   const [user, setUser] = useState<string | null>(null),
     [manager, setManager] = useState(false);
+  const [listStatus, setListStatus] = useState<'pending' | 'ready' | 'failed'>('pending');
   const [items, setItems] = useState<Notice[]>([]),
     [count, setCount] = useState(0),
     [cursor, setCursor] = useState<unknown>(null);
@@ -162,6 +163,7 @@ export default function IsolatedNoticeScreen({
     generation.current++;
     setItems([]);
     setCount(0);
+    setListStatus('pending');
     setCursor(null);
     setDetail(null);
     setRenderedId(null);
@@ -247,8 +249,12 @@ export default function IsolatedNoticeScreen({
         !(reason instanceof NoticeError) ||
         reason.code !== 'SUPPORT_CURSOR_STALE' ||
         next === null
-      )
+      ) {
+        if (active.current && generation.current === epoch) {
+          setListStatus(reason instanceof NoticeError && reason.code === 'NETWORK_UNCERTAIN' ? 'failed' : 'pending');
+        }
         throw reason;
+      }
       append = false;
       result = await reloadNoticeWindow(
         client,
@@ -278,6 +284,7 @@ export default function IsolatedNoticeScreen({
         : result.items,
     );
     setCount(result.count);
+    setListStatus('ready');
     setCursor(result.nextCursor);
     setCategory(selected);
   }
@@ -725,7 +732,7 @@ export default function IsolatedNoticeScreen({
                   if (!busyRef.current) execute(() => load(null, value));
                 }}
               />
-              <Copy muted>총 {count}건</Copy>
+              {listStatus === 'ready' ? <Copy muted>총 {count}건</Copy> : null}
               {manager ? (
                 <CtaButton
                   role="primary"
@@ -781,7 +788,12 @@ export default function IsolatedNoticeScreen({
                   <CtaText>신고내역</CtaText>
                 </CtaButton>
               ) : null}
-              {!items.length && !busy ? (
+              {listStatus === 'failed' ? (
+                <CtaButton role="neutral" testID="notice-list-retry" disabled={busy} onPress={() => execute(() => load())}>
+                  <CtaText>다시 불러오기</CtaText>
+                </CtaButton>
+              ) : null}
+              {listStatus === 'ready' && !items.length && !busy ? (
                 <Copy>등록된 공지가 없어요.</Copy>
               ) : null}
               {items.map(item => (

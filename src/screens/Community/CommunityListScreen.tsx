@@ -16,6 +16,7 @@ import React, {
 } from 'react';
 import {
   ActivityIndicator,
+  AppState,
   Animated,
   Easing,
   FlatList,
@@ -246,6 +247,27 @@ export default function CommunityListScreen() {
   const ownerSession = useAuthStore(s => s.session);
   const [isolatedNotices, setIsolatedNotices] = useState(false);
   const isCreateActionVisible = canCreateCommunityPost(activeFilter);
+  const [listNow, setListNow] = useState(() => new Date());
+
+  // One clock for the visible list; aging a label must never refetch posts.
+  useFocusEffect(useCallback(() => {
+    let timer: ReturnType<typeof setTimeout>;
+    function tick() {
+      clearTimeout(timer);
+      const now = new Date();
+      setListNow(now);
+      timer = setTimeout(tick, 60_000 - now.getTime() % 60_000);
+    }
+    if (!AppState.currentState || AppState.currentState === 'active') tick();
+    const subscription = AppState.addEventListener('change', state => {
+      if (state === 'active') tick();
+      else clearTimeout(timer);
+    });
+    return () => {
+      clearTimeout(timer);
+      subscription.remove();
+    };
+  }, []));
 
   useEffect(() => {
     if (listStatus !== 'idle' || posts.length > 0) return;
@@ -434,11 +456,12 @@ export default function CommunityListScreen() {
     ({ item: postId }) => (
       <CommunityPostListItem
         postId={postId}
+        now={listNow}
         accentColor={seasonal.primary}
         onPressPost={handlePressPost}
       />
     ),
-    [handlePressPost, seasonal.primary],
+    [handlePressPost, listNow, seasonal.primary],
   );
 
   const categoryHeader = useMemo(

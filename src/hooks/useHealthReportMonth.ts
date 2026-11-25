@@ -107,7 +107,8 @@ export function useHealthReportMonth(input: {
     monthKey: normalizedMonthKey,
     data,
     loading: query.isPending || query.isFetching,
-    error: query.error instanceof Error ? query.error.message : null,
+    // PostgREST can reject with an object rather than an Error instance.
+    error: query.isError ? '잠시 후 다시 불러와 주세요.' : null,
     refetch: query.refetch,
   };
 }

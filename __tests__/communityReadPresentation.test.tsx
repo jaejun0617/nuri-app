@@ -58,7 +58,7 @@ it('changes only the visited title and accessibility label, retaining the row an
   const onPress = jest.fn();
   const render = (accent: string) => (
     <ThemeProvider theme={createTheme('light')}>
-      <PostCard post={post} accentColor={accent} onPressPost={onPress} />
+      <PostCard post={post} createdAtLabel="10.09" accentColor={accent} onPressPost={onPress} />
     </ThemeProvider>
   );
   let tree!: TestRenderer.ReactTestRenderer;
@@ -107,7 +107,7 @@ it('retains the mounted list row through protected detail load and immediately r
   let tree!: TestRenderer.ReactTestRenderer;
   await TestRenderer.act(async () => {
     tree = TestRenderer.create(<ThemeProvider theme={createTheme('light')}>
-      <CommunityPostListItem postId={post.id} accentColor="#B95000" onPressPost={jest.fn()} />
+      <CommunityPostListItem postId={post.id} now={new Date('2026-10-10T00:00Z')} accentColor="#B95000" onPressPost={jest.fn()} />
     </ThemeProvider>);
   });
   const title = () => tree.root.findByProps({ testID: 'community-post-title' });
@@ -126,4 +126,21 @@ it('retains the mounted list row through protected detail load and immediately r
   expect(StyleSheet.flatten(title().props.style).color).toBe(COMMUNITY_LIST_COLORS.readTitle);
   expect(useCommunityStore.getState().posts).toHaveLength(1);
   await TestRenderer.act(async () => tree.unmount());
+});
+
+it('updates the same mounted post to a date at Korean midnight without changing post data', async () => {
+  useCommunityStore.setState({ postsById: { [post.id]: post } });
+  const onPress = jest.fn();
+  const row = (now: string) => (
+    <ThemeProvider theme={createTheme('light')}>
+      <CommunityPostListItem postId={post.id} now={new Date(now)} accentColor="#B95000" onPressPost={onPress} />
+    </ThemeProvider>
+  );
+  let tree!: TestRenderer.ReactTestRenderer;
+  await TestRenderer.act(async () => { tree = TestRenderer.create(row('2026-10-09T14:59:00Z')); });
+  const label = () => tree.root.findByProps({ testID: 'community-post-created-at' }).props.children;
+  expect(label()).toBe('14시간 전');
+  await TestRenderer.act(async () => { tree.update(row('2026-10-09T15:00:00Z')); });
+  expect(label()).toBe('10.09');
+  await TestRenderer.act(async () => { tree.unmount(); });
 });

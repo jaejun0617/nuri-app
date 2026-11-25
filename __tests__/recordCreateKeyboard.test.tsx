@@ -148,6 +148,7 @@ describe('RecordCreate keyboard visibility contract', () => {
     );
     expect(scrollHost.props.keyboardDismissMode).toBe('none');
     expect(scrollHost.props.keyboardShouldPersistTaps).toBe('handled');
+    expect(scrollHost.props.bottomOffset).toBe(12);
     expect(StyleSheet.flatten(scrollHost.props.contentContainerStyle)).toEqual(
       expect.objectContaining({ paddingBottom: 50 }),
     );

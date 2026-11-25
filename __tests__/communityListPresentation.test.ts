@@ -3,6 +3,7 @@ import {
   COMMUNITY_CATEGORY_OPTIONS,
   COMMUNITY_LIST_FILTER_OPTIONS,
   COMMUNITY_NOTICE_ICON_NAME,
+  formatCommunityDetailTimestamp,
   formatCommunityListTimestamp,
   getCommunityEmptyState,
   getCommunityCategoryLabel,
@@ -18,13 +19,22 @@ import {
 describe('formatCommunityListTimestamp', () => {
   const now = new Date('2026-07-19T01:30:00.000Z');
 
-  it('shows KST clock time for a post created today', () => {
-    expect(
-      formatCommunityListTimestamp('2026-07-19T00:07:00.000Z', now),
-    ).toBe('09:07');
+  it.each([
+    ['2026-07-19T01:29:01Z', '방금 전'],
+    ['2026-07-19T01:29:00Z', '1분 전'],
+    ['2026-07-19T00:30:01Z', '59분 전'],
+    ['2026-07-19T00:30:00Z', '1시간 전'],
+    ['2026-07-18T23:15:00Z', '2시간 전'],
+  ])('shows elapsed time for same KST date %s', (createdAt, expected) => {
+    expect(formatCommunityListTimestamp(createdAt, now)).toBe(expected);
   });
 
-  it('shows month and day for an older post in the current year', () => {
+  it('switches to a date at KST midnight even if only a second elapsed', () => {
+    expect(formatCommunityListTimestamp('2026-07-18T14:59:59Z',
+      new Date('2026-07-18T15:00:00Z'))).toBe('07.18');
+  });
+
+  it('uses only the date for an older post', () => {
     expect(
       formatCommunityListTimestamp('2026-06-03T18:00:00.000Z', now),
     ).toBe('06.04');
@@ -38,6 +48,10 @@ describe('formatCommunityListTimestamp', () => {
 
   it('returns a stable fallback for an invalid timestamp', () => {
     expect(formatCommunityListTimestamp('invalid', now)).toBe('-');
+  });
+  it('keeps the full KST date and seconds on post detail', () => {
+    expect(formatCommunityDetailTimestamp('2024-12-31T18:09:04Z')).toBe('2025.01.01 03:09:04');
+    expect(formatCommunityDetailTimestamp('invalid')).toBe('');
   });
 });
 

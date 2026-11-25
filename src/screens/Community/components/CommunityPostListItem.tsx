@@ -2,15 +2,18 @@ import React, { memo, useCallback } from 'react';
 
 import { useCommunityStore } from '../../../store/communityStore';
 import PostCard from './PostCard';
+import { formatCommunityListTimestamp } from '../communityListPresentation';
 
 type Props = {
   postId: string;
+  now: Date;
   accentColor: string;
   onPressPost: (postId: string) => void;
 };
 
 function CommunityPostListItemBase({
   postId,
+  now,
   accentColor,
   onPressPost,
 }: Props) {
@@ -26,6 +29,7 @@ function CommunityPostListItemBase({
   return (
     <PostCard
       post={post}
+      createdAtLabel={formatCommunityListTimestamp(post.createdAt, now)}
       accentColor={accentColor}
       onPressPost={onPressPost}
     />

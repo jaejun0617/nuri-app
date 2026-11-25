@@ -170,6 +170,24 @@ describe('community comment corrective rendered contract', () => {
       submitComment: mockSubmit,
     });
   });
+  it.each([
+    { category: 'free', title: '기기 폭이 좁아도 끝까지 읽을 수 있어야 하는 합성 제목입니다.', expected: ['자유', '기기 폭이 좁아도 끝까지 읽을 수 있어야 하는 합성 제목입니다.'] },
+    { category: null, title: '카테고리 없는 글', expected: ['카테고리 없는 글'] },
+    { category: 'free', title: null, expected: ['자유'] },
+    { category: null, title: null, expected: [] },
+  ] as const)('renders the category before the full title without an empty row: %j', async ({ category, title, expected }) => {
+    useCommunityStore.setState({ postsById: { [post.id]: { ...post, title, category } } });
+    const tree = await render();
+    const rows = tree.root.findAllByProps({ testID: 'community-detail-title-row' });
+    if (expected.length === 0) {
+      expect(rows).toHaveLength(0);
+    } else {
+      const texts = rows[0].findAllByType(Text);
+      expect(texts.map(node => node.props.children)).toEqual(expected);
+      expect(texts.every(node => node.props.numberOfLines === undefined)).toBe(true);
+    }
+    await TestRenderer.act(async () => tree.unmount());
+  });
   it('shows the post body before attached photos in attachment order', async () => {
     const urls = ['https://example.test/first', 'https://example.test/second'];
     useCommunityStore.setState({
@@ -192,6 +210,33 @@ describe('community comment corrective rendered contract', () => {
         .filter(node => node.type === Image)
         .map(node => node.props.source.uri),
     ).toEqual(urls);
+    await TestRenderer.act(async () => tree.unmount());
+  });
+  it('keeps an open detail position but initializes another post at the top', async () => {
+    const tree = await render();
+    const list = () => tree.root.findByType(FlatList);
+    const originalOffset = list().props.contentOffset;
+    expect(originalOffset).toEqual({ x: 0, y: 0 });
+    expect(list().props.maintainVisibleContentPosition).toBeUndefined();
+    expect(tree.root.findAllByType(Text).some(
+      node => node.props.children === '2026.10.07 09:00:00',
+    )).toBe(true);
+    await TestRenderer.act(async () => {
+      list().props.onScroll({ nativeEvent: { contentOffset: { x: 0, y: 250 } } });
+      useCommunityStore.setState({ postsById: { [post.id]: { ...post, likeCount: 2 } } });
+    });
+    expect(list().props.contentOffset).toBe(originalOffset);
+
+    const nextPost = { ...post, id: 'another-post' };
+    mockRoute = { ...mockRoute, params: { ...mockRoute.params, postId: nextPost.id } };
+    await TestRenderer.act(async () => {
+      useCommunityStore.setState({
+        postsById: { [nextPost.id]: nextPost },
+        detailStatusByPostId: { [nextPost.id]: 'ready' },
+      });
+    });
+    expect(list().props.contentOffset).not.toBe(originalOffset);
+    expect(list().props.contentOffset).toEqual({ x: 0, y: 0 });
     await TestRenderer.act(async () => tree.unmount());
   });
   it.each(['post', 'comments'] as const)(

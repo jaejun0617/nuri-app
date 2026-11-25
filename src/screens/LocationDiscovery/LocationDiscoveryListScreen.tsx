@@ -424,6 +424,8 @@ export default function LocationDiscoveryListScreen() {
                   icon="alert-circle"
                   title="산책 장소를 불러오지 못했어요"
                   body={discoveryState.error}
+                  actionLabel="다시 불러오기"
+                  onPressAction={discoveryState.refresh}
                 />
               </View>
             ) : (

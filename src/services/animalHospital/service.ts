@@ -484,6 +484,7 @@ export async function searchAnimalHospitals(input: {
   const radiusMeters = input.useNearbySearch
     ? ANIMAL_HOSPITAL_DEFAULT_RADIUS_METERS
     : ANIMAL_HOSPITAL_DEFAULT_RADIUS_METERS * 2;
+  let readFailed = false;
   const officialCanonicals = (
     await withTimeout({
       task: repository.search({
@@ -495,7 +496,7 @@ export async function searchAnimalHospitals(input: {
         exoticAnimalCareOnly: Boolean(input.exoticAnimalCareOnly),
       }),
       timeoutMs: CANONICAL_SEARCH_TIMEOUT_MS,
-    }).catch(() => [])
+    }).catch(() => { readFailed = true; return []; })
   ).filter(item => item.lifecycle.isActive && !item.lifecycle.isHidden);
   const ingestedAt = new Date().toISOString();
   const documents = shouldSearchRuntimeProvider({
@@ -512,6 +513,7 @@ export async function searchAnimalHospitals(input: {
         }),
         timeoutMs: RUNTIME_PROVIDER_SEARCH_TIMEOUT_MS,
       }).catch(error => {
+        readFailed = true;
         if (!isAnimalHospitalSearchTimeout(error)) {
           console.info(
             '[NURI-DEBUG] animalHospital runtime provider search failed silently',
@@ -634,6 +636,7 @@ export async function searchAnimalHospitals(input: {
   );
 
   return {
+    ...(readFailed && publicItems.length === 0 ? { readFailed: true } : {}),
     items: publicItems,
     internalItems,
     query: normalizedQuery,

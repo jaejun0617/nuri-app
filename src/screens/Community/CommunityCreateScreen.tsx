@@ -60,6 +60,16 @@ type DraftPayload = {
 };
 
 const DRAFT_KEY = 'nuri.community.draft.v1';
+// A delayed autosave must finish before an exit save, deletion or subsequent visit reads this key.
+let pendingDraftWrite: Promise<void> = Promise.resolve();
+function writeDraft(raw: string | null) {
+  const write = pendingDraftWrite.then(() =>
+    raw === null ? AsyncStorage.removeItem(DRAFT_KEY) : AsyncStorage.setItem(DRAFT_KEY, raw),
+  );
+  pendingDraftWrite = write.catch(() => {});
+  return write;
+}
+
 function isValidCategory(value: unknown): value is CommunityPostCategory {
   return (
     value === 'question' ||
@@ -99,7 +109,7 @@ function parseDraft(raw: string | null): DraftPayload | null {
       })
       .filter((item): item is PickedPhotoAsset => item !== null)
       .slice(0, COMMUNITY_CREATE_PHOTO_LIMIT);
-    if (!title.trim() && !content.trim() && pickedImages.length === 0)
+    if (!title.trim() && !content.trim() && pickedImages.length === 0 && category === 'question')
       return null;
     return { title, content, category, pickedImages };
   } catch {
@@ -154,7 +164,6 @@ export default function CommunityCreateScreen() {
   );
   const [toolbarHeight, setToolbarHeight] = useState(68);
   const submittingRef = useRef(false);
-  const draftHydratedRef = useRef(false);
   const photoPickerOpenRef = useRef(false);
   const scrollViewRef = useRef<KeyboardAwareScrollViewRef | null>(null);
 
@@ -176,53 +185,55 @@ export default function CommunityCreateScreen() {
   const [pickedImages, setPickedImages] = useState<PickedPhotoAsset[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [exitConfirmVisible, setExitConfirmVisible] = useState(false);
-  const [restoreDraftVisible, setRestoreDraftVisible] = useState(false);
+  const [draftRead, setDraftRead] = useState<'loading' | 'failed' | 'ready'>('loading');
+  const [readAttempt, setReadAttempt] = useState(0);
+  const [exitSave, setExitSave] = useState<'idle' | 'saving' | 'failed'>('idle');
+  const savingExit = useRef(false);
+  const mounted = useRef(false);
+  const lastQueuedDraft = useRef<string | null>(null);
+  const clearUnconfirmed = useRef(false);
+  const autosaveWarningShown = useRef(false);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const resolvingDraft = useRef(false);
   const [pendingDraft, setPendingDraft] = useState<DraftPayload | null>(null);
   const [imageRestoreWarningVisible, setImageRestoreWarningVisible] =
     useState(false);
+  const editorReady = draftRead === 'ready' && !pendingDraft;
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; };
+  }, []);
   useEffect(() => {
     if (isLoggedIn) return;
     navigation.replace('SignIn');
   }, [isLoggedIn, navigation]);
 
   useEffect(() => {
-    if (draftHydratedRef.current) return;
-    draftHydratedRef.current = true;
-
-    AsyncStorage.getItem(DRAFT_KEY)
-      .then(raw => {
+    let active = true;
+    const read = async () => {
+      await pendingDraftWrite;
+      for (let attempt = 0; active && attempt < 2; attempt += 1) {
+        let raw: string | null;
+        try {
+          raw = await AsyncStorage.getItem(DRAFT_KEY);
+        } catch {
+          if (active && attempt === 1) setDraftRead('failed');
+          continue;
+        }
+        if (!active) return;
         const draft = parseDraft(raw);
-        if (!draft) return;
         setPendingDraft(draft);
-        setRestoreDraftVisible(true);
-      })
-      .catch(() => {});
-  }, []);
+        setDraftRead('ready');
+        return;
+      }
+    };
+    read();
+    return () => { active = false; };
+  }, [readAttempt]);
 
   useEffect(() => {
     flushPendingCommunityImageCleanup().catch(() => {});
   }, []);
-
-  useEffect(() => {
-    const hasDraftContent =
-      title.trim().length > 0 ||
-      content.trim().length > 0 ||
-      pickedImages.length > 0;
-    if (!hasDraftContent && category === 'question') {
-      AsyncStorage.removeItem(DRAFT_KEY).catch(() => {});
-      return;
-    }
-
-    AsyncStorage.setItem(
-      DRAFT_KEY,
-      JSON.stringify({
-        title,
-        content,
-        category,
-        pickedImages,
-      } satisfies DraftPayload),
-    ).catch(() => {});
-  }, [category, content, pickedImages, title]);
 
   const hasUnsavedChanges = useMemo(
     () =>
@@ -242,10 +253,46 @@ export default function CommunityCreateScreen() {
       ),
     [category, content, pickedImages, title],
   );
+  const serializedDraft = useMemo(() => hasUnsavedChanges
+    ? JSON.stringify({ title, content, category, pickedImages } satisfies DraftPayload)
+    : null, [category, content, hasUnsavedChanges, pickedImages, title]);
+
+  useEffect(() => {
+    if (!editorReady || lastQueuedDraft.current === serializedDraft) return;
+    let current = true;
+    lastQueuedDraft.current = serializedDraft;
+    clearUnconfirmed.current = serializedDraft === null;
+    writeDraft(serializedDraft).then(() => {
+      if (!current) return;
+      clearUnconfirmed.current = false;
+      autosaveWarningShown.current = false;
+    }, () => {
+      // The exit action retries the current form, even after a failed autosave.
+      if (current && !autosaveWarningShown.current) {
+        autosaveWarningShown.current = true;
+        showToast({ tone: 'warning', message: '글을 임시저장하지 못했어요. 나갈 때 다시 저장할게요.' });
+      }
+    });
+    return () => { current = false; };
+  }, [editorReady, serializedDraft]);
+
+  const saveAndLeave = async () => {
+    if (!editorReady || savingExit.current) return;
+    savingExit.current = true;
+    setExitSave('saving');
+    try {
+      await writeDraft(serializedDraft);
+    } catch {
+      if (mounted.current) setExitSave('failed');
+      savingExit.current = false;
+      return;
+    }
+    if (mounted.current) navigation.goBack();
+  };
 
   const handleBack = useCallback(() => {
-    if (submitting) return;
-    if (hasUnsavedChanges) {
+    if (submitting || savingExit.current) return;
+    if (hasUnsavedChanges || clearUnconfirmed.current || lastQueuedDraft.current !== null) {
       setExitConfirmVisible(true);
       return;
     }
@@ -293,7 +340,7 @@ export default function CommunityCreateScreen() {
   );
 
   const handlePickImage = useCallback(async () => {
-    if (submitting || photoPickerOpenRef.current) return;
+    if (!editorReady || submitting || photoPickerOpenRef.current) return;
     const remaining = Math.max(
       COMMUNITY_CREATE_PHOTO_LIMIT - pickedImages.length,
       0,
@@ -337,7 +384,7 @@ export default function CommunityCreateScreen() {
     } finally {
       photoPickerOpenRef.current = false;
     }
-  }, [pickedImages, submitting]);
+  }, [editorReady, pickedImages, submitting]);
 
   const handleRemoveImage = useCallback((index?: number) => {
     if (index === undefined) {
@@ -348,7 +395,7 @@ export default function CommunityCreateScreen() {
   }, []);
 
   const handleSubmit = useCallback(async () => {
-    if (submittingRef.current) return;
+    if (!editorReady || savingExit.current || submittingRef.current) return;
     const trimmedTitle = title.trim();
     const trimmed = content.trim();
     if (!currentUserId) {
@@ -398,7 +445,7 @@ export default function CommunityCreateScreen() {
         },
       });
 
-      await AsyncStorage.removeItem(DRAFT_KEY).catch(() => {});
+      await writeDraft(null).catch(() => {});
       navigation.goBack();
     } catch (error: unknown) {
       const meta = getCommunityMutationErrorMeta(error, 'post-create');
@@ -416,6 +463,7 @@ export default function CommunityCreateScreen() {
     content,
     currentUserId,
     editPost,
+    editorReady,
     navigation,
     pickedImages,
     submitPost,
@@ -427,7 +475,7 @@ export default function CommunityCreateScreen() {
   }, [navigation]);
 
   const disabled =
-    submitting || title.trim().length === 0 || content.trim().length === 0;
+    !editorReady || submitting || title.trim().length === 0 || content.trim().length === 0;
   const renderHeaderRight = useCallback(
     () => (
       <Pressable
@@ -477,12 +525,15 @@ export default function CommunityCreateScreen() {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
+          {draftRead === 'loading' ? (
+            <AppText preset="bodySm" accessibilityLiveRegion="polite">임시저장한 글을 확인하고 있어요.</AppText>
+          ) : null}
           <CommunityCreateForm
             category={category}
             title={title}
             content={content}
             accentPalette={editorAccent}
-            submitLoading={submitting}
+            submitLoading={submitting || !editorReady || exitConfirmVisible}
             onChangeCategory={setCategory}
             onChangeTitle={setTitle}
             onChangeContent={setContent}
@@ -500,7 +551,7 @@ export default function CommunityCreateScreen() {
             >
               <CommunityCreateAttachments
                 imageUris={pickedImages.map(image => image.uri)}
-                submitLoading={submitting}
+                submitLoading={submitting || !editorReady || exitConfirmVisible}
                 onPickImage={handlePickImage}
                 onRemoveImage={handleRemoveImage}
                 onImageError={() => {
@@ -525,19 +576,38 @@ export default function CommunityCreateScreen() {
         visible={exitConfirmVisible}
         tone="warning"
         title={getCommunityEditorExitDialogCopy('create').title}
-        message={getCommunityEditorExitDialogCopy('create').message}
-        confirmLabel={getCommunityEditorExitDialogCopy('create').confirmLabel}
+        message={exitSave === 'failed'
+          ? '입력한 글을 임시저장하지 못했어요. 다시 저장하거나 계속 작성해 주세요.'
+          : getCommunityEditorExitDialogCopy('create').message}
+        confirmLabel={exitSave === 'failed' ? '다시 저장' : getCommunityEditorExitDialogCopy('create').confirmLabel}
         cancelLabel={getCommunityEditorExitDialogCopy('create').cancelLabel}
-        onCancel={() => setExitConfirmVisible(false)}
-        onConfirm={() => {
+        confirmLoading={exitSave === 'saving'}
+        confirmDisabled={exitSave === 'saving'}
+        onCancel={() => {
+          if (savingExit.current) return;
+          setExitSave('idle');
           setExitConfirmVisible(false);
-          navigation.goBack();
+        }}
+        onConfirm={saveAndLeave}
+      />
+      <ConfirmDialog
+        visible={draftRead === 'failed'}
+        title="임시저장한 글을 확인하지 못했어요"
+        message="기존 글을 덮어쓰지 않도록 작성을 잠시 멈췄어요."
+        confirmLabel="다시 불러오기"
+        cancelLabel="돌아가기"
+        confirmRole="primary"
+        cancelRole="neutral"
+        onCancel={() => navigation.goBack()}
+        onConfirm={() => {
+          setDraftRead('loading');
+          setReadAttempt(value => value + 1);
         }}
       />
       <ConfirmDialog
         confirmRole="primary"
         cancelRole="destructiveConfirm"
-        visible={restoreDraftVisible}
+        visible={pendingDraft !== null && !confirmDiscard}
         title="임시저장된 글이 있어요"
         message={
           pendingDraft?.pickedImages.length
@@ -548,23 +618,19 @@ export default function CommunityCreateScreen() {
         confirmLabel="이어쓰기"
         tone="default"
         onCancel={() => {
-          setRestoreDraftVisible(false);
-          setPendingDraft(null);
-          AsyncStorage.removeItem(DRAFT_KEY).catch(() => {});
+          if (!resolvingDraft.current) setConfirmDiscard(true);
         }}
         onConfirm={() => {
-          if (!pendingDraft) {
-            setRestoreDraftVisible(false);
-            setPendingDraft(null);
-            return;
-          }
+          if (resolvingDraft.current || !pendingDraft) return;
 
+          resolvingDraft.current = true;
           setTitle(pendingDraft.title);
           setContent(pendingDraft.content);
           setCategory(pendingDraft.category);
 
           validateRestoredPickedImages(pendingDraft.pickedImages)
             .then(restoredImages => {
+              if (!mounted.current) return;
               setPickedImages(restoredImages);
               if (
                 pendingDraft.pickedImages.length > 0 &&
@@ -574,9 +640,37 @@ export default function CommunityCreateScreen() {
               }
             })
             .finally(() => {
-              setRestoreDraftVisible(false);
+              resolvingDraft.current = false;
+              if (!mounted.current) return;
               setPendingDraft(null);
             });
+        }}
+      />
+      <ConfirmDialog
+        visible={confirmDiscard}
+        title="이전 글을 버릴까요?"
+        message="임시저장한 글을 지우고 새 글을 작성해요."
+        confirmLabel="버리기"
+        cancelLabel="돌아가기"
+        confirmRole="destructiveConfirm"
+        cancelRole="neutral"
+        onCancel={() => {
+          if (!resolvingDraft.current) setConfirmDiscard(false);
+        }}
+        onConfirm={async () => {
+          if (resolvingDraft.current) return;
+          resolvingDraft.current = true;
+          try {
+            await writeDraft(null);
+          } catch {
+            if (mounted.current) showToast({ tone: 'error', message: '임시저장한 글을 지우지 못했어요.' });
+            return;
+          } finally {
+            resolvingDraft.current = false;
+          }
+          if (!mounted.current) return;
+          setConfirmDiscard(false);
+          setPendingDraft(null);
         }}
       />
       <ConfirmDialog

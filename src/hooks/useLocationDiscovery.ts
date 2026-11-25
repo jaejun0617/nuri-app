@@ -210,8 +210,8 @@ export function useLocationDiscovery(input: {
     searching: query.isFetching && hasSearchQuery,
     items: query.data?.items ?? [],
     error:
-      (query.error instanceof Error ? query.error.message : null) ??
-      (!hasSearchQuery ? locationState.error : null),
+      (query.error || query.data?.readFailed ? '산책 장소 정보를 확인할 수 없어요.' : null) ??
+      (!hasSearchQuery && locationState.permission === 'granted' ? locationState.error : null),
     verificationStatus: query.data?.verificationStatus ?? 'unknown',
     permission: locationState.permission,
     coordinates: freshDeviceCoordinates,

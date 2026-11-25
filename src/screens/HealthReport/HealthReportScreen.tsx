@@ -1487,6 +1487,7 @@ export default function HealthReportScreen() {
           <CtaButton
             role="primary"
             activeOpacity={0.9}
+            accessibilityLabel="다시 불러오기"
             onPress={() => monthQuery.refetch()}
             style={[styles.primaryCta, {}]}
           >

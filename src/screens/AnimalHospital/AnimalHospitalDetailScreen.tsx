@@ -8,6 +8,7 @@ import React, { useCallback, useMemo } from 'react';
 import { Linking, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Feather from '../../components/icons/NuriFeatherIcon';
 import { useTheme } from 'styled-components/native';
 
@@ -28,6 +29,7 @@ export default function AnimalHospitalDetailScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
   const theme = useTheme();
+  const { bottom: bottomInset } = useSafeAreaInsets();
   const item = route.params?.item;
   const displayItem = item ?? null;
   const hasMapPreviewCoordinate = displayItem
@@ -106,7 +108,7 @@ export default function AnimalHospitalDetailScreen() {
 
         <ScrollView
           showsVerticalScrollIndicator={false}
-          contentContainerStyle={{ paddingBottom: 32, gap: 18 }}
+          contentContainerStyle={{ paddingBottom: Math.max(32, bottomInset + 12), gap: 18 }}
         >
           <View testID="hospital-detail-glass" style={[styles.hero, MENU_GLASS_FRAME]}>
             <MenuGlassSurface radius={26} />
@@ -227,7 +229,7 @@ export default function AnimalHospitalDetailScreen() {
             </View>
           </View>
 
-          <View style={styles.mapSection}>
+          <View testID="hospital-detail-location-section" style={styles.mapSection}>
             <View style={styles.mapSectionHeader}>
               <View style={styles.mapSectionCopy}>
                 <AppText

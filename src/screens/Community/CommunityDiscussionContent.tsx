@@ -43,6 +43,9 @@ import Feather from '../../components/icons/NuriFeatherIcon';
 import { useTheme } from 'styled-components/native';
 
 import AppText from '../../app/ui/AppText';
+import { useTypographyScope } from '../../app/providers/AppFontPreferenceProvider';
+import { useResponsiveTypography } from '../../app/providers/ResponsiveTypographyProvider';
+import { resolveResponsiveTextStyle } from '../../app/typography/responsiveTypography';
 import NuriSemanticIcon from '../../components/icons/NuriSemanticIcon';
 import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 import { TIMELINE_SEASON_COLORS } from '../../theme/seasonal/timeline';
@@ -61,12 +64,14 @@ import {
 import { useCommunityStore } from '../../store/communityStore';
 import { showToast } from '../../store/uiStore';
 import type { CommunityReportReasonCategory } from '../../types/community';
-import { getKstDateParts } from '../../utils/date';
 import { scheduleIdleTask } from '../../utils/scheduleIdleTask';
 import CommentThreadItem from './components/CommentThreadItem';
 import { useCommunityReadStore } from '../../store/communityReadStore';
 import CommunityCommentComposer from './components/CommunityCommentComposer';
-import { getCommunityCategoryLabel } from './communityListPresentation';
+import {
+  formatCommunityDetailTimestamp,
+  getCommunityCategoryLabel,
+} from './communityListPresentation';
 import {
   COMMUNITY_COMMENT_SORT_OPTIONS,
   getCommunityCommentSortLabel,
@@ -105,13 +110,7 @@ const REPORT_REASON_OPTIONS: Array<{
   { key: 'other', label: '기타' },
 ];
 
-function formatDetailMetaDate(input: string) {
-  const parts = getKstDateParts(input);
-  if (!parts) return '';
-  const month = String(parts.month).padStart(2, '0');
-  const day = String(parts.day).padStart(2, '0');
-  return `${parts.year}.${month}.${day}`;
-}
+const COMMENT_SCROLL_ANCHOR = { minIndexForVisible: 0 };
 
 export default function CommunityDiscussionContent({
   mode,
@@ -177,7 +176,10 @@ export default function CommunityDiscussionContent({
   const [draftAction, setDraftAction] = useState<DraftAction | null>(null);
   const [focusRequest, requestFocus] = useState(0);
   const [openedReplyRouteKey, setOpenedReplyRouteKey] = useState<string | null>(null);
-  const initialContentOffset = useRef({ x: 0, y: session.offsets[mode] });
+  const initialContentOffset = useMemo(
+    () => ({ x: 0, y: session.offsets[mode] }),
+    [mode, session],
+  );
   const notificationCommentId = route.params.commentId ?? null;
   const restoredFromRouteSnapshot =
     route.params.restoredFromRouteSnapshot === true;
@@ -268,10 +270,11 @@ export default function CommunityDiscussionContent({
   );
 
   useLayoutEffect(() => {
+    currentScrollOffsetRef.current = initialContentOffset.y;
     setDraftAction(null);
     requestFocus(0);
     return cancelComposerFocus;
-  }, [cancelComposerFocus, session]);
+  }, [cancelComposerFocus, initialContentOffset, session]);
 
   useEffect(() => {
     let cancelled = false;
@@ -551,12 +554,12 @@ export default function CommunityDiscussionContent({
     sessionId,
   ]);
 
-  useEffect(() => {
-    if (!isFocused || mode !== 'post' || !session.bodyRequest.current) return;
+  useLayoutEffect(() => {
+    if (!isFocused || mode !== 'post' || !flatListRef.current || !session.bodyRequest.current) return;
     session.bodyRequest.current = false;
     currentScrollOffsetRef.current = 0;
     flatListRef.current?.scrollToOffset({ offset: 0, animated: false });
-  }, [isFocused, mode, session]);
+  }, [isFocused, mode, post, session]);
 
   const isMyPost = !!post && !!currentUserId && post.authorId === currentUserId;
   const canShowCommentComposer =
@@ -566,7 +569,7 @@ export default function CommunityDiscussionContent({
     detailStatus !== 'not_found';
   const postMetaDate = useMemo(() => {
     if (!post) return '';
-    return formatDetailMetaDate(post.createdAt);
+    return formatCommunityDetailTimestamp(post.createdAt);
   }, [post]);
   const renderHeaderLeft = useCallback(
     () => (
@@ -1074,6 +1077,13 @@ export default function CommunityDiscussionContent({
     Boolean(post && detailStatus === 'ready' && (mode === 'post' ||
       (commentsStatus === 'ready' && notificationTargetComment && highlightedCommentId === notificationCommentId))));
 
+  const { widthBand, readingScale } = useResponsiveTypography();
+  const typographyScope = useTypographyScope();
+  const titleLineHeight = resolveResponsiveTextStyle(styles.postTitle, widthBand, {
+    fixedWidth: typographyScope === 'fixed',
+    readingScale,
+  })?.lineHeight;
+
   const listHeader = useMemo(() => {
     if (!post) return null;
 
@@ -1081,41 +1091,51 @@ export default function CommunityDiscussionContent({
       <View style={styles.scrollContent}>
         {mode === 'post' ? (
           <View style={styles.postSection}>
-            <View style={styles.postTitleRow}>
-              {post.category ? (
-                <View
-                  style={[
-                    styles.categoryBadge,
-                    {
-                      backgroundColor: theme.colors.surface,
-                      borderColor: theme.colors.border,
-                    },
-                  ]}
-                >
-                  <AppText
-                    preset="caption"
+            {post.category || post.title ? (
+              <View testID="community-detail-title-row" style={styles.postTitleRow}>
+                {post.category ? (
+                  <View
                     style={[
-                      styles.categoryText,
-                      { color: theme.colors.textSecondary },
+                      styles.categoryColumn,
+                      { minHeight: post.title ? titleLineHeight : undefined },
                     ]}
                   >
-                    {getCommunityCategoryLabel(post.category)}
+                    <View
+                      style={[
+                        styles.categoryBadge,
+                        {
+                          backgroundColor: theme.colors.surface,
+                          borderColor: theme.colors.border,
+                        },
+                      ]}
+                    >
+                      <AppText
+                        testID="community-detail-category"
+                        preset="caption"
+                        style={[
+                          styles.categoryText,
+                          { color: theme.colors.textSecondary },
+                        ]}
+                      >
+                        {getCommunityCategoryLabel(post.category)}
+                      </AppText>
+                    </View>
+                  </View>
+                ) : null}
+                {post.title ? (
+                  <AppText
+                    testID="community-detail-title"
+                    preset="headline"
+                    style={[
+                      styles.postTitle,
+                      { color: theme.colors.textPrimary },
+                    ]}
+                  >
+                    {post.title}
                   </AppText>
-                </View>
-              ) : null}
-
-              {post.title ? (
-                <AppText
-                  preset="headline"
-                  style={[
-                    styles.postTitle,
-                    { color: theme.colors.textPrimary },
-                  ]}
-                >
-                  {post.title}
-                </AppText>
-              ) : null}
-            </View>
+                ) : null}
+              </View>
+            ) : null}
 
             <View style={styles.postMetaRow}>
               <AppText
@@ -1126,6 +1146,7 @@ export default function CommunityDiscussionContent({
               </AppText>
               {postMetaDate ? (
                 <AppText
+                  testID="community-detail-created-at"
                   preset="caption"
                   style={[styles.metaLine, { color: theme.colors.textMuted }]}
                 >
@@ -1392,6 +1413,7 @@ export default function CommunityDiscussionContent({
     post,
     postId,
     postMetaDate,
+    titleLineHeight,
     topLevelCommentIds.length,
     theme.colors.border,
     theme.colors.danger,
@@ -1607,13 +1629,16 @@ export default function CommunityDiscussionContent({
       {/* The list and composer share one bottom inset for the system bar or IME. */}
       <View testID="community-comment-keyboard-owner" style={styles.contentArea}>
         <FlatList
+          key={`${currentUserId ?? 'guest'}:${postId}:${sessionId}:${mode}`}
           ref={flatListRef}
           data={visibleTopLevelCommentIds}
           keyExtractor={item => item}
           style={styles.contentArea}
           contentContainerStyle={{ paddingBottom: 12 }}
-          contentOffset={initialContentOffset.current}
-          maintainVisibleContentPosition={{ minIndexForVisible: 0 }}
+          contentOffset={initialContentOffset}
+          // FlatList excludes its header from anchoring. Anchoring a comment
+          // would scroll past the article when its text or photos change height.
+          maintainVisibleContentPosition={mode === 'comments' || notificationCommentId ? COMMENT_SCROLL_ANCHOR : undefined}
           keyboardShouldPersistTaps="always"
           keyboardDismissMode="none"
           automaticallyAdjustKeyboardInsets={false}

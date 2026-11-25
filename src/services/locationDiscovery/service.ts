@@ -1438,6 +1438,7 @@ function buildWalkPoiSafeFallbackResponse(
     items: [],
     query: normalizedQuery,
     source: 'walk_poi',
+    ...(options.reason === 'poi_rpc_error' ? { readFailed: true } : {}),
     verificationStatus:
       options.reason === 'poi_empty' ? 'admin-verified' : 'unknown',
     scope: input.scope,

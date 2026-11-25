@@ -23,6 +23,77 @@ const petId = 'qa-pet';
 const queryKey = ['health-report', 'month', petId, monthKey];
 const flushUpdates = () => new Promise<void>(resolve => setTimeout(resolve, 0));
 
+beforeEach(() => {
+  jest.resetAllMocks();
+});
+
+it('reports a plain PostgREST failure, recovers on refetch, and leaves a successful empty month distinct', async () => {
+  jest.mocked(fetchMemoriesByPetDateRange)
+    .mockRejectedValueOnce({
+      code: 'NURI_H08_QA_UNAVAILABLE',
+      message: 'Internal lookup failure',
+      details: null,
+      hint: null,
+    })
+    .mockResolvedValue([]);
+  jest.mocked(fetchSchedulesByPetRange).mockResolvedValue([]);
+  jest.mocked(fetchPetWeightLogsForMonth).mockImplementation(async ({ monthKey: month }) => (
+    month === monthKey
+      ? {
+          ...emptyWeights,
+          logs: [{
+            id: 'qa-log',
+            petId,
+            userId: 'qa-owner',
+            measuredOn: '2026-11-25',
+            weightKg: 5.75,
+            note: null,
+            source: 'health_report',
+            createdAt: '2026-11-25T00:00:00Z',
+            updatedAt: '2026-11-25T00:00:00Z',
+          }],
+        }
+      : emptyWeights
+  ));
+
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  let root: TestRenderer.ReactTestRenderer | undefined;
+  let current: ReturnType<typeof useHealthReportMonth> | undefined;
+  function Probe({ month }: { month: string }) {
+    current = useHealthReportMonth({ petId, monthKey: month });
+    return null;
+  }
+  const view = (month: string) => (
+    <QueryClientProvider client={client}>
+      <Probe month={month} />
+    </QueryClientProvider>
+  );
+
+  try {
+    await act(async () => { root = TestRenderer.create(view(monthKey)); });
+    await act(flushUpdates);
+    expect(current?.loading).toBe(false);
+    expect(current?.data).toBeUndefined();
+    expect(current?.error).toBe('잠시 후 다시 불러와 주세요.');
+
+    await act(async () => { await current?.refetch(); });
+    await act(flushUpdates);
+    expect(current?.error).toBeNull();
+    expect(current?.data?.weightTimeline).toMatchObject([{ id: 'qa-log', weightKg: 5.75 }]);
+    expect(fetchMemoriesByPetDateRange).toHaveBeenCalledTimes(2);
+
+    await act(async () => { root?.update(view('2026-10')); });
+    await act(flushUpdates);
+    expect(current?.loading).toBe(false);
+    expect(current?.error).toBeNull();
+    expect(current?.data?.activityItems).toEqual([]);
+    expect(current?.data?.weightTimeline).toEqual([]);
+  } finally {
+    await act(async () => { root?.unmount(); });
+    client.clear();
+  }
+});
+
 it('does not cache the old profile weight when the last weigh-in is deleted during a refetch', async () => {
   jest.mocked(fetchMemoriesByPetDateRange).mockResolvedValue([]);
   jest.mocked(fetchSchedulesByPetRange).mockResolvedValue([]);

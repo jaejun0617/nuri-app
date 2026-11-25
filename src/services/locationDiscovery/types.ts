@@ -93,6 +93,7 @@ export type LocationDiscoveryItem = {
 };
 
 export type LocationDiscoveryResponse = {
+  readFailed?: boolean;
   items: LocationDiscoveryItem[];
   query: string | null;
   source: LocationDiscoverySource;

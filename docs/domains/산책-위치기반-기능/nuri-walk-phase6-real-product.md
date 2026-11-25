@@ -7,6 +7,11 @@ test totals and final commit/tree belong to the external
 The latest PO serial activation supersedes older memory saying Phase 4 is forbidden.
 No SQL/RPC/RLS/server deployment, build, install, ADB or device operation occurs in F.
 
+<a id="gps-walk-history-g11"></a>
+## GPS 산책 후속 검증: 정상 산책 이력 (G11)
+
+2026-11-25 PO 지시로 [D의 G11 8칸](../../reports/NURI-15-notices-support-subscription-handoff-2026-11-14.md#nuri15-d-g11-scope-transfer-20261125)을 GPS 산책 기능으로 이관했다. **GPS 기능 검증 대기, 미수락.** GPS 산책 구현이 완료되고 소유 QA 펫의 완료된 산책이 정상 이력 경로에서 조회될 때 재개한다. 같은 원본으로 S25 360·412dp × 1.0·1.08·1.15·2.0에서 정상 목록·목록 끝·복귀를 확인한다. 빈 이력 관측이나 G12 산책 준비 PASS로 대체하지 않는다. 이관은 GPS 세션 시작이나 운영 자료 생성 승인이 아니다.
+
 ## Product entry and ownership
 
 The existing Home first Walk widget opens typed `WalkProduct({petId})`; other quick

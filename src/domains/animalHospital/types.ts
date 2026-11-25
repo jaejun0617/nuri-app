@@ -557,6 +557,7 @@ export type AnimalHospitalInternalHospital = {
 };
 
 export type AnimalHospitalSearchResult = {
+  readFailed?: boolean;
   items: AnimalHospitalPublicHospital[];
   internalItems: AnimalHospitalInternalHospital[];
   query: string | null;

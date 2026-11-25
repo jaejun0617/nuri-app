@@ -92,15 +92,7 @@ function pad2(value: number) {
   return String(value).padStart(2, '0');
 }
 
-/**
- * Dense community rows use clock time for today's posts and a compact date for
- * older posts. The comparison is intentionally KST-based to match the rest of
- * the app's date contract.
- */
-export function formatCommunityListTimestamp(
-  createdAt: string,
-  now = new Date(),
-): string {
+export function formatCommunityListTimestamp(createdAt: string, now = new Date()): string {
   const created = getKstDateParts(createdAt);
   const current = getKstDateParts(now);
   if (!created || !current) return '-';
@@ -110,7 +102,9 @@ export function formatCommunityListTimestamp(
     created.month === current.month &&
     created.day === current.day;
   if (isToday) {
-    return `${pad2(created.hour)}:${pad2(created.minute)}`;
+    const minutes = Math.floor((now.getTime() - Date.parse(createdAt)) / 60_000);
+    if (minutes < 1) return '방금 전';
+    return minutes < 60 ? `${minutes}분 전` : `${Math.floor(minutes / 60)}시간 전`;
   }
 
   if (created.year === current.year) {
@@ -120,4 +114,18 @@ export function formatCommunityListTimestamp(
   return `${String(created.year).slice(-2)}.${pad2(created.month)}.${pad2(
     created.day,
   )}`;
+}
+
+function formatCommunityPostClock({ hour, minute, second }: {
+  hour: number;
+  minute: number;
+  second: number;
+}) {
+  return `${pad2(hour)}:${pad2(minute)}:${pad2(second)}`;
+}
+
+export function formatCommunityDetailTimestamp(createdAt: string): string {
+  const created = getKstDateParts(createdAt);
+  if (!created) return '';
+  return `${created.year}.${pad2(created.month)}.${pad2(created.day)} ${formatCommunityPostClock(created)}`;
 }

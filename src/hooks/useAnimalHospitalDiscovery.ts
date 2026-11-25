@@ -221,8 +221,8 @@ export function useAnimalHospitalDiscovery(input: {
     searching: query.isFetching && hasSearchQuery,
     items: query.data?.items ?? [],
     error:
-      (query.error instanceof Error ? query.error.message : null) ??
-      (!hasSearchQuery ? locationState.error : null),
+      (query.error || query.data?.readFailed ? '병원 정보를 확인할 수 없어요.' : null) ??
+      (!hasSearchQuery && locationState.permission === 'granted' ? locationState.error : null),
     permission: locationState.permission,
     permissionAccuracy: locationState.permissionAccuracy,
     coordinates: freshDeviceCoordinates,

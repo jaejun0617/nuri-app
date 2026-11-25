@@ -16,6 +16,8 @@ import type { PetCareGuide } from '../src/services/guides/types';
 
 const mockSearch = jest.fn((_options: unknown) => ({ guides: [], source: 'local-seed', loading: false }));
 let mockGuides: PetCareGuide[] = [];
+let mockCatalogReason: 'remote-error' | 'empty-success' | null = null;
+const mockRefresh = jest.fn();
 jest.mock('react-native-safe-area-context', () => ({
   ...jest.requireActual('react-native-safe-area-context'),
   useSafeAreaInsets: () => ({ top: 24, bottom: 48, left: 0, right: 0 }),
@@ -27,7 +29,8 @@ jest.mock('@react-navigation/native', () => ({
   useFocusEffect: jest.fn(),
 }));
 jest.mock('../src/hooks/usePetCareGuideCatalog', () => ({
-  usePetCareGuideCatalog: () => ({ guides: mockGuides, source: 'local-seed', loading: false }),
+  usePetCareGuideCatalog: () => ({ guides: mockGuides, source: mockCatalogReason ? 'remote-empty' : 'local-seed',
+    sourceReason: mockCatalogReason, loading: false, refresh: mockRefresh }),
 }));
 jest.mock('../src/hooks/usePetCareGuideSearch', () => ({
   usePetCareGuideSearch: (options: unknown) => mockSearch(options),
@@ -41,7 +44,20 @@ jest.mock('../src/hooks/useGuidePopularSearches', () => ({
 
 describe('Guide controlled search composition contract', () => {
   let tree: TestRenderer.ReactTestRenderer;
-  beforeEach(() => { jest.clearAllMocks(); mockGuides = []; });
+  beforeEach(() => { jest.clearAllMocks(); mockGuides = []; mockCatalogReason = null; });
+  it('offers retry for a failed read, but not for a successful empty catalog', async () => {
+    const render = () => <ThemeProvider theme={createTheme('light')}><GuideListScreen /></ThemeProvider>;
+    mockCatalogReason = 'remote-error';
+    await TestRenderer.act(async () => { tree = TestRenderer.create(render()); });
+    const retry = tree.root.findAllByType(TouchableOpacity).find(n => n.props.onPress === mockRefresh);
+    expect(retry).toBeDefined();
+    retry?.props.onPress();
+    expect(mockRefresh).toHaveBeenCalledTimes(1);
+    mockCatalogReason = 'empty-success';
+    await TestRenderer.act(async () => tree.update(render()));
+    expect(tree.root.findAllByProps({ children: '공개된 가이드가 아직 없어요' }).length).toBeGreaterThan(0);
+    expect(tree.root.findAllByType(TouchableOpacity).some(n => n.props.onPress === mockRefresh)).toBe(false);
+  });
   afterEach(() => { TestRenderer.act(() => tree?.unmount()); jest.restoreAllMocks(); });
 
   it.each(['autumn', 'winter', 'spring', 'summer'] as const)(

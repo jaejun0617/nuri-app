@@ -859,6 +859,7 @@ describe('location discovery walk safe fallback guard', () => {
       ),
     );
 
+    expect(result.readFailed).toBe(true);
     expect(result.source).toBe('walk_poi');
     expect(result.items).toHaveLength(0);
     expect(searchWalkPoiLocations).toHaveBeenCalledTimes(1);

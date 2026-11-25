@@ -1384,6 +1384,7 @@ function RecordCreateContent() {
 
       <KeyboardAwareScrollView
         ref={scrollRef}
+        bottomOffset={spacing.md}
         style={styles.scroll}
         contentContainerStyle={[
           styles.content,

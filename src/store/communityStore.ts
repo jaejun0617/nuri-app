@@ -364,6 +364,17 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
       options.pageSize,
       requestQuery,
     );
+    const displayed = get();
+    const keepVisiblePage =
+      !options.clearPosts &&
+      displayed.posts.length > 0 &&
+      displayed.lastFetchedAt !== null &&
+      getCommunityListKey(
+        displayed.activeFilter,
+        displayed.activeCategory,
+        displayed.pageSize,
+        displayed.searchQuery,
+      ) === listKey;
     const requestGeneration = {
       filter: filterRequestGeneration,
       category: categoryRequestGeneration,
@@ -388,13 +399,15 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
       activeCategory: requestCategory,
       searchQuery: requestQuery,
       pageSize: options.pageSize,
-      ...(options.resetHistory
+      // A refresh must leave the visible page and its cursors usable if it fails.
+      ...(options.resetHistory && !keepVisiblePage
         ? {
             currentPage: 1,
             cursor: null,
-            hasMore: true,
-            hasNextPage: true,
+            hasMore: false,
+            hasNextPage: false,
             hasPreviousPage: false,
+            lastFetchedAt: null,
             cursorHistory: {
               [listKey]: { 1: null },
             },
@@ -416,7 +429,9 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
 
       set(prev => {
         const historyForKey = {
-          ...(prev.cursorHistory[listKey] ?? { 1: null }),
+          ...(options.resetHistory
+            ? { 1: null }
+            : prev.cursorHistory[listKey] ?? { 1: null }),
           [options.page]: options.cursor,
         };
         if (result.nextCursor) {
@@ -473,10 +488,8 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
       }
 
       set({
-        listStatus:
-          options.status === 'loadingMore' || !options.clearPosts
-            ? 'ready'
-            : 'error',
+        listStatus: keepVisiblePage ? 'ready' : 'error',
+        ...(!keepVisiblePage ? { posts: [] } : {}),
         listErrorMessage:
           getCommunityListErrorMessage(error) ||
           getErrorMessage(error) ||

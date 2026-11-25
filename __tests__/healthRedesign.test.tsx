@@ -12,6 +12,7 @@ import { buildWeightChartModel } from '../src/components/health/weightChartModel
 import WeightTrendChart from '../src/components/health/WeightTrendChart';
 import SeasonalAmbientBackground from '../src/components/common/SeasonalAmbientBackground';
 import { healthReportColors } from '../src/app/theme/tokens/healthReport';
+import CtaButton from '../src/app/ui/CtaButton';
 import { HOME_FLOATING_WIDGET_MATERIAL } from '../src/components/home/HomeWidgetMaterial';
 import { MORE_MENU } from '../src/components/MoreDrawer/moreMenuVisualTokens';
 import type { SeasonKey } from '../src/theme/seasonal/season';
@@ -573,6 +574,14 @@ describe('health redesign preserves feature ownership', () => {
       ),
     );
     expect(output()).toContain('리포트를 불러오지 못했어요');
+    expect(output()).not.toContain('이달의 해당 기록이 없어요');
+    const retry = renderer.root
+      .findAllByType(CtaButton)
+      .find(node => node.props.accessibilityLabel === '다시 불러오기');
+    expect(retry).toBeDefined();
+    await act(async () => retry?.props.onPress());
+    expect(mockRefetch).toHaveBeenCalledTimes(1);
+
     mockError = null;
     mockData = {
       ...fixture(),
@@ -590,6 +599,7 @@ describe('health redesign preserves feature ownership', () => {
       ),
     );
     expect(output()).toContain('이달의 해당 기록이 없어요');
+    expect(output()).not.toContain('다시 불러오기');
     const empty = renderer.root.findAllByProps({ testID: 'health-records-empty' }).at(-1)!;
     expect(RN.StyleSheet.flatten(empty.props.style)).toMatchObject({ paddingVertical: 32 });
     expect(empty.findAllByProps({ testID: 'health-fixed-create' })).toHaveLength(0);
