@@ -1,4 +1,5 @@
 import React from 'react';
+import { AppState, ScrollView } from 'react-native';
 import TestRenderer from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
@@ -26,6 +27,8 @@ it('rejects untrusted targets and malformed read state without inventing read ti
   expect(lookup).toHaveBeenCalledWith(id);
 });
 it('uses the common feed, resolves the server event and loads the actual reply before acknowledging', async () => {
+  const previousState = AppState.currentState;
+  AppState.currentState = 'active';
   const client = new IsolatedNoticeClient(); client.userId = 'owner';
   const page = parseSupportNotificationPage(payload);
   jest.spyOn(client, 'notificationPage').mockResolvedValue(page);
@@ -47,9 +50,25 @@ it('uses the common feed, resolves the server event and loads the actual reply b
     expect(read).toHaveBeenCalledWith(ticket, 5);
     expect(read).toHaveBeenCalledTimes(1);
     expect(tree.root.findByType(InquiryMessage).findAll(node => node.props.children === 'Answer').length).toBeGreaterThan(0);
-    const layout = tree.root.findAll(node => typeof node.props.onLayout === 'function')[0];
-    expect(layout).toBeDefined();
-    await TestRenderer.act(async () => layout.props.onLayout());
+    const scroll = tree.root.findByType(ScrollView);
+    const layouts: Array<(event: { nativeEvent: { layout: { y: number; height?: number } } }) => void> = [];
+    for (let node = tree.root.findByType(InquiryMessage).parent; node && node !== scroll; node = node.parent) {
+      const cb = node.props.onLayout;
+      if (typeof cb === 'function' && !layouts.includes(cb)) layouts.push(cb);
+    }
+    const [rowLayout, groupLayout] = layouts;
+    await TestRenderer.act(async () => {
+      scroll.props.onLayout({ nativeEvent: { layout: { height: 600 } } });
+      groupLayout({ nativeEvent: { layout: { y: 80 } } });
+      rowLayout({ nativeEvent: { layout: { y: 700, height: 110 } } });
+    });
+    expect(read).toHaveBeenCalledTimes(1);
+    await TestRenderer.act(async () => {
+      scroll.props.onScroll({ nativeEvent: { contentOffset: { y: 480 }, layoutMeasurement: { height: 600 } } });
+    });
     expect(read).toHaveBeenLastCalledWith(ticket, 25, 25);
-  } finally { await TestRenderer.act(async () => tree.unmount()); }
+  } finally {
+    await TestRenderer.act(async () => tree.unmount());
+    AppState.currentState = previousState;
+  }
 });

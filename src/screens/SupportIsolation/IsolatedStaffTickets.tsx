@@ -37,6 +37,7 @@ import {
 import type { PanelHandle } from './IsolatedCommunityNotices';
 import { inquiryTypes, type InquiryCategory } from '../Support/previewModel';
 import TicketPhotoViewer from './TicketPhotoViewer';
+import { replyIntersectsViewport } from './replyViewport';
 import {
   newNoticeKey,
   NoticeError,
@@ -119,7 +120,11 @@ export default function IsolatedStaffTickets({
   const [more, setMore] = useState(false);
   const [thread, setThread] = useState<Thread | null>(null);
   const [readPending, setReadPending] = useState<number | null>(null);
-  const [rendered, setRendered] = useState<string | null>(null);
+  const room = useRef({
+    id: '', offset: 0, height: 0, groupTop: null as number | null,
+    rows: new Map<number, { y: number; height: number }>(),
+    acknowledged: 0, target: null as number | null,
+  });
   const [composing, setComposing] = useState(initialCategory !== undefined);
   const [draft, setDraft] = useState('');
   const [title, setTitle] = useState('');
@@ -249,39 +254,52 @@ export default function IsolatedStaffTickets({
       setStaffMembers(members.filter(idValue => idValue !== client.userId));
       setTransferTo('');
     }
+    if (!append) {
+      room.current = { id, offset: 0, height: 0, groupTop: null, rows: new Map(),
+        acknowledged: 0, target: focusMessage ?? null };
+      setReadPending(null);
+    }
     setThread(
       append && thread
         ? { ...value, messages: [...thread.messages, ...value.messages] }
         : value,
     );
-    setReadPending(!staff ? value.messages.at(-1)?.seq ?? null : null);
     setComposing(false);
   }
-  const lastRenderedKey = thread
-    ? `${thread.id}:${thread.messages.at(-1)?.seq ?? 0}`
-    : null;
-  // A read cursor advances only after the fetched message page is displayed.
+  function checkVisible(id: string) {
+    const view = room.current;
+    if (staff || !active.current || view.id !== id || view.groupTop === null || AppState.currentState !== 'active') return;
+    let highest = 0;
+    for (const [seq, row] of view.rows) {
+      if (seq <= view.acknowledged || (view.target !== null && seq > view.target)) continue;
+      if (replyIntersectsViewport(view.groupTop + row.y, row.height, view.offset, view.height))
+        highest = Math.max(highest, seq);
+    }
+    if (highest) setReadPending(previous => Math.max(previous ?? 0, highest));
+  }
+  // Layout includes offscreen children. Only a visible staff message may advance the owner's cursor.
   useEffect(() => {
     if (
       staff ||
       busy ||
       !thread ||
       readPending === null ||
-      rendered !== lastRenderedKey
+      room.current.id !== thread.id || AppState.currentState !== 'active'
     )
       return;
     const id = thread.id;
+    const view = room.current;
     setReadPending(null);
+    if (readPending <= view.acknowledged) return;
     run(async () => {
       await client.ticketThread(id, readPending, readPending);
+      view.acknowledged = Math.max(view.acknowledged, readPending);
     });
   }, [
     staff,
     busy,
     thread,
     readPending,
-    rendered,
-    lastRenderedKey,
     run,
     client,
   ]);
@@ -293,7 +311,7 @@ export default function IsolatedStaffTickets({
         return;
       }
       setThread(null);
-      setRendered(null);
+      room.current.id = '';
       setComposing(false);
       setDraft('');
       setTitle('');
@@ -596,6 +614,18 @@ export default function IsolatedStaffTickets({
       <ScrollView
         key={thread?.id ?? (composing ? 'compose' : 'list')}
         style={styles.scroll}
+        onLayout={event => {
+          if (!thread || room.current.id !== thread.id) return;
+          room.current.height = event.nativeEvent.layout.height;
+          checkVisible(thread.id);
+        }}
+        onScroll={event => {
+          if (!thread || room.current.id !== thread.id) return;
+          room.current.offset = event.nativeEvent.contentOffset.y;
+          room.current.height = event.nativeEvent.layoutMeasurement.height;
+          checkVisible(thread.id);
+        }}
+        scrollEventThrottle={32}
         contentContainerStyle={styles.content}
         keyboardShouldPersistTaps="handled"
         refreshControl={
@@ -637,8 +667,11 @@ export default function IsolatedStaffTickets({
         {thread ? (
           <>
             <View
-              key={lastRenderedKey}
-              onLayout={() => setRendered(lastRenderedKey)}
+              onLayout={event => {
+                if (room.current.id !== thread.id) return;
+                room.current.groupTop = event.nativeEvent.layout.y;
+                checkVisible(thread.id);
+              }}
               style={styles.messages}
             >
               {thread.messages.map((item, index) => {
@@ -656,6 +689,11 @@ export default function IsolatedStaffTickets({
                         <Copy muted>{day}</Copy>
                       </View>
                     ) : null}
+                    <View onLayout={!staff && item.author === 'staff' ? event => {
+                      if (room.current.id !== thread.id) return;
+                      room.current.rows.set(item.seq, event.nativeEvent.layout);
+                      checkVisible(thread.id);
+                    } : undefined}>
                     <InquiryMessage
                       outgoing={outgoing}
                       testID={`ticket-message-${item.seq}`}
@@ -679,6 +717,7 @@ export default function IsolatedStaffTickets({
                         />
                       ))}
                     </InquiryMessage>
+                    </View>
                   </React.Fragment>
                 );
               })}
