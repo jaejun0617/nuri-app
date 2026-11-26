@@ -104,6 +104,7 @@ export const styles = StyleSheet.create({
     borderWidth: 0,
     position: 'relative',
   },
+  headerIconOnPhoto: { backgroundColor: 'rgba(25, 23, 37, 0.54)' },
   headerIconText: {
     fontSize: 15,
     fontWeight: '900',

@@ -38,6 +38,7 @@ import { showToast } from '../../store/uiStore';
 import { getKstDateParts } from '../../utils/date';
 import { scheduleIdleTask } from '../../utils/scheduleIdleTask';
 import SocialLoginSurface from './SocialLoginSurface';
+import LoginHelpLink from './LoginHelpLink';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type SignInRoute = RouteProp<RootStackParamList, 'SignIn'>;
@@ -208,6 +209,7 @@ export default function SignInScreen() {
       disabled={socialDisabled}
       onProviderPress={onSocialPress}
       onLegalPress={onPressLegalDocument}
+      footer={!socialDisabled && !activeNotice ? <LoginHelpLink /> : null}
     >
       {noticeConfig && !accountDeletionGate ? (
         <PremiumNoticeModal

@@ -77,6 +77,7 @@ import {
 } from '../../components/MoreDrawer/MoreMenuPresentation';
 import { MORE_MENU } from '../../components/MoreDrawer/moreMenuVisualTokens';
 import MoreMonthlyExpenseSummary from '../../components/MoreDrawer/MoreMonthlyExpenseSummary';
+import MoreTeamContact from '../../components/MoreDrawer/MoreTeamContact';
 
 import AppNavigationToolbar, { type ActiveTabKey } from '../../components/navigation/AppNavigationToolbar';
 import ConfirmDialog from '../../components/common/ConfirmDialog';
@@ -1389,7 +1390,7 @@ export default function MoreDrawerContent({
       },
       {
         key: 'memory-diary',
-        label: '추억 다이어리',
+        label: '추억일기',
         icon: 'book-open',
         nuriIcon: 'diary',
         onPress: isLoggedIn ? openTimeline : onPressLogin,
@@ -1403,7 +1404,7 @@ export default function MoreDrawerContent({
       },
       {
         key: 'indoor-activities',
-        label: '실내 놀이 추천',
+        label: '실내놀이',
         icon: 'sun',
         onPress: isLoggedIn ? openIndoorActivities : onPressLogin,
       },
@@ -1541,6 +1542,7 @@ export default function MoreDrawerContent({
             {
               key: 'logout',
               label: loading ? '로그아웃 중...' : '로그아웃',
+              icon: 'log-out',
               command: true,
               disabled: loading,
               onPress: onPressLogout,
@@ -1552,6 +1554,7 @@ export default function MoreDrawerContent({
         testID: 'account-delete-entry',
         label: deleting ? '회원탈퇴 처리 중...' : '회원탈퇴',
         accessibilityLabel: '회원탈퇴 확인 시작',
+        icon: 'user-minus',
         command: true,
         destructive: true,
         disabled: deleting,
@@ -1680,6 +1683,7 @@ export default function MoreDrawerContent({
           {__DEV__ && isLoggedIn ? <UsbDeviceLayoutControls /> : null}
           {__DEV__ ? <PostRegistrationLoadingReview petName={selectedPet?.name} /> : null}
           </View>}
+          ListFooterComponent={MoreTeamContact}
         />
 
         <AppNavigationToolbar

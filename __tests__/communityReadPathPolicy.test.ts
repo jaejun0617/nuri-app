@@ -18,6 +18,9 @@ const { supabase } = jest.requireMock('../src/services/supabase/client') as {
     auth: {
       getSession: jest.Mock;
     };
+    storage: {
+      from: jest.Mock;
+    };
   };
 };
 
@@ -27,6 +30,8 @@ import {
   createCommunityComment,
   deleteCommunityComment,
   fetchCommunityPostById,
+  refreshCommunityPostImage,
+  updateCommunityPost,
 } from '../src/services/supabase/community';
 
 function postRow(overrides: Record<string, unknown>) {
@@ -135,6 +140,86 @@ describe('community public read path policy', () => {
       authorNickname: 'QA 사용자',
     });
     expect(supabase.rpc).toHaveBeenCalledTimes(1);
+  });
+
+  it('preserves slot order and the body when a storage request rejects', async () => {
+    supabase.rpc.mockResolvedValue({
+      data: { item: postRow({ image_url: 'first.jpg', image_urls: ['first.jpg', 'second.jpg'] }) },
+      error: null,
+    });
+    mockProfileRead([]);
+    const createSignedUrl = jest.fn()
+      .mockRejectedValueOnce(new Error('network'))
+      .mockResolvedValueOnce({ data: { signedUrl: 'https://example.test/second' }, error: null });
+    supabase.storage.from.mockReturnValue({ createSignedUrl });
+
+    await expect(fetchCommunityPostById('post-1')).resolves.toMatchObject({
+      content: '테스트 본문',
+      imageUrl: null,
+      imageSlots: [
+        { path: 'first.jpg', url: null },
+        { path: 'second.jpg', url: 'https://example.test/second' },
+      ],
+    });
+  });
+
+  it('does not restore an old scalar path when the canonical array is explicitly empty', async () => {
+    supabase.rpc.mockResolvedValue({
+      data: { item: postRow({ image_url: 'old.jpg', image_urls: [] }) },
+      error: null,
+    });
+    mockProfileRead([]);
+
+    await expect(fetchCommunityPostById('post-1')).resolves.toMatchObject({
+      imageSlots: [],
+      imageUrls: [],
+    });
+    await expect(refreshCommunityPostImage('post-1', 0, 'old.jpg', null)).resolves.toBeNull();
+    expect(supabase.storage.from).not.toHaveBeenCalled();
+  });
+
+  it('refreshes an unchanged slot without a view write and rejects a response after account switch', async () => {
+    const auth = (id: string) => ({ data: { session: { user: { id } } }, error: null });
+    const createSignedUrl = jest.fn().mockResolvedValue({
+      data: { signedUrl: 'https://example.test/new' },
+      error: null,
+    });
+    supabase.storage.from.mockReturnValue({ createSignedUrl });
+    supabase.rpc.mockResolvedValue({
+      data: { item: postRow({ image_url: 'first.jpg', image_urls: ['first.jpg'] }) },
+      error: null,
+    });
+    supabase.auth.getSession.mockResolvedValue(auth('viewer'));
+    await expect(refreshCommunityPostImage('post-1', 0, 'first.jpg', 'viewer'))
+      .resolves.toBe('https://example.test/new');
+    expect(createSignedUrl).toHaveBeenCalledWith('first.jpg', 3600);
+    expect(supabase.rpc.mock.calls).toEqual([
+      ['community_get_post_detail_v1', { p_post_id: 'post-1' }],
+    ]);
+
+    supabase.auth.getSession
+      .mockResolvedValueOnce(auth('viewer'))
+      .mockResolvedValueOnce(auth('viewer'))
+      .mockResolvedValueOnce(auth('other'));
+    await expect(refreshCommunityPostImage('post-1', 0, 'first.jpg', 'viewer'))
+      .resolves.toBeNull();
+  });
+
+  it.each([
+    null,
+    { id: 'post-1', image_url: 'first.jpg', image_urls: [] },
+  ])('does not confirm an update whose returned row does not match %p', async data => {
+    const select = jest.fn().mockReturnValue({
+      maybeSingle: jest.fn().mockResolvedValue({ data, error: null }),
+    });
+    const update = jest.fn().mockReturnValue({
+      eq: jest.fn().mockReturnValue({ select }),
+    });
+    supabase.from.mockReturnValue({ update });
+    await expect(updateCommunityPost('post-1', { imagePaths: ['first.jpg'] }))
+      .rejects.toThrow('community_post_update_unconfirmed');
+    expect(update).toHaveBeenCalledWith({ image_url: 'first.jpg', image_urls: ['first.jpg'] });
+    expect(select).toHaveBeenCalledWith('id,image_url,image_urls');
   });
 
   it('root comment는 canonical create RPC에 parent와 target을 null로 전달한다', async () => {

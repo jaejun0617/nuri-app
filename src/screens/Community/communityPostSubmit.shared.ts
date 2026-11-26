@@ -23,7 +23,7 @@ type CreateSubmitDependencies = {
   pickedImages: PickedPhotoAsset[];
   submitPost: (params: CreateCommunityPostParams, userId: string) => Promise<CommunityPost>;
   editPost: (postId: string, params: UpdateCommunityPostParams) => Promise<void>;
-  onImageUploadWarning: (error?: unknown) => void;
+  onImageUploadWarning: (stage: 'upload' | 'attach') => void;
 };
 
 type EditSubmitDependencies = {
@@ -34,6 +34,7 @@ type EditSubmitDependencies = {
   category: CommunityPostCategory;
   pickedImage: PickedPhotoAsset | null;
   previousImagePath: string | null;
+  previousImagePaths?: string[];
   existingImagePath: string | null;
   editPost: (postId: string, params: UpdateCommunityPostParams) => Promise<void>;
 };
@@ -46,30 +47,24 @@ function isRemotePath(value: string | null | undefined) {
 export async function runCommunityCreateSubmitFlow(
   dependencies: CreateSubmitDependencies,
 ): Promise<CommunityPost> {
-  const initialImagePaths: string[] = [];
-  let post: CommunityPost;
-  try {
-    post = await dependencies.submitPost(
-      {
-        title: dependencies.title,
-        content: dependencies.content,
-        category: dependencies.category,
-        petId: dependencies.petId,
-        imagePath: null,
-        imagePaths: initialImagePaths,
-        petSnapshot: dependencies.petSnapshot,
-      },
-      dependencies.userId,
-    );
-  } catch (error) {
-    throw error;
-  }
+  const post = await dependencies.submitPost(
+    {
+      title: dependencies.title,
+      content: dependencies.content,
+      category: dependencies.category,
+      petId: dependencies.petId,
+      imagePath: null,
+      imagePaths: [],
+      petSnapshot: dependencies.petSnapshot,
+    },
+    dependencies.userId,
+  );
 
   if (dependencies.pickedImages.length === 0) {
     return post;
   }
 
-  let uploadedImagePaths: string[] = [];
+  const uploadedImagePaths: string[] = [];
   try {
     for (const image of dependencies.pickedImages) {
       const uploadedPath = await uploadCommunityImage({
@@ -80,11 +75,11 @@ export async function runCommunityCreateSubmitFlow(
       });
       uploadedImagePaths.push(uploadedPath);
     }
-  } catch (error) {
+  } catch {
     for (const path of uploadedImagePaths) {
       await enqueueCommunityImageCleanup(path);
     }
-    dependencies.onImageUploadWarning(error);
+    dependencies.onImageUploadWarning('upload');
     return post;
   }
 
@@ -93,11 +88,9 @@ export async function runCommunityCreateSubmitFlow(
       imagePath: uploadedImagePaths[0] ?? null,
       imagePaths: uploadedImagePaths,
     });
-  } catch (error) {
-    for (const path of uploadedImagePaths) {
-      await enqueueCommunityImageCleanup(path);
-    }
-    dependencies.onImageUploadWarning(error);
+  } catch {
+    // The update may have committed even if the response did not arrive.
+    dependencies.onImageUploadWarning('attach');
   }
 
   return post;
@@ -106,40 +99,36 @@ export async function runCommunityCreateSubmitFlow(
 export async function runCommunityEditSubmitFlow(
   dependencies: EditSubmitDependencies,
 ): Promise<void> {
-  let nextImagePath = dependencies.existingImagePath;
-  let uploadedImagePath: string | null = null;
+  const text = {
+    title: dependencies.title,
+    content: dependencies.content,
+    category: dependencies.category,
+  };
+  if (!dependencies.pickedImage && dependencies.existingImagePath === dependencies.previousImagePath) {
+    await dependencies.editPost(dependencies.postId, text);
+    return;
+  }
 
-  try {
-    if (dependencies.pickedImage) {
-      uploadedImagePath = await uploadCommunityImage({
-        userId: dependencies.userId,
-        postId: dependencies.postId,
-        fileUri: dependencies.pickedImage.uri,
-        mimeType: dependencies.pickedImage.mimeType,
-      });
-      nextImagePath = uploadedImagePath;
-    }
+  // The editor replaces or removes only the first attachment.
+  const previousPaths = dependencies.previousImagePaths ??
+    (dependencies.previousImagePath ? [dependencies.previousImagePath] : []);
+  const previousMainPath = previousPaths[0];
+  const remainingPaths = previousPaths.slice(1);
+  const nextPaths = dependencies.pickedImage
+    ? [
+        await uploadCommunityImage({
+          userId: dependencies.userId,
+          postId: dependencies.postId,
+          fileUri: dependencies.pickedImage.uri,
+          mimeType: dependencies.pickedImage.mimeType,
+        }),
+        ...remainingPaths,
+      ]
+    : remainingPaths;
 
-    await dependencies.editPost(dependencies.postId, {
-      title: dependencies.title,
-      content: dependencies.content,
-      category: dependencies.category,
-      imagePath: nextImagePath ?? null,
-    });
-
-    const previousImagePath = dependencies.previousImagePath;
-    const shouldDeleteOldImage =
-      !!previousImagePath &&
-      previousImagePath !== nextImagePath &&
-      !isRemotePath(previousImagePath);
-
-    if (shouldDeleteOldImage) {
-      await deleteCommunityImageSafely(previousImagePath);
-    }
-  } catch (error) {
-    if (uploadedImagePath && uploadedImagePath !== dependencies.previousImagePath) {
-      await enqueueCommunityImageCleanup(uploadedImagePath);
-    }
-    throw error;
+  // Keep both versions if the server write cannot be confirmed.
+  await dependencies.editPost(dependencies.postId, { ...text, imagePaths: nextPaths });
+  if (previousMainPath && !nextPaths.includes(previousMainPath) && !isRemotePath(previousMainPath)) {
+    await deleteCommunityImageSafely(previousMainPath);
   }
 }

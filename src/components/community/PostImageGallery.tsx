@@ -1,4 +1,4 @@
-import React, { memo, useState } from 'react';
+import React, { memo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -8,20 +8,46 @@ import {
 } from 'react-native';
 import { useTheme } from 'styled-components/native';
 import AppText from '../../app/ui/AppText';
+import type { CommunityPostImageSlot } from '../../types/community';
 
 const PostImage = memo(function PostImageBase({
-  uri,
+  initialUri,
   index,
+  refreshUrl,
 }: {
-  uri: string;
+  initialUri: string | null;
   index: number;
+  refreshUrl?: () => Promise<string | null>;
 }) {
   const theme = useTheme();
   const [aspectRatio, setAspectRatio] = useState(1);
+  const [uri, setUri] = useState(initialUri);
   const [status, setStatus] = useState<'loading' | 'ready' | 'error'>(
-    'loading',
+    initialUri ? 'loading' : 'error',
   );
   const [attempt, setAttempt] = useState(0);
+  const currentAttempt = useRef(0);
+  const refreshing = useRef(false);
+
+  const retry = async () => {
+    if (refreshing.current) return;
+    refreshing.current = true;
+    const nextAttempt = ++currentAttempt.current;
+    setStatus('loading');
+    try {
+      const nextUri = refreshUrl ? await refreshUrl() : uri;
+      if (!nextUri) {
+        setStatus('error');
+        return;
+      }
+      setUri(nextUri);
+      setAttempt(nextAttempt);
+    } catch {
+      setStatus('error');
+    } finally {
+      refreshing.current = false;
+    }
+  };
 
   return (
     <View
@@ -30,13 +56,14 @@ const PostImage = memo(function PostImageBase({
         { aspectRatio, backgroundColor: theme.colors.surface },
       ]}
     >
-      <Image
+      {uri ? <Image
         key={attempt}
         source={{ uri }}
         style={styles.image}
         resizeMode="contain"
         accessibilityLabel={`게시글 사진 ${index + 1}`}
         onLoad={({ nativeEvent: { source } }) => {
+          if (attempt !== currentAttempt.current) return;
           const ratio = source.width / source.height;
           if (!Number.isFinite(ratio) || ratio <= 0) {
             setStatus('error');
@@ -46,8 +73,10 @@ const PostImage = memo(function PostImageBase({
           setAspectRatio(ratio);
           setStatus('ready');
         }}
-        onError={() => setStatus('error')}
-      />
+        onError={() => {
+          if (attempt === currentAttempt.current) setStatus('error');
+        }}
+      /> : null}
       {status === 'loading' ? (
         <View pointerEvents="none" style={styles.overlay}>
           <ActivityIndicator
@@ -63,10 +92,7 @@ const PostImage = memo(function PostImageBase({
             accessibilityRole="button"
             accessibilityLabel={`사진 ${index + 1} 다시 불러오기`}
             style={styles.retry}
-            onPress={() => {
-              setStatus('loading');
-              setAttempt(value => value + 1);
-            }}
+            onPress={retry}
           >
             <AppText preset="unifiedMeta">사진 다시 불러오기</AppText>
           </TouchableOpacity>
@@ -76,13 +102,27 @@ const PostImage = memo(function PostImageBase({
   );
 });
 
-function PostImageGallery({ imageUrls }: { imageUrls: string[] }) {
-  const urls = imageUrls.map(url => url.trim()).filter(Boolean);
-  if (!urls.length) return null;
+function PostImageGallery({
+  imageUrls = [],
+  slots,
+  onRetry,
+}: {
+  imageUrls?: string[];
+  slots?: CommunityPostImageSlot[];
+  onRetry?: (index: number, path: string) => Promise<string | null>;
+}) {
+  const images = slots ?? imageUrls.map(url => url.trim()).filter(Boolean)
+    .map(url => ({ path: url, url }));
+  if (!images.length) return null;
   return (
     <View style={styles.gallery}>
-      {urls.map((uri, index) => (
-        <PostImage key={`${uri}-${index}`} uri={uri} index={index} />
+      {images.map(({ path, url }, index) => (
+        <PostImage
+          key={`${index}:${path}:${url ?? ''}`}
+          initialUri={url}
+          index={index}
+          refreshUrl={onRetry ? () => onRetry(index, path) : undefined}
+        />
       ))}
     </View>
   );

@@ -111,6 +111,7 @@ type Props = {
   sessionPending?: boolean;
   onProviderPress: (provider: SocialOAuthProvider) => void;
   onLegalPress: (documentId: LegalDocumentId) => void;
+  footer?: React.ReactNode;
   children?: React.ReactNode;
 };
 
@@ -121,6 +122,7 @@ export default function SocialLoginSurface({
   sessionPending = false,
   onProviderPress,
   onLegalPress,
+  footer,
   children,
 }: Props) {
   const insets = useSafeAreaInsets();
@@ -187,6 +189,7 @@ export default function SocialLoginSurface({
               현재 사용할 수 있는 로그인 방식이 없습니다.
             </AppText>
           ) : null}
+          {footer}
           <View style={styles.legal}>
             <View style={styles.legalLinks}>
               <TouchableOpacity

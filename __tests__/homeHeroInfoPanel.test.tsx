@@ -177,6 +177,7 @@ describe('approved open Home Hero information', () => {
     expect(source.indexOf('testID="home-hero-fold"')).toBeLessThan(source.indexOf('<HomeWeatherSection', source.indexOf('testID="home-hero-fold"')));
     expect(photo).not.toContain('Image.getSize');
     expect(photo).toContain('resizeMode="cover"');
+    expect(source).toContain('onPressRegisterPhoto={activePetId ? onPressPetProfileEdit : undefined}');
     expect(source).toContain('onPressProfileInfo={openProfileInfoSheet}');
     expect(source).toContain('onPressPetProfileEdit={onPressPetProfileEdit}');
     expect(source).toContain('onSelect={onPressPetChip}');

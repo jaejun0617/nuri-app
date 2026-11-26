@@ -1,6 +1,7 @@
 import React from 'react';
 import {
   Image,
+  Linking,
   ScrollView,
   StyleSheet,
   TextInput,
@@ -285,7 +286,7 @@ describe('social-only seasonal login', () => {
     expect(styles.buttonLeading.flex).toBe(styles.buttonTrailingSpace.flex);
     const links = renderer.root
       .findAllByType(TouchableOpacity)
-      .filter(node => node.props.accessibilityRole === 'link');
+      .filter(node => node.props.accessibilityRole === 'link' && node.props.testID !== 'sign-in-help');
     expect(links).toHaveLength(2);
     expect(JSON.stringify(renderer.toJSON())).not.toContain('계속 진행하면');
     expect(JSON.stringify(renderer.toJSON())).not.toContain('동의한 것으로');
@@ -311,6 +312,26 @@ describe('social-only seasonal login', () => {
     expect(JSON.stringify(renderer.toJSON())).toContain(
       '현재 사용할 수 있는 로그인 방식이 없습니다.',
     );
+  });
+
+  it.each(['onConfirm', 'onClose'] as const)('closes login help through %s without leaving sign-in', async dismiss => {
+    const open = jest.spyOn(Linking, 'openURL').mockResolvedValue(undefined);
+    await render();
+    expect(JSON.stringify(renderer.toJSON())).not.toContain('pet_nuri@naver.com');
+    const trigger = renderer.root.findByProps({ testID: 'sign-in-help' });
+    await act(async () => trigger.props.onPress());
+    const modal = renderer.root.findByType(PremiumNoticeModal);
+    expect(modal.props.bodyLines).toContain('pet_nuri@naver.com');
+    expect(modal.props.confirmLabel).toBe('닫기');
+    await act(async () => modal.props[dismiss]());
+    expect(renderer.root.findAllByType(PremiumNoticeModal)).toHaveLength(0);
+    for (const provider of ['kakao', 'google']) {
+      expect(renderer.root.findByProps({ testID: 'social-login-' + provider }).props.disabled).toBe(false);
+    }
+    expect(open).not.toHaveBeenCalled();
+    expect(mockNavigation.navigate).not.toHaveBeenCalled();
+    expect(mockGoogle).not.toHaveBeenCalled();
+    expect(mockKakao).not.toHaveBeenCalled();
   });
 
   it.each([

@@ -308,7 +308,7 @@ const MoreMenuRow = memo(function MoreMenuRowContent({
               name={item.icon}
               semantic={item.nuriIcon}
               size={MORE_MENU.iconSize}
-              color={colors.textSecondary}
+              color={item.destructive ? colors.destructive : colors.textSecondary}
             /> : null}
           </View>
         </Decoration>

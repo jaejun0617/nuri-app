@@ -57,6 +57,7 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import type { RootScreenRoute } from '../../navigation/types';
 import { getErrorMessage } from '../../services/app/errors';
 import { getCommunityMutationErrorMeta } from '../../services/community/errors';
+import { refreshCommunityPostImage } from '../../services/supabase/community';
 import {
   blockCommunityUser,
   getCommunityBlockErrorMessage,
@@ -1172,10 +1173,17 @@ export default function CommunityDiscussionContent({
               </AppText>
             </View>
 
-            {(post.imageUrls?.length ?? 0) > 0 || post.hasImage ? (
+            {(post.imageSlots?.length ?? post.imageUrls?.length ?? 0) > 0 || post.hasImage ? (
               <View style={styles.mediaSection}>
-                {(post.imageUrls?.length ?? 0) > 0 ? (
-                  <PostImageGallery imageUrls={post.imageUrls ?? []} />
+                {(post.imageSlots?.length ?? post.imageUrls?.length ?? 0) > 0 ? (
+                  <PostImageGallery
+                    key={`${post.id}:${currentUserId ?? 'guest'}`}
+                    slots={post.imageSlots}
+                    imageUrls={post.imageUrls}
+                    onRetry={post.imageSlots ?
+                      (index, path) => refreshCommunityPostImage(post.id, index, path, currentUserId) :
+                      undefined}
+                  />
                 ) : (
                   <View
                     style={[
@@ -1399,6 +1407,7 @@ export default function CommunityDiscussionContent({
     );
   }, [
     commentsStatus,
+    currentUserId,
     discussion.error,
     discussion.summaryStatus,
     discussion.threads.previous,

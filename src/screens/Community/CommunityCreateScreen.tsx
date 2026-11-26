@@ -431,16 +431,13 @@ export default function CommunityCreateScreen() {
         pickedImages,
         submitPost,
         editPost,
-        onImageUploadWarning: error => {
-          const meta = error
-            ? getBrandedErrorMeta(error, 'image-upload')
-            : null;
+        onImageUploadWarning: stage => {
           showToast({
             tone: 'warning',
-            title: meta?.title,
-            message:
-              meta?.message ??
-              '이미지 업로드에 실패했어요. 텍스트만 등록됐습니다.',
+            title: '글은 등록됐어요',
+            message: stage === 'upload'
+              ? '사진을 올리지 못했어요. 게시글 수정에서 다시 첨부해 주세요.'
+              : '사진 첨부를 확인하지 못했어요. 다시 첨부하기 전에 게시글의 사진을 확인해 주세요.',
           });
         },
       });

@@ -424,7 +424,6 @@ function normalizePost(
   profilesByUserId: Map<string, CommunityProfileRow>,
   petsById: Map<string, CommunityPetRow>,
   likedPostIds: Set<string>,
-  resolvedImageUrl?: string | null,
   resolvedImageUrls?: Array<string | null>,
 ): CommunityPost {
   const profile = profilesByUserId.get(row.user_id) ?? null;
@@ -479,16 +478,24 @@ function normalizePost(
     title: `${row.title ?? ''}`.trim() || null,
     content: row.content,
     imagePath: rawImage || null,
-    imageUrl: canExposeImages ? resolvedImageUrl ?? inlineRemoteImageUrl : null,
+    imageUrl: canExposeImages
+      ? resolvedImageUrls
+        ? resolvedImageUrls[0] ?? null
+        : inlineRemoteImageUrl
+      : null,
     imagePaths,
+    imageSlots: canExposeImages && resolvedImageUrls
+      ? imagePaths.map((path, index) => ({
+          path,
+          url: resolvedImageUrls[index] ?? null,
+        }))
+      : undefined,
     imageUrls: canExposeImages
-      ? resolvedImageUrls && resolvedImageUrls.length > 0
+      ? resolvedImageUrls
         ? resolvedImageUrls.filter(
             (value): value is string =>
               typeof value === 'string' && value.length > 0,
           )
-        : resolvedImageUrl && imagePaths.length > 0
-        ? [resolvedImageUrl, ...inlineRemoteImageUrls.slice(1)]
         : inlineRemoteImageUrls
       : [],
     hasImage: canExposeImages && rawImage.length > 0,
@@ -653,12 +660,14 @@ async function resolveCommunityImageUrl(imagePath: string | null) {
   if (!raw) return null;
   if (looksLikeRemoteUrl(raw)) return raw;
 
-  const { data, error } = await supabase.storage
-    .from('community-images')
-    .createSignedUrl(raw, 60 * 60);
-
-  if (error || !data?.signedUrl) return null;
-  return data.signedUrl;
+  try {
+    const { data, error } = await supabase.storage
+      .from('community-images')
+      .createSignedUrl(raw, 60 * 60);
+    return error ? null : data?.signedUrl ?? null;
+  } catch {
+    return null;
+  }
 }
 
 async function getCommunityCurrentUserId() {
@@ -1092,7 +1101,7 @@ export async function fetchCommunityPosts(
   };
 }
 
-export async function fetchCommunityPostById(postId: string) {
+async function fetchVisibleCommunityPostRow(postId: string) {
   const { data, error } = await supabase.rpc('community_get_post_detail_v1', {
     p_post_id: postId,
   });
@@ -1108,21 +1117,44 @@ export async function fetchCommunityPostById(postId: string) {
   if (!post) return null;
 
   if (
+    post.id !== postId ||
     post.visibility !== 'public' ||
     post.status !== 'active' ||
     post.deleted_at !== null
   ) {
     return null;
   }
-  const canExposeImages = post.deleted_at === null && post.status === 'active';
+  return post;
+}
+
+export async function refreshCommunityPostImage(
+  postId: string,
+  index: number,
+  expectedPath: string,
+  expectedViewerId: string | null,
+): Promise<string | null> {
+  const isSameViewer = async () => {
+    const { data, error } = await supabase.auth.getSession();
+    return !error && (data.session?.user.id ?? null) === expectedViewerId;
+  };
+  if (!(await isSameViewer())) return null;
+  const post = await fetchVisibleCommunityPostRow(postId);
+  // The original slot can have been removed or replaced while the detail was open.
+  if (!post || normalizeImagePaths(post)[index] !== expectedPath) return null;
+  if (!(await isSameViewer())) return null;
+  const url = await resolveCommunityImageUrl(expectedPath);
+  return (await isSameViewer()) ? url : null;
+}
+
+export async function fetchCommunityPostById(postId: string) {
+  const post = await fetchVisibleCommunityPostRow(postId);
+  if (!post) return null;
   const imagePaths = normalizeImagePaths(post);
 
   const [profilesByUserId, petsById, resolvedImageUrls] = await Promise.all([
     fetchProfilesByUserIds([post.user_id]),
     fetchPetsByIds([post.pet_id ?? ''].filter(Boolean)),
-    canExposeImages
-      ? Promise.all(imagePaths.map(resolveCommunityImageUrl))
-      : Promise.resolve([]),
+    Promise.all(imagePaths.map(resolveCommunityImageUrl)),
   ]);
   const currentUserId = await getCommunityCurrentUserId();
   const likedPostIds = await fetchLikeMetaForPosts([post.id], currentUserId);
@@ -1132,7 +1164,6 @@ export async function fetchCommunityPostById(postId: string) {
     profilesByUserId,
     petsById,
     likedPostIds,
-    resolvedImageUrls[0] ?? null,
     resolvedImageUrls,
   );
 }
@@ -1290,20 +1321,28 @@ export function buildCommunityRegularPostInsertPayload(
   params: CreateCommunityPostParams,
   userId: string,
 ) {
+  const paths = resolveCommunityImageWritePaths(params) ?? [];
   return {
     user_id: userId,
     pet_id: params.petId ?? null,
     visibility: 'public' as const,
     title: params.title.trim(),
     content: params.content.trim(),
-    image_url: params.imagePath ?? null,
-    image_urls:
-      params.imagePaths && params.imagePaths.length > 0
-        ? params.imagePaths
-        : [],
+    image_url: paths[0] ?? null,
+    image_urls: paths,
     category: params.category,
     status: 'active' as const,
   };
+}
+
+export function resolveCommunityImageWritePaths(
+  params: Pick<UpdateCommunityPostParams, 'imagePaths' | 'imagePath'>,
+): string[] | undefined {
+  if (params.imagePaths === undefined && params.imagePath === undefined) {
+    return undefined;
+  }
+  const paths = params.imagePaths ?? (params.imagePath ? [params.imagePath] : []);
+  return [...new Set(paths.map(path => path.trim()).filter(Boolean))];
 }
 
 export function buildCommunityRegularPostUpdatePatch(
@@ -1314,8 +1353,11 @@ export function buildCommunityRegularPostUpdatePatch(
   if (params.content !== undefined) patch.content = params.content.trim();
   if (params.category !== undefined) patch.category = params.category;
   if (params.petId !== undefined) patch.pet_id = params.petId;
-  if (params.imagePath !== undefined) patch.image_url = params.imagePath;
-  if (params.imagePaths !== undefined) patch.image_urls = params.imagePaths;
+  const paths = resolveCommunityImageWritePaths(params);
+  if (paths !== undefined) {
+    patch.image_url = paths[0] ?? null;
+    patch.image_urls = paths;
+  }
   if (params.petSnapshot !== undefined) {
     patch.pet_snapshot_name = params.petSnapshot?.name ?? null;
     patch.pet_snapshot_species = params.petSnapshot?.species ?? null;
@@ -1408,8 +1450,29 @@ export async function updateCommunityPost(
 
   if (Object.keys(patch).length === 0) return;
 
-  const primary = await supabase.from('posts').update(patch).eq('id', postId);
-  if (!primary.error) return;
+  const paths = resolveCommunityImageWritePaths(params);
+  const update = supabase.from('posts').update(patch).eq('id', postId);
+  if (paths !== undefined) {
+    const { data: row, error } = await update
+      .select('id,image_url,image_urls')
+      .maybeSingle();
+    if (error) throw error;
+    if (
+      !isRecord(row) ||
+      row.id !== postId ||
+      row.image_url !== (paths[0] ?? null) ||
+      !Array.isArray(row.image_urls) ||
+      row.image_urls.length !== paths.length ||
+      row.image_urls.some((path: unknown, index: number) => path !== paths[index])
+    ) {
+      throw new Error('community_post_update_unconfirmed');
+    }
+    return;
+  }
+  const primary = await update;
+  if (!primary.error) {
+    return;
+  }
 
   if (
     (params.petSnapshot !== undefined || params.title !== undefined) &&
@@ -1423,7 +1486,6 @@ export async function updateCommunityPost(
     delete fallbackPatch.pet_snapshot_age_label;
     delete fallbackPatch.pet_snapshot_avatar_path;
     delete fallbackPatch.show_pet_age;
-    delete fallbackPatch.image_urls;
     const fallback = await supabase
       .from('posts')
       .update(fallbackPatch)

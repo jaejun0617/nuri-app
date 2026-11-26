@@ -141,7 +141,7 @@ export default function IndoorActivityRecommendationsScreen() {
             <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
           </TouchableOpacity>
         </View>
-        <Text style={[styles.headerTitle, APP_HEADER.title]}>실내놀이추천</Text>
+        <Text style={[styles.headerTitle, APP_HEADER.title]}>실내놀이</Text>
         <View style={[styles.headerSideSlot, styles.headerSideSlotRight]}><HeaderHelpButton topic="indoorActivity" /></View>
       </AppHeaderLayout>
 

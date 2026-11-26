@@ -94,6 +94,27 @@ test('invalid image dimensions do not create an infinite or collapsed layout', a
   ).toBeGreaterThan(0);
   await act(async () => tree.unmount());
 });
+test('missing first photo keeps its slot and refreshes only its URL', async () => {
+  const onRetry = jest.fn().mockResolvedValue('https://example.test/refreshed-first');
+  const tree = await render(
+    <PostImageGallery onRetry={onRetry} slots={[
+      { path: 'first.jpg', url: null },
+      { path: 'second.jpg', url: 'https://example.test/second' },
+    ]} />,
+  );
+  const images = () => tree.root.findAllByType(Image)
+    .map(item => [item.props.accessibilityLabel, item.props.source.uri]);
+  expect(images()).toEqual([['게시글 사진 2', 'https://example.test/second']]);
+  await act(async () =>
+    tree.root.findByProps({ accessibilityLabel: '사진 1 다시 불러오기' }).props.onPress(),
+  );
+  expect(onRetry).toHaveBeenCalledWith(0, 'first.jpg');
+  expect(images()).toEqual([
+    ['게시글 사진 1', 'https://example.test/refreshed-first'],
+    ['게시글 사진 2', 'https://example.test/second'],
+  ]);
+  await act(async () => tree.unmount());
+});
 test.each([false, true])(
   'action order and 12sp sizing follow delete label; liked=%s',
   async liked => {

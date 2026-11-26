@@ -11,6 +11,7 @@ import {
 import { resolveComposerFocusOffset } from '../src/services/forms/composerFocus';
 import type { CommunityPost } from '../src/types/community';
 import {
+  deleteCommunityImageSafely,
   enqueueCommunityImageCleanup,
   uploadCommunityImage,
 } from '../src/services/supabase/storageCommunity';
@@ -130,11 +131,43 @@ describe('Community composer simplification', () => {
         title: '수정 제목',
         content: '수정 본문',
         category: 'free',
-        imagePath: 'community/existing.jpg',
       }),
     );
     expect(patch).not.toHaveProperty('petId');
     expect(patch).not.toHaveProperty('petSnapshot');
+    expect(patch).not.toHaveProperty('imagePath');
+    expect(patch).not.toHaveProperty('imagePaths');
+  });
+
+  it('preserves later photo slots and deletes the replaced original only after confirmation', async () => {
+    const editPost = jest.fn().mockImplementation(async () => {
+      expect(deleteCommunityImageSafely).not.toHaveBeenCalled();
+    });
+    jest.mocked(uploadCommunityImage).mockResolvedValue('new.jpg');
+    const edit = {
+      userId: 'qa-user',
+      postId: 'qa-post',
+      title: '수정 제목',
+      content: '수정 본문',
+      category: 'free' as const,
+      pickedImage: { uri: 'file:///new.jpg', mimeType: 'image/jpeg', fileName: null },
+      previousImagePath: 'old.jpg',
+      previousImagePaths: ['old.jpg', 'second.jpg', 'third.jpg'],
+      existingImagePath: 'old.jpg',
+      editPost,
+    };
+    await runCommunityEditSubmitFlow(edit);
+    expect(editPost).toHaveBeenCalledWith('qa-post', expect.objectContaining({
+      imagePaths: ['new.jpg', 'second.jpg', 'third.jpg'],
+    }));
+    expect(deleteCommunityImageSafely).toHaveBeenCalledWith('old.jpg');
+
+    jest.clearAllMocks();
+    await runCommunityEditSubmitFlow({ ...edit, pickedImage: null, existingImagePath: null });
+    expect(editPost).toHaveBeenCalledWith('qa-post', expect.objectContaining({
+      imagePaths: ['second.jpg', 'third.jpg'],
+    }));
+    expect(deleteCommunityImageSafely).toHaveBeenCalledWith('old.jpg');
   });
 
   it('clamps invalid or near-top measured focus positions', () => {
@@ -219,6 +252,33 @@ describe('Community composer simplification', () => {
     });
     expect(enqueueCommunityImageCleanup).toHaveBeenCalledTimes(4);
     expect(editPost).not.toHaveBeenCalled();
-    expect(onImageUploadWarning).toHaveBeenCalledWith(expect.any(Error));
+    expect(onImageUploadWarning).toHaveBeenCalledWith('upload');
+  });
+
+  it('keeps uploaded files after an unknown attach result for both create and edit', async () => {
+    const pickedImage = { uri: 'file:///photo.jpg', mimeType: 'image/jpeg', fileName: null };
+    const lostResponse = new Error('response lost');
+    const editPost = jest.fn().mockRejectedValue(lostResponse);
+    const onImageUploadWarning = jest.fn();
+    jest.mocked(uploadCommunityImage).mockResolvedValue('new.jpg');
+    const shared = { userId: 'qa-user', title: '제목', content: '본문', category: 'free' as const, editPost };
+    await runCommunityCreateSubmitFlow({
+      ...shared,
+      petId: null,
+      petSnapshot: null,
+      pickedImages: [pickedImage],
+      submitPost: jest.fn().mockResolvedValue({ id: 'post' }),
+      onImageUploadWarning,
+    });
+    expect(onImageUploadWarning).toHaveBeenCalledWith('attach');
+    await expect(runCommunityEditSubmitFlow({
+      ...shared,
+      postId: 'post',
+      pickedImage,
+      previousImagePath: 'old.jpg',
+      existingImagePath: 'old.jpg',
+    })).rejects.toBe(lostResponse);
+    expect(enqueueCommunityImageCleanup).not.toHaveBeenCalled();
+    expect(deleteCommunityImageSafely).not.toHaveBeenCalled();
   });
 });

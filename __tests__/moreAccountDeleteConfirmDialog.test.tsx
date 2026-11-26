@@ -384,6 +384,10 @@ describe('More account deletion confirmation', () => {
     );
     expect(renderer.root.findAllByProps({ children: '누리 사용법' })).toHaveLength(0);
     expect(renderer.root.findAllByProps({ children: '기기별 화면 미리보기' })).toHaveLength(0);
+    const logout = renderer.root.findByProps({ testID: 'more-entry-logout' });
+    const withdrawal = renderer.root.findByProps({ testID: 'account-delete-entry' });
+    expect(logout.findByProps({ name: 'log-out' }).props.color).toBe(createTheme('light').colors.textSecondary);
+    expect(withdrawal.findByProps({ name: 'user-minus' }).props.color).toBe('#B93645');
     for (const entryId of expectedEntryIds) {
       expect(
         renderer.root.findByProps({ testID: `more-entry-${entryId}` }),

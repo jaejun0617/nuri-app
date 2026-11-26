@@ -15,7 +15,9 @@ describe('fixed full-bleed Home photo frame', () => {
     });
   };
   const frame = () => StyleSheet.flatten(renderer.root.findByProps({ testID: 'home-hero-photo-frame' }).props.style);
-  const image = () => renderer.root.findByType(Image);
+  const photoImages = () => renderer.root.findAllByType(Image)
+    .filter(item => item.props.testID === 'home-hero-photo-background');
+  const image = () => photoImages()[0];
   afterEach(async () => { if (renderer) await act(async () => renderer.unmount()); });
 
   it('reveals the shared page gradient through the ellipse instead of painting a flat cutout', async () => {
@@ -103,10 +105,43 @@ describe('fixed full-bleed Home photo frame', () => {
     expect(StyleSheet.flatten(retry.props.style).minHeight).toBe(48);
     await act(async () => retry.props.onPress());
     await act(async () => firstAttempt.onError());
-    expect(renderer.root.findAllByType(Image)).toHaveLength(1);
+    expect(photoImages()).toHaveLength(1);
     expect(frame()).toEqual(initial);
     await act(async () => image().props.onLoad());
     expect(frame()).toEqual(initial);
+  });
+
+  it('offers photo registration only for an unregistered photo', async () => {
+    const register = jest.fn();
+    const state = jest.fn();
+    await render(null, 320);
+    const update = (photo: string | null, hasStoredPhoto = false) =>
+      act(async () => renderer.update(
+        <HomeHeroPhotoBackground uri={photo} frameWidth={320} hasStoredPhoto={hasStoredPhoto}
+          onPressRegisterPhoto={register} onPhotoStatusChange={state} />,
+      ));
+    await update(null);
+    const findRegister = () => renderer.root.findAllByProps({ testID: 'home-hero-register-photo' });
+    expect(findRegister()[0].props).toMatchObject({ accessibilityRole: 'button', accessibilityLabel: '프로필 사진 등록하기' });
+    expect(findRegister()[0].findAllByProps({ children: '여기를 톡 눌러' }).length).toBeGreaterThan(0);
+    expect(findRegister()[0].findAllByProps({ children: '우리 아이 사진을 올려봐요.' }).length).toBeGreaterThan(0);
+    await act(async () => findRegister()[0].props.onPress());
+    expect(register).toHaveBeenCalledTimes(1);
+    const originalFrame = frame();
+    await update(null, true);
+    expect(state).toHaveBeenLastCalledWith({ uri: null, status: 'error' });
+    expect(findRegister()).toHaveLength(0);
+    await update(uri, true);
+    expect(state).toHaveBeenLastCalledWith({ uri, status: 'loading' });
+    expect(findRegister()).toHaveLength(0);
+    await act(async () => image().props.onLoad());
+    expect(state).toHaveBeenLastCalledWith({ uri, status: 'ready' });
+    expect(findRegister()).toHaveLength(0);
+    expect(frame()).toEqual(originalFrame);
+    const edge = renderer.root.findByProps({ testID: 'home-hero-curve-light' });
+    expect(edge.props).toMatchObject({ pointerEvents: 'none', accessibilityElementsHidden: true });
+    expect(StyleSheet.flatten(edge.props.style).top).toBe(getHomeHeroPhotoGeometry(320).edgeY);
+    expect(edge.findAllByType(Image)).toHaveLength(1);
   });
 
   it('ignores late load and error callbacks belonging to the previous photo', async () => {

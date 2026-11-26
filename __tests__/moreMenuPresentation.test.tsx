@@ -4,6 +4,7 @@ import TestRenderer from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
 import { PRODUCT_CTA } from '../src/app/theme/tokens/productAccent';
+import MoreTeamContact from '../src/components/MoreDrawer/MoreTeamContact';
 import type { SeasonKey } from '../src/theme/seasonal/season';
 import type { AppFontMode } from '../src/app/typography/appFontMode';
 import {
@@ -47,9 +48,9 @@ async function render(
 
 const quickItems = [
   '전체일정',
-  '추억 다이어리',
+  '추억일기',
   '건강관리',
-  '실내 놀이 추천',
+  '실내놀이',
 ].map((label, i) => ({
   key: `item-${i}`,
   label,
@@ -64,6 +65,38 @@ describe('More presentation contracts (not native pixel QA)', () => {
     mockDimensions = { width: 384, height: 832, scale: 2.8125, fontScale: 1 };
   });
   afterEach(() => jest.restoreAllMocks());
+
+  it('copies only the official address on tap, without opening a mail app', async () => {
+    const setString = jest.spyOn(RN.Clipboard, 'setString').mockImplementation(() => {});
+    const getString = jest.spyOn(RN.Clipboard, 'getString');
+    const open = jest.spyOn(RN.Linking, 'openURL');
+    const tree = await render(<MoreTeamContact />);
+    const address = 'pet_nuri@naver.com';
+    const purpose = '서비스 이용 및 협업·제휴 문의';
+    const row = tree.root.findByProps({ accessibilityLabel: `${purpose}, 이메일 주소 복사, ${address}` });
+    expect(row.props.accessibilityRole).toBe('button');
+    expect(RN.StyleSheet.flatten(row.props.style({ pressed: false })).minHeight).toBeGreaterThanOrEqual(48);
+    expect(row.findAllByProps({ children: purpose }).length).toBeGreaterThan(0);
+    expect(tree.root.findAllByProps({ children: '누리팀 연락처' })).toHaveLength(0);
+    expect(tree.root.findAllByProps({ children: 'Copyright © 펫누리' }).length).toBeGreaterThan(0);
+    expect(row.findAllByProps({ children: 'Copyright © 펫누리' })).toHaveLength(0);
+    for (const [label, size] of [[purpose, 12], [address, 13], ['Copyright © 펫누리', 12]] as const) {
+      const node = tree.root.findAllByType(RN.Text).find(n => n.props.children === label);
+      expect(RN.StyleSheet.flatten(node?.props.style)).toMatchObject({ fontSize: size, textAlign: 'center' });
+    }
+    expect(row.findByProps({ name: 'copy' })).toBeDefined();
+    expect(setString).not.toHaveBeenCalled();
+    setString.mockImplementationOnce(() => { throw new Error('clipboard unavailable'); });
+    await TestRenderer.act(async () => row.props.onPress());
+    expect(tree.root.findAllByProps({ children: '복사하지 못했어요. 다시 눌러 주세요.' }).length).toBeGreaterThan(0);
+    await TestRenderer.act(async () => row.props.onPress());
+    expect(setString.mock.calls).toEqual([[address], [address]]);
+    expect(row.findByProps({ name: 'check' })).toBeDefined();
+    expect(tree.root.findAllByProps({ children: '이메일 주소를 복사했어요' }).length).toBeGreaterThan(0);
+    expect(getString).not.toHaveBeenCalled();
+    expect(open).not.toHaveBeenCalled();
+    await TestRenderer.act(async () => tree.unmount());
+  });
 
   it('shows the crown and benefits in one subscription entry', async () => {
     const onPress = jest.fn();

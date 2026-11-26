@@ -25,6 +25,7 @@ import {
   fetchCommunityPostById,
   fetchCommunityPosts,
   recordCommunityPostView,
+  resolveCommunityImageWritePaths,
   toggleCommunityCommentLike,
   toggleCommunityPostLike,
   updateCommunityPost,
@@ -1180,6 +1181,7 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
       await updateCommunityPost(postId, params);
       const current = get().postsById[postId];
       if (!current) return;
+      const paths = resolveCommunityImageWritePaths(params);
       const nextAvatarUrl =
         params.petSnapshot !== undefined
           ? toPublicPetAvatarUrl(params.petSnapshot?.avatarPath ?? null)
@@ -1208,20 +1210,17 @@ export const useCommunityStore = create<CommunityStore>((set, get) => {
         content: params.content ?? current.content,
         category: params.category ?? current.category,
         petId: params.petId !== undefined ? params.petId : current.petId,
-        imagePath:
-          params.imagePath !== undefined ? params.imagePath : current.imagePath,
-        imagePaths:
-          params.imagePaths !== undefined
-            ? params.imagePaths
-            : current.imagePaths,
-        imageUrls: params.imagePaths !== undefined ? [] : current.imageUrls,
-        hasImage:
-          params.imagePaths !== undefined
-            ? params.imagePaths.some(path => `${path ?? ''}`.trim().length > 0)
-            : params.imagePath !== undefined
-            ? `${params.imagePath ?? ''}`.trim().length > 0
-            : current.hasImage,
-        imageUrl: params.imagePath !== undefined ? null : current.imageUrl,
+        ...(paths === undefined ? {} : {
+          imagePath: paths[0] ?? null,
+          imagePaths: paths,
+          imageUrls: [],
+          imageSlots: paths.map(path => ({
+            path,
+            url: current.imageSlots?.find(slot => slot.path === path)?.url ?? null,
+          })),
+          hasImage: paths.length > 0,
+          imageUrl: current.imageSlots?.find(slot => slot.path === paths[0])?.url ?? null,
+        }),
         petName: nextPetName,
         petBreed: nextPetBreed,
         petSpecies: nextPetSpecies,

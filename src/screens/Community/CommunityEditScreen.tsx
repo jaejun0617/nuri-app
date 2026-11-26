@@ -223,6 +223,7 @@ export default function CommunityEditScreen() {
         category,
         pickedImage,
         previousImagePath: post.imagePath ?? null,
+        previousImagePaths: post.imagePaths,
         existingImagePath,
         editPost,
       });

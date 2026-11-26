@@ -171,6 +171,8 @@ export type CommunityPetRow = {
   species_display_name: string | null;
 };
 
+export type CommunityPostImageSlot = { path: string; url: string | null };
+
 export type CommunityPost = {
   id: string;
   authorId: string;
@@ -189,6 +191,7 @@ export type CommunityPost = {
   imageUrl: string | null;
   imagePaths?: string[];
   imageUrls?: string[];
+  imageSlots?: CommunityPostImageSlot[];
   hasImage: boolean;
   status: CommunityPostStatus;
   category: CommunityPostCategory | null;

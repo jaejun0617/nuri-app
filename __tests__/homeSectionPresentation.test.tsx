@@ -152,7 +152,8 @@ describe('Home section rhythm and material', () => {
       alignItems: 'center',
       justifyContent: 'center',
     });
-    expect(header).toContain('style={styles.headerIconBtn}');
+    expect(header).toContain('style={[styles.headerIconBtn, photoReady ? styles.headerIconOnPhoto : null]}');
+    expect(homeStyles.headerIconOnPhoto).toEqual({ backgroundColor: 'rgba(25, 23, 37, 0.54)' });
     expect(header).not.toContain('styles.autumnHeaderIconBtn');
     expect(header).not.toContain('styles.winterHeaderIconBtn');
     expect(header).not.toContain('home-notification-glass');
@@ -266,7 +267,7 @@ describe('Home section rhythm and material', () => {
     expect(screen).toMatch(/onLayout=\{handleHomeViewportLayout\}[\s\S]*?<ScrollView[\s\S]*?testID="logged-in-home-scroll"/);
     expect(scroll).toContain('marginBottom: bottomTabBarHeight');
     expect(scroll).not.toContain('onLayout={handleHomeViewportLayout}');
-    expect(screen).toContain('<HomeHeroPhotoBackground uri={selectedAvatarUri} frameWidth={heroFrameWidth}');
+    expect(screen).toMatch(/<HomeHeroPhotoBackground\s+uri=\{selectedAvatarUri\}\s+frameWidth=\{heroFrameWidth\}/);
     expect(screen).toContain('<HomeHeroInfoPanel');
     expect(screen).toContain('containerWidth={heroFrameWidth}');
   });

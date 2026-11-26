@@ -599,7 +599,7 @@ const HomeHeaderSection = React.memo(function HomeHeaderSection({
       <View style={styles.notificationAnchor}>
         <TouchableOpacity
           activeOpacity={0.85}
-          style={styles.headerIconBtn}
+          style={[styles.headerIconBtn, photoReady ? styles.headerIconOnPhoto : null]}
           onPress={onPressNotifications}
           accessibilityLabel={notificationAccessibilityLabel}
           accessibilityRole="button"
@@ -2877,7 +2877,15 @@ export default function LoggedInHome() {
           >
             <View style={{ position: 'relative' }}>
               <Animated.View testID="home-hero-photo-transition" style={petSwitchTransition.photoStyle}>
-                <HomeHeroPhotoBackground uri={selectedAvatarUri} frameWidth={heroFrameWidth} colors={heroColors} onPhotoSettled={petSwitchTransition.onPhotoSettled} onPhotoStatusChange={handleHeroPhotoStatusChange} />
+                <HomeHeroPhotoBackground
+                  uri={selectedAvatarUri}
+                  frameWidth={heroFrameWidth}
+                  colors={heroColors}
+                  hasStoredPhoto={!!selectedPet?.avatarPath?.trim()}
+                  onPressRegisterPhoto={activePetId ? onPressPetProfileEdit : undefined}
+                  onPhotoSettled={petSwitchTransition.onPhotoSettled}
+                  onPhotoStatusChange={handleHeroPhotoStatusChange}
+                />
               </Animated.View>
               <View pointerEvents="box-none" style={{ position: 'absolute', top: 0, left: 0, right: 0 }}>
                 {homeHeader}

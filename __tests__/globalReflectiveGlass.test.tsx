@@ -32,7 +32,7 @@ describe('PO global reflective card and navigation contract', () => {
   });
 
   it('gives every quick destination an untouchable chevron without changing its action', async () => {
-    const items = ['전체일정', '추억 다이어리', '건강관리', '실내 놀이 추천'].map((label, index) => ({ key: String(index), label, icon: 'calendar', onPress: jest.fn() }));
+    const items = ['전체일정', '추억일기', '건강관리', '실내놀이'].map((label, index) => ({ key: String(index), label, icon: 'calendar', onPress: jest.fn() }));
     let tree!: TestRenderer.ReactTestRenderer;
     await act(async () => {
       tree = TestRenderer.create(<ThemeProvider theme={createTheme('light')}><MoreMenuSection title="빠른 이동" items={items} quick /></ThemeProvider>);
