@@ -6,6 +6,13 @@ jest.mock('../src/services/supabase/client', () => ({ supabase: { rpc: (...args:
 jest.mock('../src/store/authStore', () => ({ useAuthStore: { getState: () => ({ session: mockSession }) } }));
 const signal = new AbortController().signal;
 const path = '/rest/v1/rpc/';
+it('rejects ticket acknowledgments before a read-only RPC leaves the app', async () => {
+  const client = createCustomerSupportClient('A');
+  try {
+    await expect(client.ticketThread('ticket', 2, 2)).rejects.toMatchObject({ code: 'DISABLED' });
+    expect(mockRpc).not.toHaveBeenCalled();
+  } finally { client.dispose(); }
+});
 function respond(result: () => Promise<unknown>) {
   const abortSignal = jest.fn(result);
   const setHeader = jest.fn(() => ({ abortSignal }));

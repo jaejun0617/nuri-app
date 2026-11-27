@@ -108,6 +108,7 @@ export default function IsolatedStaffTickets({
   ref?: React.Ref<PanelHandle>;
 }) {
   const staff = mode === 'staff';
+  const canAcknowledge = !staff && !customerReadOnly;
   const theme = useTheme();
   const [busy, setBusy] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -270,7 +271,7 @@ export default function IsolatedStaffTickets({
   }
   function checkVisible(id: string) {
     const view = room.current;
-    if (staff || !active.current || view.id !== id || view.groupTop === null || AppState.currentState !== 'active') return;
+    if (!canAcknowledge || !active.current || view.id !== id || view.groupTop === null || AppState.currentState !== 'active') return;
     let highest = 0;
     for (const [seq, row] of view.rows) {
       if (seq <= view.acknowledged || (view.target !== null && seq > view.target)) continue;
@@ -282,7 +283,7 @@ export default function IsolatedStaffTickets({
   // Layout includes offscreen children. Only a visible staff message may advance the owner's cursor.
   useEffect(() => {
     if (
-      staff ||
+      !canAcknowledge ||
       busy ||
       !thread ||
       readPending === null ||
@@ -298,7 +299,7 @@ export default function IsolatedStaffTickets({
       view.acknowledged = Math.max(view.acknowledged, readPending);
     });
   }, [
-    staff,
+    canAcknowledge,
     busy,
     thread,
     readPending,
@@ -692,7 +693,7 @@ export default function IsolatedStaffTickets({
                         <Copy muted>{day}</Copy>
                       </View>
                     ) : null}
-                    <View onLayout={!staff && item.author === 'staff' ? event => {
+                    <View onLayout={canAcknowledge && item.author === 'staff' ? event => {
                       if (room.current.id !== thread.id) return;
                       room.current.rows.set(item.seq, event.nativeEvent.layout);
                       checkVisible(thread.id);

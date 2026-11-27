@@ -20,7 +20,8 @@ export function createAppReader(owner: string) {
       throw new NoticeError('DISABLED');
     const args = Object.fromEntries(Object.entries(input));
     if (Object.keys(args).some(key => !accepted.includes(key)) ||
-        (accepted.includes('p_management') && args.p_management !== false))
+        (accepted.includes('p_management') && args.p_management !== false) ||
+        (name === 'support_ticket_read_v2' && args.p_ack != null))
       throw new NoticeError('DISABLED');
 
     const session = useAuthStore.getState().session;
