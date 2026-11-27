@@ -17,7 +17,8 @@ export function Copy({
   children,
   title = false,
   muted = false,
-}: React.PropsWithChildren<{ title?: boolean; muted?: boolean }>) {
+  color,
+}: React.PropsWithChildren<{ title?: boolean; muted?: boolean; color?: string }>) {
   const theme = useTheme();
   return (
     <AppText
@@ -26,7 +27,7 @@ export function Copy({
       style={[
         title ? ui.title : ui.body,
         {
-          color: muted ? theme.colors.textSecondary : theme.colors.textPrimary,
+          color: color ?? (muted ? theme.colors.textSecondary : theme.colors.textPrimary),
         },
       ]}
     >

@@ -3,6 +3,7 @@ import { Image, Pressable, StyleSheet, View } from 'react-native';
 import { useTheme } from 'styled-components/native';
 import Feather from '../../components/icons/NuriFeatherIcon';
 import { PRODUCT_CTA } from '../../app/theme/tokens/productAccent';
+import { inquiryReplyTone } from '../../app/theme/tokens/inquiryReply';
 import { getKstDateParts } from '../../utils/date';
 import { Copy, Glass, ui } from './PreviewPrimitives';
 
@@ -44,23 +45,19 @@ export function InquiryStatus({
   accent?: boolean;
 }) {
   const theme = useTheme();
+  const tone = inquiryReplyTone(label, theme.mode === 'dark');
+  const accented = accent && theme.mode !== 'dark';
   return (
     <View
       style={[
         styles.status,
         {
-          backgroundColor:
-            accent && theme.mode !== 'dark'
-              ? PRODUCT_CTA.subtle
-              : theme.colors.surface,
-          borderColor:
-            accent && theme.mode !== 'dark'
-              ? PRODUCT_CTA.border
-              : theme.colors.border,
+          backgroundColor: tone?.background ?? (accented ? PRODUCT_CTA.subtle : theme.colors.surface),
+          borderColor: tone?.border ?? (accented ? PRODUCT_CTA.border : theme.colors.border),
         },
       ]}
     >
-      <Copy muted={!accent}>{label}</Copy>
+      <Copy muted={!accent} color={tone?.foreground}>{label}</Copy>
     </View>
   );
 }
