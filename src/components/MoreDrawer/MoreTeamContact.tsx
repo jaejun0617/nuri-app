@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Clipboard, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import Clipboard from '@react-native-clipboard/clipboard';
 import { useTheme } from 'styled-components/native';
 import AppText from '../../app/ui/AppText';
 import { typography } from '../../app/theme/tokens/typography';

@@ -1,5 +1,6 @@
 import React from 'react';
 import * as RN from 'react-native';
+import Clipboard from '@react-native-clipboard/clipboard';
 import TestRenderer from 'react-test-renderer';
 import { ThemeProvider } from 'styled-components/native';
 import { createTheme } from '../src/app/theme/theme';
@@ -67,8 +68,8 @@ describe('More presentation contracts (not native pixel QA)', () => {
   afterEach(() => jest.restoreAllMocks());
 
   it('copies only the official address on tap, without opening a mail app', async () => {
-    const setString = jest.spyOn(RN.Clipboard, 'setString').mockImplementation(() => {});
-    const getString = jest.spyOn(RN.Clipboard, 'getString');
+    const setString = jest.mocked(Clipboard.setString).mockReset();
+    const getString = jest.mocked(Clipboard.getString).mockReset();
     const open = jest.spyOn(RN.Linking, 'openURL');
     const tree = await render(<MoreTeamContact />);
     const address = 'pet_nuri@naver.com';
