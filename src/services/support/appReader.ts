@@ -32,6 +32,9 @@ export function createAppReader(owner: string) {
       throw new NoticeError('SESSION_CHANGED');
     if (error) {
       if (status === 401) throw new NoticeError('AUTH_REQUIRED');
+      if ((name === 'support_notice_list_v1' || name === 'support_faq_list_v1') &&
+          (error.code === '55000' || error.code === 'PT403') &&
+          error.message === 'SUPPORT_UNAVAILABLE') throw new NoticeError('SUPPORT_UNAVAILABLE');
       if (error.code === 'PGRST202') throw new NoticeError('SUPPORT_UNAVAILABLE');
       if (status === 403 || error.code === '42501') throw new NoticeError('SUPPORT_FORBIDDEN');
       if (['SUPPORT_FORBIDDEN', 'SUPPORT_NOT_FOUND', 'SUPPORT_AUTH_REQUIRED'].includes(error.message))

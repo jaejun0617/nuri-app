@@ -101,7 +101,8 @@ afterEach(() => jest.restoreAllMocks());
 it('does not report the previous empty FAQ result as current after a failed refresh', async () => {
   const client = new IsolatedNoticeClient();
   jest.spyOn(client, 'faqs').mockResolvedValueOnce([])
-    .mockRejectedValueOnce(new NoticeError('NETWORK_UNCERTAIN')).mockResolvedValue([]);
+    .mockRejectedValueOnce(new NoticeError('NETWORK_UNCERTAIN'))
+    .mockRejectedValueOnce(new NoticeError('SUPPORT_UNAVAILABLE')).mockResolvedValue([]);
   let tree!: TestRenderer.ReactTestRenderer;
   await TestRenderer.act(async () => {
     tree = TestRenderer.create(
@@ -119,6 +120,10 @@ it('does not report the previous empty FAQ result as current after a failed refr
     await refresh();
     expect(renderedText(tree.toJSON())).toContain('연결을 확인해주세요.');
     expect(renderedText(tree.toJSON())).not.toContain('공개된 질문이 없어요.');
+    await refresh();
+    expect(renderedText(tree.toJSON())).toContain('현재 자주 묻는 질문을 이용할 수 없어요.');
+    expect(renderedText(tree.toJSON())).not.toContain('공개된 질문이 없어요.');
+    expect(renderedText(tree.toJSON())).not.toContain('연결을 확인해주세요.');
     await refresh();
     expect(renderedText(tree.toJSON())).toContain('공개된 질문이 없어요.');
     expect(renderedText(tree.toJSON())).not.toContain('연결을 확인해주세요.');

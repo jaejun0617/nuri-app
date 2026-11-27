@@ -92,6 +92,11 @@ export default function IsolatedFaq({
         pending.current = null;
         if (code !== 'SUPPORT_FORBIDDEN') onError(reason);
         else setError(management ? 'FAQ를 관리할 권한이 없어요.' : 'FAQ를 조회할 수 없어요.');
+      } else if (code === 'SUPPORT_UNAVAILABLE' && !management) {
+        setReady(false);
+        setItems([]);
+        setOpen(null);
+        setError('현재 자주 묻는 질문을 이용할 수 없어요. 나중에 다시 확인해 주세요.');
       } else if (code === 'SUPPORT_REVISION_CONFLICT') {
         setError(
           '다른 변경이 먼저 저장됐어요. 입력은 남겨뒀으니 현재 작업본을 확인해주세요.',

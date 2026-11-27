@@ -32,6 +32,20 @@ it('does not treat an absent v2 service as an empty inbox or use another API', a
   expect(mockRpc).toHaveBeenCalledTimes(1);
 });
 
+it.each([
+  [500, '55000', 'SUPPORT_UNAVAILABLE', 'SUPPORT_UNAVAILABLE'],
+  [403, 'PT403', 'SUPPORT_UNAVAILABLE', 'SUPPORT_UNAVAILABLE'],
+  [500, '55000', 'OTHER_FAILURE', 'NETWORK_UNCERTAIN'],
+  [403, '42501', 'SUPPORT_FORBIDDEN', 'SUPPORT_FORBIDDEN'],
+])('distinguishes a closed rollout from other list failures (%s, %s, %s)', async (status, code, message, expected) => {
+  respond(async () => ({ error: { code, message }, status }));
+  const client = createCustomerSupportClient('A');
+  try {
+    await expect(client.list()).rejects.toMatchObject({code:expected});
+    await expect(client.faqs(false)).rejects.toMatchObject({code:expected});
+  } finally { client.dispose(); }
+});
+
 it('discards the previous account response after a switch and refuses subsequent reads', async () => {
   respond(async () => {
     mockSession = { access_token: 'synthetic-b', user: { id: 'B' } };

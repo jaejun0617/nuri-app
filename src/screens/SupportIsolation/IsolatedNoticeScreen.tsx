@@ -256,6 +256,12 @@ export default function IsolatedNoticeScreen({
         next === null
       ) {
         if (active.current && generation.current === epoch) {
+          if (reason instanceof NoticeError && reason.code === 'SUPPORT_UNAVAILABLE') {
+            setItems([]);
+            setCount(0);
+            setCursor(null);
+            listAnchor.current = null;
+          }
           setListStatus(customerOwner || (reason instanceof NoticeError && reason.code === 'NETWORK_UNCERTAIN') ? 'failed' : 'pending');
         }
         throw reason;
