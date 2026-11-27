@@ -15,4 +15,6 @@
 
 **Git 전달 단위:** 제품 수정+해당 테스트, 구조 변경+링크 수정, 수락 원장+보고서를 구분한다. 혼합 worktree에서 `git add .`를 사용하지 않는다. 경로 또는 hunk를 선별하고 `git diff --cached --name-status`와 `git diff --cached --check`로 확인한다. 비공개 설정·QA 로그인·개인 캡처·빌드 출력을 제외한다. 브랜치와 worktree는 이름·나이가 아니라 소유 작업, 고유 커밋, 미추적 파일, 열린 수락/복구 약정으로 존폐를 결정한다. `git worktree prune --dry-run --verbose`는 사라진 경로의 메타데이터 점검이지 사용 중인 작업본 삭제 도구가 아니다.
 
+정리 전후에 저장소 루트에서 `node scripts/audit-repository-layout.cjs`를 실행한다. Git 추적 파일과 무시되지 않은 미추적 파일을 나눠 종류별 개수를 표시하며, 루트 검토 후보는 `rootReview`에 나온다. 목록은 이동·삭제 승인이 아니며 무시된 개인 파일·APK나 문서 본문은 검사하지 않는다. 검사 자체의 테스트는 `node --test scripts/test-audit-repository-layout.cjs`다.
+
 **이번 이동표:** 루트의 `기획.md`는 [2월 초기 원문](../archive/2026-02/반려견-기록-앱-초기-기획.md)으로, 보고서 옆의 `NURI-inquiry-badges-2026-11-27.png`는 [보고서 이미지](../reports/assets/2026-11-27/NURI-inquiry-badges-2026-11-27.png)로 이동했다. 둘 다 내용은 그대로다. 앱 자산과 SQL 실행 경로는 이동하지 않았다.
