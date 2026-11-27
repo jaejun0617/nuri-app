@@ -14,6 +14,8 @@ type Review = {
 
 /** Development-only session-bound views; isolated notices own a separate local API session. */
 export default function SupportDesignReview({
+  appReaderOwner,
+  makeAppClient,
   ownerSession,
   ownerRole,
   initialPage,
@@ -22,6 +24,8 @@ export default function SupportDesignReview({
   onSubscriptionChange,
 }: {
   ownerSession: object | null;
+  appReaderOwner?: string | null;
+  makeAppClient?: React.ComponentProps<typeof SupportPreviewScreen>['makeAppClient'];
   ownerRole: string | null;
   initialPage: PreviewPage;
   onDismiss: () => void;
@@ -77,6 +81,8 @@ export default function SupportDesignReview({
       onRequestClose={() => screenRef.current?.back()}
     >
       <SupportPreviewScreen
+        appReaderOwner={appReaderOwner}
+        makeAppClient={makeAppClient}
         ref={screenRef}
         subscription={subscription}
         onSubscriptionChange={onSubscriptionChange}

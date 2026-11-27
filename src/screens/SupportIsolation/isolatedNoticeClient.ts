@@ -250,6 +250,9 @@ const origin = 'http://127.0.0.1:56323';
 
 /** DEV transport only. No production client, persisted session, role fixture or token injection. */
 export class IsolatedNoticeClient {
+  constructor(private readonly customerRead?: (
+    path: string, body: unknown, signal: AbortSignal,
+  ) => Promise<unknown>) {}
   readonly mixedNotifications = createMixedNotificationApi((name, args) =>
     this.request('/rest/v1/rpc/' + name, args),
   );
@@ -275,6 +278,11 @@ export class IsolatedNoticeClient {
     this.requests.add(controller);
     const timer = setTimeout(() => controller.abort(), 15000);
     try {
+      if (this.customerRead) {
+        const result = await this.customerRead(path, body, controller.signal);
+        if (this.disposed || generation !== this.epoch) throw new NoticeError('SESSION_CHANGED');
+        return result;
+      }
       const response = await fetch(origin + path, {
         method: 'POST',
         headers: {

@@ -55,6 +55,7 @@ type Page = 'login' | 'list' | 'drafts' | 'compose' | 'detail' | Panel;
 type Saved = { id: string; revision: number };
 function message(error: unknown) {
   const code = error instanceof NoticeError ? error.code : 'REQUEST_REJECTED';
+  if (code === 'SUPPORT_UNAVAILABLE') return '현재 이 서비스를 이용할 수 없어요. 잠시 후 다시 확인해 주세요.';
   if (code === 'NETWORK_UNCERTAIN')
     return '연결을 확인하지 못했어요. 저장 중이었다면 같은 내용으로 다시 확인해주세요.';
   if (
@@ -78,6 +79,7 @@ function message(error: unknown) {
 
 /** Same notice UI primitives, real local Auth/API, session lifetime limited to this development view. */
 export default function IsolatedNoticeScreen({
+  customerOwner,
   onExit,
   ref,
   createClient = () => new IsolatedNoticeClient(),
@@ -88,6 +90,7 @@ export default function IsolatedNoticeScreen({
   onNewInquiry,
 }: {
   onExit: () => void;
+  customerOwner?: string;
   ref?: React.Ref<IsolatedNoticeHandle>;
   createClient?: () => IsolatedNoticeClient;
   initialPanel?: Panel;
@@ -101,13 +104,13 @@ export default function IsolatedNoticeScreen({
   const active = useRef(true),
     busyRef = useRef(false),
     generation = useRef(0);
-  const [page, setPage] = useState<Page>('login');
+  const [page, setPage] = useState<Page>(customerOwner ? initialPanel ?? 'list' : 'login');
   const [busy, setBusy] = useState(false),
     [error, setError] = useState('');
   const [refreshing, setRefreshing] = useState(false);
   const [email, setEmail] = useState(''),
     [password, setPassword] = useState('');
-  const [user, setUser] = useState<string | null>(null),
+  const [user, setUser] = useState<string | null>(customerOwner ?? null),
     [manager, setManager] = useState(false);
   const [listStatus, setListStatus] = useState<'pending' | 'ready' | 'failed'>('pending');
   const [items, setItems] = useState<Notice[]>([]),
@@ -190,6 +193,7 @@ export default function IsolatedNoticeScreen({
     if (!(reason instanceof NoticeError)) return;
     if (['AUTH_REQUIRED', 'SUPPORT_AUTH_REQUIRED'].includes(reason.code)) {
       clearSensitive();
+      if (customerOwner) { onExit(); return; }
       setManager(false);
       setUser(null);
       setPage('login');
@@ -203,6 +207,7 @@ export default function IsolatedNoticeScreen({
     ) {
       clearSensitive();
       setManager(false);
+      if (customerOwner && initialPanel === 'faq') { onExit(); return; }
       setPage(
         initialPanel === 'newTicket' || initialPanel === 'myTickets'
           ? 'myTickets'
@@ -251,7 +256,7 @@ export default function IsolatedNoticeScreen({
         next === null
       ) {
         if (active.current && generation.current === epoch) {
-          setListStatus(reason instanceof NoticeError && reason.code === 'NETWORK_UNCERTAIN' ? 'failed' : 'pending');
+          setListStatus(customerOwner || (reason instanceof NoticeError && reason.code === 'NETWORK_UNCERTAIN') ? 'failed' : 'pending');
         }
         throw reason;
       }
@@ -320,6 +325,10 @@ export default function IsolatedNoticeScreen({
     setRenderedId(null);
     setPage('list');
   }
+  const loadCustomerNotices = useEffectEvent(() => { execute(() => load()); });
+  useEffect(() => {
+    if (customerOwner && !initialPanel) loadCustomerNotices();
+  }, [customerOwner, initialPanel]);
   const revalidateOnActive = useEffectEvent(() => {
     if (page === 'list' && user) execute(() => load());
     if (page !== 'detail' || !detail) return;
@@ -526,7 +535,7 @@ export default function IsolatedNoticeScreen({
   if (!__DEV__) return null;
   const status = (
     <>
-      <Copy muted>격리 개발 서버{user ? ` · ${user.slice(0, 8)}` : ''}</Copy>
+      {!customerOwner ? <Copy muted>격리 개발 서버{user ? ` · ${user.slice(0, 8)}` : ''}</Copy> : null}
       {error ? (
         <View accessibilityLiveRegion="polite">
           <Copy>{error}</Copy>
@@ -544,6 +553,7 @@ export default function IsolatedNoticeScreen({
     <KeyboardAvoidingView behavior="padding" style={styles.fill}>
       {isTicketPage ? (
         <IsolatedStaffTickets
+          customerReadOnly={Boolean(customerOwner)}
           key={page}
           ref={panelRef}
           client={client}
@@ -855,7 +865,7 @@ export default function IsolatedNoticeScreen({
                   <CtaText>더 보기</CtaText>
                 </CtaButton>
               ) : null}
-              <CtaButton
+              {!customerOwner ? <CtaButton
                 testID="isolated-logout"
                 role="neutral"
                 disabled={busy}
@@ -875,7 +885,7 @@ export default function IsolatedNoticeScreen({
                 }
               >
                 <CtaText>격리 계정 로그아웃</CtaText>
-              </CtaButton>
+              </CtaButton> : null}
             </>
           ) : null}
           {page === 'drafts' ? (

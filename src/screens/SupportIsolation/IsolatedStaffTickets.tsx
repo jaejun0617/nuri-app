@@ -83,6 +83,7 @@ function ticketStatus(item: {
 }
 
 export default function IsolatedStaffTickets({
+  customerReadOnly = false,
   client,
   mode,
   initialCategory,
@@ -95,6 +96,7 @@ export default function IsolatedStaffTickets({
   ref,
 }: {
   client: IsolatedNoticeClient;
+  customerReadOnly?: boolean;
   mode: 'staff' | 'mine' | 'alerts';
   initialCategory?: InquiryCategory;
   status: React.ReactNode;
@@ -203,7 +205,7 @@ export default function IsolatedStaffTickets({
         rows = staff ? await client.staffTickets(before) : await client.myTickets(before);
       } catch (reason) {
         if (!active.current) return;
-        if (reason instanceof NoticeError && reason.code === 'NETWORK_UNCERTAIN') {
+        if (reason instanceof NoticeError && (reason.code === 'NETWORK_UNCERTAIN' || reason.code === 'SUPPORT_UNAVAILABLE')) {
           setListStatus('failed');
           return;
         }
@@ -569,6 +571,7 @@ export default function IsolatedStaffTickets({
     thread.assignee === client.userId &&
     latestPage;
   const composer =
+    !customerReadOnly &&
     (composing || (thread && (canReply || (!staff && latestPage)))) &&
     !uncertain;
   const attachDisabled = busy || photos.length >= 3;
@@ -708,7 +711,8 @@ export default function IsolatedStaffTickets({
                       date={inquiryDate(item.createdAt, true)}
                     >
                       {item.body ? <Copy>{item.body}</Copy> : null}
-                      {item.photos.map(photo => (
+                      {customerReadOnly && item.photos.length > 0 ? <Copy muted>첨부파일 조회는 아직 제공하지 않아요.</Copy> : null}
+                      {!customerReadOnly && item.photos.map(photo => (
                         <TicketPhotoViewer
                           key={photo.id}
                           photo={photo}
@@ -744,7 +748,7 @@ export default function IsolatedStaffTickets({
                 <CtaText>담당하기</CtaText>
               </CtaButton>
             ) : null}
-            {!uncertain &&
+            {!customerReadOnly && !uncertain &&
             thread.state === 'open' &&
             (!staff || thread.assignee === client.userId) ? (
               <View style={{ gap: 12 }}>
@@ -817,7 +821,7 @@ export default function IsolatedStaffTickets({
                 </CtaButton>
               </View>
             ) : null}
-            {!uncertain && thread.state === 'closed' ? (
+            {!customerReadOnly && !uncertain && thread.state === 'closed' ? (
               <CtaButton
                 role="neutral"
                 testID="ticket-reopen"

@@ -22,6 +22,8 @@ import SubscriptionPreview, {
 import ReferenceArtwork from './ReferenceArtwork';
 import { InquiryArtwork, inquiryDate } from './InquiryPresentation';
 import NoticeArticle from './NoticeArticle';
+import { SUPPORT_EMAIL } from '../../config/supportContact';
+import type { IsolatedNoticeClient } from '../SupportIsolation/isolatedNoticeClient';
 import SeasonalAmbientBackground from '../../components/common/SeasonalAmbientBackground';
 import { useEffectiveSeason } from '../../app/providers/SeasonPreferenceProvider';
 import AdminDesignScreen, { type AdminDesignHandle } from './AdminDesignScreen';
@@ -84,6 +86,8 @@ export type PreviewNavigation = { page: PreviewPage; noticeId?: string };
 export type SupportScreenHandle = { back: () => void };
 
 export default function SupportPreviewScreen({
+  appReaderOwner,
+  makeAppClient,
   stack,
   onNavigate,
   onBack,
@@ -93,6 +97,8 @@ export default function SupportPreviewScreen({
   ref,
 }: {
   stack: readonly PreviewNavigation[];
+  appReaderOwner?: string | null;
+  makeAppClient?: (owner: string) => IsolatedNoticeClient;
   onNavigate: (target: PreviewNavigation) => void;
   onBack: () => void;
   onClose: () => void;
@@ -104,13 +110,17 @@ export default function SupportPreviewScreen({
   const season = useEffectiveSeason();
   const entry = stack[stack.length - 1];
   const page = entry?.page ?? 'help';
+  const customerPage = appReaderOwner !== undefined &&
+    (page === 'notices' || page === 'isolatedFaq' || page === 'isolatedMyTickets' || page === 'isolatedNewTicket' || page === 'types');
+  const unavailable = customerPage && (!appReaderOwner || !makeAppClient || page === 'isolatedNewTicket' || page === 'types');
   const isAdRemoval = page === 'adRemoval';
   const [isolatedThreadOpen, setIsolatedThreadOpen] = useState(false);
   const [adsHidden, setAdsHidden] = useState(false);
   const adminRef = useRef<AdminDesignHandle>(null);
   const isolatedRef = useRef<IsolatedNoticeHandle>(null);
   const back = () => {
-    if (isIsolatedPage(page)) isolatedRef.current?.back();
+    if (unavailable) onBack();
+    else if (customerPage || isIsolatedPage(page)) isolatedRef.current?.back();
     else if (isAdminDesignPage(page)) adminRef.current?.back();
     else onBack();
   };
@@ -534,7 +544,23 @@ export default function SupportPreviewScreen({
           </TouchableOpacity>
         )}
       </View>
-      {isIsolatedPage(page) && __DEV__ ? (
+      {unavailable ? (
+        <Glass><Copy>{appReaderOwner
+          ? `아직 앱에서 문의를 접수할 수 없어요. 서비스 이용 문의는 ${SUPPORT_EMAIL}으로 보내주세요.`
+          : '로그인 후 이용해 주세요.'}</Copy></Glass>
+      ) : customerPage && appReaderOwner && makeAppClient ? (
+        <IsolatedNoticeScreen
+          key={page + appReaderOwner}
+          ref={isolatedRef}
+          customerOwner={appReaderOwner}
+          createClient={() => makeAppClient(appReaderOwner)}
+          initialPanel={page === 'isolatedFaq' ? 'faq' : page === 'isolatedMyTickets' ? 'myTickets' : undefined}
+          onExit={onBack}
+          onThreadViewChange={setIsolatedThreadOpen}
+          onFaqContact={() => navigate('types')}
+          onNewInquiry={() => navigate('types')}
+        />
+      ) : isIsolatedPage(page) && __DEV__ ? (
         <IsolatedNoticeScreen
           key={page}
           ref={isolatedRef}

@@ -91,7 +91,7 @@ export default function IsolatedFaq({
         setEdit(null);
         pending.current = null;
         if (code !== 'SUPPORT_FORBIDDEN') onError(reason);
-        else setError('FAQ를 관리할 권한이 없어요.');
+        else setError(management ? 'FAQ를 관리할 권한이 없어요.' : 'FAQ를 조회할 수 없어요.');
       } else if (code === 'SUPPORT_REVISION_CONFLICT') {
         setError(
           '다른 변경이 먼저 저장됐어요. 입력은 남겨뒀으니 현재 작업본을 확인해주세요.',

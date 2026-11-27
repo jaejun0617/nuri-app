@@ -21,6 +21,8 @@ import { SeasonReviewControls } from '../../components/common/SeasonReviewContro
 import UsbDeviceLayoutControls from '../DevTest/UsbDeviceLayoutControls';
 import PostRegistrationLoadingReview from '../Auth/PostRegistrationLoadingReview';
 import SupportDesignReview from '../Support/SupportDesignReview';
+import { isolatedReaderBuild } from '../SupportIsolation/readerBuild';
+import { createCustomerSupportClient } from '../../services/support/appReader';
 import type { PreviewSubscription } from '../Support/SubscriptionPreview';
 import type { PreviewPage } from '../Support/previewModel';
 import type { SeasonKey } from '../../theme/seasonal/season';
@@ -1696,6 +1698,9 @@ export default function MoreDrawerContent({
 
       {__DEV__ && supportPreviewEntry ? (
         <SupportDesignReview
+          makeAppClient={createCustomerSupportClient}
+          appReaderOwner={!isolatedReaderBuild && (supportPreviewEntry === 'notices' || supportPreviewEntry === 'help')
+            ? session?.user.id ?? null : undefined}
           ownerSession={session}
           ownerRole={role ?? null}
           subscription={previewSubscription}

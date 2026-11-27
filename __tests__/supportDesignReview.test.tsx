@@ -13,7 +13,7 @@ import {
   canPreviewRefund,
   type PreviewPage,
 } from '../src/screens/Support/previewModel';
-import { IsolatedNoticeClient } from '../src/screens/SupportIsolation/isolatedNoticeClient';
+import { IsolatedNoticeClient, NoticeError } from '../src/screens/SupportIsolation/isolatedNoticeClient';
 
 jest.mock('react-native-safe-area-context', () => ({
   SafeAreaView: 'SafeAreaView',
@@ -29,9 +29,11 @@ async function render(
   subscription?: React.ComponentProps<
     typeof SupportDesignReview
   >['subscription'],
+  customer?: Pick<React.ComponentProps<typeof SupportDesignReview>, 'appReaderOwner' | 'makeAppClient'>,
 ) {
   const dismiss = jest.fn();
   const props = {
+    ...customer,
     ownerSession: session,
     ownerRole,
     initialPage,
@@ -58,6 +60,40 @@ async function dispose(tree: TestRenderer.ReactTestRenderer) {
 }
 
 describe('NURI-15 local design review (not server or device acceptance)', () => {
+  it('enters customer notices without examples, operator controls or a second login', async () => {
+    const request = jest.fn().mockResolvedValue({ items: [], count: 0, nextCursor: null });
+    const { tree } = await render('notices', 'user', undefined, {
+      appReaderOwner: 'A', makeAppClient: () => new IsolatedNoticeClient(request),
+    });
+    try {
+      expect(request.mock.calls.map(call => call[0])).toEqual(['/rest/v1/rpc/support_notice_list_v1']);
+      expect(tree.root.findAllByProps({children:'등록된 공지가 없어요.'}).length).toBeGreaterThan(0);
+      for (const testID of ['isolated-entry','isolated-email','isolated-new','isolated-logout'])
+        expect(tree.root.findAllByProps({testID})).toHaveLength(0);
+    } finally { await dispose(tree); }
+  });
+
+  it('opens FAQ then own inquiries without login and distinguishes a missing service from zero inquiries', async () => {
+    const request = jest.fn(async (url: string) => {
+      if (url.endsWith('support_ticket_list_v2')) throw new NoticeError('SUPPORT_UNAVAILABLE');
+      return {items: []};
+    });
+    const { tree } = await render('help', 'user', undefined, {
+      appReaderOwner: 'A', makeAppClient: () => new IsolatedNoticeClient(request),
+    });
+    try {
+      await press(tree, 'preview-faq');
+      expect(request.mock.calls.map(call => call[0])).toContain('/rest/v1/rpc/support_faq_list_v1');
+      await press(tree, 'preview-back');
+      await press(tree, 'preview-history');
+      expect(tree.root.findAllByProps({children:'문의 내역을 불러오지 못했어요.'}).length).toBeGreaterThan(0);
+      expect(tree.root.findAllByProps({testID:'isolated-email'})).toHaveLength(0);
+      await press(tree, 'preview-back');
+      await press(tree, 'preview-inquiry');
+      expect(tree.root.findAllByProps({testID:'ticket-send'})).toHaveLength(0);
+      expect(request.mock.calls.every(([url]) => url.endsWith('_list_v1') || url.endsWith('_list_v2'))).toBe(true);
+    } finally { await dispose(tree); }
+  });
   it('shows the ad removal setting without a separate subscription button', async () => {
     const { tree } = await render('adRemoval');
     try {
