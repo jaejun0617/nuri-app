@@ -1,6 +1,6 @@
 import { AppHeaderLayout } from '../../components/navigation/AppHeaderLayout';
 import { APP_HEADER } from '../../components/navigation/headerAppearance';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Linking, ScrollView, TouchableOpacity, View } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -76,8 +76,12 @@ export function getGuideContentBlockPresentation(
 }
 
 export default function GuideDetailScreen() {
-  const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
+  return <GuideArticle key={route.params.guideId} guideId={route.params.guideId} />;
+}
+
+function GuideArticle({ guideId }: { guideId: string }) {
+  const navigation = useNavigation<Nav>();
   const insets = useSafeAreaInsets();
   const season = useEffectiveSeason();
   const selectedPet = usePetStore(s => {
@@ -87,7 +91,18 @@ export default function GuideDetailScreen() {
   });
   const sessionUserId = useAuthStore(s => s.session?.user.id ?? null);
   const viewedSignatureRef = useRef('');
-  const guideState = usePetCareGuideDetail(route.params.guideId);
+  const guideState = usePetCareGuideDetail(guideId);
+  const geometry = useRef({ heroY: -1, titleBottom: -1, offset: 0, pinned: false });
+  const [showArticleTitle, setShowArticleTitle] = useState(false);
+  function updateHeader() {
+    const g = geometry.current;
+    // The title wrapper is relative to the hero, not the scroll content.
+    const pinned = g.heroY >= 0 && g.titleBottom > 0 && g.offset >= g.heroY + g.titleBottom;
+    if (g.pinned !== pinned) {
+      g.pinned = pinned;
+      setShowArticleTitle(pinned);
+    }
+  }
   const headerTopInset = Math.max(insets.top, 12);
   const ageInMonths = getAgeInMonthsFromBirthDate(selectedPet?.birthDate ?? null);
   const petTheme = NEUTRAL_UI_PALETTE;
@@ -146,7 +161,16 @@ export default function GuideDetailScreen() {
           <Feather name="chevron-left" size={APP_HEADER.backIconSize} color="#102033" />
         </TouchableOpacity>
         <View style={styles.topBarTitleWrap}>
-          <AppText styleOverridesPreset preset="unifiedTitle" style={[styles.headerTitle, APP_HEADER.title]}>집사 꿀팁 가이드</AppText>
+          <AppText
+            accessibilityRole="header"
+            numberOfLines={1}
+            ellipsizeMode="tail"
+            styleOverridesPreset
+            preset="unifiedTitle"
+            style={[styles.headerTitle, APP_HEADER.title]}
+          >
+            {showArticleTitle && guideState.guide ? guideState.guide.title : '집사 꿀팁 가이드'}
+          </AppText>
         </View>
         <View style={styles.headerSideSlot} />
       </AppHeaderLayout>
@@ -172,26 +196,44 @@ export default function GuideDetailScreen() {
         </View>
       ) : (
         <ScrollView
+          scrollEventThrottle={16}
+          onScroll={({ nativeEvent }) => {
+            geometry.current.offset = nativeEvent.contentOffset.y;
+            updateHeader();
+          }}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={styles.scrollContent}
         >
-          <View style={styles.heroCard}>
-            <View style={styles.heroBody}>
-              <View style={styles.categoryBadge}>
-                <AppText
-                  preset="unifiedMeta"
-                  style={[styles.categoryText, { color: petTheme.primary }]}
-                >
-                  {getGuideCategoryLabel(guideState.guide.category)}
-                </AppText>
-              </View>
+          <View
+            testID="guide-detail-intro"
+            style={[styles.heroCard, styles.heroBody]}
+            onLayout={({ nativeEvent }) => {
+              geometry.current.heroY = nativeEvent.layout.y;
+              updateHeader();
+            }}
+          >
+            <View style={styles.categoryBadge}>
+              <AppText
+                preset="unifiedMeta"
+                style={[styles.categoryText, { color: petTheme.primary }]}
+              >
+                {getGuideCategoryLabel(guideState.guide.category)}
+              </AppText>
+            </View>
+            <View
+              testID="guide-detail-body-title"
+              onLayout={({ nativeEvent: { layout } }) => {
+                geometry.current.titleBottom = layout.y + layout.height;
+                updateHeader();
+              }}
+            >
               <MarkerText accessibilityRole="header" preset="unifiedTitle" styleOverridesPreset style={styles.title}>
                 {`“${guideState.guide.title}”`}
               </MarkerText>
-              <AppText preset="unifiedBody" style={styles.summary}>
-                {guideState.guide.summary}
-              </AppText>
             </View>
+            <AppText preset="unifiedBody" style={styles.summary}>
+              {guideState.guide.summary}
+            </AppText>
           </View>
 
           <View style={styles.metaCard}>
