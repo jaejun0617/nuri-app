@@ -1,5 +1,7 @@
 # NURI 통합 마감 수락 원장
 
+**2026-11-27 · D 일반 후보 내부 동결:** `9a03bf0`에서 공식 주소 실붙여넣기·대상 경고 비재발·탭 터치를 수락했다. 후속 `dcdff87`도 S25 보존 설치, 같은 경로 및 320·360·384·412dp 문의 배지 영향 검증을 수락한다. 개발 792/792의 신규 칸은 0. 홈 제보는 콜드 스타트에서 미재현이며 원인 수정 PASS가 아니다. [후보·실측·재사용 범위](../reports/NURI-APP-work-plan-2026-11-27.md).
+
 **2026-11-15 출시 범위 변경:** [D 역사 원장과 v1.0 튜토리얼 제외 대응](../reports/NURI-15-notices-support-subscription-handoff-2026-11-14.md#nuri15-tutorial-retired)을 연결한다. 기존 튜토리얼 증거는 당시 제품의 이력이고 v1.0의 출시 수락 항목이 아니다. 기존 통합 4/7, OS 13/13·기록 4/4 내부 QA 동결, 두 보류, P0 PARTIAL·SU-544458, C0 미동결과 STORE HOLD는 그대로다.
 
 <a id="u2-anniversary-memorial-20261115-po-receipt"></a>
